@@ -8,6 +8,8 @@
   "use strict";
 
   const TOKEN_KEY = "archx_token";
+  const THEME_KEY = "archx_theme";
+  const RAIL_KEY = "archx_rail";
   const state = {
     token: null,
     view: "status",
@@ -15,7 +17,43 @@
     researchId: null,
     taskId: null,
     authRequired: true,
+    status: null,
   };
+
+  /* What each mode is for. The shell is the same everywhere - the modes differ in the
+   * tools they expose, and those tools are listed in the header from live data. */
+  const VIEWS = {
+    chat: {
+      title: "Chat",
+      sub: "one turn at a time · every reply is a task, with the model that produced it",
+      tools: ["model", "memory", "tasks"],
+    },
+    research: {
+      title: "Research",
+      sub: "a plan that names its author, sources it actually read, citations it re-checks",
+      tools: ["net.fetch", "sources", "citations"],
+    },
+    learning: {
+      title: "Learning",
+      sub: "goals with criteria, a hint ladder, and a schedule that shows its arithmetic",
+      tools: ["grading", "hints", "schedule"],
+    },
+    search: { title: "Search", sub: "one query across every source this home can see", tools: ["sources", "files"] },
+    tasks: { title: "Tasks", sub: "what ran, in order, with artifacts and a reproduction record", tools: ["history", "artifacts"] },
+    jobs: { title: "Jobs", sub: "durable queued work: attempts, deadlines, and a real runner", tools: ["queued", "running"] },
+    access: { title: "Access", sub: "the permission centre: requests, decisions, grants", tools: ["approvals", "grants"] },
+    memory: { title: "Memory", sub: "what Archx keeps, and why it kept it", tools: ["stored", "duplicates"] },
+    models: { title: "Models", sub: "the catalogue, including what this build cannot run - and why", tools: ["usable"] },
+    status: { title: "Status", sub: "what this home is, and what is blocked", tools: ["schema", "home"] },
+  };
+
+  function remember(key, value) {
+    try { window.localStorage.setItem(key, value); } catch (error) { /* private mode: fine */ }
+  }
+
+  function recall(key) {
+    try { return window.localStorage.getItem(key); } catch (error) { return null; }
+  }
 
   // ---------------------------------------------------------------- helpers
   function el(tag, props, children) {
@@ -93,6 +131,76 @@
     clear(node).append(el("div", { class: "error", text: error.message || String(error) }));
   }
 
+  // ------------------------------------------------------------------ tools
+  function toolChip(label, value, kind) {
+    return el("span", { class: "tool " + (kind || ""), text: label + ": " + value });
+  }
+
+  function renderTools(view) {
+    const box = clear(document.getElementById("mode-tools"));
+    const data = state.status || {};
+    const meta = VIEWS[view] || { tools: [] };
+    const chips = [];
+    const modelsReady = data.models_usable === undefined ? null : data.models_usable;
+    for (const name of meta.tools) {
+      if (name === "model") {
+        chips.push(modelsReady === null ? toolChip("model", "unknown")
+          : modelsReady ? toolChip("model", modelsReady + " usable", "on") : toolChip("model", "none usable", "off"));
+      } else if (name === "memory") {
+        chips.push(toolChip("memories", text(data.memories)));
+      } else if (name === "tasks" || name === "history") {
+        chips.push(toolChip(name === "tasks" ? "tasks" : "task history", text(data.tasks)));
+      } else if (name === "net.fetch") {
+        chips.push(data.net_fetch_granted ? toolChip("net.fetch", "granted", "on") : toolChip("net.fetch", "not granted", "off"));
+      } else if (name === "sources") {
+        chips.push(toolChip("sources", view === "research" ? "local docs + URLs" : "9 sources"));
+      } else if (name === "citations") {
+        chips.push(toolChip("citations", "re-checked"));
+      } else if (name === "grading") {
+        chips.push(toolChip("grading", "exact or self"));
+      } else if (name === "hints") {
+        chips.push(toolChip("hints", "one level at a time"));
+      } else if (name === "schedule") {
+        chips.push(toolChip("schedule", "interval · ease · why"));
+      } else if (name === "files") {
+        chips.push(toolChip("files", "opt-in"));
+      } else if (name === "artifacts") {
+        chips.push(toolChip("artifacts", "checksummed"));
+      } else if (name === "queued") {
+        chips.push(toolChip("queued", text((data.jobs && data.jobs.queued) || 0)));
+      } else if (name === "running") {
+        chips.push(toolChip("running", text((data.jobs && data.jobs.running) || 0)));
+      } else if (name === "approvals") {
+        chips.push(data.approvals_pending ? toolChip("approvals", data.approvals_pending + " pending", "off") : toolChip("approvals", "none", "on"));
+      } else if (name === "grants") {
+        chips.push(toolChip("grants", "scoped"));
+      } else if (name === "stored") {
+        chips.push(toolChip("stored", text(data.memories)));
+      } else if (name === "duplicates") {
+        chips.push(toolChip("duplicates", "refused, not stored"));
+      } else if (name === "usable") {
+        chips.push(toolChip("usable", text(modelsReady) + "/" + text(data.models_total)));
+      } else if (name === "schema") {
+        chips.push(toolChip("schema", "v" + text(data.schema_version)));
+      } else if (name === "home") {
+        chips.push(toolChip("home", "this device"));
+      }
+    }
+    for (const chip of chips) box.append(chip);
+  }
+
+  let statusPending = null;
+  async function ensureStatus() {
+    if (state.status) return state.status;
+    if (!statusPending) {
+      statusPending = api("GET", "/api/status")
+        .then((data) => { state.status = data; return data; })
+        .catch(() => null)
+        .finally(() => { statusPending = null; });
+    }
+    return statusPending;
+  }
+
   // ------------------------------------------------------------------- gate
   const gate = document.getElementById("gate");
   const views = document.getElementById("views");
@@ -100,6 +208,7 @@
   function showGate() {
     gate.hidden = false;
     views.hidden = true;
+    document.body.classList.add("locked");
     const conn = document.getElementById("conn");
     conn.className = "pill bad";
     conn.textContent = "locked";
@@ -108,6 +217,7 @@
   function showApp() {
     gate.hidden = true;
     views.hidden = false;
+    document.body.classList.remove("locked");
     const conn = document.getElementById("conn");
     conn.className = "pill ok";
     conn.textContent = "connected";
@@ -141,10 +251,21 @@
 
   function activate(view) {
     state.view = view;
-    for (const button of tabButtons) button.classList.toggle("active", button.dataset.view === view);
+    const meta = VIEWS[view] || { title: view, sub: "" };
+    document.body.dataset.view = view;
+    document.getElementById("page-title").textContent = meta.title;
+    document.getElementById("page-sub").textContent = meta.sub;
+    for (const button of tabButtons) {
+      const active = button.dataset.view === view;
+      button.classList.toggle("active", active);
+      if (active) button.setAttribute("aria-current", "page");
+      else button.removeAttribute("aria-current");
+    }
     for (const section of document.querySelectorAll(".view")) {
       section.hidden = section.id !== "view-" + view;
     }
+    renderTools(view);
+    ensureStatus().then(() => { if (state.view === view) renderTools(view); });
   }
 
   const loaders = {};
@@ -161,6 +282,7 @@
   // ----------------------------------------------------------------- status
   loaders.status = async () => {
     const data = await api("GET", "/api/status");
+    state.status = data;
     document.getElementById("version").textContent = "v" + data.version;
     const cards = clear(document.getElementById("status-cards"));
     cards.append(
@@ -190,6 +312,7 @@
     for (const warning of data.warnings || []) hints.push(["Workspace warning", warning]);
     if (!hints.length) blocked.append(el("p", { class: "muted", text: "Nothing is blocked. Every control in this GUI will work." }));
     else blocked.append(table(["what", "next"], hints));
+    renderTools(state.view);
   };
 
   document.getElementById("status-refresh").addEventListener("click", () => {
@@ -214,11 +337,29 @@
 
   const log = () => document.getElementById("chat-log");
 
+  function nearBottom(box) {
+    return box.scrollHeight - box.scrollTop - box.clientHeight < 140;
+  }
+
   function bubble(role, content, meta) {
+    const box = log();
+    const stick = nearBottom(box);
     const node = el("div", { class: "msg " + role }, [content]);
     if (meta) node.append(el("span", { class: "meta", text: meta }));
-    log().append(node);
-    log().scrollTop = log().scrollHeight;
+    box.append(node);
+    if (stick) box.scrollTop = box.scrollHeight;
+    return node;
+  }
+
+  /* A waiting reply shows motion, not a fake percentage. */
+  function thinkingBubble() {
+    const box = log();
+    const stick = nearBottom(box);
+    const node = el("div", { class: "msg assistant" }, [
+      el("span", { class: "thinking" }, [el("i"), el("i"), el("i")]),
+    ]);
+    box.append(node);
+    if (stick) box.scrollTop = box.scrollHeight;
     return node;
   }
 
@@ -265,8 +406,7 @@
     chatInput.value = "";
     const button = chatForm.querySelector("button[type=submit]");
     button.disabled = true;
-    bubble("assistant", "…");
-    const pending = log().lastChild;
+    const pending = thinkingBubble();
     try {
       const reply = await api("POST", "/api/chat", { message, conversation_id: state.conversationId });
       state.conversationId = reply.conversation_id;
@@ -797,6 +937,36 @@
   };
 
   document.getElementById("models-refresh").addEventListener("click", () => loaders.models().catch((error) => report(document.getElementById("models-list"), error)));
+
+  // -------------------------------------------------------- chrome (theme, rail)
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    document.getElementById("theme-toggle").setAttribute(
+      "title", theme === "dark" ? "Switch to the light theme" : "Switch to the dark theme");
+    remember(THEME_KEY, theme);
+  }
+
+  const prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+  applyTheme(recall(THEME_KEY) || (prefersLight ? "light" : "dark"));
+
+  document.getElementById("theme-toggle").addEventListener("click", () => {
+    applyTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
+  });
+
+  const appShell = document.getElementById("app");
+  if (recall(RAIL_KEY) === "compact") appShell.classList.add("compact");
+  document.getElementById("rail-toggle").addEventListener("click", () => {
+    appShell.classList.toggle("compact");
+    remember(RAIL_KEY, appShell.classList.contains("compact") ? "compact" : "full");
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+      event.preventDefault();
+      loadView("search");
+      document.getElementById("search-query").focus();
+    }
+  });
 
   // ------------------------------------------------------------------ start
   function readTokenFromUrl() {

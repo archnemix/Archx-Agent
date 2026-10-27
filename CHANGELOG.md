@@ -32,6 +32,22 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
   (89 checks on a fresh home, half through a real socket).
 
 ### Changed
+- **The GUI was rebuilt around modes.** A left rail groups the panels into Modes (Chat,
+  Research, Learning), Work (Search, Tasks, Jobs) and Control (Access, Memory, Models,
+  Status); the header names the mode, says what it is for, and lists the tools *that mode*
+  has from live data (`net.fetch: not granted`, `model: none usable`, `grading: exact or
+  self`). Same shell everywhere, different controls - which is what makes the modes
+  comprehensible rather than ten tabs.
+- A tokenised stylesheet: four surface levels, three text levels, semantic colours, one
+  accent per mode; a dark palette and a light palette (`data-theme`), following the system
+  preference on first visit and remembering the choice.
+- Chat is a two-pane workspace with a docked composer (Ctrl+Enter sends) that shows a
+  thinking indicator instead of a fake percentage, and only auto-scrolls when you were
+  already at the bottom. `Ctrl/Cmd+K` jumps to search. The sidebar collapses to an icon rail
+  and stays collapsed.
+- `docs/MODES.md`: the forty milestones, every mode's purpose and controls, and an explicit
+  account of what "done" does **not** mean for Research (no web search, no crawl, no
+  experiments) and Learning (no model grading, no media).
 - The hint refusal no longer points at a command that did not exist.
 - The due query now returns something already seen and due before brand-new material.
 - `McpStdioClient` waits for a child's real exit status before saying the connection closed,
@@ -60,7 +76,7 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
   `gui routes`. A non-loopback bind without `--allow-remote` exits 2.
 - Config: `gui.host`, `gui.port`, `gui.allow_remote`, `gui.open_browser`,
   `gui.session_minutes`, `gui.max_body_bytes`.
-- `docs/GUI.md`, `tests/test_gui_m29.py` (81 tests), `scripts/acceptance_m29.sh` (46 checks
+- `docs/GUI.md`, `tests/test_gui_m29.py` (85 tests), `scripts/acceptance_m29.sh` (53 checks
   over a real socket, including an approval and a real web-research run).
 
 ### Changed

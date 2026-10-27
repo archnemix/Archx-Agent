@@ -168,7 +168,9 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 * [GAPS.md](GAPS.md) - known limitations, honestly stated
 * [THINKING.md](THINKING.md) - decision log with reasons
 * [CHANGELOG.md](CHANGELOG.md)
-* [docs/GUI.md](docs/GUI.md) - the local web GUI, its security model and every endpoint
+* [docs/MODES.md](docs/MODES.md) - every mode and milestone, what each is for, and what is honestly built
+* [docs/GUI.md](docs/GUI.md) - the local web GUI, its layout, themes, security model and every endpoint
+* [docs/LEARNING.md](docs/LEARNING.md) - goals, items, hint ladders, grading and the schedule
 * [docs/RESEARCH.md](docs/RESEARCH.md) - research runs, evidence rules, citations, `net.fetch` limits
 * [docs/SIMPLE_MODE.md](docs/SIMPLE_MODE.md) - unified search, its ranking, and every Simple Mode intent
 * [docs/AGENTS.md](docs/AGENTS.md) - workflow definitions, step kinds, approval gates and budgets

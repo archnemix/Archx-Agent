@@ -51,6 +51,42 @@ the panel is not drawn: there is no "Settings" tab that pretends, no disabled "T
 and no fake progress bar. The one thing a panel does when it cannot act is *say why*, with
 the command that would fix it - the same refusals as the CLI, in the same words.
 
+## Layout, theme and modes
+
+The page is one shell with three parts: a left **rail** (Modes · Work · Control), a **header**
+that names the current mode, says what it is for and lists the tools that mode actually has,
+and a **work area**. The rail collapses to an icon strip (the button in its top corner, or
+automatically under 1180px) and remembers that choice; under 760px it becomes a horizontal
+strip. Nothing else moves: the modes differ in instruments, not in furniture.
+
+| Group | Panels |
+|-------|--------|
+| **Modes** | Chat (composer, conversations, model chip), Research (question, where to look, seed URLs, report, sources, verification), Learning (goals, items, hints, schedule, sessions) |
+| **Work** | Search (one query, nine sources), Tasks (timeline, artifacts, reproduction), Jobs (queue, pause/resume/cancel/retry, run one) |
+| **Control** | Access (approvals, grants, capabilities), Memory (add/list with the duplicate check), Models (why each one cannot run), Status (counts, schema, what is blocked) |
+
+The tool strip in the header is drawn from live data, so it cannot flatter: `model: none
+usable` and `net.fetch: not granted` are the app telling you what it can do right now. It is
+also where the modes stop looking identical — Chat spends tokens, Research spends network
+grants, Learning spends neither.
+
+**Colour is tokenised.** Four surface levels, three text levels, semantic ok/warn/bad and one
+accent per mode (`--mode-accent` is re-bound by `body[data-view=…]`). A dark palette is the
+default, a light palette is one attribute away (`data-theme`), the first visit follows
+`prefers-color-scheme`, and the toggle in the rail foot remembers your choice. Text is
+off-white on near-black rather than pure white on pure black, for the contrast that survives a
+long session.
+
+**Keyboard.** `Ctrl/Cmd+Enter` sends in the composer; `Ctrl/Cmd+K` jumps to Search and focuses
+the query. Every control is a real `<button>`, `<input>` or `<select>` with a visible focus
+ring, and the rail marks the current mode with `aria-current`.
+
+**No build step still holds.** Three files — `index.html`, `style.css`, `app.js` — served from
+package data by exact name, no framework, no CDN, no inline handler, no `style=` attribute
+(so the CSP stays `'self'` with no `unsafe-inline`). `tests/test_gui_m29.py` fails if the page
+uses a class with no rule behind it, if a mode has no title/tools entry, or if a `-refresh`
+button has no listener.
+
 ## Security model
 
 The GUI is a network listener in a local-first app, so it is treated as one.

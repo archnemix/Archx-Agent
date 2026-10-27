@@ -762,6 +762,25 @@ telling the learner to edit the deck. A model plan follows the M28 policy: JSON 
 field validated, fallback with the failure named. Inventing an answer key from a model is how
 a study tool starts teaching wrong things confidently.
 
+**D130. Modes are a shell plus a toolset, not ten tabs.** Ten equally-weighted tabs made
+the product look like a settings page with a chat box bolted on: nothing told you that
+Research can only read URLs you give it while Chat can pick a model. The rail groups panels by
+what you are doing, and the header shows the current mode's tools from live data
+(`net.fetch: not granted`, `model: none usable`, `grading: exact or self`). Same furniture,
+different instruments - and the differences are stated rather than discovered.
+
+**D131. A theme is a token swap, not a second stylesheet.** Four surface levels, three text
+levels and one accent per mode, each with a dark and a light value; the toggle flips
+`data-theme` and nothing else. Off-white text on near-black surfaces (not #fff on #000), which
+is the difference between a palette that survives a long session and one that glares. The
+first visit follows the system preference and the choice is remembered.
+
+**D132. Honesty has a layout.** Research Mode is marked `partial`, not done: it reads local
+documents and the URLs you paste, and no search engine, crawler or experiment runner exists
+behind it. That belongs in `docs/MODES.md` and in the empty space where a search box would be,
+not in a disabled button that implies "coming soon". A mode that cannot do what its name
+suggests says so on its own page.
+
 ## Storage and config
 
 **D31. Unknown config keys are errors.**

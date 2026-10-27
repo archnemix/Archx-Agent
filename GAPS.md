@@ -26,6 +26,13 @@ voice/multimodal, dataset preparation, training, remote compute, Blender/3D, aut
 release hardening. M17-M30 are implemented and verified (see [PROGRESS.md](PROGRESS.md)). The database schema already reserves tables for them
 (versions 5-8) so they can be added without renumbering.
 
+## Per-mode limits
+
+`docs/MODES.md` lists every mode with what it is for and what is honestly built. In short:
+Research Mode has **no web search, no crawler and no experiment runner** (it reads local
+documents and the URLs you paste), and Learning Mode has **no model grading and no media
+items**. Both are marked `partial` in PLAN.md rather than `done`.
+
 ## Known limitations inside implemented features
 * **Learning Mode does not grade prose.** An answer is marked correct only by a normalised
   comparison against the expected answer the learner wrote, or by the learner's own 1-5

@@ -610,6 +610,53 @@ class TestAssets:
         sections = {name[5:] for name in ids if name.startswith("view-")}
         assert views == sections, "every tab must have a section and every section a tab"
 
+    def test_every_class_the_page_uses_is_styled(self):
+        """A class with no rule is a control that looks like text: the page must not ship one."""
+        import re
+
+        css = (ASSETS / "style.css").read_text()
+        html = (ASSETS / "index.html").read_text()
+        script = (ASSETS / "app.js").read_text()
+        declared = set(re.findall(r"\.([a-zA-Z][\w-]*)", css))
+        used: set[str] = set()
+        for blob in (html, script):
+            for attribute in re.findall(r'class="([^"]+)"', blob):
+                used |= set(attribute.split())
+            for attribute in re.findall(r'class: "([^"]+)"', blob):
+                used |= set(attribute.split())
+        used |= {"ok", "warn", "bad", "info", "user", "assistant"}
+        used -= {"active", "role", "kind"}
+        assert not (used - declared), f"unstyled classes: {sorted(used - declared)}"
+
+    def test_the_shell_describes_every_view_and_its_tools(self):
+        import re
+
+        html = (ASSETS / "index.html").read_text()
+        script = (ASSETS / "app.js").read_text()
+        views = set(re.findall(r'data-view="([^"]+)"', html))
+        block = script.split("const VIEWS = {", 1)[1].split("\n  };", 1)[0]
+        described = set(re.findall(r"^    ([a-z]+): \{", block, re.M))
+        assert views == described, f"undescribed views: {sorted(views - described)}"
+        assert "tools: [" in block, "each mode must declare the tools it exposes"
+        assert 'id="mode-tools"' in html and "renderTools" in script
+
+    def test_the_page_has_a_theme_switch_and_both_palettes(self):
+        html = (ASSETS / "index.html").read_text()
+        css = (ASSETS / "style.css").read_text()
+        script = (ASSETS / "app.js").read_text()
+        assert 'id="theme-toggle"' in html
+        assert 'getElementById("theme-toggle").addEventListener' in script
+        assert ':root[data-theme="light"]' in css and ':root[data-theme="dark"]' in css
+        assert "prefers-color-scheme" in script, "the first visit follows the system"
+
+    def test_the_rail_collapses_and_stays_collapsed(self):
+        html = (ASSETS / "index.html").read_text()
+        css = (ASSETS / "style.css").read_text()
+        script = (ASSETS / "app.js").read_text()
+        assert 'id="rail-toggle"' in html and 'getElementById("rail-toggle").addEventListener' in script
+        assert ".app.compact" in css and ".app.compact .tab span" in css
+        assert "RAIL_KEY" in script and "localStorage" in script
+
     def test_the_page_loads_nothing_from_anywhere_else(self):
         """No CDN, no font host, no remote script: the GUI works with the network unplugged.
 

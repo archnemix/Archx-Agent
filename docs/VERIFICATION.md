@@ -3170,6 +3170,23 @@ every claim below was made by `curl` against the running GUI. Script:
 `scripts/acceptance_m29.sh`. It exits non-zero if any check fails, and stops if the server
 never prints its token.
 
+> The transcript below is the original M29 run (46 checks). The interface was later rebuilt
+> around modes with a tokenised stylesheet; the script grew to **53 checks**, the seven new
+> ones asserting the rail, its three groups, the mode tool strip, the theme switch and both
+> palettes. A re-run of the current script on a fresh home (`/tmp/m29-ui2`) passes 53/53:
+>
+> ```text
+> [ok]   the page is a rail of modes, not a wall of tabs = 1
+> [ok]   the rail groups modes, work and control = 3
+> [ok]   the header shows the current mode's tools = 1
+> [ok]   the theme switch is in the page = 1
+> [ok]   the stylesheet carries a dark palette = 1
+> [ok]   and a light one behind the same tokens = 1
+> [ok]   each mode has its own accent = yes
+>
+> M29 acceptance: 53 checks passed
+> ```
+
 ```text
 ### the GUI starts, prints its token, and answers only with it
 Archx GUI on http://127.0.0.1:47267/
@@ -3443,5 +3460,5 @@ $ .venv/bin/python -m pytest tests/test_learning_m30.py -q
 121 passed
 
 $ .venv/bin/python -m pytest -q
-1105 passed
+1109 passed
 ```
