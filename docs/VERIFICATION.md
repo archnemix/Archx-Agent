@@ -3318,13 +3318,13 @@ ok   | the port is closed, not orphaned | 000
 
 ## M30 acceptance transcript
 
-Installed console script, a fresh home (`/tmp/m30-acc6`, schema v19), and - from the GUI
-section onward - a real HTTP socket. Script: `scripts/acceptance_m30.sh` (85 checks); it exits
+Installed console script, a fresh home (`/tmp/m30-acc7`, schema v19), and - from the GUI
+section onward - a real HTTP socket. Script: `scripts/acceptance_m30.sh` (89 checks); it exits
 non-zero if any check fails. Table output and JSON dumps from the CLI are omitted; every
-`[ok]` line below is verbatim, and the run ends with `M30 acceptance: 85 checks passed`.
+`[ok]` line below is verbatim, and the run ends with `M30 acceptance: 89 checks passed`.
 
 ```text
-M30 acceptance on /tmp/m30-acc6
+M30 acceptance on /tmp/m30-acc7
 ### a fresh home knows about learning
 [ok]   the build is M30 = 0.30.0
 [ok]   the schema has been migrated to v19 for learning = 19
@@ -3346,6 +3346,11 @@ $ archx-agent learning goal list
 [ok]   next counts what else is due = True
 [ok]   next explains itself = True
 [ok]   the reason is about the schedule, not a guess = True
+### the question can be shown without its answer
+[ok]   ask names the same item = li_0001m5ynxa73000000006caecdfc67a00548
+[ok]   ask withholds the answer key = True
+[ok]   ask withholds the ladder = True
+[ok]   ask keeps the reason and the count = True
 ### a hint before an attempt is refused, not sold
 [ok]   the ladder is refused before trying = 3
 [ok]   the refusal is a record, not a crash = 1
@@ -3428,15 +3433,15 @@ $ archx-agent learning goal list
 ### stopping the server closes the port
 [ok]   the port is closed, not orphaned = 000
 
-M30 acceptance: 85 checks passed
+M30 acceptance: 89 checks passed
 ```
 
 ### The unit suite for this milestone
 
 ```text
 $ .venv/bin/python -m pytest tests/test_learning_m30.py -q
-117 passed
+121 passed
 
 $ .venv/bin/python -m pytest -q
-1101 passed
+1105 passed
 ```

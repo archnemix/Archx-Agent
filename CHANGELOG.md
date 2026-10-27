@@ -28,8 +28,8 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 - Config: `learning.active_goal_limit`, `learning.try_first`, `learning.daily_review_limit`,
   `learning.max_hints`, `learning.mastery_streak`, `learning.start_ease`, `learning.min_ease`,
   `learning.max_plan_items`.
-- `docs/LEARNING.md`, `tests/test_learning_m30.py` (117 tests), `scripts/acceptance_m30.sh`
-  (85 checks on a fresh home, half through a real socket).
+- `docs/LEARNING.md`, `tests/test_learning_m30.py` (121 tests), `scripts/acceptance_m30.sh`
+  (89 checks on a fresh home, half through a real socket).
 
 ### Changed
 - The hint refusal no longer points at a command that did not exist.

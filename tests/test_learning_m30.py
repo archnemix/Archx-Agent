@@ -545,6 +545,29 @@ class TestNext:
 # --------------------------------------------------------------------------
 # planning
 # --------------------------------------------------------------------------
+class TestAsk:
+    def test_ask_removes_the_answer_and_the_ladder(self, manager, goal, tutor):
+        item = add(manager, goal, expected="WAL", hints=["a nudge"], explanation="because")
+        payload = tutor.ask(goal.id)
+        blob = json.dumps(payload)
+        assert payload["item"]["id"] == item.id
+        assert "expected" not in payload["item"]
+        assert "hints" not in payload["item"] and "explanation" not in payload["item"]
+        assert "WAL" not in blob and "a nudge" not in blob and "because" not in blob
+
+    def test_ask_keeps_the_reason_and_the_count(self, manager, goal, tutor):
+        add(manager, goal, expected="yes", hints=["one", "two"])
+        payload = tutor.ask(goal.id)
+        assert payload["why"] and payload["due_count"] == 1
+        assert payload["item"]["hint_count"] == 2
+
+    def test_ask_with_nothing_to_study_is_the_same_refusal(self, manager, goal, tutor):
+        item = add(manager, goal, expected="yes")
+        tutor.answer(item.id, "yes")
+        with pytest.raises(NothingToStudy):
+            tutor.ask(goal.id)
+
+
 class TestPlan:
     def test_without_a_model_the_plan_is_checkpoints_of_your_own_goal(self, manager, goal, tutor):
         outcome = tutor.plan(goal.id, use_model=False)
@@ -736,6 +759,17 @@ class TestCli:
         cli(tmp_path, "learning", "answer", item, "answer")
         allowed = cli(tmp_path, "learning", "hint", item)
         assert allowed.returncode == 0 and "first nudge" in allowed.stdout
+
+    def test_ask_shows_the_question_without_the_answer(self, tmp_path):
+        cli(tmp_path, "init")
+        created = cli(tmp_path, "learning", "goal", "create", "Rust ownership")
+        goal_id = created.stdout.split()[2]
+        cli(tmp_path, "learning", "item", "add", goal_id, "What is a borrow error?",
+            "--expected", "a loan that outlives its owner")
+        asked = cli(tmp_path, "learning", "ask", goal_id)
+        assert asked.returncode == 0
+        assert "What is a borrow error?" in asked.stdout
+        assert "a loan that outlives its owner" not in asked.stdout
 
     def test_next_with_nothing_to_study_exits_three(self, tmp_path):
         cli(tmp_path, "init")

@@ -845,6 +845,8 @@ def build_parser() -> argparse.ArgumentParser:
     ln_plan.add_argument("--model")
     ln_next = ln_sub.add_parser("next", help="what to study now, and why")
     ln_next.add_argument("goal")
+    ln_ask = ln_sub.add_parser("ask", help="the next question, with the answer and hints removed")
+    ln_ask.add_argument("goal")
     ln_hint = ln_sub.add_parser("hint", help="reveal one hint (refused until you have tried)")
     ln_hint.add_argument("item")
     ln_hint.add_argument("--level", type=int, default=1)
@@ -3211,6 +3213,26 @@ def cmd_learning(args: argparse.Namespace) -> int:
             emit("")
             emit(f"next: archx-agent learning answer {item['id']} \"...\""
                  + ("   (or --self-rate 1-5)" if not item["expected"] else ""))
+            return EXIT_OK
+
+        if command == "ask":
+            try:
+                payload = tutor.ask(args.goal)
+            except NothingToStudy as exc:
+                if args.json:
+                    emit_json({"nothing_to_study": True, "message": exc.message})
+                else:
+                    emit(exc.message)
+                return EXIT_DEGRADED
+            if args.json:
+                emit_json(payload)
+                return EXIT_OK
+            item = payload["item"]
+            emit(item["prompt"])
+            emit(f"  item       {item['id']}")
+            emit(f"  why        {payload['why']}")
+            emit(f"  due now    {payload['due_count']}")
+            emit("  answer with `learning answer` - the answer key and the hint ladder are not shown here")
             return EXIT_OK
 
         if command == "hint":

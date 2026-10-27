@@ -95,6 +95,14 @@ check "next explains itself" "$(printf '%s' "$NEXT" | jq_ "bool(d['why'])")" "Tr
 check "the reason is about the schedule, not a guess" \
   "$(printf '%s' "$NEXT" | jq_ "'attempted' in d['why'] or 'never' in d['why'] or 'due' in d['why']")" "True"
 
+say "the question can be shown without its answer"
+ASK="$("$CLI" learning ask "$GOAL_ID" --json)"
+check "ask names the same item" "$(printf '%s' "$ASK" | jq_ "d['item']['id']")" "$ITEM_ID"
+check "ask withholds the answer key" "$(printf '%s' "$ASK" | jq_ "'expected' not in d['item']")" "True"
+check "ask withholds the ladder" "$(printf '%s' "$ASK" | jq_ "'hints' not in d['item']")" "True"
+check "ask keeps the reason and the count" \
+  "$(printf '%s' "$ASK" | jq_ "bool(d['why']) and d['due_count'] > 0")" "True"
+
 say "a hint before an attempt is refused, not sold"
 HINT_OUT="$("$CLI" learning hint "$ITEM_ID" --json 2>&1)"
 HINT_CODE=$?

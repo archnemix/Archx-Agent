@@ -30,7 +30,7 @@ not fully demonstrated · **not started**
 | **M27** | **Simple Mode and unified search** | **done** | `tests/test_search_m27.py` (42) + `tests/test_simple_m27.py` (67), `docs/SIMPLE_MODE.md`, `scripts/acceptance_m27.sh` (23 checks) |
 | **M28** | **Researcher Mode** | **done** | `tests/test_research_m28.py` (97), `docs/RESEARCH.md`, `scripts/acceptance_m28.sh` (30 checks incl. real HTTP and an approval) |
 | **M29** | **GUI core workflows** | **done** | `tests/test_gui_m29.py` (81), `docs/GUI.md`, `scripts/acceptance_m29.sh` (46 checks over a real socket) |
-| **M30** | **Learning Mode** | **done** | `tests/test_learning_m30.py` (117), `docs/LEARNING.md`, `scripts/acceptance_m30.sh` (85 checks) |
+| **M30** | **Learning Mode** | **done** | `tests/test_learning_m30.py` (121), `docs/LEARNING.md`, `scripts/acceptance_m30.sh` (89 checks) |
 
 | M31 | Coding workspace | next | - |
 | M32 | Experimental Mode | not started | - |

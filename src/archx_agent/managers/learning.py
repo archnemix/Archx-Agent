@@ -141,6 +141,11 @@ class LearningItem:
             return self.status == "new"
         return self.due_at <= (at or iso_now())
 
+    @property
+    def due(self) -> bool:
+        """Whether this item is due now - the same answer ``to_dict()`` publishes."""
+        return self.is_due()
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
