@@ -71,6 +71,28 @@ The header of every mode shows the tools *that mode* has, from live data — `ne
 not granted` in Research, `model: none usable` in Chat, `grading: exact or self` in
 Learning. That strip is the difference between the modes made visible.
 
+### 2.1 The modes that are asked for but not built
+
+The remaining milestones are modes, so they belong in the same inventory - with the work they
+were asked to do, and no button pretending they exist. Nothing below has code today.
+
+| # | Mode as asked | What it was asked to do | What exists to build it on |
+|---|---------------|-------------------------|----------------------------|
+| M31 | Coding workspace | edit, run and test code under the permission centre, with the runner recording every command | tool roots, `shell.run`, jobs, tasks, artifacts, reproduction |
+| M32 | Experimental Mode | run experiments, keep the parameters and results, compare runs | jobs, tasks, artifacts, versions, research sources |
+| M33 | Play Mode | games, simulations and sandboxed tinkering | tools + permission centre (nothing may escape a grant) |
+| M34 | Voice and multimodal | speech in and out, images, audio | none in this build: no microphone, no weights, no GPU |
+| M35 | Dataset preparation | collect, clean, split and version a corpus | versions, artifacts, tool roots, search |
+| M36 | Training and model modification | LoRA / fine-tune a model | none here: no weights and no GPU are reachable |
+| M37 | Remote compute | hand work to another machine portably | HTTP runtime, jobs, providers, consent records |
+| M38 | Blender and 3D workflows | script scenes through the tool layer | tools, jobs, artifacts |
+| M39 | Automations and scheduled tasks | triggers, watches, recurring work | scheduler, jobs, workflows |
+| M40 | Hardening and release | packaging, upgrade path, audits | migrations, backups, `doctor`, this acceptance corpus |
+
+Each of these follows the rule the built modes already follow: a mode is a shell plus a set of
+tools, and if the tools are not there the mode is not drawn. That is why the list above is
+prose in a document rather than ten greyed-out entries in the sidebar.
+
 ## 3. What "done" does not mean (the honest gaps)
 
 ### 3.1 Research Mode is marked `partial`, not done
@@ -120,7 +142,8 @@ than implied by a greyed-out button.
 
 ## 4. Where this leaves the roadmap
 
-Built: M01–M30 (with the two honest `partial`s above). Next: **M31 Coding workspace**, then
+Built: M01–M30 (with the two honest `partial`s above), plus the Research completion model
+(§3.1). Next: **M31 Coding workspace**, then
 M32 Experimental, M33 Play, M34 Voice — and the Research gaps in §3.1 are the first thing that
 should be repaired once M31 exists, because a browse loop needs the coding workspace's runner
 and the experimental mode's record to be worth anything.
