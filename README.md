@@ -168,6 +168,7 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 * [GAPS.md](GAPS.md) - known limitations, honestly stated
 * [THINKING.md](THINKING.md) - decision log with reasons
 * [CHANGELOG.md](CHANGELOG.md)
+* [scripts/seed_demo.sh](scripts/seed_demo.sh) - rebuild the demo home the live preview serves (after `bootstrap.sh`)
 * [docs/MODES.md](docs/MODES.md) - every mode and milestone, what each is for, and what is honestly built
 * [docs/GUI.md](docs/GUI.md) - the local web GUI, its layout, themes, security model and every endpoint
 * [docs/LEARNING.md](docs/LEARNING.md) - goals, items, hint ladders, grading and the schedule

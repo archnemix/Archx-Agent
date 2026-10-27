@@ -3,6 +3,14 @@
 All notable changes. Format loosely follows Keep a Changelog; versions track the
 milestone block rather than semantic-release cadence, because M01-M20 are one development series.
 
+## [Unreleased]
+
+### Added
+- `scripts/seed_demo.sh`: builds the preview workspace (`~/.archx-demo`) through the ordinary
+  CLI - a scripted model, one conversation, three memories, a learning goal with a hint
+  ladder and two attempts, and a queued job. Idempotent, never destructive, so a restored
+  sandbox can rebuild the demo home instead of losing it.
+
 ## [0.30.0] - M30 Learning Mode
 
 ### Added

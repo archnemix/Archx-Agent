@@ -51,6 +51,25 @@ the panel is not drawn: there is no "Settings" tab that pretends, no disabled "T
 and no fake progress bar. The one thing a panel does when it cannot act is *say why*, with
 the command that would fix it - the same refusals as the CLI, in the same words.
 
+## A demo home to look at
+
+The page is only interesting with something in it. `scripts/seed_demo.sh [home]` builds a
+throwaway workspace (`~/.archx-demo` by default) through the ordinary CLI: a scripted model,
+one conversation, three memories, a learning goal with an item ladder and two attempts, and a
+queued job. It never deletes an existing home and skips whatever is already there, so it is
+safe to re-run after a restore.
+
+```bash
+./scripts/bootstrap.sh                                   # the venv is not committed
+./scripts/seed_demo.sh                                   # ~/.archx-demo
+ARCHX_PATHS_HOME=~/.archx-demo ARCHX_ALLOW_SIMULATED=1 \
+  ./.venv/bin/archx-agent gui serve --host 0.0.0.0 --allow-remote --token <token>
+```
+
+The scripted runtime performs no inference, and every reply it produces says `simulated` in
+the page and `[SIMULATED]` in the CLI. That is the point: a preview may be seeded, but it may
+not pretend the seed is a model.
+
 ## Layout, theme and modes
 
 The page is one shell with three parts: a left **rail** (Modes · Work · Control), a **header**
