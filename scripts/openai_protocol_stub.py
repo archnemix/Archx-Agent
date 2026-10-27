@@ -7,7 +7,11 @@ end to end in an environment with no model weights. Every reply is prefixed with
 ``[PROTOCOL-STUB]`` so it can never be mistaken for model output.
 
 Usage:
-    python scripts/openai_protocol_stub.py --port 8123 [--fail 401|429|500]
+    python scripts/openai_protocol_stub.py --port 8123 [--fail 401|429|500] [--reply-file FILE]
+
+``--reply-file`` makes the stub return the file's text as the assistant message. It
+exists so acceptance scripts can drive a *real* HTTP round trip through a canned reply
+(for example an agent plan) without pretending the stub is a model.
 """
 
 from __future__ import annotations
@@ -19,6 +23,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 class Handler(BaseHTTPRequestHandler):
     fail_status = 0
+    reply_text: str | None = None
 
     def _send(self, status: int, payload: dict | str) -> None:
         raw = (payload if isinstance(payload, str) else json.dumps(payload)).encode()
@@ -51,10 +56,13 @@ class Handler(BaseHTTPRequestHandler):
         messages = body.get("messages") or []
         last_user = next((m.get("content", "") for m in reversed(messages) if m.get("role") == "user"), "")
         prompt_chars = sum(len(str(m.get("content", ""))) for m in messages)
-        text = (
-            "[PROTOCOL-STUB] this reply came from a test HTTP server, not a model. "
-            f"you said: {last_user[:160]}"
-        )
+        if self.reply_text is not None:
+            text = self.reply_text
+        else:
+            text = (
+                "[PROTOCOL-STUB] this reply came from a test HTTP server, not a model. "
+                f"you said: {last_user[:160]}"
+            )
         self._send(
             200,
             {
@@ -82,8 +90,12 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8123)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--fail", type=int, default=0, help="always answer with this HTTP status")
+    parser.add_argument("--reply-file", default=None, help="return this file's text as the reply")
     args = parser.parse_args()
     Handler.fail_status = args.fail
+    if args.reply_file:
+        Handler.reply_text = open(args.reply_file, encoding="utf-8").read()
+
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     print(f"protocol stub listening on http://{args.host}:{args.port}/v1", flush=True)
     server.serve_forever()

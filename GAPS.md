@@ -99,6 +99,16 @@ Blender, automations, hardening. The database schema already reserves tables for
 * **Version content is stored twice** (the row and the replayable write journal); a 1 MiB
   version costs about 2 MiB.
 * **A task's `tools` list is what it used, not a plan.** Declared plans arrive with M25.
+* **Workflows run sequentially with no loops, branches or retries**, and a failed run is
+  re-run from the beginning (`agent rerun`), repeating earlier side effects. Durable
+  pause/resume and hard timeouts are M26.
+* **A checkpoint is an up-front gate**, not a mid-run pause; approving after a refusal means
+  starting a new run.
+* **Subagents share the parent's process** and budgets; they are separated by task and
+  conversation, not by process.
+* **Planner quality is model quality.** With no real model available here, the plan-parsing
+  paths are exercised against the protocol stub and the simulated double, which is stated
+  wherever it happens.
 * **No GUI yet**, so "primary workflow usable with no placeholder controls" (M29) is
   not demonstrated.
 * **Windows and macOS are untested.** Path containment tests cover symlinks and

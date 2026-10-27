@@ -163,6 +163,27 @@ before the request (`QuotaExhaustedError`); cost is only reported when the user 
 prices, and is labelled an estimate. Usage events are append-only per request, so a
 provider that starts failing shows up in the same table as the successful calls.
 
+## Agent workflows (M25)
+
+```
+workflows row (definition = data)            managers/workflows.py
+   proposed -> approved -> running -> completed | failed | cancelled
+workflow_steps rows (seq, kind, status, output, tokens)
+
+AgentRunner.run(id)                          application/agent.py
+   model step    -> ChatService.send(...)      routing, fallback, usage, trace, task
+   tool step     -> ToolManager.execute(...)   capability -> grant/approval -> run record
+   memory step   -> MemoryManager.search(...)
+   subagent step -> child task + conversation -> same executor (depth <= 2)
+   budgets between steps: agent.max_steps / max_wall_seconds / token_budget / max_subagents
+```
+
+A definition cannot grant anything: every machine-touching step names a registry tool, so
+the permission centre is unavoidable. A model-proposed plan is stored `proposed` and the
+runner refuses it until a human approves; checkpoints are checked before the run starts so a
+refusal cannot leave half a plan executed. The workflow row is the plan, the task row is the
+run, and the conversation is the transcript - there is no fourth record.
+
 ## Task history, versions and reproduction (M24)
 
 ```

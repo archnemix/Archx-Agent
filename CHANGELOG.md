@@ -3,6 +3,28 @@
 All notable changes. Format loosely follows Keep a Changelog; versions track the
 milestone block rather than semantic-release cadence, because M01-M20 are one development series.
 
+## [0.25.0] - M25 agent workflows
+
+### Added
+- Workflow definitions (`managers/workflows.py`): six step kinds (`model`, `tool`, `memory`,
+  `note`, `checkpoint`, `subagent`), strict validation, templating
+  (`{{goal}}`, `{{step.N.output}}`, `{{input.NAME}}`), ordered step records, and two built-in
+  user-directed templates.
+- `AgentRunner` (`application/agent.py`): sequential execution through the existing chat and
+  tool paths, budgets (steps, wall clock, tokens, subagents), cancellation re-read between
+  steps, an up-front checkpoint gate, and subagents as child tasks with their own
+  conversations.
+- AI-directed planning: a model proposes JSON, the plan is validated and stored `proposed`;
+  it cannot run without `--approve`, and approval grants no capability.
+- CLI: `agent plan|list|show|run|run-file|run-template|templates|approve|reject|cancel|rerun|steps|stats`.
+- Schema v16: `workflows`, `workflow_steps` (53 tables).
+- `docs/AGENTS.md`, acceptance script, and `--reply-file` on the protocol stub so a real
+  HTTP planning round trip can be demonstrated.
+
+### Notes
+- A failed run is terminal; `agent rerun` starts a new record instead of rewriting history.
+- Checkpoints are up-front gates; durable pause/resume is deferred to the scheduler (M26).
+
 ## [0.24.0] - M24 task history, content versions and reproduction
 
 ### Added

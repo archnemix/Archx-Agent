@@ -319,6 +319,60 @@ own API keys.
 description, so a grant or a request for it is refused with a real reason. Omitting it would
 make the refusal look like a typo.
 
+## Agent workflows (M25)
+
+**D78. A workflow is data; the executor is the only code.**
+No expression language, no embedded shell, no plugin code in a plan. Every machine-touching
+step names a registry tool, so the permission centre cannot be bypassed by writing a clever
+plan. The cost is expressiveness: loops and branches wait for the scheduler. The benefit is
+that a plan file from anywhere - a model, a colleague, the internet - is inert until a human
+approves it and the grants exist.
+
+**D79. Model steps reuse the chat path.**
+`ChatService.send` already handles routing, capability checks, fallback, context, usage and
+tracing. Reimplementing a "simple" model call for agent steps would have been a second
+answer to "which model, and with what budget?". The side effect is that each run gets a
+conversation - which is exactly the transcript a user wants to read afterwards.
+
+**D80. A proposed plan is stored, not executed, and approval is a separate act.**
+The model is a planner, never an authority. `agent plan` writes `proposed`; `agent run`
+refuses without `--approve`; approving a plan still grants no capability (demonstrated: the
+approved plan stops at `fs.write` with an approval id). Two independent decisions, because a
+plan that sounds reasonable is not consent to run anything.
+
+**D81. Checkpoints are checked before the run, not during it.**
+A mid-run pause would need durable resumption; without it, "approve and continue" would
+either repeat earlier steps (side effects) or resume from an in-memory position that a crash
+loses. Refusing up-front is honest and cheap. Durable pause/resume belongs with jobs (M26).
+
+**D82. Budgets are checked between steps, and they name themselves.**
+Thread-killing a model call is unsafe; between steps is the last clean point. Each limit
+(`agent.max_steps`, `agent.max_wall_seconds`, `agent.token_budget`, `agent.max_subagents`)
+produces an error that states the limit and what was reached, because "the workflow failed"
+without a number is unactionable.
+
+**D83. A failed run is terminal; `rerun` is a new record.**
+Turning a failed record into a successful one would erase the failure from history - the
+opposite of M24's purpose. `agent rerun` creates a new workflow with `replaces` in its
+metadata, so both attempts exist and the user consciously repeats any earlier side effects.
+
+**D84. Subagents get their own conversation, not just their own task.**
+Sharing the parent's conversation would let a long subagent answer crowd out the parent's
+context and make the transcript unreadable. Separate conversations keep contexts isolated;
+the task tree keeps the delegation visible; nesting is capped at two because each level
+multiplies cost.
+
+**D85. The planner refuses rather than repairs.**
+If the reply has no JSON, invalid JSON, an unknown field or an unregistered tool, nothing is
+stored and the planning task records why. A "helpful" repair would mean running a plan the
+model did not write, and the user did not read.
+
+**D86. Templates are rendered in two passes, on purpose.**
+`{{input.*}}` is substituted when a template becomes a workflow; `{{step.N.output}}` is
+substituted when that step runs (it does not exist yet at creation). The first pass therefore
+touches only input placeholders - replacing everything would fail on a step reference, and
+silently blanking it would run a prompt with a hole in it.
+
 ## Task history, versions and reproduction (M24)
 
 **D68. The task is the join key, not a new log.**

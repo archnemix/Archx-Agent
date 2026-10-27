@@ -25,8 +25,8 @@ not fully demonstrated · **not started**
 | **M22** | **Tool registry + Permission & Approval Center** | **done** | `tests/test_tools_m22.py` (78) + 13 CLI tests, `docs/TOOLS.md`, `scripts/acceptance_m22.sh` |
 | **M23** | **MCP client/server + extension foundation** | **done** | `tests/test_mcp_m23.py` (43) + `tests/test_extensions_m23.py` (35) + 9 CLI tests, `docs/MCP.md`, `scripts/acceptance_m23.sh` |
 | **M24** | **Task history, content versions, reproduction records** | **done** | `tests/test_tasks_m24.py` (75), `docs/TASKS.md`, `scripts/acceptance_m24.sh` incl. a real SIGKILL |
-| M25 | Agent workflow execution | next | - |
-| M26 | Resource and job scheduler | not started | - |
+| **M25** | **Agent workflows: user-directed and model-proposed, with subagents** | **done** | `tests/test_agent_m25.py` (60), `docs/AGENTS.md`, `scripts/acceptance_m25.sh` (real HTTP plan) |
+| M26 | Resource and job scheduler | next | - |
 | M27 | Simple Mode and search | not started | - |
 | M28 | Researcher Mode | not started | - |
 | M29 | GUI core workflows | not started | - |

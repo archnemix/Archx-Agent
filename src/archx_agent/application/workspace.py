@@ -62,6 +62,7 @@ from archx_agent.managers.reproduction import ReproductionManager
 from archx_agent.managers.tasks import TaskManager
 from archx_agent.managers.tools import ToolManager
 from archx_agent.managers.versions import VersionManager
+from archx_agent.managers.workflows import WorkflowManager
 from archx_agent.application.router import ModelRouter
 from archx_agent.managers.schema import MIGRATIONS, SCHEMA_VERSION
 
@@ -83,6 +84,7 @@ class Workspace:
     extensions: ExtensionManager | None = None
     versions: VersionManager | None = None
     tasks: TaskManager | None = None
+    workflows: WorkflowManager | None = None
     reproduction: ReproductionManager | None = None
     router: Any = None
     context: ContextManager | None = None
@@ -242,6 +244,13 @@ class Workspace:
             max_version_bytes=int(config.get("tasks.max_version_bytes")),
         )
         ws.tools.tasks = ws.tasks
+        ws.workflows = WorkflowManager(
+            store,
+            coordinator,
+            events=events,
+            config=config,
+            tools=ws.tools,
+        )
         ws.reproduction = ReproductionManager(
             store,
             coordinator,
@@ -337,6 +346,13 @@ class Workspace:
         self.store.close()
 
     @property
+    def agent(self):
+        """The workflow runner (imported lazily so the composition root stays acyclic)."""
+        from .agent import AgentRunner
+
+        return AgentRunner(self)
+
+    @property
     def chat(self):
         """The chat service (imported lazily to keep the composition root acyclic)."""
         from .chat import ChatService
@@ -367,6 +383,7 @@ class Workspace:
             "conversations": self.conversations.stats()["active_conversations"],
             "memories": self.memory.stats()["total_active"],
             "tasks": self.tasks.stats()["total"] if self.tasks is not None else 0,
+            "workflows": self.workflows.stats()["total"] if self.workflows is not None else 0,
             "warnings": self.warnings,
             "opened_at": iso_now(),
         }

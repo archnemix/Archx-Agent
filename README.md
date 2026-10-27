@@ -70,6 +70,11 @@ archx-agent tasks show <task>                # timeline, tool runs, artifacts
 archx-agent versions list artifact <path>    # content history with diffs and restores
 archx-agent tasks reproduce <task> --record  # exact / partial / impossible, with reasons
 
+# 7. let the agent carry out a plan (a model's plan needs approval)
+archx-agent agent run-file plan.json          # steps you wrote
+archx-agent agent plan "summarise the notes"  # a model proposes; nothing runs yet
+archx-agent agent show wf_... && archx-agent agent run wf_... --approve
+
 # 6. inspect everything that happened
 archx-agent trace list --limit 20
 archx-agent db check
@@ -104,9 +109,10 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 | Tools + permissions: declared capabilities, scoped grants, approvals, sandboxed fs/shell, run audit | verified (M22) |
 | MCP client (stdio + HTTP) and optional server; extensions with a trust boundary | verified (M23) |
 | Task history, content versions with diffs/restore, and evidence-based reproduction records | verified (M24) |
+| Agent workflows: user-written plans, model-proposed plans behind approval, subagents, budgets | verified (M25) |
 | Provider runtime boundary: llama.cpp in-process, OpenAI-compatible HTTP, tested error classification | verified for HTTP; llama.cpp needs the optional dependency and a model file |
 | CLI | verified end-to-end |
-| Agents, research, learning, play, media, datasets, training, remote compute, Blender, automations | **not built yet** (M25–M40, see PLAN.md) |
+| Agents, research, learning, play, media, datasets, training, remote compute, Blender, automations | **not built yet** (M26–M40, see PLAN.md) |
 
 ## Design principles (enforced, not aspirational)
 
@@ -126,6 +132,7 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 * [GAPS.md](GAPS.md) - known limitations, honestly stated
 * [THINKING.md](THINKING.md) - decision log with reasons
 * [CHANGELOG.md](CHANGELOG.md)
+* [docs/AGENTS.md](docs/AGENTS.md) - workflow definitions, step kinds, approval gates and budgets
 * [docs/TASKS.md](docs/TASKS.md) - task history, content versions, and what "reproducible" means
 * [docs/MCP.md](docs/MCP.md) - MCP client/server, transports, extensions and their trust boundary
 * [docs/TOOLS.md](docs/TOOLS.md) - tool registry, capabilities, grants, approvals, sandbox
