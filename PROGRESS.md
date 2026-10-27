@@ -1,6 +1,6 @@
 # Progress
 
-Last updated: M21 complete (capability-safe routing). Next: M22.
+Last updated: M22 complete (tool registry + permission centre). Next: M23.
 
 ## Verified in this session
 
@@ -21,9 +21,10 @@ reproduced in [docs/VERIFICATION.md](docs/VERIFICATION.md).
 | M18 | float32 vectors with model identity, embedding states, cache checksums, degraded keyword fallback, hybrid ranking, model-change staleness, cross-model refusal, full evaluation report | `pytest tests/test_embeddings_m18.py`; `archx-agent eval retrieval` |
 | M19 | five strategies build manifests with reasons; oldest-first preserves history; manual selection; summarise keeps originals + source range; ai_proposed requires approval | `pytest tests/test_context_m19.py`; `archx-agent context ...` |
 | M20 | provider catalogue keeps facts/claims/user confirmations apart; loopback = local (derived); remote is blocked until privacy confirmed + consent recorded + `model.local_only=false`; availability probe distinguishes reachable/auth/404/429/500/refused; quotas enforced; usage and cost attributed per request | `pytest tests/test_providers_m20.py` (30); `scripts/acceptance_m20.sh` (real HTTP server) |
+| M22 | tools declare capability/risk/dry-run; ungranted operations are refused with an approval id; approval mints exactly the requested grant; scoped grants (once/task/conversation/project/persistent) are checked, single-use grants consumed before the work; sandbox refuses traversal, absolute escapes and symlink escapes; argv-only processes with a denylist, minimal env and timeouts; every attempt (including denials) has a `tool_runs` row and trace events | `pytest tests/test_tools_m22.py` (78) + `tests/test_cli.py::TestCliTools` (13); `scripts/acceptance_m22.sh` (real files and processes) |
 | M21 | capability states with evidence (verified/inferred/unverified/unsupported/unavailable); eligibility before score; a model whose runtime is missing is refused; probes record measurements; `require_verified` policy; remote never auto-chosen; fallback is traceable and never silent | `pytest tests/test_router_m21.py` (33); `scripts/acceptance_m21.sh` |
 
-**Test suite: 284 tests, 0 failures, 0 skipped** on Python 3.11.2 (see note in GAPS
+**Test suite: 381 tests, 0 failures, 0 skipped** on Python 3.11.2 (see note in GAPS
 about 3.13 and about llama.cpp).
 
 ## Acceptance evidence
@@ -35,6 +36,11 @@ about 3.13 and about llama.cpp).
   hybrid 0.850, on a 20-item corpus with 12 graded queries.
 * M19: `docs/VERIFICATION.md#m19-acceptance` - manifests for all five strategies,
   including omitted reasons and proof that stored history is unchanged.
+* M22: `docs/VERIFICATION.md#m22-acceptance` - a real write is refused, approved, then
+  really written; the single-use grant is spent; a read in another conversation is
+  denied; traversal/absolute/symlink escapes are refused; a real subprocess runs, a real
+  failing command is a failed run, a real `sleep 30` is killed at 2s, and `sudo`/`dd` are
+  refused in a way that cannot be approved.
 * M21: `docs/VERIFICATION.md#m21-acceptance` - a discovered GGUF is refused because
   llama.cpp is missing (not routed to and silently failed), a probe flips `inferred` to
   `verified`, `require_verified` refuses then allows, a remote model is never chosen
@@ -46,12 +52,10 @@ about 3.13 and about llama.cpp).
 
 ## Next steps (in order)
 
-1. M22: tool registry + permission centre (grants with durations, approvals, denial
-   tracing).
-3. M23: MCP client (real subprocess/stdio + HTTP transports), optional server, extension
+1. M23: MCP client (real subprocess/stdio + HTTP transports), optional server, extension
    trust boundary.
-3. M24: unified task history + version links + reproduction records.
-4. M25 onward per PLAN.md.
+2. M24: unified task history + version links + reproduction records.
+3. M25 onward per PLAN.md.
 
 ## Known breakage
 

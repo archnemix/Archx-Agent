@@ -51,7 +51,14 @@ archx-agent memory add --kind permanent --category preference \
 archx-agent memory search metric
 archx-agent memory policy              # documented policy for all six memory systems
 
-# 5. inspect everything that happened
+# 5. tools need a grant: the first attempt queues an approval, then run it again
+archx-agent tools run fs.write --arg path=notes.md --arg content=hello
+archx-agent approvals list
+archx-agent approvals approve ap_...
+archx-agent tools run fs.write --arg path=notes.md --arg content=hello
+archx-agent tools runs                  # every attempt, denials included
+
+# 6. inspect everything that happened
 archx-agent trace list --limit 20
 archx-agent db check
 ```
@@ -82,9 +89,10 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 | Model catalogue: facts vs claims vs user metadata, discovery, verification states | verified |
 | Providers: local/cloud catalogue, privacy metadata, confirmations, consent, availability, quotas, usage | verified (M20) |
 | Capability-safe routing: evidence-backed capability states, eligibility, probes, visible fallback | verified (M21) |
+| Tools + permissions: declared capabilities, scoped grants, approvals, sandboxed fs/shell, run audit | verified (M22) |
 | Provider runtime boundary: llama.cpp in-process, OpenAI-compatible HTTP, tested error classification | verified for HTTP; llama.cpp needs the optional dependency and a model file |
 | CLI | verified end-to-end |
-| GUI, tools/MCP, agents, research, learning, play, media, datasets, training, remote compute, Blender, automations | **not built yet** (M22–M40, see PLAN.md) |
+| MCP, agents, research, learning, play, media, datasets, training, remote compute, Blender, automations | **not built yet** (M23–M40, see PLAN.md) |
 
 ## Design principles (enforced, not aspirational)
 
@@ -104,6 +112,7 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 * [GAPS.md](GAPS.md) - known limitations, honestly stated
 * [THINKING.md](THINKING.md) - decision log with reasons
 * [CHANGELOG.md](CHANGELOG.md)
+* [docs/TOOLS.md](docs/TOOLS.md) - tool registry, capabilities, grants, approvals, sandbox
 * [docs/ROUTING.md](docs/ROUTING.md) - capability states, eligibility, probes, fallback
 * [docs/PROVIDERS.md](docs/PROVIDERS.md) - provider catalogue, privacy metadata, consent gates
 * [docs/RETRIEVAL.md](docs/RETRIEVAL.md) - embedding design, scale thresholds, model research

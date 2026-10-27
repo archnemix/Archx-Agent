@@ -3,6 +3,40 @@
 All notable changes. Format loosely follows Keep a Changelog; versions track the
 milestone block rather than semantic-release cadence, because M01-M20 are one development series.
 
+## [0.22.0] - M22 tool registry and permission centre
+
+### Added
+- `ToolManager` + `ToolSpec`: built-in tools declare capability, risk, typed inputs, side
+  effects and dry-run support; strict argument validation (unknown arguments are refused);
+  fixed execution order; `tool_runs` rows for every attempt, including denials.
+- `PermissionManager`: capabilities, grants with six durations and real scope checks,
+  single-use consumption, time-boxing, revocation, and an approval queue with TTL and a cap.
+- `LocalToolRuntime`: root-confined file IO (`resolve_within`, symlink-safe), binary
+  detection, size/output caps, argv-only processes with a minimal environment, timeouts and
+  a denylist.
+- CLI: `tools list|show|run|runs`, `permissions capabilities|list|grant|revoke|check|prune`,
+  `approvals list|show|approve|deny`; exit code 4 for refusals.
+- `file_change` trace events with path, bytes and sha256 for real writes and deletes.
+- Schema v13: grant usage counting and approval links, `approval_requests`, `tool_runs`
+  sequence/dry-run/truncation columns.
+- Settings: `tools.roots`, `tools.max_file_bytes`, `tools.shell_enabled`,
+  `tools.shell_denylist`, `permissions.approvals_enabled`,
+  `permissions.approval_ttl_minutes`, `permissions.max_pending_approvals`,
+  `permissions.max_grant_hours`.
+- `docs/TOOLS.md`, M22 acceptance script.
+
+### Changed
+- `permissions.default_duration` now defaults to `once` (one approval, one operation), so
+  no grant can exist without a scope that is meaningful.
+- A `persistent` grant without `--confirm` is refused instead of silently shortened.
+
+### Fixed
+- A tool run interrupted by an exception left a `running` row forever; errors now close the
+  run (status, error, duration) and are re-raised.
+- `permissions check` claimed "approvals are disabled" when it simply does not create them.
+- Unknown tool arguments were silently ignored; they are now a usage error naming the
+  accepted arguments.
+
 ## [0.21.0] - M21 capability-safe model router
 
 ### Added

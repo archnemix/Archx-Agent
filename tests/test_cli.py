@@ -519,3 +519,110 @@ class TestCliRouting:
         result = run("models", "route", home=home, allow_simulated=True)
         assert result.returncode != 0
         assert "unsupported" in result.stderr
+
+
+class TestCliTools:
+    def _run_id(self, result):
+        return _json(result)
+
+    def test_tools_list_shows_capabilities_and_risk(self, home):
+        out = run("tools", "list", home=home).stdout
+        assert "fs.write" in out and "medium" in out and "shell.run" in out
+        registry = _json(run("tools", "list", "--json", home=home))
+        write = next(row for row in registry if row["name"] == "fs.write")
+        assert write["capability"] == "fs.write"
+        assert write["supports_dry_run"] is True
+
+    def test_denied_run_is_exit_4_and_names_the_approval(self, home):
+        result = run("tools", "run", "fs.write", "--arg", "path=note.md", "--arg", "content=hello",
+                     home=home)
+        assert result.returncode == 4
+        assert "denied" in result.stderr
+        assert "approvals approve" in result.stderr
+        pending = _json(run("approvals", "list", "--json", home=home))
+        assert len(pending) == 1 and pending[0]["capability"] == "fs.write"
+
+    def test_approve_then_run_writes_the_file(self, home):
+        run("tools", "run", "fs.write", "--arg", "path=note.md", "--arg", "content=hello", home=home)
+        approval = _json(run("approvals", "list", "--json", home=home))[0]["id"]
+        approved = run("approvals", "approve", approval, home=home)
+        assert approved.returncode == 0 and "approved" in approved.stdout
+        result = run("tools", "run", "fs.write", "--arg", "path=note.md", "--arg", "content=hello",
+                     "--json", home=home)
+        assert result.returncode == 0, result.stderr
+        payload = _json(result)
+        assert payload["status"] == "succeeded"
+        assert os.path.exists(os.path.join(home, "workspace", "note.md"))
+        assert open(os.path.join(home, "workspace", "note.md")).read() == "hello"
+
+    def test_single_use_grant_is_consumed_after_one_run(self, home):
+        run("tools", "run", "fs.write", "--arg", "path=a.txt", "--arg", "content=x", home=home)
+        approval = _json(run("approvals", "list", "--json", home=home))[0]["id"]
+        run("approvals", "approve", approval, home=home)
+        assert run("tools", "run", "fs.write", "--arg", "path=a.txt", "--arg", "content=x",
+                   home=home).returncode == 0
+        assert run("tools", "run", "fs.write", "--arg", "path=a.txt", "--arg", "content=x",
+                   home=home).returncode == 4
+
+    def test_persistent_grant_needs_confirm(self, home):
+        refused = run("permissions", "grant", "fs.read", "--subject", "fs.read",
+                      "--duration", "persistent", home=home)
+        assert refused.returncode == 2
+        assert "--confirm" in refused.stderr
+        granted = run("permissions", "grant", "fs.read", "--subject", "fs.read",
+                      "--duration", "persistent", "--confirm", home=home)
+        assert granted.returncode == 0
+        assert "persistent" in granted.stdout
+
+    def test_check_reports_denied_then_allowed(self, home):
+        denied = run("permissions", "check", "fs.read", "--subject", "fs.read", home=home)
+        assert denied.returncode == 4 and "denied" in denied.stdout
+        run("permissions", "grant", "fs.read", "--subject", "fs.read", home=home)
+        allowed = run("permissions", "check", "fs.read", "--subject", "fs.read", home=home)
+        assert allowed.returncode == 0 and "allowed" in allowed.stdout
+
+    def test_check_creates_no_approval_request(self, home):
+        run("permissions", "check", "fs.read", "--subject", "fs.read", home=home)
+        assert _json(run("approvals", "list", "--json", home=home)) == []
+
+    def test_revoke_then_check_is_denied_again(self, home):
+        grant = _json(run("permissions", "grant", "fs.read", "--subject", "fs.read",
+                          "--json", home=home))
+        assert run("permissions", "revoke", grant["id"], home=home).returncode == 0
+        assert run("permissions", "check", "fs.read", "--subject", "fs.read", home=home).returncode == 4
+
+    def test_runs_history_lists_denials_and_successes(self, home):
+        run("tools", "run", "fs.write", "--arg", "path=a.txt", "--arg", "content=x", home=home)
+        approval = _json(run("approvals", "list", "--json", home=home))[0]["id"]
+        run("approvals", "approve", approval, home=home)
+        run("tools", "run", "fs.write", "--arg", "path=a.txt", "--arg", "content=x", home=home)
+        rows = _json(run("tools", "runs", "--json", home=home))
+        assert [row["status"] for row in rows] == ["succeeded", "denied"]
+        assert [row["seq"] for row in rows] == [2, 1]
+
+    def test_unknown_argument_is_a_usage_error(self, home):
+        result = run("tools", "run", "fs.read", "--arg", "pth=x", home=home)
+        assert result.returncode == 2
+        assert "does not take pth" in result.stderr
+
+    def test_dry_run_does_not_touch_the_disk(self, home):
+        run("permissions", "grant", "fs.write", "--subject", "fs.write", home=home)
+        result = run("tools", "run", "fs.write", "--arg", "path=preview.txt",
+                     "--arg", "content=x", "--dry-run", "--json", home=home)
+        assert result.returncode == 0
+        assert _json(result)["dry_run"] is True
+        assert not os.path.exists(os.path.join(home, "workspace", "preview.txt"))
+
+    def test_approval_can_be_denied_and_a_new_request_appears(self, home):
+        run("tools", "run", "fs.delete", "--arg", "path=x", home=home)
+        first = _json(run("approvals", "list", "--json", home=home))[0]["id"]
+        denied = run("approvals", "deny", first, "--reason", "no", home=home)
+        assert denied.returncode == 0 and "no grant" in denied.stdout
+        run("tools", "run", "fs.delete", "--arg", "path=x", home=home)
+        second = _json(run("approvals", "list", "--json", home=home))[0]["id"]
+        assert second != first
+
+    def test_tool_show_lists_inputs_and_roots(self, home):
+        result = run("tools", "show", "fs.write", home=home)
+        assert result.returncode == 0
+        assert "content" in result.stdout and "roots:" in result.stdout

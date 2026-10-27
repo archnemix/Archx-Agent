@@ -22,7 +22,17 @@ from archx_agent.helpers.backup_recovery import (
     verify_backup,
 )
 from archx_agent.helpers.config import list_settings, load_config, resolve_secret
-from archx_agent.helpers.exceptions import ArchxError, ModelNotFoundError, ProviderError, ValidationError
+from archx_agent.helpers.exceptions import (
+    ApprovalRequiredError,
+    ArchxError,
+    ModelNotFoundError,
+    PermissionDeniedError,
+    ProviderError,
+    PathEscapesRootError,
+    ToolError,
+    ToolValidationError,
+    ValidationError,
+)
 from archx_agent.helpers.jsonio import json_text
 from archx_agent.managers.memory import CATEGORIES, KINDS as MEMORY_KINDS, MemoryManager
 from archx_agent.managers.models import VERIFICATION_STATES
@@ -443,6 +453,70 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="use this workspace instead of a temporary scratch workspace",
     )
+
+    # -- tools & permissions --------------------------------------------
+    tools = sub.add_parser("tools", help="tool registry, permissions-aware execution and run history")
+    t2_sub = tools.add_subparsers(dest="tools_command", required=True)
+    t2_sub.add_parser("list", help="every registered tool with its capability and risk")
+    t2_show = t2_sub.add_parser("show", help="one tool: inputs, roots and active grants")
+    t2_show.add_argument("tool")
+    t2_run = t2_sub.add_parser("run", help="run a tool (needs a grant or an approved request)")
+    t2_run.add_argument("tool")
+    t2_run.add_argument("--arg", action="append", default=[], metavar="key=value",
+                        help="tool argument (repeatable)")
+    t2_run.add_argument("--dry-run", action="store_true", help="preview without changing anything")
+    t2_run.add_argument("--conversation", help="conversation scope for the permission check")
+    t2_run.add_argument("--task", help="task scope for the permission check")
+    t2_run.add_argument("--project", help="project scope for the permission check")
+    t2_run.add_argument("--purpose", help="why this is being run (kept in the trace)")
+    t2_runs = t2_sub.add_parser("runs", help="recent tool runs, including refusals")
+    t2_runs.add_argument("--tool")
+    t2_runs.add_argument("--limit", type=int, default=20)
+
+    perms = sub.add_parser("permissions", help="capabilities, grants and denials")
+    pm_sub = perms.add_subparsers(dest="permissions_command", required=True)
+    pm_sub.add_parser("capabilities", help="protected operations and their risk")
+    pm_list = pm_sub.add_parser("list", help="recorded grants")
+    pm_list.add_argument("--capability")
+    pm_list.add_argument("--subject")
+    pm_list.add_argument("--all", action="store_true", help="include revoked grants")
+    pm_grant = pm_sub.add_parser("grant", help="record an explicit grant")
+    pm_grant.add_argument("capability")
+    pm_grant.add_argument("--subject", default="*", help="tool name, or '*' for any subject")
+    pm_grant.add_argument("--duration", choices=["once", "task", "conversation", "project", "persistent"],
+                          help="how broad the grant is (default: permissions.default_duration)")
+    pm_grant.add_argument("--for", dest="for_hours", type=int, help="expire after N hours")
+    pm_grant.add_argument("--reason", default="")
+    pm_grant.add_argument("--conversation")
+    pm_grant.add_argument("--task")
+    pm_grant.add_argument("--project")
+    pm_grant.add_argument("--confirm", action="store_true",
+                          help="confirm a persistent grant (without it, it is downgraded)")
+    pm_revoke = pm_sub.add_parser("revoke", help="revoke a grant")
+    pm_revoke.add_argument("grant")
+    pm_revoke.add_argument("--reason", default="")
+    pm_check = pm_sub.add_parser("check", help="would this operation be allowed? (creates nothing)")
+    pm_check.add_argument("capability")
+    pm_check.add_argument("--subject", required=True)
+    pm_check.add_argument("--conversation")
+    pm_check.add_argument("--task")
+    pm_check.add_argument("--project")
+    pm_sub.add_parser("prune", help="revoke expired grants")
+
+    approvals = sub.add_parser("approvals", help="the approval centre")
+    ap_sub = approvals.add_subparsers(dest="approvals_command", required=True)
+    ap_list = ap_sub.add_parser("list", help="requests waiting for a decision")
+    ap_list.add_argument("--status", choices=["pending", "approved", "denied", "expired"])
+    ap_list.add_argument("--limit", type=int, default=50)
+    ap_show = ap_sub.add_parser("show", help="one approval request")
+    ap_show.add_argument("approval")
+    ap_approve = ap_sub.add_parser("approve", help="approve exactly what was requested")
+    ap_approve.add_argument("approval")
+    ap_approve.add_argument("--reason", default="")
+    ap_approve.add_argument("--for", dest="for_hours", type=int, help="time-box the resulting grant")
+    ap_deny = ap_sub.add_parser("deny", help="deny a request (no grant is created)")
+    ap_deny.add_argument("approval")
+    ap_deny.add_argument("--reason", default="denied by the user")
 
     # -- database -------------------------------------------------------
     db = sub.add_parser("db", help="database health, backup and restore")
@@ -1616,6 +1690,312 @@ def cmd_eval(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _parse_tool_args(pairs: Sequence[str] | None) -> dict[str, Any]:
+    args: dict[str, Any] = {}
+    for pair in pairs or []:
+        if "=" not in pair:
+            raise ValidationError(f"--arg expects key=value, got {pair!r}")
+        key, value = pair.split("=", 1)
+        key = key.strip()
+        if not key:
+            raise ValidationError(f"--arg expects a name before '=', got {pair!r}")
+        if key in args:
+            raise ValidationError(f"--arg {key} given twice")
+        args[key] = value
+    return args
+
+
+def cmd_tools(args: argparse.Namespace) -> int:
+    with _workspace(args) as ws:
+        manager = ws.tools
+        if manager is None:
+            return fail("no tool registry is available in this workspace", EXIT_UNAVAILABLE)
+        command = args.tools_command
+        if command == "list":
+            rows = manager.registry()
+            if args.json:
+                emit_json(rows)
+            else:
+                emit(
+                    table(
+                        [
+                            [
+                                row["name"],
+                                row["capability"] or "-",
+                                row["risk"],
+                                "yes" if row["supports_dry_run"] else "no",
+                                "-" if row["active_grants"] is None else str(row["active_grants"]),
+                                row["summary"][:44],
+                            ]
+                            for row in rows
+                        ],
+                        ["tool", "capability", "risk", "dry-run", "grants", "what it does"],
+                    )
+                )
+                emit("")
+                emit(
+                    "a tool with capability '-' needs no permission; every other tool needs a "
+                    "grant or an approved request"
+                )
+            return EXIT_OK
+        if command == "show":
+            spec = manager.spec(args.tool)
+            data = spec.to_dict()
+            data["roots"] = ws.tool_roots()
+            data["recent_runs"] = manager.runs(tool=spec.name, limit=5)
+            if spec.capability:
+                data["grants"] = [g.to_dict() for g in ws.permissions.grants(capability=spec.capability)]
+            if args.json:
+                emit_json(data)
+            else:
+                emit(f"{spec.name}  risk={spec.risk}  capability={spec.capability or '(none)'}")
+                emit(f"  {spec.summary}")
+                emit(f"  side effects: {spec.side_effects}   dry run: {'yes' if spec.supports_dry_run else 'no'}")
+                if spec.inputs:
+                    emit("  inputs:")
+                    for name, description in spec.inputs.items():
+                        mark = "*" if name in spec.required else " "
+                        emit(f"   {mark} {name:<16} {description}")
+                emit(f"  roots: {', '.join(str(r) for r in data['roots'])}")
+                if data.get("grants"):
+                    emit("  grants:")
+                    for grant in data["grants"]:
+                        emit(f"   {grant['id']}  {grant['scope']}  by {grant['granted_by']}")
+                else:
+                    emit("  grants: none")
+            return EXIT_OK
+        if command == "run":
+            arguments = _parse_tool_args(args.arg)
+            context_kwargs = {
+                "conversation_id": args.conversation,
+                "task_id": args.task,
+                "project_id": args.project,
+                "purpose": args.purpose or "",
+            }
+            from archx_agent.managers.tools import ToolContext
+
+            try:
+                run = manager.execute(
+                    args.tool,
+                    arguments,
+                    dry_run=args.dry_run,
+                    context=ToolContext(**context_kwargs),
+                    requester="cli",
+                )
+            except (PermissionDeniedError, ToolError, ArchxError) as exc:
+                payload = {
+                    "tool": args.tool,
+                    "status": "denied" if isinstance(exc, PermissionDeniedError) else "error",
+                    "error": exc.message,
+                    "approval_id": getattr(exc, "approval_id", None),
+                    "capability": getattr(exc, "capability", None),
+                    "run": getattr(exc, "run", None).to_dict() if getattr(exc, "run", None) else None,
+                }
+                if args.json:
+                    emit_json(payload)
+                else:
+                    print(f"{payload['status']}: {exc.message}", file=sys.stderr)
+                    if payload["approval_id"]:
+                        print(
+                            f"approve with: archx-agent approvals approve {payload['approval_id']}",
+                            file=sys.stderr,
+                        )
+                if isinstance(exc, (ApprovalRequiredError, PermissionDeniedError)):
+                    return EXIT_DENIED
+                if isinstance(exc, PathEscapesRootError):
+                    return EXIT_DENIED
+                if isinstance(exc, ToolValidationError):
+                    return EXIT_USAGE
+                if isinstance(exc, ToolError):
+                    return EXIT_ERROR
+                return EXIT_USAGE
+            data = run.to_dict()
+            data["dry_run"] = run.dry_run
+            if args.json:
+                emit_json(data)
+            else:
+                if run.dry_run:
+                    emit("[dry run] nothing was changed on disk")
+                emit(f"{run.tool} {run.status} in {run.duration_ms}ms  (run {run.id})")
+                if run.result:
+                    emit_json(run.result)
+                if run.error:
+                    emit(f"error: {run.error}")
+            return EXIT_OK if run.ok else EXIT_ERROR
+        if command == "runs":
+            rows = manager.runs(tool=args.tool, limit=args.limit)
+            if args.json:
+                emit_json(rows)
+            else:
+                if not rows:
+                    emit("no tool runs")
+                else:
+                    emit(
+                        table(
+                            [
+                                [
+                                    row.get("seq"),
+                                    row["started_at"][11:19],
+                                    row["tool_name"],
+                                    row["status"],
+                                    "dry" if row["dry_run"] else "",
+                                    (row.get("error") or "")[:44],
+                                ]
+                                for row in rows
+                            ],
+                            ["seq", "time", "tool", "status", "dry", "error"],
+                        )
+                    )
+            return EXIT_OK
+    return EXIT_USAGE
+
+
+def cmd_permissions(args: argparse.Namespace) -> int:
+    with _workspace(args) as ws:
+        manager = ws.permissions
+        if manager is None:
+            return fail("no permission centre is available in this workspace", EXIT_UNAVAILABLE)
+        command = args.permissions_command
+        if command == "capabilities":
+            rows = manager.capabilities()
+            emit_json(rows) if args.json else emit(
+                table([[r["name"], r["risk"], r["effect"], r["description"]] for r in rows],
+                      ["capability", "risk", "effect", "meaning"])
+            )
+            return EXIT_OK
+        if command == "list":
+            grants = manager.grants(
+                capability=args.capability,
+                subject=args.subject,
+                include_revoked=args.all,
+            )
+            if args.json:
+                emit_json([g.to_dict() for g in grants])
+            else:
+                if not grants:
+                    emit("no grants")
+                else:
+                    emit(
+                        table(
+                            [
+                                [g.id, g.capability, g.subject, g.scope,
+                                 g.expires_at or "-", g.use_count,
+                                 "revoked" if g.revoked_at else "active"]
+                                for g in grants
+                            ],
+                            ["grant", "capability", "subject", "scope", "expires", "uses", "state"],
+                        )
+                    )
+            return EXIT_OK
+        if command == "grant":
+            grant = manager.grant(
+                args.capability,
+                subject=args.subject,
+                duration=args.duration,
+                reason=args.reason or "",
+                conversation_id=args.conversation,
+                task_id=args.task,
+                project_id=args.project,
+                hours=args.for_hours,
+                confirm=args.confirm,
+            )
+            if args.json:
+                emit_json(grant.to_dict())
+            else:
+                emit(f"granted {grant.summary}  (id {grant.id}, by {grant.granted_by})")
+                if grant.notes:
+                    emit(f"note: {grant.notes}")
+                if grant.expires_at:
+                    emit(f"expires {grant.expires_at}")
+            return EXIT_OK
+        if command == "revoke":
+            grant = manager.revoke(args.grant, reason=args.reason or "")
+            emit_json(grant.to_dict()) if args.json else emit(f"revoked {grant.id} ({grant.capability})")
+            return EXIT_OK
+        if command == "check":
+            decision = manager.check(
+                args.capability,
+                subject=args.subject,
+                conversation_id=args.conversation,
+                task_id=args.task,
+                project_id=args.project,
+                consume=False,
+                purpose="permissions check",
+                request_approval_on_denial=False,
+            )
+            if args.json:
+                emit_json(decision.to_dict())
+            else:
+                emit(f"{'allowed' if decision.allowed else 'denied'}: {decision.reason}")
+            return EXIT_OK if decision.allowed else EXIT_DENIED
+        if command == "prune":
+            count = manager.prune_expired()
+            emit_json({"revoked": count}) if args.json else emit(f"revoked {count} expired grant(s)")
+            return EXIT_OK
+    return EXIT_USAGE
+
+
+def cmd_approvals(args: argparse.Namespace) -> int:
+    with _workspace(args) as ws:
+        manager = ws.permissions
+        if manager is None:
+            return fail("no permission centre is available in this workspace", EXIT_UNAVAILABLE)
+        command = args.approvals_command
+        if command == "list":
+            if args.status:
+                rows = manager.approvals(status=args.status, limit=args.limit)
+            else:
+                rows = manager.pending(limit=args.limit)
+            if args.json:
+                emit_json([a.to_dict() for a in rows])
+            else:
+                if not rows:
+                    emit("nothing waiting for approval")
+                else:
+                    emit(
+                        table(
+                            [
+                                [a.id, a.capability, a.subject, a.scope,
+                                 a.expires_at or "-", (a.purpose or "")[:36]]
+                                for a in rows
+                            ],
+                            ["approval", "capability", "subject", "scope", "expires", "purpose"],
+                        )
+                    )
+                    emit("")
+                    emit("approve with: archx-agent approvals approve <approval>")
+            return EXIT_OK
+        if command == "show":
+            approval = manager.get_approval(args.approval)
+            if approval.is_err:
+                return fail(approval.error.message)
+            emit_json(approval.value.to_dict()) if args.json else emit(json_text(approval.value.to_dict()))
+            return EXIT_OK
+        if command == "approve":
+            try:
+                approval, grant = manager.approve(
+                    args.approval, reason=args.reason or "", hours=args.for_hours
+                )
+            except ValidationError as exc:
+                return fail(exc.message, EXIT_USAGE)
+            if args.json:
+                emit_json({"approval": approval.to_dict(), "grant": grant.to_dict()})
+            else:
+                emit(f"approved {approval.id}: {grant.summary}")
+                emit(f"grant {grant.id} ({grant.scope}); re-run the operation to use it")
+            return EXIT_OK
+        if command == "deny":
+            try:
+                approval = manager.deny(args.approval, reason=args.reason or "denied by the user")
+            except ValidationError as exc:
+                return fail(exc.message, EXIT_USAGE)
+            emit_json(approval.to_dict()) if args.json else emit(
+                f"denied {approval.id} ({approval.capability}); no grant was created"
+            )
+            return EXIT_OK
+    return EXIT_USAGE
+
+
 def cmd_db(args: argparse.Namespace) -> int:
     command = args.db_command
     if command == "restore":
@@ -1785,6 +2165,9 @@ HANDLERS = {
     "providers": cmd_providers,
     "context": cmd_context,
     "embeddings": cmd_embeddings,
+    "tools": cmd_tools,
+    "permissions": cmd_permissions,
+    "approvals": cmd_approvals,
     "eval": cmd_eval,
     "db": cmd_db,
     "trace": cmd_trace,

@@ -264,6 +264,61 @@ strictly separate.
 them by name. A green tick on an unmeasured capability is the failure mode this milestone
 exists to prevent.
 
+## Tools and permissions (M22)
+
+**D50. The default grant is `once`.**
+The first default was `task`, which failed on the very first real run: there was no task
+to scope it to, so the grant was either invalid or (worse) would have applied to
+everything. "One approval, one operation" is the only default that needs no context and
+grants nothing extra. Convenience is then an explicit `permissions grant`.
+
+**D51. Refuse rather than quietly narrow.**
+`--duration persistent` without `--confirm` was initially downgraded to the default. That
+produces a grant the user did not ask for while reporting success. It is now an error that
+names the missing flag. The same rule applies elsewhere: a substitution is either visible
+(a warning, a recorded `fallback_from`) or it does not happen.
+
+**D52. Spend a single-use grant before the work, not after.**
+If the grant were consumed on success, a failing tool would leave the user a token they
+believe was spent, and a crash would return it. Consuming first makes the accounting
+conservative: the worst case is that the user approves again.
+
+**D53. Record the attempt before running it.**
+`tool_runs` is inserted with status `running`, then finished. If the process dies mid-tool,
+the database still says "this was attempted at this time with these arguments" - the
+audit trail's whole purpose. The sequence column is assigned inside the write transaction
+(`MAX(seq)+1`) because ordering must not depend on wall-clock timestamps.
+
+**D54. Errors close the run and re-raise.**
+"Could not complete" (missing file, escape, timeout) must not look like "completed
+unsuccessfully" (exit code 1). Both end as `failed` rows; only the first raises, and the
+exception carries the run so the CLI can print the same evidence. A tool result is never a
+bare boolean - `queued`/`started` is not `succeeded`.
+
+**D55. The denylist is outside the grant system.**
+Some programs (`sudo`, `dd`, `mkfs`, …) are refused before the permission check. Making
+them approvable would mean the approval queue was the only thing between a model and a
+disk wipe. The list is configurable, but editing it is a deliberate act, and the refusal is
+reported as such ("this cannot be approved") rather than as a missing grant.
+
+**D56. Approvals cannot be widened.**
+`approve()` accepts no capability, subject or scope. The request is what the user saw; the
+decision is yes or no. If they want a broader grant they run `permissions grant`, which is
+a distinct verb with its own flags and its own trace event. This keeps "consent" a single
+immutable fact.
+
+**D57. No shell, ever.**
+`shell.run` splits with `shlex.split` and executes an argument vector. A semicolon in a
+command is an argument, not a second command. The consequence - no pipes or redirects - is
+accepted: the alternative is a second, unreviewed command line hidden inside a string. The
+environment is rebuilt rather than inherited, so a child process cannot read the agent's
+own API keys.
+
+**D58. An unimplemented capability is declared, not hidden.**
+`net.fetch` exists in the capability list with "no tool implements this yet" in its
+description, so a grant or a request for it is refused with a real reason. Omitting it would
+make the refusal look like a typo.
+
 ## Storage and config
 
 **D31. Unknown config keys are errors.**

@@ -75,6 +75,14 @@ Blender, automations, hardening. The database schema already reserves tables for
   `--capability tools` always fails; the router will therefore not route tool-using work
   to any model in this build.
 * **No cost-aware routing.** Prices from M20 are recorded but not used by the router score.
+* **Tools do not run from a model yet.** M22 built the registry, the permission centre and
+  the execution path; no chat turn can request a tool until M25. `net.fetch` is declared
+  and deliberately unimplemented, so it can only ever be refused.
+* **`shell.run` is a granted capability, not a syscall sandbox.** Any program on `PATH`
+  that is not on `tools.shell_denylist` can run once a grant exists. The denylist and the
+  minimal environment reduce the blast radius; they do not contain a hostile program.
+* **Approvals are out-of-band.** `approvals approve` decides a request, then the operation
+  must be repeated; there is no suspend/resume of an in-flight workflow yet (M24/M25).
 * **No GUI yet**, so "primary workflow usable with no placeholder controls" (M29) is
   not demonstrated.
 * **Windows and macOS are untested.** Path containment tests cover symlinks and

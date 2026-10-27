@@ -163,6 +163,37 @@ before the request (`QuotaExhaustedError`); cost is only reported when the user 
 prices, and is labelled an estimate. Usage events are append-only per request, so a
 provider that starts failing shows up in the same table as the successful calls.
 
+## Tools and permissions (M22)
+
+```
+CLI / (later) a model's tool call
+        |
+        v
+ToolManager.execute(name, arguments)          managers/tools.py
+  1 validate spec + typed arguments           -> ToolValidationError (usage, exit 2)
+  2 refuse dry-run when there is no preview
+  3 preflight hard denials (shell denylist)   -> PermissionDeniedError, no approval possible
+  4 permissions.check(capability, subject, scope ids, consume=True)
+        |                                       managers/permissions.py
+        +-- grant matches scope?  -> allowed, single-use consumed now
+        +-- otherwise             -> queue one approval, refuse with its id
+  5 LocalToolRuntime.<op>                      adapters/local_tools.py
+        roots + resolve_within, size/output caps, argv-only subprocess, timeout
+  6 tool_runs row (running -> succeeded/failed/denied) + tool_call/file_change traces
+```
+
+Two boundaries matter here and are enforced by the import matrix and by tests:
+
+* the adapter executes and never decides (it has no reference to the permission centre);
+* the registry decides *when* to ask and cannot create a grant (only `PermissionManager`
+  writes `permission_grants`, and only with `granted_by` of `user:*` or `approval:*`).
+
+Grants carry a scope that is *checked* on every use (`once`, `task:<id>`,
+`conversation:<id>`, `project:<id>`, `persistent`), and an approval can only mint the
+capability, subject and scope that the user saw. Tool roots default to `<home>/workspace`
+and every path goes through `helpers.paths.resolve_within`, which rejects traversal,
+absolute escapes and out-of-tree symlinks.
+
 ## Routing (M21)
 
 `application/router.py` decides which model performs a task. Eligibility is a hard filter,

@@ -29,6 +29,7 @@ from archx_agent.adapters.embedding_runtime import (
 )
 from archx_agent.adapters.http_runtime import HttpChatRuntime
 from archx_agent.adapters.llama_cpp_runtime import LlamaCppRuntime
+from archx_agent.adapters.local_tools import LocalToolRuntime
 from archx_agent.adapters.model_runtime import ModelRuntime, ModelSpec
 from archx_agent.adapters.scripted_runtime import ENV_FLAG, ScriptedRuntime
 from archx_agent.helpers.backup_recovery import create_backup
@@ -50,8 +51,10 @@ from archx_agent.managers.embeddings import EmbeddingManager
 from archx_agent.managers.conversation import ConversationManager
 from archx_agent.managers.memory import MemoryManager
 from archx_agent.managers.models import ModelManager, ModelRecord
+from archx_agent.managers.permissions import PermissionManager
 from archx_agent.managers.projects import ProjectManager
 from archx_agent.managers.providers import ProviderManager, is_loopback_url
+from archx_agent.managers.tools import ToolManager
 from archx_agent.application.router import ModelRouter
 from archx_agent.managers.schema import MIGRATIONS, SCHEMA_VERSION
 
@@ -67,6 +70,8 @@ class Workspace:
     memory: MemoryManager
     models: ModelManager
     providers: ProviderManager | None = None
+    permissions: PermissionManager | None = None
+    tools: ToolManager | None = None
     router: Any = None
     context: ContextManager | None = None
     embeddings: EmbeddingManager | None = None
@@ -154,6 +159,10 @@ class Workspace:
             provider=embedding_provider,
         )
         memory.embedding_index = embeddings if embedding_provider is not None else None
+        permissions = PermissionManager(store, coordinator, events=events, config=config)
+        tool_runtime, tool_warning = _build_tool_runtime(config)
+        if tool_warning:
+            warnings.append(tool_warning)
         context = ContextManager(
             store,
             coordinator,
@@ -177,11 +186,22 @@ class Workspace:
             memory=memory,
             models=models,
             providers=providers,
+            permissions=permissions,
+            tools=None,
             router=None,
             context=context,
             embeddings=embeddings,
             warnings=warnings,
             _runtimes={},
+        )
+        ws.tools = ToolManager(
+            store,
+            coordinator,
+            permissions=permissions,
+            events=events,
+            config=config,
+            runtime=tool_runtime,
+            info_provider=ws.tool_info,
         )
         ws.router = ModelRouter(
             models,
@@ -291,6 +311,33 @@ class Workspace:
                 return False, "the simulated test double is disabled (use --allow-simulated)"
             return True, "ready (simulated - performs no inference)"
         return False, f"unknown runtime {record.runtime!r}"
+
+    # -- tools ------------------------------------------------------------
+    def tool_roots(self, project_id: str | None = None) -> list[str]:
+        """Directories tools may touch: explicit config, else the project, else a sandbox."""
+        if self.tools is not None:
+            live = self.tools.roots()
+            if live:
+                return live
+        configured = [str(x).strip() for x in (self.config.get("tools.roots") or []) if str(x).strip()]
+        if configured:
+            return [str(Path(x).expanduser().resolve()) for x in configured]
+        if project_id and self.projects is not None:
+            record = self.projects.get(project_id)
+            if record.is_ok and record.value.root_path:
+                return [str(Path(record.value.root_path).expanduser().resolve())]
+        return [str(Path(self.config.path("paths.home")) / "workspace")]
+
+    def tool_info(self) -> dict[str, Any]:
+        info = self.info() if self.tools is not None else {"home": str(self.config.home)}
+        return {
+            "home": info.get("home", str(self.config.home)),
+            "database": info.get("database"),
+            "schema_version": info.get("schema_version"),
+            "models": info.get("models"),
+            "conversations": info.get("conversations"),
+            "memories": info.get("memories"),
+        }
 
     def runtime_for(self, record: ModelRecord) -> ModelRuntime:
         self.assert_remote_allowed(record)
@@ -505,6 +552,27 @@ def _build_embedding_provider(config: Config) -> tuple[EmbeddingProvider | None,
                 "keyword retrieval stays active and is reported as degraded"
             )
     return None, f"unknown embedding provider {kind!r}; semantic retrieval disabled"
+
+
+def _build_tool_runtime(config) -> tuple[LocalToolRuntime | None, str | None]:
+    """Create the file/shell sandbox, or explain why tools cannot run."""
+    roots = [str(Path(x).expanduser()) for x in (config.get("tools.roots") or []) if str(x).strip()]
+    if not roots:
+        roots = [str(Path(config.path("paths.home")) / "workspace")]
+    try:
+        for root in roots:
+            Path(root).mkdir(parents=True, exist_ok=True)
+        runtime = LocalToolRuntime(
+            roots=tuple(roots),
+            max_file_bytes=int(config.get("tools.max_file_bytes")),
+            max_output_bytes=int(config.get("tools.max_output_bytes")),
+            timeout_seconds=int(config.get("tools.timeout_seconds")),
+            denylist=tuple(str(x) for x in (config.get("tools.shell_denylist") or [])),
+            home=str(Path(config.path("paths.home"))),
+        )
+        return runtime, None
+    except Exception as exc:  # noqa: BLE001 - tools are optional, the rest still works
+        return None, f"tool runtime unavailable ({exc}); tools will refuse to run"
 
 
 def open_workspace(
