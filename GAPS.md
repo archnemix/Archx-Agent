@@ -99,9 +99,9 @@ Blender, automations, hardening. The database schema already reserves tables for
 * **Version content is stored twice** (the row and the replayable write journal); a 1 MiB
   version costs about 2 MiB.
 * **A task's `tools` list is what it used, not a plan.** Declared plans arrive with M25.
-* **Workflows run sequentially with no loops, branches or retries**, and a failed run is
-  re-run from the beginning (`agent rerun`), repeating earlier side effects. Durable
-  pause/resume and hard timeouts are M26.
+* **Workflows run sequentially with no loops or branches**, and a failed run is re-run from
+  the beginning (`agent rerun`), repeating earlier side effects. Durable pause/resume now
+  exists, but only *between* steps and only for jobs (see the scheduler entries below).
 * **A checkpoint is an up-front gate**, not a mid-run pause; approving after a refusal means
   starting a new run.
 * **Subagents share the parent's process** and budgets; they are separated by task and
@@ -114,8 +114,23 @@ Blender, automations, hardening. The database schema already reserves tables for
 * **Windows and macOS are untested.** Path containment tests cover symlinks and
   traversal on Linux; Windows-specific behaviours (drive letters, UNC paths,
   case-insensitive filesystems) are unverified.
-* **No plugin/extension sandbox yet** (M23), so no extension can be loaded at all -
-  which is the current safety posture, not a feature.
+* **Extension programs are not sandboxed** beyond a rebuilt environment, a working
+  directory, a timeout and an output cap. An extension that declares `process.exec` runs as
+  the user; the trust step is what keeps that from happening by accident, not the kernel.
+* **A hung step in an in-process workflow cannot be pre-empted.** The job deadline is
+  checked at step boundaries and a `command` job's child process group is killed, but a
+  model call that never returns keeps its thread until it returns. The job is still failed
+  by `reap_expired()` from any other process.
+* **The memory budget is advisory.** `scheduler.memory_limit_mb` is arithmetic over declared
+  estimates, not a cgroup; observed peak RSS is recorded after the fact for the worker
+  process, not per job.
+* **Orphaned children survive a SIGKILLed worker.** If the worker dies hard, its child
+  process keeps running (it is in its own session) while the job is recovered and re-run.
+  The scheduler does not try to adopt or reap a process it did not start.
+* **No cron or `not_before` scheduling yet.** Jobs run as soon as a worker drains the queue;
+  calendar scheduling arrives with M39 automations.
+* **Pause granularity is a workflow step.** A running `command` job refuses `pause`; there
+  is no checkpoint inside a command's execution.
 * **Secrets**: values are never stored by Archx; only `secret://` references are kept.
   The redaction pass is pattern + registry based, so an unusual credential format could
   slip through. Exports are re-redacted, and tests grep artifacts for registered secrets.

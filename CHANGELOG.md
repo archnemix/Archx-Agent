@@ -3,6 +3,39 @@
 All notable changes. Format loosely follows Keep a Changelog; versions track the
 milestone block rather than semantic-release cadence, because M01-M20 are one development series.
 
+## [0.26.0] - M26 resource and job scheduler
+
+### Added
+- `managers/jobs.py`: a durable queue (`queued | running | paused | completed | failed |
+  cancelled | interrupted`) with priorities, a transactional claim, per-job deadlines,
+  attempt budgets, cooperative pause with a cursor, idempotent submission (`dedupe_key`),
+  crash recovery (`recover`) and deadline reaping (`reap_expired`).
+- `application/scheduler.py`: `JobRunner` with two real kinds - `command` (a child in its
+  own session, SIGKILL at the deadline, exit code/stdout/stderr/duration recorded) and
+  `workflow` (an M25 workflow, with a step-boundary deadline check) - plus `drain()` with
+  `scheduler.max_concurrent_jobs` and CPU/memory admission control.
+- Resumable workflows: `AgentRunner.run(resume=, control=)` and `RunPaused`; a paused run
+  keeps its workflow `running`, its task open and its finished steps, and resume continues
+  from the first step without a succeeded row.
+- `TaskManager.interrupt_stale(protect=...)` + `JobManager.protected_task_ids()` so the
+  crash sweep never closes a task a paused or resumed job still owns.
+- CLI: `jobs submit command|workflow`, `list`, `queue`, `show`, `logs`, `run`, `pause`,
+  `resume`, `cancel`, `retry`, `stats`, `recover`, `reap` (exit `0/1/2/3`, where 3 means
+  work remains).
+- Schema v17: job claim columns (`attempts`, `max_attempts`, `timeout_seconds`, `pid`,
+  `worker`, `requeued_at`, `control`, `cursor`, `dedupe_key`) and a queue index.
+- Config: `scheduler.max_attempts`, `poll_seconds`, `stale_after_seconds`,
+  `recover_on_open`, `reap_on_open`.
+- `docs/SCHEDULER.md` and `scripts/acceptance_m26.sh` (23 self-checking assertions,
+  including a real SIGKILL and a cross-process pause/resume).
+
+### Notes
+- Retries are automatic only for crashes (no recorded result); a failed or timed-out job is
+  retried explicitly with `jobs retry`.
+- A running `command` job cannot be paused; a workflow pauses at step boundaries.
+- `scheduler.memory_limit_mb` is an admission-control budget over declared estimates, not a
+  cgroup (see `GAPS.md`).
+
 ## [0.25.0] - M25 agent workflows
 
 ### Added

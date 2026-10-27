@@ -52,6 +52,7 @@ from archx_agent.managers.context import ContextManager
 from archx_agent.managers.embeddings import EmbeddingManager
 from archx_agent.managers.conversation import ConversationManager
 from archx_agent.managers.extensions import ExtensionManager
+from archx_agent.managers.jobs import JobManager
 from archx_agent.managers.mcp import McpManager
 from archx_agent.managers.memory import MemoryManager
 from archx_agent.managers.models import ModelManager, ModelRecord
@@ -64,6 +65,7 @@ from archx_agent.managers.tools import ToolManager
 from archx_agent.managers.versions import VersionManager
 from archx_agent.managers.workflows import WorkflowManager
 from archx_agent.application.router import ModelRouter
+from archx_agent.application.scheduler import JobRunner
 from archx_agent.managers.schema import MIGRATIONS, SCHEMA_VERSION
 
 
@@ -85,6 +87,8 @@ class Workspace:
     versions: VersionManager | None = None
     tasks: TaskManager | None = None
     workflows: WorkflowManager | None = None
+    jobs: JobManager | None = None
+    scheduler: Any = None
     reproduction: ReproductionManager | None = None
     router: Any = None
     context: ContextManager | None = None
@@ -244,6 +248,14 @@ class Workspace:
             max_version_bytes=int(config.get("tasks.max_version_bytes")),
         )
         ws.tools.tasks = ws.tasks
+        ws.jobs = JobManager(
+            store,
+            coordinator,
+            events=events,
+            config=config,
+            tasks=ws.tasks,
+        )
+        ws.scheduler = JobRunner(ws, poll=float(config.get("scheduler.poll_seconds")))
         ws.workflows = WorkflowManager(
             store,
             coordinator,
@@ -266,9 +278,28 @@ class Workspace:
             app_version=__version__,
             schema_version=SCHEMA_VERSION,
         )
+        if config.get("scheduler.reap_on_open"):
+            try:
+                reaped = ws.jobs.reap_expired()
+                if reaped["expired"]:
+                    ws.warnings.append(
+                        f"failed {reaped['expired']} job(s) whose hard deadline had passed"
+                    )
+            except Exception as exc:  # noqa: BLE001 - a bad row must not block startup
+                ws.warnings.append(f"could not reap expired jobs: {exc}")
+        if config.get("scheduler.recover_on_open"):
+            try:
+                recovered = ws.jobs.recover()
+                if recovered["requeued"] or recovered["interrupted"]:
+                    ws.warnings.append(
+                        f"recovered {recovered['requeued']} job(s) left behind by a dead worker "
+                        f"({recovered['interrupted']} marked interrupted)"
+                    )
+            except Exception as exc:  # noqa: BLE001
+                ws.warnings.append(f"could not recover orphaned jobs: {exc}")
         if config.get("tasks.interrupt_stale_on_open"):
             try:
-                swept = ws.tasks.interrupt_stale()
+                swept = ws.tasks.interrupt_stale(protect=ws.jobs.protected_task_ids())
                 if swept["interrupted"]:
                     ws.warnings.append(
                         f"marked {swept['interrupted']} task(s) as interrupted: the process that "

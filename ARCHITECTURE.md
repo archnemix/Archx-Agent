@@ -92,6 +92,12 @@ escape, and symlink escape before any IO.
 | 9 | embeddings, retrieval runs |
 | 10 | model catalogue, capability tests, providers, provider usage, credential references |
 | 11 | context proposals |
+| 12 | provider privacy metadata and consent |
+| 13 | tool permission centre: approvals, grants scope, run columns |
+| 14 | MCP servers/tools and extensions |
+| 15 | task history: task log, version ordinals, reproduction links |
+| 16 | agent workflows: definitions and ordered step records |
+| 17 | scheduler: job claims, attempts, deadlines, control, cursor, dedupe |
 
 Migrations are applied in order with a **pre-migration backup**; a database whose schema
 is newer than the build is refused (downgrade would corrupt data).
@@ -183,6 +189,31 @@ the permission centre is unavoidable. A model-proposed plan is stored `proposed`
 runner refuses it until a human approves; checkpoints are checked before the run starts so a
 refusal cannot leave half a plan executed. The workflow row is the plan, the task row is the
 run, and the conversation is the transcript - there is no fourth record.
+
+## Job scheduling (M26)
+
+```
+jobs row            managers/jobs.py
+   queued -> running -> completed | failed
+      ^   \-> paused -> queued            (cooperative, durable cursor)
+      \----- requeued after a crash (attempts remain) / interrupted (they do not)
+
+JobRunner.drain()   application/scheduler.py
+   claim:  SELECT best queued row + UPDATE status= running   (one transaction)
+   admit:  estimate fits the free share of scheduler.cpu_limit_percent / memory_limit_mb
+   run:    command  -> child process in its own session, SIGKILL at the deadline
+           workflow -> AgentRunner.run(control=, resume=)  step-boundary deadline check
+   record: task timeline (job_started / job_paused / job_resumed / job_completed ...)
+           result JSON (exit code, stdout, stderr, duration) + trace events
+```
+
+The queue owns *scheduling*; the task owns *history*. A job that runs adopts or creates
+exactly one task, and every milestone it reaches is appended to that task's timeline, so
+`tasks show` answer "what happened" without a second log. The claim is a single
+transaction, which is what makes two workers safe; the deadline is absolute and stored,
+which is what makes a hard timeout survive a crash. Pause sets a flag the runner reads at
+a step boundary and records the cursor it reached; `resume` continues from that cursor and
+never replays a step. See `docs/SCHEDULER.md`.
 
 ## Task history, versions and reproduction (M24)
 

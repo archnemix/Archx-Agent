@@ -14,8 +14,13 @@ What it will not do:
 * report a cancelled run as completed, even if the cancel arrived from another process.
 
 Budgets and cancellation are checked *before* each step, which is the last moment at which
-stopping is clean. A step already running is allowed to finish; killing a model call or a
-tool mid-flight is M26's problem (jobs with hard timeouts), not a thread-kill here.
+stopping is clean. A step already running is allowed to finish; a hang inside a step is
+bounded by the job deadline the scheduler passes in (M26), not by killing a thread here.
+
+Resumption is step granularity. A paused run leaves the workflow ``running`` with the step
+rows it finished; ``run(resume=True)`` continues from the first step without a succeeded
+row, reusing those outputs. It never replays a step that already ran, because replaying a
+tool step could repeat a side effect.
 """
 
 from __future__ import annotations
@@ -23,7 +28,7 @@ from __future__ import annotations
 import json
 import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from archx_agent.helpers.exceptions import (
     ApprovalRequiredError,
@@ -111,11 +116,25 @@ class AgentRunner:
         self.ws = workspace
 
     # -- entry points ------------------------------------------------------
-    def run(self, ref: str, *, approve: bool = False) -> RunResult:
+    def run(
+        self,
+        ref: str,
+        *,
+        approve: bool = False,
+        resume: bool = False,
+        control: "Callable[[int], str | None] | None" = None,
+    ) -> RunResult:
+        """Execute a workflow.
+
+        ``control`` is called before each step with the number of steps already finished
+        and may return ``"pause"`` (stop cleanly at this boundary, raising
+        :class:`RunPaused`), ``"cancel"``, or ``None`` to continue. It may also raise to
+        abort the run (the scheduler uses that for a hard deadline).
+        """
         workflow = self.ws.workflows.require(ref)
         if workflow.terminal:
             raise ConflictError(f"workflow {workflow.id} already {workflow.status}")
-        if workflow.status == "running":
+        if workflow.status == "running" and not resume:
             raise ConflictError(f"workflow {workflow.id} is already running")
         if workflow.status == "proposed" and not approve:
             raise ApprovalRequiredError(
@@ -125,32 +144,69 @@ class AgentRunner:
         if workflow.status == "proposed" and approve:
             self.ws.workflows.approve(workflow.id, by="user:cli (run --approve)")
 
-        # A checkpoint is an *up-front* gate. Refusing here means nothing has run, so
-        # re-running with --approve cannot repeat a side effect from an earlier attempt
-        # (durable pause/resume belongs to the scheduler in M26).
-        checkpoints = [step for step in _walk(workflow.steps) if step.kind == "checkpoint"]
-        if checkpoints and not approve:
-            raise ApprovalRequiredError(
-                f"workflow {workflow.id} contains {len(checkpoints)} checkpoint(s) and has not "
-                f"been approved; review it with `archx-agent agent show {workflow.id}` and run "
-                "with --approve"
+        done: dict[int, Any] = {}
+        if resume:
+            if workflow.status != "running":
+                raise ConflictError(
+                    f"cannot resume workflow {workflow.id}: it is {workflow.status}"
+                )
+            for record in self.ws.workflows.steps(workflow.id):
+                if record.status == "succeeded":
+                    done[record.seq] = record
+            found = self.ws.tasks.find(workflow.task_id) if workflow.task_id else None
+            task = found.value if found is not None and found.is_ok else None
+            if task is None or task.terminal:
+                # The record of the first attempt is closed (a crash sweep marks it
+                # interrupted). Continue under a fresh task instead of writing into a
+                # finished one, and keep the link back to the attempt that was lost.
+                task = self.ws.tasks.create(
+                    "agent",
+                    f"{workflow.name} (resumed): {workflow.goal or ''}".strip(": ")[:200],
+                    start=True,
+                    model_id=workflow.model_id,
+                    metadata={
+                        "workflow_id": workflow.id,
+                        "mode": workflow.mode,
+                        "resumed_from": workflow.task_id,
+                    },
+                )
+                workflow = self.ws.workflows.mark_running(workflow.id, task_id=task.id)
+            conversation_id = workflow.conversation_id
+            if not conversation_id:
+                conversation = self.ws.conversations.create(
+                    title=f"workflow: {workflow.name}"[:200], model_id=workflow.model_id
+                )
+                conversation_id = conversation.id
+                workflow = self.ws.workflows.mark_running(
+                    workflow.id, conversation_id=conversation_id
+                )
+            self.ws.tasks.log(task.id, "resumed", detail=f"from step {len(done) + 1}")
+        else:
+            # A checkpoint is an *up-front* gate. Refusing here means nothing has run, so
+            # re-running with --approve cannot repeat a side effect from an earlier attempt.
+            checkpoints = [step for step in _walk(workflow.steps) if step.kind == "checkpoint"]
+            if checkpoints and not approve:
+                raise ApprovalRequiredError(
+                    f"workflow {workflow.id} contains {len(checkpoints)} checkpoint(s) and has not "
+                    f"been approved; review it with `archx-agent agent show {workflow.id}` and run "
+                    "with --approve"
+                )
+            task = self.ws.tasks.create(
+                "agent",
+                f"{workflow.name}: {workflow.goal or ''}".strip(": ")[:200],
+                start=True,
+                model_id=workflow.model_id,
+                metadata={"workflow_id": workflow.id, "mode": workflow.mode},
             )
-
-        task = self.ws.tasks.create(
-            "agent",
-            f"{workflow.name}: {workflow.goal or ''}".strip(": ")[:200],
-            start=True,
-            model_id=workflow.model_id,
-            metadata={"workflow_id": workflow.id, "mode": workflow.mode},
-        )
-        conversation = self.ws.conversations.create(
-            title=f"workflow: {workflow.name}"[:200],
-            model_id=workflow.model_id,
-        )
-        workflow = self.ws.workflows.mark_running(
-            workflow.id, task_id=task.id, conversation_id=conversation.id
-        )
-        self.ws.tasks.link(task.id, conversation_id=conversation.id)
+            conversation = self.ws.conversations.create(
+                title=f"workflow: {workflow.name}"[:200],
+                model_id=workflow.model_id,
+            )
+            conversation_id = conversation.id
+            workflow = self.ws.workflows.mark_running(
+                workflow.id, task_id=task.id, conversation_id=conversation_id
+            )
+            self.ws.tasks.link(task.id, conversation_id=conversation_id)
 
         budget = Budget(
             max_steps=int(self.ws.config.get("agent.max_steps")),
@@ -171,7 +227,31 @@ class AgentRunner:
         try:
             for index, step in enumerate(workflow.steps, start=1):
                 budget.check()
+                signal = control(len(steps)) if control is not None else None
+                if signal == "pause":
+                    raise RunPaused(
+                        f"paused before step {index}",
+                        workflow_id=workflow.id,
+                        task_id=task.id,
+                        conversation_id=conversation_id,
+                        cursor=len(steps),
+                        steps=steps,
+                    )
+                if index in done:
+                    finished = done[index]
+                    steps.append(finished.to_dict())
+                    value = finished.output or ""
+                    outputs[f"step.{index}.output"] = value
+                    context[f"step.{index}.output"] = value
+                    summary = value
+                    budget.steps_done += 1
+                    budget.tokens += finished.tokens
+                    continue
                 current = self.ws.workflows.get(workflow.id)
+                if signal == "cancel" and current.status != "cancelled":
+                    current = self.ws.workflows.cancel(
+                        workflow.id, reason="cancelled while running as a scheduled job"
+                    )
                 if current.status == "cancelled":
                     self.ws.tasks.cancel(task.id, "the workflow was cancelled")
                     self.ws.workflows.finish(workflow.id, status="cancelled", error="cancelled")
@@ -193,7 +273,7 @@ class AgentRunner:
                 self.ws.tasks.log(task.id, "step", detail=f"{index}. {step.kind}: {step.title}")
                 try:
                     output, tokens, metadata = self._run_step(
-                        step, context, workflow, task.id, conversation.id,
+                        step, context, workflow, task.id, conversation_id,
                         budget, index, approve=approve, depth=0,
                     )
                 except BaseException as exc:
@@ -219,6 +299,11 @@ class AgentRunner:
                 outputs[f"step.{index}.output"] = value
                 context[f"step.{index}.output"] = value
                 summary = value
+        except RunPaused:
+            # A pause is not a failure: the workflow stays running and the step rows
+            # already written are what a later resume continues from.
+            self.ws.tasks.log(task.id, "paused", detail=f"at step {len(steps)}")
+            raise
         except BaseException as exc:
             message = getattr(exc, "message", None) or str(exc)
             approval_id = getattr(exc, "approval_id", None)
@@ -499,10 +584,45 @@ class WorkflowFailed(Exception):
         self.steps = steps or []
 
 
+class RunPaused(Exception):
+    """A run stopped at a step boundary because a pause was requested.
+
+    Everything already written stays: the workflow is still ``running``, the task is
+    still open, and ``cursor`` says how many steps are done - which is exactly what
+    ``run(resume=True)`` needs.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        workflow_id: str,
+        task_id: str,
+        conversation_id: str | None,
+        cursor: int,
+        steps: list[dict[str, Any]] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.message = message
+        self.workflow_id = workflow_id
+        self.task_id = task_id
+        self.conversation_id = conversation_id
+        self.cursor = cursor
+        self.steps = steps or []
+
+
 def _walk(steps):
     for step in steps:
         yield step
         yield from _walk(step.steps)
 
 
-__all__ = ["AgentRunner", "Budget", "MAX_OUTPUT", "PLAN_SYSTEM_PROMPT", "RunResult", "WorkflowFailed"]
+__all__ = [
+    "AgentRunner",
+    "Budget",
+    "MAX_OUTPUT",
+    "PLAN_SYSTEM_PROMPT",
+    "RunPaused",
+    "RunResult",
+    "WorkflowFailed",
+]

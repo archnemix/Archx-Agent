@@ -75,7 +75,14 @@ archx-agent agent run-file plan.json          # steps you wrote
 archx-agent agent plan "summarise the notes"  # a model proposes; nothing runs yet
 archx-agent agent show wf_... && archx-agent agent run wf_... --approve
 
-# 6. inspect everything that happened
+# 8. long work goes through the durable queue
+archx-agent jobs submit command "sleep 30" --timeout 5   # a hard deadline, not a hint
+archx-agent jobs submit workflow wf_... --timeout 600
+archx-agent jobs run                                     # drain (exit 3 = work remains)
+archx-agent jobs pause jb_... && archx-agent jobs resume jb_...
+archx-agent jobs recover                                 # after a crash: requeue, do not guess
+
+# 9. inspect everything that happened
 archx-agent trace list --limit 20
 archx-agent db check
 ```
@@ -110,9 +117,10 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 | MCP client (stdio + HTTP) and optional server; extensions with a trust boundary | verified (M23) |
 | Task history, content versions with diffs/restore, and evidence-based reproduction records | verified (M24) |
 | Agent workflows: user-written plans, model-proposed plans behind approval, subagents, budgets | verified (M25) |
+| Durable job queue: priorities, concurrency with resource admission, hard deadlines, pause/resume, crash recovery | verified (M26) |
 | Provider runtime boundary: llama.cpp in-process, OpenAI-compatible HTTP, tested error classification | verified for HTTP; llama.cpp needs the optional dependency and a model file |
 | CLI | verified end-to-end |
-| Agents, research, learning, play, media, datasets, training, remote compute, Blender, automations | **not built yet** (M26–M40, see PLAN.md) |
+| Research, learning, coding, play modes, media, datasets, training, remote compute, Blender, automations | **not built yet** (M27–M40, see PLAN.md) |
 
 ## Design principles (enforced, not aspirational)
 
@@ -133,6 +141,7 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 * [THINKING.md](THINKING.md) - decision log with reasons
 * [CHANGELOG.md](CHANGELOG.md)
 * [docs/AGENTS.md](docs/AGENTS.md) - workflow definitions, step kinds, approval gates and budgets
+* [docs/SCHEDULER.md](docs/SCHEDULER.md) - durable jobs, deadlines, concurrency, pause/resume, crash recovery
 * [docs/TASKS.md](docs/TASKS.md) - task history, content versions, and what "reproducible" means
 * [docs/MCP.md](docs/MCP.md) - MCP client/server, transports, extensions and their trust boundary
 * [docs/TOOLS.md](docs/TOOLS.md) - tool registry, capabilities, grants, approvals, sandbox

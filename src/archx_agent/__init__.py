@@ -12,6 +12,6 @@ Layering (enforced by tests/test_import_matrix.py):
 
 from __future__ import annotations
 
-__version__ = "0.25.0"
+__version__ = "0.26.0"
 BRAND = "Archx Agent"
 CLI_NAME = "archx-agent"

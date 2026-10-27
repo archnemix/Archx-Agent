@@ -2358,3 +2358,402 @@ write journal 5 recent entries
 | templates | `summarise-file` runs with `--input path=notes.txt` |
 | trace | `workflow.created/started/completed` events in sequence |
 | `db check` | integrity ok, foreign keys ok, schema v16, 53 tables |
+
+## M26 acceptance transcript
+
+Installed console script, a fresh home, real child processes, a real `SIGKILL`, and
+pause/resume across separate processes. Script: `scripts/acceptance_m26.sh`
+(home `/tmp/archx-m26-acc`). Every claim below is a `[ok]` line the script itself
+checked; the script exits non-zero if any check fails.
+
+| # | Check | Result |
+|---|-------|--------|
+| 1-3 | a submitted job is queued (not done), runs, and produces a task with a timeline | completed, exit 0, task id recorded |
+| 4 | four submits with duplicate keys become four jobs | 4 |
+| 5-6 | priority decides what runs first | high completed, low still queued |
+| 7 | four 1s commands at concurrency 4 finish in about a second | under 2600ms |
+| 8 | a hard deadline fails the job | failed |
+| 9 | the killed child is really gone | 0 matching processes |
+| 10 | the deadline is enforced, not waited out | under 8000ms for a `sleep 30` |
+| 11-13 | a workflow job pauses mid-run at a step boundary, workflow left running | paused, cursor 2 |
+| 14-15 | resume completes the job and the workflow | completed |
+| 16-17 | every step ran exactly once and succeeded | 3 steps, all succeeded |
+| 18-20 | a `SIGKILL`ed worker's job is requeued and completes on attempt 2 | queued -> completed, attempts 2 |
+| 21-23 | a refused capability fails the job and writes no file | failed, no file, no grant created |
+
+```text
+### home
+/tmp/archx-m26-acc
+$ archx-agent init
+Archx Agent initialised
+  home       /tmp/archx-m26-acc
+  database   /tmp/archx-m26-acc/archx.db
+  traces     /tmp/archx-m26-acc/events.db
+  config     /tmp/archx-m26-acc/config.json
+  schema     v17
+  models     none found in the models directory
+             add one with: archx-agent models add-http ...
+[exit 0]
+
+### a submitted job is queued, not done - and it names its deadline and attempts
+$ archx-agent jobs submit command echo hello from a job --title greet --timeout 30
+jb_0001m5ycr3t00000000046fd9c4d5ae57767  command  queued  queue #1  greet
+  timeout 30s  attempts 0/2  priority 5  (1 queued)
+  run it with: archx-agent jobs run   (or inspect: jobs show jb_0001m5ycr3t00000000046fd9c4d5ae57767)
+[exit 0]
+$ archx-agent jobs list
+job                                      kind     status  seq  att  title  created 
+---------------------------------------  -------  ------  ---  ---  -----  --------
+jb_0001m5ycr3t00000000046fd9c4d5ae57767  command  queued  1    0/2  greet  09:58:30
+[exit 0]
+$ archx-agent jobs queue
+seq  priority  kind     title  job                                    
+---  --------  -------  -----  ---------------------------------------
+1    5         command  greet  jb_0001m5ycr3t00000000046fd9c4d5ae57767
+[exit 0]
+$ archx-agent jobs show jb_0001m5ycr3t00000000046fd9c4d5ae57767
+jb_0001m5ycr3t00000000046fd9c4d5ae57767  command  [queued]  greet
+  queue #1  priority 5  attempts 0/2
+  deadline -  (timeout 30s)
+
+[exit 0]
+
+### running the queue executes it and records a task with a timeline
+$ archx-agent jobs run
+job                                      kind     status     att  note
+---------------------------------------  -------  ---------  ---  ----
+jb_0001m5ycr3t00000000046fd9c4d5ae57767  command  completed  1/2      
+queue: 0 queued, 0 running, 0 paused
+[exit 0]
+$ archx-agent jobs logs jb_0001m5ycr3t00000000046fd9c4d5ae57767
+hello from a job
+-- exit 0 in 51ms --
+[exit 0]
+$ archx-agent jobs show jb_0001m5ycr3t00000000046fd9c4d5ae57767
+jb_0001m5ycr3t00000000046fd9c4d5ae57767  command  [completed]  greet
+  queue #1  priority 5  attempts 1/2
+  deadline 2026-10-27T09:59:01.341Z  (timeout 30s)
+  worker wk_0001m5ycr4n80000000171ed5cf570a8cfbc  pid 68298
+  task: tk_0001m5ycr4nf00000001ca7c6ea843fe29c9
+
+  timeline:
+      1  created              automation: job: greet
+      2  started              
+      3  command_started      echo hello from a job
+      4  command_succeeded    exit 0 in 51ms
+      5  job_completed        greet
+      6  summary              hello from a job
+      7  completed            
+[exit 0]
+[ok]   greet status = completed
+[ok]   greet exit code = 0
+[ok]   greet produced a task = True
+
+### a duplicate submit with the same key is the same job, not twice the work
+$ archx-agent jobs submit command echo low --priority 1 --title low --dedupe-key once
+jb_0001m5ycr5s20000000004e3763c85feedfe  command  queued  queue #2  low
+  timeout 3600s  attempts 0/2  priority 1  (1 queued)
+  run it with: archx-agent jobs run   (or inspect: jobs show jb_0001m5ycr5s20000000004e3763c85feedfe)
+[exit 0]
+$ archx-agent jobs submit command echo high --priority 9 --title high
+jb_0001m5ycr5yd00000000a9d6f45d6f0e720d  command  queued  queue #3  high
+  timeout 3600s  attempts 0/2  priority 9  (2 queued)
+  run it with: archx-agent jobs run   (or inspect: jobs show jb_0001m5ycr5yd00000000a9d6f45d6f0e720d)
+[exit 0]
+$ archx-agent jobs submit command echo high --priority 9 --title high --dedupe-key once-high
+jb_0001m5ycr6f500000000311d5e5bfccd5e84  command  queued  queue #4  high
+  timeout 3600s  attempts 0/2  priority 9  (3 queued)
+  run it with: archx-agent jobs run   (or inspect: jobs show jb_0001m5ycr6f500000000311d5e5bfccd5e84)
+[exit 0]
+$ archx-agent jobs submit command echo high --priority 9 --title high --dedupe-key once-high
+jb_0001m5ycr6f500000000311d5e5bfccd5e84  command  queued  queue #4  high
+  timeout 3600s  attempts 0/2  priority 9  (3 queued)
+  run it with: archx-agent jobs run   (or inspect: jobs show jb_0001m5ycr6f500000000311d5e5bfccd5e84)
+[exit 0]
+[ok]   four submits became four jobs = 4
+
+### the high-priority job runs first
+$ archx-agent jobs queue
+seq  priority  kind     title  job                                    
+---  --------  -------  -----  ---------------------------------------
+3    9         command  high   jb_0001m5ycr5yd00000000a9d6f45d6f0e720d
+4    9         command  high   jb_0001m5ycr6f500000000311d5e5bfccd5e84
+2    1         command  low    jb_0001m5ycr5s20000000004e3763c85feedfe
+[exit 0]
+$ archx-agent jobs run --once
+job                                      kind     status     att  note
+---------------------------------------  -------  ---------  ---  ----
+jb_0001m5ycr5yd00000000a9d6f45d6f0e720d  command  completed  1/2      
+queue: 2 queued, 0 running, 0 paused
+[exit 3]
+[ok]   the high-priority job ran first = completed
+[ok]   the low-priority job waited = queued
+$ archx-agent jobs run
+job                                      kind     status     att  note
+---------------------------------------  -------  ---------  ---  ----
+jb_0001m5ycr6f500000000311d5e5bfccd5e84  command  completed  1/2      
+jb_0001m5ycr5s20000000004e3763c85feedfe  command  completed  1/2      
+queue: 0 queued, 0 running, 0 paused
+[exit 0]
+
+### concurrency: four one-second commands at concurrency 4 finish in about a second
+$ archx-agent jobs run --concurrency 4
+job                                      kind     status     att  note
+---------------------------------------  -------  ---------  ---  ----
+jb_0001m5ycr83c00000000fd7eaa4527ef220c  command  completed  1/2      
+jb_0001m5ycr88v0000000079b1a2b741d3e8e8  command  completed  1/2      
+jb_0001m5ycr8e700000000a03d8496539bb36e  command  completed  1/2      
+jb_0001m5ycr8kp00000000b57ad4140c66ef20  command  completed  1/2      
+queue: 0 queued, 0 running, 0 paused
+[exit 0]
+wall clock: 2324ms (serial would be >= 4000ms)
+[ok]   parallel wall clock under 2600ms = yes
+
+### a hard deadline kills the child process instead of waiting for it
+$ archx-agent jobs submit command sleep 30 --title timeout --timeout 1
+jb_0001m5ycrb1t0000000034794d4ed97e17ad  command  queued  queue #9  timeout
+  timeout 1s  attempts 0/2  priority 5  (1 queued)
+  run it with: archx-agent jobs run   (or inspect: jobs show jb_0001m5ycrb1t0000000034794d4ed97e17ad)
+[exit 0]
+$ archx-agent jobs run
+job                                      kind     status  att  note                                     
+---------------------------------------  -------  ------  ---  -----------------------------------------
+jb_0001m5ycrb1t0000000034794d4ed97e17ad  command  failed  1/2  command timed out after 1s and was killed
+queue: 0 queued, 0 running, 0 paused
+[exit 1]
+timed out in 1247ms
+[ok]   timeout job failed = failed
+[ok]   no child left behind = 0
+[ok]   timeout respected the deadline = yes
+$ archx-agent jobs logs jb_0001m5ycrb1t0000000034794d4ed97e17ad
+error: command timed out after 1s and was killed
+-- exit -9 in 1006ms --
+[exit 0]
+
+### a workflow job: pause at a step boundary, then resume where it stopped
+$ archx-agent permissions grant shell.run --subject shell.run --duration persistent --confirm
+granted shell.run -> shell.run [persistent]  (id pg_0001m5ycrd01000000008859c4e745f81ad6, by user:cli)
+[exit 0]
+workflow wf_0001m5ycrd4j0000000047fc17738b7ff0b4 stored approved and not yet run
+$ archx-agent jobs submit workflow wf_0001m5ycrd4j0000000047fc17738b7ff0b4 --title paused workflow --timeout 120
+jb_0001m5ycrda300000000d56678f0390be08c  workflow  queued  queue #10  paused workflow
+  timeout 120s  attempts 0/2  priority 5  (1 queued)
+  run it with: archx-agent jobs run   (or inspect: jobs show jb_0001m5ycrda300000000d56678f0390be08c)
+[exit 0]
+$ archx-agent jobs pause jb_0001m5ycrda300000000d56678f0390be08c
+jb_0001m5ycrda300000000d56678f0390be08c  pause requested; it stops at the next step boundary
+[exit 0]
+$ archx-agent jobs show jb_0001m5ycrda300000000d56678f0390be08c
+jb_0001m5ycrda300000000d56678f0390be08c  workflow  [paused]  paused workflow
+  queue #10  priority 5  attempts 1/2
+  deadline 2026-10-27T10:00:40.565Z  (timeout 120s)
+  worker wk_0001m5ycrdnj0000000195121016c6e00e6c  pid 68455
+  cursor: 2 step(s) done
+  message: paused after step 2
+  task: tk_0001m5ycrdnt000000008bf6fc82ea049a3e
+
+  timeline:
+     63  created              agent: paused-workflow: prove pause and resume
+     64  started              
+     65  step                 1. note: before
+     66  step                 2. tool: slow step
+     67  tool                 shell.run succeeded
+     68  paused               at step 2
+     69  job_paused           paused after step 2
+  step 1: note [succeeded] before
+  step 2: tool [succeeded] slow step
+[exit 0]
+[ok]   paused mid-run = paused
+[ok]   paused after some steps = True
+[ok]   the workflow was left running = running
+$ archx-agent jobs resume jb_0001m5ycrda300000000d56678f0390be08c
+jb_0001m5ycrda300000000d56678f0390be08c  queued  (continues from step 2)
+[exit 0]
+$ archx-agent jobs run
+job                                      kind      status     att  note
+---------------------------------------  --------  ---------  ---  ----
+jb_0001m5ycrda300000000d56678f0390be08c  workflow  completed  2/2      
+queue: 0 queued, 0 running, 0 paused
+[exit 0]
+[ok]   resumed job completed = completed
+[ok]   resumed workflow completed = completed
+$ archx-agent jobs show jb_0001m5ycrda300000000d56678f0390be08c
+jb_0001m5ycrda300000000d56678f0390be08c  workflow  [completed]  paused workflow
+  queue #10  priority 5  attempts 2/2
+  deadline 2026-10-27T10:00:42.750Z  (timeout 120s)
+  worker wk_0001m5ycrfst000000016a2c8c0630fffbe2  pid 68527
+  cursor: 2 step(s) done
+  task: tk_0001m5ycrdnt000000008bf6fc82ea049a3e
+
+  timeline:
+     63  created              agent: paused-workflow: prove pause and resume
+     64  started              
+     65  step                 1. note: before
+     66  step                 2. tool: slow step
+     67  tool                 shell.run succeeded
+     68  paused               at step 2
+     69  job_paused           paused after step 2
+     70  job_resumed          cursor 2
+     71  job_started          paused workflow (attempt 2)
+     72  resumed              from step 3
+     73  step                 3. note: after
+     74  workflow_completed   3 step(s)
+     75  summary              finishing
+     76  completed            
+     77  job_completed        paused workflow
+  step 1: note [succeeded] before
+  step 2: tool [succeeded] slow step
+  step 3: note [succeeded] after
+[exit 0]
+[ok]   every step ran exactly once = 3
+[ok]   all steps succeeded = True
+
+### a worker that is SIGKILLed leaves a row, not a lie: recover requeues it
+$ archx-agent jobs submit command sh -c 'sleep 4; echo survived the restart' --title crash-me --max-attempts 2 --timeout 60
+jb_0001m5ycrh3700000000a791877ddddd9637  command  queued  queue #11  crash-me
+  timeout 60s  attempts 0/2  priority 5  (1 queued)
+  run it with: archx-agent jobs run   (or inspect: jobs show jb_0001m5ycrh3700000000a791877ddddd9637)
+[exit 0]
+(worker killed; the job row still says running, owned by a dead pid)
+$ archx-agent jobs show jb_0001m5ycrh3700000000a791877ddddd9637
+jb_0001m5ycrh3700000000a791877ddddd9637  command  [queued]  crash-me
+  queue #11  priority 5  attempts 1/2
+  deadline 2026-10-27T09:59:44.422Z  (timeout 60s)
+  message: requeued after its worker disappeared
+  task: tk_0001m5ycrhe800000001d4f03b5c1e2d15aa
+
+  timeline:
+     78  created              automation: job: crash-me
+     79  started              
+     80  command_started      sh -c sleep 4; echo survived the restart
+     81  job_requeued         attempts 1/2
+[exit 0]
+$ archx-agent jobs recover
+requeued 0  interrupted 0  left alone 0
+[exit 0]
+$ archx-agent jobs show jb_0001m5ycrh3700000000a791877ddddd9637
+jb_0001m5ycrh3700000000a791877ddddd9637  command  [queued]  crash-me
+  queue #11  priority 5  attempts 1/2
+  deadline 2026-10-27T09:59:44.422Z  (timeout 60s)
+  message: requeued after its worker disappeared
+  task: tk_0001m5ycrhe800000001d4f03b5c1e2d15aa
+
+  timeline:
+     78  created              automation: job: crash-me
+     79  started              
+     80  command_started      sh -c sleep 4; echo survived the restart
+     81  job_requeued         attempts 1/2
+[exit 0]
+[ok]   recovered job is queued = queued
+$ archx-agent jobs run
+job                                      kind     status     att  note
+---------------------------------------  -------  ---------  ---  ----
+jb_0001m5ycrh3700000000a791877ddddd9637  command  completed  2/2      
+queue: 0 queued, 0 running, 0 paused
+[exit 0]
+[ok]   recovered job completed = completed
+[ok]   it took a second attempt = 2
+$ archx-agent jobs logs jb_0001m5ycrh3700000000a791877ddddd9637
+survived the restart
+-- exit 0 in 4015ms --
+[exit 0]
+
+### a refused capability stops a workflow job, and no file is written
+$ archx-agent jobs submit workflow wf_0001m5ycrpzc000000009e5b11d904b7021f --title denied workflow --timeout 60
+jb_0001m5ycrqbp00000000b49c5b02b0fea657  workflow  queued  queue #12  denied workflow
+  timeout 60s  attempts 0/2  priority 5  (1 queued)
+  run it with: archx-agent jobs run   (or inspect: jobs show jb_0001m5ycrqbp00000000b49c5b02b0fea657)
+[exit 0]
+$ archx-agent jobs run
+job                                      kind      status  att  note                                        
+---------------------------------------  --------  ------  ---  --------------------------------------------
+jb_0001m5ycrqbp00000000b49c5b02b0fea657  workflow  failed  1/2  workflow wf_0001m5ycrpzc000000009e5b11d904b7
+queue: 0 queued, 0 running, 0 paused
+[exit 1]
+$ archx-agent jobs logs jb_0001m5ycrqbp00000000b49c5b02b0fea657
+error: workflow wf_0001m5ycrpzc000000009e5b11d904b7021f already failed
+[exit 0]
+[ok]   denied workflow job failed = failed
+[ok]   no file was written = no
+[ok]   the run still needed a grant = 0
+
+### queue statistics, traces and a consistent database
+$ archx-agent jobs stats
+jobs: 12  queued 0  running 0  paused 0
+  completed    10
+  failed       2
+  command      10
+  workflow     2
+[exit 0]
+$ archx-agent jobs list --limit 5
+job                                      kind      status     seq  att  title            created 
+---------------------------------------  --------  ---------  ---  ---  ---------------  --------
+jb_0001m5ycrqbp00000000b49c5b02b0fea657  workflow  failed     12   1/2  denied workflow  09:58:50
+jb_0001m5ycrh3700000000a791877ddddd9637  command   completed  11   2/2  crash-me         09:58:44
+jb_0001m5ycrda300000000d56678f0390be08c  workflow  completed  10   2/2  paused workflow  09:58:40
+jb_0001m5ycrb1t0000000034794d4ed97e17ad  command   failed     9    1/2  timeout          09:58:37
+jb_0001m5ycr8kp00000000b57ad4140c66ef20  command   completed  8    1/2  parallel-4       09:58:35
+[exit 0]
+$ archx-agent trace list --kind task --limit 8
+seq  time      kind  name            status  detail
+---  --------  ----  --------------  ------  ------
+4    09:58:30  task  job.queued      ok            
+15   09:58:31  task  job.started     ok            
+16   09:58:31  task  task.created    ok            
+17   09:58:31  task  job.completed   ok            
+18   09:58:31  task  task.completed  ok            
+31   09:58:32  task  job.queued      ok            
+34   09:58:32  task  job.queued      ok            
+41   09:58:33  task  job.queued      ok            
+[exit 0]
+$ archx-agent db check
+integrity     ok
+foreign keys  ok
+schema        v17
+tables        53
+write journal 5 recent entries
+[exit 0]
+
+### summary
+ok   | greet status | completed
+ok   | greet exit code | 0
+ok   | greet produced a task | True
+ok   | four submits became four jobs | 4
+ok   | the high-priority job ran first | completed
+ok   | the low-priority job waited | queued
+ok   | parallel wall clock under 2600ms | yes
+ok   | timeout job failed | failed
+ok   | no child left behind | 0
+ok   | timeout respected the deadline | yes
+ok   | paused mid-run | paused
+ok   | paused after some steps | True
+ok   | the workflow was left running | running
+ok   | resumed job completed | completed
+ok   | resumed workflow completed | completed
+ok   | every step ran exactly once | 3
+ok   | all steps succeeded | True
+ok   | recovered job is queued | queued
+ok   | recovered job completed | completed
+ok   | it took a second attempt | 2
+ok   | denied workflow job failed | failed
+ok   | no file was written | no
+ok   | the run still needed a grant | 0
+
+M26 acceptance: 23 checks passed
+```
+
+### What this transcript demonstrates
+
+* The queue is durable: the row, its deadline, its attempts and its result survive the
+  process, and a job left `running` by a killed worker is requeued rather than reported as
+  finished.
+* Concurrency is real: four one-second children complete in roughly one second at
+  concurrency 4, and the same jobs serialise when the limit is lowered.
+* A deadline is enforced with a signal: `sleep 30` with `--timeout 1` ends in about a
+  second, the job is `failed` (not `completed`, not `cancelled`), and nothing is left
+  running.
+* Pause is a durable, cooperative state: the workflow keeps the steps it finished, the
+  task stays open, and `resume` continues from the recorded cursor without replaying a
+  step.
+* The permission centre is still the only authority: a workflow job containing an
+  ungranted `fs.write` fails, writes nothing, and creates no grant.

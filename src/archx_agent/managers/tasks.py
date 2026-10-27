@@ -27,7 +27,7 @@ import mimetypes
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Collection, Sequence
 
 from archx_agent.helpers.exceptions import ConflictError, NotFoundError, ValidationError
 from archx_agent.helpers.jsonio import json_text, sha256_file
@@ -547,7 +547,7 @@ class TaskManager(BaseManager):
         )
         return self.get(task_id)
 
-    def interrupt_stale(self) -> dict[str, Any]:
+    def interrupt_stale(self, *, protect: Collection[str] = ()) -> dict[str, Any]:
         """Mark tasks a *dead* process left running.
 
         This is deliberately a *record*, not a cleanup: a task that was running when the
@@ -561,14 +561,21 @@ class TaskManager(BaseManager):
         * a task the user tracks manually (``tasks start``) is left alone - the CLI
           process exits immediately by design, so its pid proves nothing;
         * everything else is interrupted, with the reason recorded.
+
+        ``protect`` names tasks that another durable record still owns - a *paused job*
+        continues them, so sweeping them would make a resumable run look dead.
         """
         rows = self.store.query(
             "SELECT id, metadata FROM tasks WHERE status = 'running' ORDER BY rowid", ()
         )
         interrupted: list[str] = []
         skipped: list[str] = []
+        protected = set(protect or ())
         for row in rows:
             meta = _json(row.get("metadata"), {})
+            if row["id"] in protected:
+                skipped.append(row["id"])
+                continue
             if meta.get("manual"):
                 skipped.append(row["id"])
                 continue

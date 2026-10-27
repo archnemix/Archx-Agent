@@ -488,6 +488,68 @@ characters. List settings now accept a JSON array or a comma-separated list, and
 JSON is a usage error. A configuration value that is the wrong shape is worse than a
 refused one, because it fails later and elsewhere.
 
+## Scheduling (M26)
+
+**D87. The queue is not a history, so it gets no log of its own.**
+A job answers "what should happen next"; a task answers "what happened". Every job that
+runs adopts or creates exactly one task and appends its milestones there. The cost is that a
+job which never ran (still `queued`) has no timeline, only its row and trace events. The
+benefit is that there is still exactly one place to ask "what happened", and no second log
+to keep in step - the same rule that M24 applied to chat, tools and workflows.
+
+**D88. A claim is one transaction, not a select followed by an update.**
+Reading the best candidate and marking it mine must be atomic or two workers can win the
+same row. The claim therefore runs *inside* the coordinator's transaction (the same
+`WriteCoordinator` every other write uses). The test races six threads over 24 jobs and
+asserts each is claimed exactly once; a lock in Python would only have protected one process.
+
+**D89. A deadline is an absolute timestamp stored at claim time.**
+Storing a duration and re-checking it invites "did it start when I thought?". The row carries
+`deadline`; the runner kills the child at it and *any* workspace open calls `reap_expired()`,
+so a deadline that passes while nothing is running still becomes a `failed` row instead of a
+row stuck in `running` forever.
+
+**D90. A running command refuses pause; a workflow pauses at step boundaries.**
+Freezing a process tree (`SIGSTOP`) leaves sockets, temp files and children in a state the
+rest of the system cannot reason about, and a resumed `sleep` would have to be told how much
+time it already served. A workflow is ours step by step, so the honest split is: pause
+between steps, refuse it for a child process, and say which is which in the error message.
+
+**D91. Retries are for crashes, not failures.**
+A job that ran and failed already had its side effects. Retrying automatically would repeat
+them, and "the scheduler did it twice" is never a surprise a user wants. Requeueing happens
+only when the worker *disappeared* (no result was recorded) and attempts remain; a timeout
+fails the job outright because we do not know what half-finished work it left.
+
+**D92. `paused` and `interrupted` are states, not errors - and the crash sweep must know it.**
+The first acceptance run resumed a paused workflow into a *new* task, because opening a
+second CLI process swept the paused run's task as "interrupted". The fix is a narrow one:
+`JobManager.protected_task_ids()` names the tasks a paused or resumed job still owns and
+`TaskManager.interrupt_stale(protect=...)` skips them. A durable record outranks a heuristic
+about pids.
+
+**D93. "The command ran" and "the work is done" are different exit codes.**
+`jobs run` exits 3 when work remains (queued, running, or paused). Exiting 0 because no job
+failed would let a paused queue look finished, which is the same mistake as treating a queued
+write as committed. `0` means drained, `1` means something failed or was cancelled.
+
+**D94. Admission control is arithmetic over declared estimates, with measurements recorded.**
+`cpu_limit_percent` and `memory_limit_mb` gate claims using each job's declared estimate, and
+`resource_observed` records the actual duration and peak RSS afterwards. Calling it a cgroup
+would be a lie; calling it nothing would let four "heavy" jobs start at once. The honest
+version is a hint plus evidence to correct the hint.
+
+**D95. Resume reuses the task when it can, and never writes into a closed record.**
+A resume continues the same task (same conversation, same step rows) because that is what
+"continue" means. If the first attempt's task really was closed - a hard crash, a sweep
+before the pause was recorded - the resumed run gets a fresh task with
+`metadata.resumed_from`, so history is appended to, never rewritten.
+
+**D96. The scheduler lives in `application/`, the queue in `managers/`.**
+The manager owns rows, transitions and recovery; the runner owns processes, threads and
+signals. That split keeps `managers/` testable without spawning anything and keeps the only
+`subprocess` code in one file that can be reviewed as such.
+
 ## Storage and config
 
 **D31. Unknown config keys are errors.**
