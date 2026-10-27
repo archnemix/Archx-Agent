@@ -1262,3 +1262,389 @@ home: /tmp/archx-m22-acc
 | revocation | revoking the conversation grant makes the next check exit 4 |
 | authority | every grant records `user:cli` or `approval:<id>`; no tool can mint one |
 | `db check` | integrity ok, foreign keys ok, schema v13, 49 tables |
+
+## M23 acceptance transcript
+
+Run it yourself: `./scripts/acceptance_m23.sh`. This drives a **real** MCP server process
+(the bundled `tests/fixtures/mcp_server.py`), a **real** extension directory with a real
+Python program, and finally this application's own MCP server, spoken to by its own MCP
+client in a separate process.
+
+
+### home
+/tmp/archx-m23-acc
+$ archx-agent init
+Archx Agent initialised
+  home       /tmp/archx-m23-acc
+  database   /tmp/archx-m23-acc/archx.db
+  traces     /tmp/archx-m23-acc/events.db
+  config     /tmp/archx-m23-acc/config.json
+  schema     v14
+  models     none found in the models directory
+             add one with: archx-agent models add-http ...
+[exit 0]
+the example MCP server this script drives:
+  /home/user/Archx-Agent/tests/fixtures/mcp_server.py
+
+### registering a server runs nothing: it records a program and a decision to review
+$ archx-agent mcp add fixture --command /home/user/Archx-Agent/.venv/bin/python --arg /home/user/Archx-Agent/tests/fixtures/mcp_server.py
+added MCP server fixture (stdio) id ms_0001m5y8w8fh00000000b4a63079db545762
+  trusted=False enabled=False
+  next: archx-agent mcp sync fixture
+[exit 0]
+$ archx-agent mcp servers
+server   transport  trusted  enabled  tools  callable  status         
+-------  ---------  -------  -------  -----  --------  ---------------
+fixture  stdio      no       no       0      0         never connected
+
+a discovered tool only becomes callable when the server is trusted AND enabled, and every call still needs an mcp.call grant
+[exit 0]
+$ archx-agent mcp add fixture --command /home/user/Archx-Agent/.venv/bin/python
+error: ConflictError: an MCP server named 'fixture' already exists
+[exit 1]
+
+### discovery happens even untrusted - you can see what it would expose
+$ archx-agent mcp sync fixture
+fixture: protocol 2025-06-18 (fixture-mcp)
+discovered 5 tool(s)
+  - echo                 echo the text back
+  - add                  add two integers
+  - slow                 sleep for a while
+  - explode              always fails
+  - session              report session details
+nothing registered: the server is not trusted and not enabled
+[exit 0]
+$ archx-agent mcp tools fixture
+tool     capability  risk  callable  description           
+-------  ----------  ----  --------  ----------------------
+add      mcp.call    high  no        add two integers      
+echo     mcp.call    high  no        echo the text back    
+explode  mcp.call    high  no        always fails          
+session  mcp.call    high  no        report session details
+slow     mcp.call    high  no        sleep for a while     
+[exit 0]
+
+### but nothing is registered until it is trusted AND enabled
+$ archx-agent mcp trust fixture
+fixture: trusted=True
+[exit 0]
+$ archx-agent mcp enable fixture
+fixture: enabled=True
+[exit 0]
+$ archx-agent mcp sync fixture
+fixture: protocol 2025-06-18 (fixture-mcp)
+discovered 5 tool(s)
+  - echo                 echo the text back
+  - add                  add two integers
+  - slow                 sleep for a while
+  - explode              always fails
+  - session              report session details
+registered 5 callable tool(s): mcp.fixture.echo, mcp.fixture.add, mcp.fixture.slow, mcp.fixture.explode, mcp.fixture.session
+[exit 0]
+
+### a discovered tool still needs an mcp.call grant - being trusted is not permission
+$ archx-agent mcp call fixture echo --arg text=hello
+denied: mcp.fixture.echo: mcp.call is not granted for 'mcp.fixture.echo'; approval ap_0001m5y8w9sj0000000182b000fc46b3ae42 is pending (archx-agent approvals approve ap_0001m5y8w9sj0000000182b000fc46b3ae42)
+approve with: archx-agent approvals approve ap_0001m5y8w9sj0000000182b000fc46b3ae42
+[exit 4]
+$ archx-agent approvals approve ap_0001m5y8w9sj0000000182b000fc46b3ae42
+approved ap_0001m5y8w9sj0000000182b000fc46b3ae42: mcp.call -> mcp.fixture.echo [once]
+grant pg_0001m5y8wa3a000000007aea979bfbe47da1 (once); re-run the operation to use it
+[exit 0]
+$ archx-agent mcp call fixture echo --arg text=hello
+mcp.fixture.echo succeeded in 50.0ms  (run tr_0001m5y8wa83000000003a467fd4720b1a0e)
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "echo: hello"
+    }
+  ],
+  "isError": false,
+  "structured": null
+}
+[exit 0]
+
+### a real call with typed arguments, executed by the server process
+$ archx-agent mcp call fixture add --arg a=2 --arg b=40
+denied: mcp.fixture.add: mcp.call is not granted for 'mcp.fixture.add'; approval ap_0001m5y8waef00000001d802364f499df384 is pending (archx-agent approvals approve ap_0001m5y8waef00000001d802364f499df384)
+approve with: archx-agent approvals approve ap_0001m5y8waef00000001d802364f499df384
+[exit 4]
+
+### the grant was single-use, so the next tool needs its own decision
+$ archx-agent approvals approve ap_0001m5y8waef00000001d802364f499df384
+approved ap_0001m5y8waef00000001d802364f499df384: mcp.call -> mcp.fixture.add [once]
+grant pg_0001m5y8waqx000000001839a862d9edbeec (once); re-run the operation to use it
+[exit 0]
+$ archx-agent mcp call fixture add --arg a=2 --arg b=40
+mcp.fixture.add succeeded in 50.0ms  (run tr_0001m5y8wawm000000001343176d6c1bb230)
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "42"
+    }
+  ],
+  "isError": false,
+  "structured": null
+}
+[exit 0]
+
+### a remote tool that reports an error is a failed run, not a success
+$ archx-agent mcp call fixture explode
+denied: mcp.fixture.explode: mcp.call is not granted for 'mcp.fixture.explode'; approval ap_0001m5y8wb2x00000001d11cd14848a944e1 is pending (archx-agent approvals approve ap_0001m5y8wb2x00000001d11cd14848a944e1)
+approve with: archx-agent approvals approve ap_0001m5y8wb2x00000001d11cd14848a944e1
+[exit 4]
+$ archx-agent approvals approve ap_0001m5y8wb2x00000001d11cd14848a944e1
+approved ap_0001m5y8wb2x00000001d11cd14848a944e1: mcp.call -> mcp.fixture.explode [once]
+grant pg_0001m5y8wbcf000000007777d9b0bc2ce6bf (once); re-run the operation to use it
+[exit 0]
+$ archx-agent mcp call fixture explode
+error: fixture: tool explode reported an error: boom: it was always going to fail
+[exit 2]
+
+### untrusting a server unregisters everything it advertised
+$ archx-agent mcp untrust fixture
+fixture: trusted=False
+its tools were unregistered; nothing it advertises can run
+[exit 0]
+$ archx-agent mcp call fixture echo --arg text=hello
+error: no tool 'mcp.fixture.echo' (known: archx.info, fs.delete, fs.list, fs.read, fs.write, shell.run)
+[exit 1]
+
+### a real extension: a directory with a manifest and a program
+
+### installing records the manifest and its hash; nothing runs, nothing runs yet
+$ archx-agent extensions install /tmp/archx-m23-acc/extensions/wordcount
+installed wordcount 1.0.0 (id ex_0001m5y8wc1900000000fc478cf39144150d)
+  manifest sha256 6d427f9363093b605546f0fb37819d89d81257f86197d3bef849a4b353bdd3da
+  trust=untrusted enabled=False
+  tool count            needs process.exec (risk high)
+  nothing is callable yet: archx-agent extensions trust wordcount && archx-agent extensions enable wordcount
+[exit 0]
+$ archx-agent extensions list
+extension  version  trust      enabled  tools  registered
+---------  -------  ---------  -------  -----  ----------
+wordcount  1.0.0    untrusted  no       1      0         
+
+installing records the manifest; trusting and enabling are separate acts, and every tool call still needs a grant
+[exit 0]
+$ archx-agent extensions call wordcount count --arg text=one two three
+error: no tool 'ext.wordcount.count' (known: archx.info, fs.delete, fs.list, fs.read, fs.write, shell.run)
+[exit 1]
+
+### trust and enable are separate acts
+$ archx-agent extensions trust wordcount
+wordcount: trust=trusted (nothing callable)
+[exit 0]
+$ archx-agent extensions enable wordcount
+wordcount: enabled=True (tools registered)
+[exit 0]
+$ archx-agent tools list
+tool                 capability    risk    dry-run  grants  what it does                                
+-------------------  ------------  ------  -------  ------  --------------------------------------------
+archx.info           -             low     no       -       report workspace size and tool roots (read-o
+ext.wordcount.count  process.exec  high    no       0       count words and characters                  
+fs.delete            fs.delete     high    yes      0       delete a file inside the tool roots         
+fs.list              fs.read       low     no       0       list a directory inside the tool roots      
+fs.read              fs.read       low     no       0       read a text file inside the tool roots      
+fs.write             fs.write      medium  yes      0       create or modify a text file inside the tool
+shell.run            shell.run     high    no       0       run a local command (argv form, no shell)   
+
+a tool with capability '-' needs no permission; every other tool needs a grant or an approved request
+[exit 0]
+
+### and the tool still needs its capability
+$ archx-agent extensions call wordcount count --arg text=one two three
+denied: ext.wordcount.count: process.exec is not granted for 'ext.wordcount.count'; approval ap_0001m5y8wcxy00000001261659cc8255254a is pending (archx-agent approvals approve ap_0001m5y8wcxy00000001261659cc8255254a)
+approve with: archx-agent approvals approve ap_0001m5y8wcxy00000001261659cc8255254a
+[exit 4]
+$ archx-agent approvals approve ap_0001m5y8wcxy00000001261659cc8255254a
+approved ap_0001m5y8wcxy00000001261659cc8255254a: process.exec -> ext.wordcount.count [once]
+grant pg_0001m5y8wd8f00000000efe8a11ce1176d66 (once); re-run the operation to use it
+[exit 0]
+$ archx-agent extensions call wordcount count --arg text=one two three
+ext.wordcount.count succeeded in 25.0ms  (run tr_0001m5y8wdd7000000007caf205009598ab4)
+{
+  "words": 3,
+  "characters": 13,
+  "tool": "count",
+  "extension": "wordcount",
+  "duration_ms": 19.389
+}
+[exit 0]
+
+### the trusted tool survives a restart because the decision is in the database, not memory
+$ archx-agent extensions call wordcount count --arg text=persisted across processes
+ext.wordcount.count succeeded in 25.0ms  (run tr_0001m5y8wdw3000000000615e4ffb39f1cfd)
+{
+  "words": 3,
+  "characters": 26,
+  "tool": "count",
+  "extension": "wordcount",
+  "duration_ms": 19.784
+}
+[exit 0]
+
+### the extension cannot leave its own directory: an absolute data path is refused
+$ archx-agent extensions install /tmp/archx-m23-acc/extensions/escapee
+error: ExtensionError: leak: command path '/etc/passwd' is outside the extension directory
+[exit 1]
+
+### the optional MCP server is off until asked for
+$ archx-agent mcp serve --transport stdio
+error: the MCP server is disabled (mcp.server_enabled=false); enable it deliberately with: archx-agent config set mcp.server_enabled true
+[exit 2]
+
+### expose this workspace over MCP, then drive it with our own client (a real subprocess)
+$ archx-agent mcp add self --command /home/user/Archx-Agent/.venv/bin/archx-agent --arg=--home --arg /tmp/archx-m23-acc --arg mcp --arg serve --arg=--transport --arg stdio
+added MCP server self (stdio) id ms_0001m5y8wekq0000000006180370a4986373
+  trusted=False enabled=False
+  next: archx-agent mcp sync self
+[exit 0]
+$ archx-agent mcp sync self
+self: protocol 2025-06-18 (archx-agent)
+discovered 3 tool(s)
+  - fs.read              read a text file inside the tool roots
+  - fs.list              list a directory inside the tool roots
+  - archx.info           report workspace size and tool roots (read-only, n
+nothing registered: the server is not trusted and not enabled
+[exit 0]
+$ archx-agent mcp trust self
+self: trusted=True
+[exit 0]
+$ archx-agent mcp enable self
+self: enabled=True
+[exit 0]
+$ archx-agent mcp sync self
+self: protocol 2025-06-18 (archx-agent)
+discovered 3 tool(s)
+  - fs.read              read a text file inside the tool roots
+  - fs.list              list a directory inside the tool roots
+  - archx.info           report workspace size and tool roots (read-only, n
+registered 3 callable tool(s): mcp.self.fs.read, mcp.self.fs.list, mcp.self.archx.info
+[exit 0]
+
+### one call needs two independent grants: the client's mcp.call, and the server's fs.read
+$ archx-agent mcp call self fs.read --arg path=shared.txt
+denied: mcp.self.fs.read: mcp.call is not granted for 'mcp.self.fs.read'; approval ap_0001m5y8wfn200000001978715b198c087c4 is pending (archx-agent approvals approve ap_0001m5y8wfn200000001978715b198c087c4)
+approve with: archx-agent approvals approve ap_0001m5y8wfn200000001978715b198c087c4
+[exit 4]
+$ archx-agent approvals approve ap_0001m5y8wfn200000001978715b198c087c4
+approved ap_0001m5y8wfn200000001978715b198c087c4: mcp.call -> mcp.self.fs.read [persistent]
+grant pg_0001m5y8wfza0000000087c7f1693e3da1d4 (persistent); re-run the operation to use it
+[exit 0]
+$ archx-agent mcp call self fs.read --arg path=shared.txt
+error: self: tool fs.read reported an error: denied: fs.read: fs.read is not granted for 'mcp-server'; approval ap_0001m5y8wg8j000000019d5f3032ff4332a2 is pending (archx-agent approvals approve ap_0001m5y8wg8j000000019d5f3032ff4332a2)
+[exit 2]
+
+### the server (a separate process, same database) queued its own request: the caller is 'mcp-server'
+$ archx-agent approvals list
+approval                                 capability  subject     scope       expires                   purpose               
+---------------------------------------  ----------  ----------  ----------  ------------------------  ----------------------
+ap_0001m5y8wg8j000000019d5f3032ff4332a2  fs.read     mcp-server  persistent  2026-10-27T09:50:59.986Z  fs.read via mcp-server
+
+approve with: archx-agent approvals approve <approval>
+[exit 0]
+$ archx-agent approvals approve ap_0001m5y8wg8j000000019d5f3032ff4332a2
+approved ap_0001m5y8wg8j000000019d5f3032ff4332a2: fs.read -> mcp-server [persistent]
+grant pg_0001m5y8wgqp000000002306d84d364ee1d8 (persistent); re-run the operation to use it
+[exit 0]
+$ archx-agent mcp call self fs.read --arg path=shared.txt
+mcp.self.fs.read succeeded in 159.0ms  (run tr_0001m5y8wgwk00000000ddc2b5da63d85360)
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\n  \"path\": \"shared.txt\",\n  \"bytes\": 34,\n  \"sha256\": \"8fbffec6b380f79a80916223e8fc0a8537328523d681ad454a0f60f70f271dcd\",\n  \"truncated\": false,\n  \"total_lines\": 1,\n  \"line_count\": 1,\n  \"content\": \"written by the m23 acceptance run\"\n}"
+    }
+  ],
+  "isError": false,
+  "structured": {
+    "path": "shared.txt",
+    "bytes": 34,
+    "sha256": "8fbffec6b380f79a80916223e8fc0a8537328523d681ad454a0f60f70f271dcd",
+    "truncated": false,
+    "total_lines": 1,
+    "line_count": 1,
+    "content": "written by the m23 acceptance run"
+  }
+}
+[exit 0]
+
+### a non-whitelisted tool is not exposed by the server at all
+$ archx-agent mcp call self fs.write --arg path=x.txt --arg content=nope
+error: self does not expose 'fs.write' (discovered: archx.info, fs.list, fs.read)
+[exit 2]
+
+### every discovery, decision and call is traced
+$ archx-agent trace list --kind mcp --limit 8
+seq  time      kind  name                     status  detail
+---  --------  ----  -----------------------  ------  ------
+4    08:50:52  mcp   server.added             ok            
+11   08:50:52  mcp   server.synced            ok            
+16   08:50:52  mcp   server.trusted           ok            
+21   08:50:53  mcp   server.synced            ok            
+72   08:50:55  mcp   server.sync_failed       error         
+76   08:50:55  mcp   server.untrusted         ok            
+130  08:50:58  mcp   server.added             ok            
+134  08:50:58  mcp   server.client_connected  ok            
+[exit 0]
+$ archx-agent trace list --kind permission --limit 6
+seq  time      kind        name                status   detail          
+---  --------  ----------  ------------------  -------  ----------------
+24   08:50:53  permission  approval.requested  pending                  
+25   08:50:53  permission  check               denied                   
+26   08:50:53  permission  denied              denied   mcp.fixture.echo
+32   08:50:53  permission  grant               ok                       
+33   08:50:53  permission  approval.approved   ok                       
+36   08:50:53  permission  check               ok                       
+[exit 0]
+$ archx-agent tools runs --limit 8
+seq  time      tool                 status     dry  error                                       
+---  --------  -------------------  ---------  ---  --------------------------------------------
+14   08:51:00  fs.read              succeeded                                                   
+13   08:51:00  mcp.self.fs.read     succeeded                                                   
+12   08:50:59  fs.read              denied          fs.read is not granted for 'mcp-server'; app
+11   08:50:59  mcp.self.fs.read     failed          self: tool fs.read reported an error: denied
+10   08:50:59  mcp.self.fs.read     denied          mcp.call is not granted for 'mcp.self.fs.rea
+9    08:50:57  ext.wordcount.count  succeeded                                                   
+8    08:50:57  ext.wordcount.count  succeeded                                                   
+7    08:50:56  ext.wordcount.count  denied          process.exec is not granted for 'ext.wordcou
+[exit 0]
+
+### database integrity after all of it
+$ archx-agent db check
+integrity     ok
+foreign keys  ok
+schema        v14
+tables        50
+write journal 5 recent entries
+[exit 0]
+
+### done
+home: /tmp/archx-m23-acc
+
+### M23 checks, summarised
+
+| check | result |
+|-------|--------|
+| registration | `mcp add` records the program; duplicate names are refused |
+| discovery while untrusted | 5 tools discovered and listed, **0** registered, reason stated |
+| trust + enable + sync | 5 tools registered as `mcp.<server>.<tool>` with `mcp.call` / medium risk |
+| call without a grant | refused (exit 4) with an approval id |
+| approve then call | real subprocess answered `echo: hello`; the single-use grant was spent |
+| typed arguments | `--arg a=2 --arg b=40` coerced from the remote schema, server returned `42` |
+| remote tool failure | `isError` became a failed run with the server's message (exit 1) |
+| untrust | tools unregistered; the next call fails with "no tool" |
+| extension install | manifest hash recorded, `trust=untrusted enabled=False`, tool rows present, nothing callable |
+| extension trust/enable | the tool appears in `tools list` with `process.exec` and risk high |
+| extension call | denied → approved → the real program ran and returned `{"words": 3, ...}` |
+| process boundary | a second CLI process (persistent grant) still calls it: registration is restored from the database |
+| manifest escape | `["python3", "/etc/passwd"]` refused at install |
+| MCP server disabled | `mcp serve` refuses (exit 2) and prints the exact enabling command |
+| MCP server enabled | exposes exactly `fs.read, fs.list, archx.info`; our client spawned it and listed them |
+| two independent grants | client call denied (`mcp.call`), then denied **again** by the server (`fs.read` for `mcp-server`), then succeeded after approving the server's own queued request |
+| whitelist | `fs.write` is not exposed: "self does not expose 'fs.write' (discovered: archx.info, fs.list, fs.read)" |
+| trace | `mcp` discovery/trust/sync events, `permission` decisions, `tool_call` rows including denials |
+| `db check` | integrity ok, foreign keys ok, schema v14, 50 tables |

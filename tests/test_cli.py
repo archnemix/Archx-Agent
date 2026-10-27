@@ -626,3 +626,122 @@ class TestCliTools:
         result = run("tools", "show", "fs.write", home=home)
         assert result.returncode == 0
         assert "content" in result.stdout and "roots:" in result.stdout
+
+
+FIXTURE_MCP = os.path.join(os.path.dirname(__file__), "fixtures", "mcp_server.py")
+
+
+def _make_extension(root):
+    """A real extension directory: manifest plus a program that reads JSON on stdin."""
+    os.makedirs(root, exist_ok=True)
+    with open(os.path.join(root, "count.py"), "w") as fh:
+        fh.write(
+            "import json, sys\n"
+            "request = json.load(sys.stdin)\n"
+            "text = request['arguments'].get('text', '')\n"
+            "print(json.dumps({'words': len(text.split()), 'tool': request['tool']}))\n"
+        )
+    manifest = {
+        "name": "wordcount",
+        "version": "1.0.0",
+        "description": "count words",
+        "tools": [
+            {
+                "name": "count",
+                "description": "count words in the text",
+                "capability": "process.exec",
+                "command": [sys.executable, "count.py"],
+                "inputs": {"text": {"type": "string", "description": "the text"}},
+                "required": ["text"],
+            }
+        ],
+    }
+    with open(os.path.join(root, "extension.json"), "w") as fh:
+        json.dump(manifest, fh)
+    return root
+
+
+class TestCliMcp:
+    def test_add_and_list_servers(self, home):
+        added = run("mcp", "add", "fixture", "--command", sys.executable, "--arg", FIXTURE_MCP, home=home)
+        assert added.returncode == 0, added.stderr
+        assert "next: archx-agent mcp sync fixture" in added.stdout
+        rows = _json(run("mcp", "servers", "--json", home=home))
+        assert rows[0]["name"] == "fixture" and rows[0]["trusted"] is False
+
+    def test_stdio_server_requires_a_command(self, home):
+        result = run("mcp", "add", "nope", "--transport", "stdio", home=home)
+        assert result.returncode == 2
+        assert "--command" in result.stderr
+
+    def test_untrusted_sync_discovers_but_registers_nothing(self, home):
+        run("mcp", "add", "fixture", "--command", sys.executable, "--arg", FIXTURE_MCP, home=home)
+        sync = run("mcp", "sync", "fixture", home=home)
+        assert sync.returncode == 0, sync.stderr
+        assert "nothing registered" in sync.stdout
+        assert "not trusted" in sync.stdout
+        tools = run("mcp", "tools", "fixture", home=home)
+        assert "echo" in tools.stdout
+
+    def test_trust_then_sync_registers_and_call_needs_a_grant(self, home):
+        run("mcp", "add", "fixture", "--command", sys.executable, "--arg", FIXTURE_MCP,
+            "--trust", "--enable", home=home)
+        sync = run("mcp", "sync", "fixture", home=home)
+        assert "registered" in sync.stdout
+        denied = run("mcp", "call", "fixture", "echo", "--arg", "text=hi", home=home)
+        assert denied.returncode == 4
+        approval = _json(run("approvals", "list", "--json", home=home))[0]["id"]
+        run("approvals", "approve", approval, home=home)
+        called = run("mcp", "call", "fixture", "echo", "--arg", "text=hi", "--json", home=home)
+        assert called.returncode == 0, called.stderr
+        payload = _json(called)
+        assert payload["status"] == "succeeded"
+        assert payload["result"]["content"][0]["text"] == "echo: hi"
+
+    def test_untrust_removes_the_tool(self, home):
+        run("mcp", "add", "fixture", "--command", sys.executable, "--arg", FIXTURE_MCP,
+            "--trust", "--enable", home=home)
+        run("mcp", "sync", "fixture", home=home)
+        untrusted = run("mcp", "untrust", "fixture", home=home)
+        assert "unregistered" in untrusted.stdout
+        missing = run("mcp", "call", "fixture", "echo", "--arg", "text=hi", home=home)
+        assert missing.returncode != 0
+
+    def test_serve_refuses_while_disabled(self, home):
+        result = run("mcp", "serve", "--transport", "stdio", home=home)
+        assert result.returncode == 2
+        assert "mcp.server_enabled" in result.stderr
+
+
+class TestCliExtensions:
+    def test_install_trust_enable_then_call(self, home, tmp_path):
+        root = _make_extension(str(tmp_path / "ext-wordcount"))
+        installed = run("extensions", "install", root, home=home)
+        assert installed.returncode == 0, installed.stderr
+        assert "nothing is callable yet" in installed.stdout
+        assert "manifest sha256" in installed.stdout
+
+        run("extensions", "trust", "wordcount", home=home)
+        run("extensions", "enable", "wordcount", home=home)
+        listed = _json(run("extensions", "list", "--json", home=home))
+        assert listed[0]["registered"] == 1
+
+        denied = run("extensions", "call", "wordcount", "count", "--arg", "text=one two", home=home)
+        assert denied.returncode == 4
+        approval = _json(run("approvals", "list", "--json", home=home))[0]["id"]
+        run("approvals", "approve", approval, home=home)
+        called = run("extensions", "call", "wordcount", "count", "--arg", "text=one two", "--json", home=home)
+        assert called.returncode == 0, called.stderr
+        assert _json(called)["result"]["words"] == 2
+
+    def test_untrusted_extension_tools_are_not_registered(self, home, tmp_path):
+        root = _make_extension(str(tmp_path / "ext-untrusted"))
+        run("extensions", "install", root, home=home)
+        result = run("extensions", "call", "wordcount", "count", "--arg", "text=x", home=home)
+        assert result.returncode != 0
+        assert "no tool" in result.stderr or "not found" in result.stderr.lower()
+
+    def test_install_of_a_missing_directory_fails_clearly(self, home):
+        result = run("extensions", "install", "/nonexistent/extension/path", home=home)
+        assert result.returncode != 0
+        assert "extension.json" in result.stderr or "no such directory" in result.stderr

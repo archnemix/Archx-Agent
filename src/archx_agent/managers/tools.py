@@ -228,6 +228,10 @@ def _type_ok(value: Any, kind: str) -> bool:
         return isinstance(value, int) and not isinstance(value, bool)
     if kind == "bool":
         return isinstance(value, bool)
+    if kind == "float":
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    if kind == "json":
+        return isinstance(value, (dict, list, int, float, bool))
     return True
 
 
@@ -246,6 +250,20 @@ def _coerce(arguments: Mapping[str, Any], spec: ToolSpec) -> dict[str, Any]:
             value = int(value)
         elif kind == "bool" and isinstance(value, str) and value.strip().lower() in {"1", "true", "yes", "on", "0", "false", "no", "off"}:
             value = value.strip().lower() in {"1", "true", "yes", "on"}
+        elif kind == "float" and isinstance(value, str):
+            try:
+                value = float(value)
+            except ValueError as exc:
+                raise ToolValidationError(f"{spec.name}.{key} expects float, got {value!r}") from exc
+        elif kind == "json" and isinstance(value, str):
+            import json as _json
+
+            try:
+                value = _json.loads(value)
+            except _json.JSONDecodeError as exc:
+                raise ToolValidationError(
+                    f"{spec.name}.{key} expects JSON, got {value[:60]!r}"
+                ) from exc
         if not _type_ok(value, kind):
             raise ToolValidationError(f"{spec.name}.{key} expects {kind}, got {type(value).__name__}")
         cleaned[key] = value
@@ -277,6 +295,7 @@ class ToolManager(BaseManager):
         self._runtime = runtime
         self._info_provider = info_provider
         self._specs: dict[str, ToolSpec] = {}
+        self._handlers: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {}
         for spec in specs:
             self.register_spec(spec)
         super().__init__(store, coordinator, events=events)
@@ -290,6 +309,34 @@ class ToolManager(BaseManager):
                 f"tool {spec.name!r} needs unknown capability {spec.capability!r}"
             )
         self._specs[spec.name] = spec
+
+    def register_handler(self, name: str, handler: Callable[[dict[str, Any]], dict[str, Any]]) -> None:
+        """Attach an executable to a registered spec (used by MCP and extensions).
+
+        The spec - and therefore the capability - must already exist. A handler can be
+        replaced on re-sync (a server may change its tool list); a *spec* cannot be
+        silently redefined by a remote party, which is why :meth:`register_spec` stays
+        strict.
+        """
+        if name not in self._specs:
+            raise ToolValidationError(f"handler for unregistered tool {name!r}")
+        self._handlers[name] = handler
+
+    def unregister_spec(self, name: str) -> None:
+        """Remove a tool that is no longer advertised (server removed / extension disabled)."""
+        spec = self._specs.pop(name, None)
+        if spec is None:
+            raise ToolNotFoundError(f"no tool {name!r}")
+        if spec.builtin:
+            raise ToolValidationError(f"{name!r} is a built-in tool and cannot be unregistered")
+        self._handlers.pop(name, None)
+
+    def declare_spec(self, spec: ToolSpec, handler: Callable[[dict[str, Any]], dict[str, Any]]) -> None:
+        """Register a spec and its handler together, replacing a previous version."""
+        if spec.name in self._specs:
+            self.unregister_spec(spec.name)
+        self.register_spec(spec)
+        self.register_handler(spec.name, handler)
 
     def specs(self) -> list[ToolSpec]:
         return [self._specs[name] for name in sorted(self._specs)]
@@ -410,7 +457,14 @@ class ToolManager(BaseManager):
         dry_run: bool = False,
         context: ToolContext | None = None,
         requester: str = "tool",
+        permission_subject: str | None = None,
     ) -> ToolRun:
+        """Run a tool.
+
+        ``permission_subject`` defaults to the tool's own name. The MCP server passes a
+        different subject, so a grant for the tool does not automatically authorise a
+        remote caller that happens to ask for it.
+        """
         spec = self.spec(name)
         context = context or ToolContext()
         args = _coerce(dict(arguments or {}), spec)
@@ -434,7 +488,7 @@ class ToolManager(BaseManager):
         if spec.capability:
             decision = self.permissions.check(
                 spec.capability,
-                subject=spec.name,
+                subject=permission_subject or spec.name,
                 conversation_id=context.conversation_id,
                 task_id=context.task_id,
                 project_id=context.project_id,
@@ -443,9 +497,9 @@ class ToolManager(BaseManager):
             )
             if not decision.allowed:
                 return self._refuse(
-                    run, spec, decision.reason, context,
-                    approval_id=decision.approval_id, refused_by="permission",
-                )
+                run, spec, decision.reason, context,
+                approval_id=decision.approval_id, refused_by="permission",
+            )
 
         self._write(
             "tool.record",
@@ -669,6 +723,9 @@ class ToolManager(BaseManager):
                 cwd=args.get("cwd"),
                 timeout=int(args["timeout"]) if args.get("timeout") else int(self._cfg("tools.timeout_seconds", 60)),
             )
+        extra = self._handlers.get(spec.name)
+        if extra is not None:
+            return extra(args)
         if spec.name == "archx.info":
             info = dict(self._info_provider()) if self._info_provider else {}
             info["tool_limits"] = runtime.limits()

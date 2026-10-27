@@ -3,6 +3,41 @@
 All notable changes. Format loosely follows Keep a Changelog; versions track the
 milestone block rather than semantic-release cadence, because M01-M20 are one development series.
 
+## [0.23.0] - M23 MCP client/server and extensions
+
+### Added
+- MCP client (`adapters/mcp_client.py`) over **stdio** (spawned process, line-delimited
+  JSON-RPC, captured stderr) and **http** (JSON or SSE responses, `Mcp-Session-Id`), with
+  per-request deadlines and answers to server→client requests.
+- `McpManager`: server records, discovery, trust/enable, tool registration as
+  `mcp.<server>.<tool>` with capability `mcp.call`, and restore-on-open.
+- Optional MCP server (`interfaces/mcp_server.py`): off by default, read-only whitelist,
+  distinct `mcp-server` permission subject, stdio and HTTP transports.
+- Extensions (`managers/extensions.py`, `adapters/extension_runtime.py`): manifest
+  validation, install/trust/enable/remove, JSON-in/JSON-out subprocess execution with a
+  rebuilt environment, timeouts and output caps.
+- New capabilities `mcp.call` and `process.exec`.
+- `ToolManager` seams: `register_handler`, `declare_spec`, `unregister_spec`,
+  `permission_subject`, plus `float`/`json` input kinds.
+- Schema v14: MCP server/tool columns, extension trust columns, `extension_tools`.
+- CLI: `mcp servers|add|show|enable|disable|trust|untrust|remove|sync|tools|call|serve`,
+  `extensions list|install|show|trust|untrust|enable|disable|remove|tools|call`.
+- Settings: `mcp.client_timeout_seconds`, `mcp.server_tools`, `extensions.enabled`,
+  `extensions.directory`.
+- `docs/MCP.md`, a real fixture MCP server, and the M23 acceptance script.
+
+### Fixed
+- `mcp add --command` overwrote the top-level `command` argument (the handler lookup failed
+  and the CLI printed help); the flag now has its own dest.
+- `config set` stored list settings as a string, so `mcp.server_tools` became a list of
+  characters; list settings now accept a JSON array or comma-separated values.
+- `mcp serve` complained about the whitelist before checking whether the server was
+  enabled, hiding the actual reason it refused to start.
+- A dynamically registered tool disappeared in the next process; trusted servers and
+  extensions are now restored from the database when the workspace opens.
+- `mcp call` on a tool the server never advertised said "no tool"; it now says the server
+  does not expose it and lists what it does expose.
+
 ## [0.22.0] - M22 tool registry and permission centre
 
 ### Added

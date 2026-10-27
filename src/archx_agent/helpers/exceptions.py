@@ -268,6 +268,33 @@ class MCPServerError(ArchxError):
     code = "mcp_error"
 
 
+class MCPProtocolError(MCPServerError):
+    """The peer answered with something that is not valid JSON-RPC/MCP."""
+
+    code = "mcp_protocol"
+
+
+class MCPTimeoutError(MCPServerError):
+    code = "mcp_timeout"
+    retryable = True
+
+
+class MCPToolError(MCPServerError):
+    """The MCP tool ran and reported an error (``isError: true``)."""
+
+    code = "mcp_tool_error"
+
+
+class ExtensionError(ArchxError):
+    code = "extension_error"
+
+
+class ExtensionTrustError(PermissionDeniedError):
+    """An extension asked for something it was not trusted with."""
+
+    code = "extension_trust"
+
+
 class ExperimentError(ArchxError):
     code = "experiment_error"
 

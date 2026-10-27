@@ -163,6 +163,33 @@ before the request (`QuotaExhaustedError`); cost is only reported when the user 
 prices, and is labelled an estimate. Usage events are append-only per request, so a
 provider that starts failing shows up in the same table as the successful calls.
 
+## MCP and extensions (M23)
+
+```
+mcp add      -> record (transport, command/url, env/header KEYS)       managers/mcp.py
+mcp sync  -> connect -> initialize -> tools/list                       adapters/mcp_client.py
+                |                                                       (stdio subprocess or HTTP)
+                +-> mcp_tools rows (always)  +-> registry specs (only if trusted AND enabled)
+mcp call  -> ToolManager.execute("mcp.<server>.<tool>")                -> permission centre
+                |                                                       capability mcp.call
+                +-> client.call_tool -> remote result -> tool_runs + traces
+
+extensions install -> manifest validated + hashed + stored             managers/extensions.py
+extensions trust/enable -> registry specs "ext.<ext>.<tool>"           capability from manifest
+extensions call -> permission check -> subprocess (JSON in, JSON out)  adapters/extension_runtime.py
+```
+
+Two seams keep this honest:
+
+* the **dynamic tool registry** (`ToolManager.declare_spec`/`unregister_spec`) is rebuilt
+  from the database on open, so the decision ("trusted, enabled") is durable while the spec
+  is derived;
+* the **permission subject** is separate from the tool name for the MCP server, so a local
+  grant never authorises a remote caller.
+
+Layers: adapters speak protocols and execute; managers own records and decisions; the MCP
+server lives in `interfaces` because it is another entry point into the same application.
+
 ## Tools and permissions (M22)
 
 ```

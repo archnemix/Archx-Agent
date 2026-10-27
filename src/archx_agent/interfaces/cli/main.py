@@ -36,6 +36,7 @@ from archx_agent.helpers.exceptions import (
 from archx_agent.helpers.jsonio import json_text
 from archx_agent.managers.memory import CATEGORIES, KINDS as MEMORY_KINDS, MemoryManager
 from archx_agent.managers.models import VERIFICATION_STATES
+from archx_agent.managers.permissions import CAPABILITIES
 
 EXIT_OK = 0
 EXIT_ERROR = 1
@@ -518,6 +519,80 @@ def build_parser() -> argparse.ArgumentParser:
     ap_deny.add_argument("approval")
     ap_deny.add_argument("--reason", default="denied by the user")
 
+    # -- MCP -------------------------------------------------------------
+    mcp = sub.add_parser("mcp", help="MCP client servers and the optional MCP server")
+    mc_sub = mcp.add_subparsers(dest="mcp_command", required=True)
+    mc_sub.add_parser("servers", help="configured servers, trust and tool counts")
+    mc_sub.add_parser("list", help="alias for servers")
+    mc_add = mc_sub.add_parser("add", help="register a server (nothing runs yet)")
+    mc_add.add_argument("name")
+    mc_add.add_argument("--transport", choices=["stdio", "http"], default="stdio")
+    # dest is not "command": that name belongs to the top-level subcommand and
+    # argparse would overwrite it, making the handler lookup fail.
+    mc_add.add_argument("--command", dest="server_command", help="stdio: the program to run")
+    mc_add.add_argument("--arg", action="append", default=[], metavar="value",
+                        help="stdio: one argument for the command (repeatable)")
+    mc_add.add_argument("--url", help="http: the JSON-RPC endpoint")
+    mc_add.add_argument("--env", action="append", default=[], metavar="KEY=value")
+    mc_add.add_argument("--header", action="append", default=[], metavar="Name=value")
+    mc_add.add_argument("--trust", action="store_true", help="trust it at registration time")
+    mc_add.add_argument("--enable", action="store_true", help="enable it at registration time")
+    mc_show = mc_sub.add_parser("show", help="one server with its discovered tools")
+    mc_show.add_argument("server")
+    for verb, text in (("enable", "let a trusted server register its tools"),
+                       ("disable", "unregister a server's tools"),
+                       ("trust", "accept what the server advertises"),
+                       ("untrust", "stop accepting it (tools are unregistered)")):
+        sub_verb = mc_sub.add_parser(verb, help=text)
+        sub_verb.add_argument("server")
+    mc_remove = mc_sub.add_parser("remove", help="remove a server and its tools")
+    mc_remove.add_argument("server")
+    mc_sync = mc_sub.add_parser("sync", help="connect, discover tools and register them if allowed")
+    mc_sync.add_argument("server")
+    mc_tools = mc_sub.add_parser("tools", help="tools discovered from a server")
+    mc_tools.add_argument("server")
+    mc_call = mc_sub.add_parser("call", help="call a discovered tool (needs an mcp.call grant)")
+    mc_call.add_argument("server")
+    mc_call.add_argument("tool")
+    mc_call.add_argument("--arg", action="append", default=[], metavar="key=value")
+    mc_call.add_argument("--conversation")
+    mc_call.add_argument("--task")
+    mc_call.add_argument("--project")
+    mc_call.add_argument("--purpose")
+    mc_serve = mc_sub.add_parser("serve", help="expose a whitelist of tools as an MCP server")
+    mc_serve.add_argument("--transport", choices=["stdio", "http"], default="stdio")
+    mc_serve.add_argument("--host")
+    mc_serve.add_argument("--port", type=int)
+
+    # -- extensions ------------------------------------------------------
+    ext = sub.add_parser("extensions", help="install, trust and call extension tools")
+    ex_sub = ext.add_subparsers(dest="extensions_command", required=True)
+    ex_sub.add_parser("list", help="installed extensions and their trust")
+    ex_install = ex_sub.add_parser("install", help="install a directory containing extension.json")
+    ex_install.add_argument("path")
+    ex_install.add_argument("--trust", action="store_true")
+    ex_install.add_argument("--enable", action="store_true")
+    ex_show = ex_sub.add_parser("show", help="manifest and tool rows for one extension")
+    ex_show.add_argument("extension")
+    for verb, text in (("trust", "register the extension's tools"),
+                       ("untrust", "unregister them"),
+                       ("enable", "make a trusted extension's tools available"),
+                       ("disable", "unregister them temporarily")):
+        sub_verb = ex_sub.add_parser(verb, help=text)
+        sub_verb.add_argument("extension")
+    ex_remove = ex_sub.add_parser("remove", help="remove an extension and its tools")
+    ex_remove.add_argument("extension")
+    ex_tools = ex_sub.add_parser("tools", help="tools recorded for an extension")
+    ex_tools.add_argument("extension")
+    ex_call = ex_sub.add_parser("call", help="call an extension tool (needs a grant)")
+    ex_call.add_argument("extension")
+    ex_call.add_argument("tool")
+    ex_call.add_argument("--arg", action="append", default=[], metavar="key=value")
+    ex_call.add_argument("--conversation")
+    ex_call.add_argument("--task")
+    ex_call.add_argument("--project")
+    ex_call.add_argument("--purpose")
+
     # -- database -------------------------------------------------------
     db = sub.add_parser("db", help="database health, backup and restore")
     db_sub = db.add_subparsers(dest="db_command", required=True)
@@ -692,8 +767,24 @@ def cmd_config(args: argparse.Namespace) -> int:
         )
         return EXIT_OK
     if args.config_command == "set":
+        raw: Any = args.value
+        expected = {row["key"]: row["type"] for row in list_settings()}.get(args.key)
+        if expected == "list":
+            # Accept both a JSON array and a comma-separated list; a JSON string that is
+            # not an array is almost always a quoting mistake, so say so.
+            text = args.value.strip()
+            if text.startswith("["):
+                try:
+                    parsed = json.loads(text)
+                except json.JSONDecodeError as exc:
+                    return fail(f"{args.key} is a list; that is not valid JSON: {exc}", EXIT_USAGE)
+                if not isinstance(parsed, list):
+                    return fail(f"{args.key} expects a list, got {type(parsed).__name__}", EXIT_USAGE)
+                raw = parsed
+            else:
+                raw = [part.strip() for part in text.split(",") if part.strip()]
         try:
-            cfg.set(args.key, args.value, source="cli")
+            cfg.set(args.key, raw, source="cli")
         except ArchxError as exc:
             return fail(f"{args.key}: {exc.message}", EXIT_USAGE)
         path = Path(args.config) if args.config else cfg.home / "config.json"
@@ -1705,6 +1796,65 @@ def _parse_tool_args(pairs: Sequence[str] | None) -> dict[str, Any]:
     return args
 
 
+def _execute_tool(ws, manager, name: str, arguments: dict[str, Any], args: argparse.Namespace) -> int:
+    """Run one tool through the registry and report the outcome consistently."""
+    from archx_agent.managers.tools import ToolContext
+
+    context = ToolContext(
+        conversation_id=getattr(args, "conversation", None),
+        task_id=getattr(args, "task", None),
+        project_id=getattr(args, "project", None),
+        purpose=getattr(args, "purpose", None) or "",
+    )
+    try:
+        run = manager.execute(
+            name,
+            arguments,
+            dry_run=bool(getattr(args, "dry_run", False)),
+            context=context,
+            requester="cli",
+        )
+    except (PermissionDeniedError, ToolError, ArchxError) as exc:
+        payload = {
+            "tool": name,
+            "status": "denied" if isinstance(exc, PermissionDeniedError) else "error",
+            "error": exc.message,
+            "approval_id": getattr(exc, "approval_id", None),
+            "capability": getattr(exc, "capability", None),
+            "run": getattr(exc, "run", None).to_dict() if getattr(exc, "run", None) else None,
+        }
+        if args.json:
+            emit_json(payload)
+        else:
+            print(f"{payload['status']}: {exc.message}", file=sys.stderr)
+            if payload["approval_id"]:
+                print(
+                    f"approve with: archx-agent approvals approve {payload['approval_id']}",
+                    file=sys.stderr,
+                )
+        if isinstance(exc, PermissionDeniedError):
+            return EXIT_DENIED
+        if isinstance(exc, PathEscapesRootError):
+            return EXIT_DENIED
+        if isinstance(exc, ToolValidationError):
+            return EXIT_USAGE
+        if isinstance(exc, ToolError):
+            return EXIT_ERROR
+        return EXIT_USAGE
+    data = run.to_dict()
+    if args.json:
+        emit_json(data)
+    else:
+        if run.dry_run:
+            emit("[dry run] nothing was changed on disk")
+        emit(f"{run.tool} {run.status} in {run.duration_ms}ms  (run {run.id})")
+        if run.result:
+            emit_json(run.result)
+        if run.error:
+            emit(f"error: {run.error}")
+    return EXIT_OK if run.ok else EXIT_ERROR
+
+
 def cmd_tools(args: argparse.Namespace) -> int:
     with _workspace(args) as ws:
         manager = ws.tools
@@ -1766,62 +1916,7 @@ def cmd_tools(args: argparse.Namespace) -> int:
             return EXIT_OK
         if command == "run":
             arguments = _parse_tool_args(args.arg)
-            context_kwargs = {
-                "conversation_id": args.conversation,
-                "task_id": args.task,
-                "project_id": args.project,
-                "purpose": args.purpose or "",
-            }
-            from archx_agent.managers.tools import ToolContext
-
-            try:
-                run = manager.execute(
-                    args.tool,
-                    arguments,
-                    dry_run=args.dry_run,
-                    context=ToolContext(**context_kwargs),
-                    requester="cli",
-                )
-            except (PermissionDeniedError, ToolError, ArchxError) as exc:
-                payload = {
-                    "tool": args.tool,
-                    "status": "denied" if isinstance(exc, PermissionDeniedError) else "error",
-                    "error": exc.message,
-                    "approval_id": getattr(exc, "approval_id", None),
-                    "capability": getattr(exc, "capability", None),
-                    "run": getattr(exc, "run", None).to_dict() if getattr(exc, "run", None) else None,
-                }
-                if args.json:
-                    emit_json(payload)
-                else:
-                    print(f"{payload['status']}: {exc.message}", file=sys.stderr)
-                    if payload["approval_id"]:
-                        print(
-                            f"approve with: archx-agent approvals approve {payload['approval_id']}",
-                            file=sys.stderr,
-                        )
-                if isinstance(exc, (ApprovalRequiredError, PermissionDeniedError)):
-                    return EXIT_DENIED
-                if isinstance(exc, PathEscapesRootError):
-                    return EXIT_DENIED
-                if isinstance(exc, ToolValidationError):
-                    return EXIT_USAGE
-                if isinstance(exc, ToolError):
-                    return EXIT_ERROR
-                return EXIT_USAGE
-            data = run.to_dict()
-            data["dry_run"] = run.dry_run
-            if args.json:
-                emit_json(data)
-            else:
-                if run.dry_run:
-                    emit("[dry run] nothing was changed on disk")
-                emit(f"{run.tool} {run.status} in {run.duration_ms}ms  (run {run.id})")
-                if run.result:
-                    emit_json(run.result)
-                if run.error:
-                    emit(f"error: {run.error}")
-            return EXIT_OK if run.ok else EXIT_ERROR
+            return _execute_tool(ws, manager, args.tool, arguments, args)
         if command == "runs":
             rows = manager.runs(tool=args.tool, limit=args.limit)
             if args.json:
@@ -1993,6 +2088,241 @@ def cmd_approvals(args: argparse.Namespace) -> int:
                 f"denied {approval.id} ({approval.capability}); no grant was created"
             )
             return EXIT_OK
+    return EXIT_USAGE
+
+
+def _pairs(pairs: Sequence[str] | None, *, flag: str) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for pair in pairs or []:
+        if "=" not in pair:
+            raise ValidationError(f"{flag} expects key=value, got {pair!r}")
+        key, value = pair.split("=", 1)
+        out[key.strip()] = value
+    return out
+
+
+def cmd_mcp(args: argparse.Namespace) -> int:
+    with _workspace(args) as ws:
+        manager = ws.mcp
+        command = getattr(args, "mcp_command", None)
+        if command in ("servers", "list"):
+            rows = manager.status()
+            if args.json:
+                emit_json(rows)
+            else:
+                if not rows:
+                    emit("no MCP servers configured")
+                else:
+                    emit(
+                        table(
+                            [
+                                [r["name"], r["transport"], "yes" if r["trusted"] else "no",
+                                 "yes" if r["enabled"] else "no", r["tools"], r["registered"],
+                                 r["last_status"] or "-"]
+                                for r in rows
+                            ],
+                            ["server", "transport", "trusted", "enabled", "tools", "callable", "status"],
+                        )
+                    )
+                    emit("")
+                    emit("a discovered tool only becomes callable when the server is trusted AND enabled,"
+                         " and every call still needs an mcp.call grant")
+            return EXIT_OK
+        if command == "add":
+            server = manager.add_server(
+                args.name,
+                transport=args.transport,
+                command=args.server_command,
+                args=list(args.arg or []),
+                url=args.url,
+                env=_pairs(args.env, flag="--env"),
+                headers=_pairs(args.header, flag="--header"),
+                enabled=args.enable,
+                trusted=args.trust,
+            )
+            if args.json:
+                emit_json(server.to_dict())
+            else:
+                emit(f"added MCP server {server.name} ({server.transport}) id {server.id}")
+                emit(f"  trusted={server.trusted} enabled={server.enabled}")
+                emit(f"  next: archx-agent mcp sync {server.name}")
+            return EXIT_OK
+        if command == "show":
+            server = manager.server(args.server)
+            data = server.to_dict()
+            data["tools"] = manager.tools_of(server.id)
+            emit_json(data) if args.json else emit(json_text(data))
+            return EXIT_OK
+        if command in ("enable", "disable"):
+            server = manager.enable(args.server, enabled=command == "enable")
+            emit_json(server.to_dict()) if args.json else emit(
+                f"{server.name}: enabled={server.enabled}"
+                + ("" if server.enabled and server.trusted else " (no tools are callable until it is trusted too)")
+            )
+            return EXIT_OK
+        if command in ("trust", "untrust"):
+            server = manager.trust(args.server, trusted=command == "trust")
+            if args.json:
+                emit_json(server.to_dict())
+            else:
+                emit(f"{server.name}: trusted={server.trusted}")
+                if not server.trusted:
+                    emit("its tools were unregistered; nothing it advertises can run")
+            return EXIT_OK
+        if command == "remove":
+            server = manager.remove_server(args.server)
+            emit_json(server.to_dict()) if args.json else emit(f"removed MCP server {server.name}")
+            return EXIT_OK
+        if command == "sync":
+            try:
+                result = manager.sync(args.server)
+            except ArchxError as exc:
+                return fail(exc.message, EXIT_UNAVAILABLE)
+            if args.json:
+                emit_json(result)
+            else:
+                emit(f"{result['server']}: protocol {result['protocol_version']} "
+                     f"({result['server_info'].get('name', '?')})")
+                emit(f"discovered {len(result['discovered'])} tool(s)")
+                for tool in result["discovered"]:
+                    emit(f"  - {tool['name']:<20} {tool['description'][:50]}")
+                if result["registered"]:
+                    emit(f"registered {len(result['registered'])} callable tool(s): "
+                         + ", ".join(result["registered"]))
+                else:
+                    emit(f"nothing registered: {result['reason']}")
+            return EXIT_OK
+        if command == "tools":
+            rows = manager.tools_of(args.server)
+            emit_json(rows) if args.json else emit(
+                table([[r["name"], r["capability"], r["risk"], "yes" if r["enabled"] else "no",
+                        (r["description"] or "")[:44]] for r in rows],
+                      ["tool", "capability", "risk", "callable", "description"])
+            ) if rows else emit("no tools discovered (run `archx-agent mcp sync <server>`)")
+            return EXIT_OK
+        if command == "call":
+            arguments = _parse_tool_args(args.arg)
+            server = manager.server(args.server)
+            discovered = {row["name"] for row in manager.tools_of(server.id)}
+            if args.tool not in discovered:
+                return fail(
+                    f"{server.name} does not expose {args.tool!r} "
+                    f"(discovered: {', '.join(sorted(discovered)) or 'nothing - run mcp sync'})",
+                    EXIT_USAGE,
+                )
+            name = manager.registered_tool_name(args.server, args.tool)
+            return _execute_tool(ws, ws.tools, name, arguments, args)
+        if command == "serve":
+            from archx_agent.interfaces.mcp_server import ArchxMcpServer
+
+            try:
+                server = ArchxMcpServer(ws)
+            except ArchxError as exc:
+                return fail(exc.message, EXIT_USAGE)
+            if args.transport == "stdio":
+                print("serving MCP over stdio (pid %d)" % os.getpid(), file=sys.stderr)
+                server.serve_stdio()
+                return EXIT_OK
+            httpd = server.serve_http(host=args.host, port=args.port)
+            print(f"serving MCP over http on {args.host}:{httpd.server_port}", file=sys.stderr)
+            try:
+                httpd.serve_forever()
+            except KeyboardInterrupt:
+                pass
+            finally:
+                httpd.server_close()
+            return EXIT_OK
+    return EXIT_USAGE
+
+
+def cmd_extensions(args: argparse.Namespace) -> int:
+    with _workspace(args) as ws:
+        manager = ws.extensions
+        command = args.extensions_command
+        if command == "list":
+            rows = manager.status()
+            if args.json:
+                emit_json(rows)
+            else:
+                if not rows:
+                    emit("no extensions installed")
+                else:
+                    emit(
+                        table(
+                            [
+                                [r["name"], r["version"], r["trust"],
+                                 "yes" if r["enabled"] else "no", r["tool_count"], r["registered"]]
+                                for r in rows
+                            ],
+                            ["extension", "version", "trust", "enabled", "tools", "registered"],
+                        )
+                    )
+                    emit("")
+                    emit("installing records the manifest; trusting and enabling are separate acts,"
+                         " and every tool call still needs a grant")
+            return EXIT_OK
+        if command == "install":
+            path = args.path
+            if not Path(path).exists():
+                candidate = ws.extensions_dir() / path
+                if candidate.exists():
+                    path = str(candidate)
+            extension = manager.install(path, trust=args.trust, enable=args.enable)
+            if args.json:
+                emit_json(extension.to_dict())
+            else:
+                emit(f"installed {extension.name} {extension.version} (id {extension.id})")
+                emit(f"  manifest sha256 {extension.manifest_hash}")
+                emit(f"  trust={extension.trust} enabled={extension.enabled}")
+                for tool in extension.manifest.get("tools") or []:
+                    emit(f"  tool {tool['name']:<16} needs {tool['capability']} (risk {tool['risk']})")
+                if not (extension.trusted and extension.enabled):
+                    emit(f"  nothing is callable yet: archx-agent extensions trust {extension.name} "
+                         f"&& archx-agent extensions enable {extension.name}")
+            return EXIT_OK
+        if command == "show":
+            extension = manager.extension(args.extension)
+            data = extension.to_dict()
+            data["manifest"] = extension.manifest
+            data["tool_rows"] = manager.tools_of(extension.id)
+            emit_json(data) if args.json else emit(json_text(data))
+            return EXIT_OK
+        if command in ("trust", "untrust"):
+            extension = manager.trust(args.extension, trusted=command == "trust")
+            emit_json(extension.to_dict()) if args.json else emit(
+                f"{extension.name}: trust={extension.trust}"
+                + (" (tools registered)" if extension.trusted and extension.enabled
+                   else " (nothing callable)")
+            )
+            return EXIT_OK
+        if command in ("enable", "disable"):
+            extension = manager.set_enabled(args.extension, enabled=command == "enable")
+            emit_json(extension.to_dict()) if args.json else emit(
+                f"{extension.name}: enabled={extension.enabled}"
+                + (" (tools registered)" if extension.trusted and extension.enabled
+                   else " (nothing callable)")
+            )
+            return EXIT_OK
+        if command == "remove":
+            extension = manager.remove(args.extension)
+            emit_json(extension.to_dict()) if args.json else emit(
+                f"removed extension {extension.name}"
+            )
+            return EXIT_OK
+        if command == "tools":
+            extension = manager.extension(args.extension)
+            rows = manager.tools_of(extension.id)
+            emit_json(rows) if args.json else emit(
+                table([[r["name"], r["capability"], r["risk"], "yes" if r["enabled"] else "no",
+                        (r["description"] or "")[:44]] for r in rows],
+                      ["tool", "capability", "risk", "callable", "description"])
+            ) if rows else emit("no tools recorded")
+            return EXIT_OK
+        if command == "call":
+            arguments = _parse_tool_args(args.arg)
+            extension = manager.extension(args.extension)
+            name = manager.spec_name(extension.name, args.tool)
+            return _execute_tool(ws, ws.tools, name, arguments, args)
     return EXIT_USAGE
 
 
@@ -2168,6 +2498,8 @@ HANDLERS = {
     "tools": cmd_tools,
     "permissions": cmd_permissions,
     "approvals": cmd_approvals,
+    "mcp": cmd_mcp,
+    "extensions": cmd_extensions,
     "eval": cmd_eval,
     "db": cmd_db,
     "trace": cmd_trace,

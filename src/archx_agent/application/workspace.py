@@ -29,6 +29,7 @@ from archx_agent.adapters.embedding_runtime import (
 )
 from archx_agent.adapters.http_runtime import HttpChatRuntime
 from archx_agent.adapters.llama_cpp_runtime import LlamaCppRuntime
+from archx_agent.adapters.extension_runtime import ExtensionRuntime
 from archx_agent.adapters.local_tools import LocalToolRuntime
 from archx_agent.adapters.model_runtime import ModelRuntime, ModelSpec
 from archx_agent.adapters.scripted_runtime import ENV_FLAG, ScriptedRuntime
@@ -49,6 +50,8 @@ from archx_agent.helpers.write_coordinator import WriteCoordinator
 from archx_agent.managers.context import ContextManager
 from archx_agent.managers.embeddings import EmbeddingManager
 from archx_agent.managers.conversation import ConversationManager
+from archx_agent.managers.extensions import ExtensionManager
+from archx_agent.managers.mcp import McpManager
 from archx_agent.managers.memory import MemoryManager
 from archx_agent.managers.models import ModelManager, ModelRecord
 from archx_agent.managers.permissions import PermissionManager
@@ -72,6 +75,8 @@ class Workspace:
     providers: ProviderManager | None = None
     permissions: PermissionManager | None = None
     tools: ToolManager | None = None
+    mcp: McpManager | None = None
+    extensions: ExtensionManager | None = None
     router: Any = None
     context: ContextManager | None = None
     embeddings: EmbeddingManager | None = None
@@ -203,6 +208,29 @@ class Workspace:
             runtime=tool_runtime,
             info_provider=ws.tool_info,
         )
+        ws.mcp = McpManager(store, coordinator, events=events, config=config, tools=ws.tools)
+        ws.extensions = ExtensionManager(
+            store,
+            coordinator,
+            events=events,
+            config=config,
+            tools=ws.tools,
+            runtime=ExtensionRuntime(
+                max_output_bytes=int(config.get("tools.max_output_bytes")),
+                timeout_seconds=int(config.get("tools.timeout_seconds")),
+            ),
+        )
+        try:
+            restored_mcp = ws.mcp.restore()
+            restored_ext = ws.extensions.restore()
+            if restored_mcp["tools"] or restored_ext["tools"]:
+                ws.warnings.append(
+                    f"restored {restored_mcp['tools']} MCP tool(s) from {restored_mcp['servers']} "
+                    f"server(s) and {restored_ext['tools']} extension tool(s) from "
+                    f"{restored_ext['extensions']} extension(s)"
+                )
+        except Exception as exc:  # noqa: BLE001 - a bad plugin must not stop the workspace
+            ws.warnings.append(f"could not restore dynamic tools: {exc}")
         ws.router = ModelRouter(
             models,
             config=config,
@@ -236,6 +264,11 @@ class Workspace:
         return ws
 
     def close(self) -> None:
+        if self.mcp is not None:
+            try:
+                self.mcp.close()
+            except Exception:  # noqa: BLE001 - closing must never block shutdown
+                pass
         for runtime in self._runtimes.values():
             try:
                 runtime.close()
@@ -327,6 +360,12 @@ class Workspace:
             if record.is_ok and record.value.root_path:
                 return [str(Path(record.value.root_path).expanduser().resolve())]
         return [str(Path(self.config.path("paths.home")) / "workspace")]
+
+    def extensions_dir(self) -> Path:
+        configured = self.config.get("extensions.directory")
+        directory = Path(configured).expanduser() if configured else Path(self.config.path("paths.home")) / "extensions"
+        directory.mkdir(parents=True, exist_ok=True)
+        return directory
 
     def tool_info(self) -> dict[str, Any]:
         info = self.info() if self.tools is not None else {"home": str(self.config.home)}

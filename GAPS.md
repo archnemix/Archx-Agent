@@ -83,6 +83,14 @@ Blender, automations, hardening. The database schema already reserves tables for
   minimal environment reduce the blast radius; they do not contain a hostile program.
 * **Approvals are out-of-band.** `approvals approve` decides a request, then the operation
   must be repeated; there is no suspend/resume of an in-flight workflow yet (M24/M25).
+* **The Archx MCP server has no authentication.** It binds loopback, is off by default and
+  exposes a read-only whitelist, but any local process that can reach the port (or spawn
+  `archx-agent mcp serve`) and has a grant can use it.
+* **Extensions are trusted, not sandboxed.** Their programs get a rebuilt environment and
+  must keep their data paths inside their own directory, but a trusted program is an
+  ordinary process. Manifest hashes are recorded; they do not prove authorship.
+* **No OAuth for MCP HTTP servers**, no sampling/elicitation/prompts, and binary MCP
+  content is JSON-serialised rather than stored as an attachment.
 * **No GUI yet**, so "primary workflow usable with no placeholder controls" (M29) is
   not demonstrated.
 * **Windows and macOS are untested.** Path containment tests cover symlinks and

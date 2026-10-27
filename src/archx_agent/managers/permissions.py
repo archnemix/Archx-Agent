@@ -71,6 +71,8 @@ CAPABILITIES: dict[str, Capability] = {
     "fs.write": Capability("fs.write", "create or modify files inside the tool roots", "medium", "writes"),
     "fs.delete": Capability("fs.delete", "delete files inside the tool roots", "high", "deletes"),
     "shell.run": Capability("shell.run", "run a local process", "high", "executes"),
+    "mcp.call": Capability("mcp.call", "invoke a tool on a configured MCP server", "medium", "network"),
+    "process.exec": Capability("process.exec", "run a program shipped by a trusted extension", "high", "executes"),
     # Declared now so grants/messages are consistent, but nothing implements it in
     # this build: a capability nobody can exercise must not be advertised as available.
     "net.fetch": Capability("net.fetch", "fetch a URL (no tool implements this yet)", "medium", "network"),

@@ -17,6 +17,7 @@ migration's content in place would silently diverge between machines.
     11 context proposals (ai_proposed strategy)
     12 providers, privacy metadata, availability checks, usage/quotas
     13 tool permissions: grant usage counting, approval requests
+    14 MCP servers/tools and extension trust
 """
 
 from __future__ import annotations
@@ -642,6 +643,42 @@ PERMISSIONS_V13 = Migration(
     ),
 )
 
+MCP_V14 = Migration(
+    version=14,
+    name="mcp-extensions",
+    statements=(
+        # v6 already has mcp_servers/mcp_tools/extensions; these columns extend the same
+        # records so there is one answer to "what is this server and may it run?".
+        "ALTER TABLE mcp_servers ADD COLUMN headers TEXT",
+        "ALTER TABLE mcp_servers ADD COLUMN protocol_version TEXT",
+        "ALTER TABLE mcp_servers ADD COLUMN last_status TEXT",
+        "ALTER TABLE mcp_servers ADD COLUMN tools_count INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE mcp_servers ADD COLUMN last_error_at TEXT",
+        "ALTER TABLE mcp_tools ADD COLUMN capability TEXT",
+        "ALTER TABLE mcp_tools ADD COLUMN risk TEXT",
+        "ALTER TABLE mcp_tools ADD COLUMN annotations TEXT",
+        "ALTER TABLE mcp_tools ADD COLUMN last_synced_at TEXT",
+        "CREATE INDEX IF NOT EXISTS idx_mcp_tools_name ON mcp_tools(name)",
+        "ALTER TABLE extensions ADD COLUMN manifest_hash TEXT",
+        "ALTER TABLE extensions ADD COLUMN trusted_by TEXT",
+        "ALTER TABLE extensions ADD COLUMN trusted_at TEXT",
+        "ALTER TABLE extensions ADD COLUMN notes TEXT",
+        "CREATE TABLE IF NOT EXISTS extension_tools ("
+        " id TEXT PRIMARY KEY,"
+        " extension_id TEXT NOT NULL,"
+        " name TEXT NOT NULL,"
+        " description TEXT,"
+        " capability TEXT,"
+        " risk TEXT,"
+        " schema TEXT,"
+        " entry TEXT NOT NULL,"
+        " enabled INTEGER NOT NULL DEFAULT 0,"
+        " discovered_at TEXT NOT NULL,"
+        " UNIQUE(extension_id, name))",
+        "CREATE INDEX IF NOT EXISTS idx_extension_tools_name ON extension_tools(name)",
+    ),
+)
+
 MIGRATIONS: tuple[Migration, ...] = (
     CONVERSATIONS_V1,
     PROJECTS_V2,
@@ -656,6 +693,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     CONTEXT_PROPOSALS_V11,
     PROVIDERS_V12,
     PERMISSIONS_V13,
+    MCP_V14,
 )
 
 SCHEMA_VERSION = max(m.version for m in MIGRATIONS)

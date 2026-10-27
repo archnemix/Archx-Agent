@@ -58,6 +58,12 @@ archx-agent approvals approve ap_...
 archx-agent tools run fs.write --arg path=notes.md --arg content=hello
 archx-agent tools runs                  # every attempt, denials included
 
+# 5b. MCP servers and extensions go through the same checks
+archx-agent mcp add fixture --command python3 --arg path/to/server.py
+archx-agent mcp sync fixture            # discovers; registers nothing until trusted+enabled
+archx-agent mcp trust fixture && archx-agent mcp enable fixture
+archx-agent mcp sync fixture && archx-agent mcp call fixture echo --arg text=hi
+
 # 6. inspect everything that happened
 archx-agent trace list --limit 20
 archx-agent db check
@@ -90,9 +96,10 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 | Providers: local/cloud catalogue, privacy metadata, confirmations, consent, availability, quotas, usage | verified (M20) |
 | Capability-safe routing: evidence-backed capability states, eligibility, probes, visible fallback | verified (M21) |
 | Tools + permissions: declared capabilities, scoped grants, approvals, sandboxed fs/shell, run audit | verified (M22) |
+| MCP client (stdio + HTTP) and optional server; extensions with a trust boundary | verified (M23) |
 | Provider runtime boundary: llama.cpp in-process, OpenAI-compatible HTTP, tested error classification | verified for HTTP; llama.cpp needs the optional dependency and a model file |
 | CLI | verified end-to-end |
-| MCP, agents, research, learning, play, media, datasets, training, remote compute, Blender, automations | **not built yet** (M23–M40, see PLAN.md) |
+| Agents, research, learning, play, media, datasets, training, remote compute, Blender, automations | **not built yet** (M24–M40, see PLAN.md) |
 
 ## Design principles (enforced, not aspirational)
 
@@ -112,6 +119,7 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 * [GAPS.md](GAPS.md) - known limitations, honestly stated
 * [THINKING.md](THINKING.md) - decision log with reasons
 * [CHANGELOG.md](CHANGELOG.md)
+* [docs/MCP.md](docs/MCP.md) - MCP client/server, transports, extensions and their trust boundary
 * [docs/TOOLS.md](docs/TOOLS.md) - tool registry, capabilities, grants, approvals, sandbox
 * [docs/ROUTING.md](docs/ROUTING.md) - capability states, eligibility, probes, fallback
 * [docs/PROVIDERS.md](docs/PROVIDERS.md) - provider catalogue, privacy metadata, consent gates

@@ -319,6 +319,58 @@ own API keys.
 description, so a grant or a request for it is refused with a real reason. Omitting it would
 make the refusal look like a typo.
 
+## MCP and extensions (M23)
+
+**D59. Trust, enable and permission are three separate answers.**
+Earlier drafts coupled "trusted" to "registered", which made it impossible to ask a server
+what it offers without granting it power. Discovery is now always allowed; registration
+needs trust *and* enable; calling needs a grant. Each is a separate verb with its own trace
+event, and each denial says which of the three is missing.
+
+**D60. The MCP server's caller is a different subject.**
+`mcp-server` is not the tool's own name. Without that, a user's grant for their own
+`fs.read` would silently authorise anything that could reach the server port. The cost is an
+extra approval the first time; the benefit is that remote authority is never implied.
+
+**D61. A whitelist, not the registry.**
+Exposing every tool because it exists would turn "run a local MCP server" into "publish
+`shell.run` to anything on the machine". The default list is read-only (`fs.read`,
+`fs.list`, `archx.info`) and an unknown name fails at startup instead of being ignored.
+
+**D62. Registration is derived; the decision is stored.**
+Registered tools live in memory, so a new process would forget them. Rather than making
+every command run `sync`, the workspace rebuilds the registry from trusted+enabled rows on
+open. This also means the two views cannot disagree: `mcp servers` counts what the registry
+actually holds.
+
+**D63. `argv[0]` is the program; the rest is data.**
+The first manifest validator rejected `/usr/bin/python3` for being outside the extension
+directory - which rejects every real extension. Trusting an extension means trusting its
+interpreter; it does not mean letting the manifest point data files at `/etc/passwd`. The
+rule is now split exactly there, and an escape attempt is still refused.
+
+**D64. Extension programs get a rebuilt environment; MCP servers inherit it.**
+An extension is untrusted code that asked for one capability, so it gets PATH/HOME/LANG/
+TMPDIR and nothing else. An MCP server is a tool the user chose and configured, and it
+commonly needs its own credentials from the environment - so it inherits. The difference is
+explicit because a reader will otherwise assume one of the two is a bug.
+
+**D65. A remote `isError` is a failed run.**
+MCP tool errors arrive inside a successful JSON-RPC response. Treating that as success
+would put a green tick on "the tool refused to do it". It becomes a failed `tool_runs` row
+with the remote message, and the CLI exits non-zero.
+
+**D66. Protocol conversations need deadlines and answers.**
+A client that waits forever is worse than one that fails: the user cannot tell a slow
+server from a hung CLI. Every request has a deadline, and a server→client request (even an
+unknown method) gets a JSON-RPC answer so the server can move on.
+
+**D67. `config set` must accept the shape a setting declares.**
+`config set mcp.server_tools '["a","b"]'` stored a string, and the server then iterated the
+characters. List settings now accept a JSON array or a comma-separated list, and malformed
+JSON is a usage error. A configuration value that is the wrong shape is worse than a
+refused one, because it fails later and elsewhere.
+
 ## Storage and config
 
 **D31. Unknown config keys are errors.**
