@@ -1,6 +1,6 @@
 # Progress
 
-Last updated: M26 complete (resource and job scheduler). Next: M27.
+Last updated: M27 complete (Simple Mode and unified search). Next: M28.
 
 ## Verified in this session
 
@@ -9,6 +9,7 @@ reproduced in [docs/VERIFICATION.md](docs/VERIFICATION.md).
 
 | Milestone | What was verified | How |
 |-----------|-------------------|-----|
+| M27 | unified search finds a query in conversations, memory, tasks, workflows, projects, artifacts, tools and files with one shared scoring rule, per-source caps and honest `degraded`/`skipped` notes; a source that fails degrades the report instead of failing the search; file search stays inside the tool roots, skips binaries/oversize/noise directories and never writes; Simple Mode classifies eight intents and prints the reason it chose one, stores `remember` as a real permanent memory with the duplicate check intact, reads `status` from the live app, and refuses a missing model, a missing grant or a checkpoint by printing the exact next command and exiting 4 without creating a grant | `pytest tests/test_search_m27.py` (42) + `pytest tests/test_simple_m27.py` (67); `scripts/acceptance_m27.sh` (23 self-checking assertions incl. approve-then-run and a spent one-shot grant) |
 | M26 | a submitted job is a durable `queued` row with a deadline and an attempt budget; claiming is one transaction (six threads over 24 jobs claim each exactly once); priority and `queue_seq` decide order; `dedupe_key` makes submission idempotent; a `command` job runs a real child in its own session and records exit code, stdout, stderr and duration; a non-zero exit fails the job and its task; a `workflow` job runs an M25 workflow and still cannot bypass the permission centre; a hard deadline kills the child (`sleep 30`, timeout 1, ~1s, no process left) and fails the job; a `SIGKILL`ed worker's job is requeued while attempts remain and `interrupted` when they do not; pause stops a running workflow at a step boundary with a durable cursor, and resume continues from it without replaying a step or duplicating the task; concurrency and the CPU/memory budget limit what runs at once (measured by wall clock); `jobs run` exits 3 rather than claiming success when work remains | `pytest tests/test_scheduler_m26.py` (94); `scripts/acceptance_m26.sh` (23 self-checking assertions incl. a real SIGKILL and a cross-process pause/resume) |
 | M24 | every chat turn and tool task is a durable record with a sequence-ordered timeline; terminal states are final; a task whose owner process died is marked `interrupted` on the next open (manual tasks and tasks owned by other live processes are left alone); artifacts are references with checksums; content versions are append-only with deduplication, diffs and restore-as-new-version; reproduction derives `exact`/`partial`/`impossible` from the live environment, prints the commands that would replay the task, and `--verify` detects a removed model (exit 3) or changed settings | `pytest tests/test_tasks_m24.py` (75); `scripts/acceptance_m24.sh` (real SIGKILL, re-runs a printed command) |
 | M25 | workflow definitions are strict data (unknown kinds/fields/tools/variables are refused); model steps reuse the chat path and tool steps the permission centre; a model-proposed plan is stored `proposed` and cannot run without `--approve`; approving a plan grants no capability; checkpoints refuse before anything runs; subagents are child tasks with their own conversations; budgets (steps, wall clock, tokens, subagents) stop the run and name themselves; a cancel from another part of the process stops the next step | `pytest tests/test_agent_m25.py` (60); `scripts/acceptance_m25.sh` (real HTTP planning round trip) |
@@ -28,7 +29,7 @@ reproduced in [docs/VERIFICATION.md](docs/VERIFICATION.md).
 | M22 | tools declare capability/risk/dry-run; ungranted operations are refused with an approval id; approval mints exactly the requested grant; scoped grants (once/task/conversation/project/persistent) are checked, single-use grants consumed before the work; sandbox refuses traversal, absolute escapes and symlink escapes; argv-only processes with a denylist, minimal env and timeouts; every attempt (including denials) has a `tool_runs` row and trace events | `pytest tests/test_tools_m22.py` (78) + `tests/test_cli.py::TestCliTools` (13); `scripts/acceptance_m22.sh` (real files and processes) |
 | M21 | capability states with evidence (verified/inferred/unverified/unsupported/unavailable); eligibility before score; a model whose runtime is missing is refused; probes record measurements; `require_verified` policy; remote never auto-chosen; fallback is traceable and never silent | `pytest tests/test_router_m21.py` (33); `scripts/acceptance_m21.sh` |
 
-**Test suite: 697 tests, 0 failures, 0 skipped** on Python 3.11.2 (see note in GAPS
+**Test suite: 806 tests, 0 failures, 0 skipped** on Python 3.11.2 (see note in GAPS
 about 3.13 and about llama.cpp).
 
 ## Acceptance evidence
@@ -63,6 +64,13 @@ about 3.13 and about llama.cpp).
   nothing left behind, a workflow is paused by one process and resumed by another with every
   step run exactly once, a `SIGKILL`ed worker's job is recovered on attempt 2, and an
   ungranted `fs.write` step fails the job without writing a file.
+* M27: `docs/VERIFICATION.md#m27-acceptance-transcript` - one `search` returns a memory, a
+  conversation, two tasks, a workflow and a file for the same word, names the source counts,
+  reports `keyword-only` and skips a binary file; `simple ask` answers the same question with
+  the reason; `remember` stores a fact and a preference and reports the duplicate on a second
+  attempt; `status` reads real counts and labels the test double; a workflow refused for a
+  missing `fs.read` prints `approvals approve ap_...`, creates no grant, and afterwards the
+  approved run completes exactly once and the one-shot grant is spent.
 * M21: `docs/VERIFICATION.md#m21-acceptance` - a discovered GGUF is refused because
   llama.cpp is missing (not routed to and silently failed), a probe flips `inferred` to
   `verified`, `require_verified` refuses then allows, a remote model is never chosen
@@ -74,8 +82,9 @@ about 3.13 and about llama.cpp).
 
 ## Next steps (in order)
 
-1. M27: Simple Mode and search, built on the existing chat, retrieval and task surfaces.
-2. M28 onward per PLAN.md.
+1. M28: Researcher Mode, built on the existing search, retrieval, task and workflow
+   surfaces - a research run is a workflow job whose steps are searches and readings.
+2. M29 onward per PLAN.md.
 
 ## Known breakage
 

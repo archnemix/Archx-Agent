@@ -190,6 +190,47 @@ runner refuses it until a human approves; checkpoints are checked before the run
 refusal cannot leave half a plan executed. The workflow row is the plan, the task row is the
 run, and the conversation is the transcript - there is no fourth record.
 
+## Simple Mode and search (M27)
+
+```
+SearchService.search(query)            application/search.py
+   sources (each owned by its manager, none copied):
+     conversation  ConversationManager.search
+     memory        MemoryManager.search        (semantic when an index exists)
+     task          TaskManager.search          (new)
+     workflow      WorkflowsManager.search     (new)
+     project / artifact / tool                 (existing list/registry reads)
+     file          ws.tool_roots() + SKIP_DIRS + NUL sniff + size/file budgets
+   score_text(title, text, terms)  one function for every source:
+     coverage of <= 8 query terms, +0.5 exact phrase, +0.75 any term in the title
+   merge: sort (-score, -KIND_WEIGHT[kind], title) ; cap per_source ; cap limit
+   report: hits, counts, scanned, skipped, degraded, elapsed_ms
+
+SimpleMode.ask(line)                   application/simple.py
+   detect_intent(line) -> (intent, why)
+   chat      -> ws.chat.send            (M16/M19/M21)
+   search    -> ws.search.search        recall -> memory only
+   remember  -> ws.memory.add (permanent, preference|fact, provenance.mode=simple)
+   status    -> router.route + memory.stats + tasks.stats + jobs.stats (read only)
+   workflow  -> ws.workflows.create + ws.agent.run   (M25, M22 permissions apply)
+   -> SimpleResult(intent, why, headline, detail, next_step, data)
+```
+
+Both are **read-only front ends over existing managers**: there is no search index, no second
+store and no second permission path. That is what keeps "one search" cheap to reason about -
+a hit is a row the owning manager already knows how to show, and its `ref` is a real command
+(`archx-agent memory show mem_...`). A source that raises is caught: the report records
+`degraded: ["<kind>: <reason>"]` and the remaining sources still answer, because a search
+that fails completely because one manager is unhappy is worse than a partial answer that
+says what it could not read. File search runs inside `ws.tool_roots()` (the M22 sandbox
+roots), so it inherits the same boundary tools do and cannot read a path tools could not.
+
+Simple Mode is deliberately *not* an agent: it has no free-form tool loop, no planning step
+and no ability to grant a permission. Its refusals are `SimpleResult`s with a `next_step`
+command, and the CLI maps an `approval_id` in the result to exit code `4`. The intent
+classifier is a fixed set of rules whose matched rule becomes the `why` string shown to the
+user - there is no hidden ranking to explain away.
+
 ## Job scheduling (M26)
 
 ```

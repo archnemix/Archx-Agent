@@ -411,6 +411,12 @@ def render_value(value: Any, context: Mapping[str, Any]) -> Any:
 # --------------------------------------------------------------------------
 # manager
 # --------------------------------------------------------------------------
+def _terms(query: str) -> list[str]:
+    words = [word.strip(".,;:!?()[]{}'\"").lower() for word in (query or "").split()]
+    terms = [word for word in words if len(word) >= 2]
+    return sorted(set(terms), key=len, reverse=True)[:8]
+
+
 def _workflow_from_row(row: Mapping[str, Any]) -> Workflow:
     return Workflow(
         id=row["id"],
@@ -724,6 +730,24 @@ class WorkflowManager(BaseManager):
         if workflow is None:
             raise NotFoundError(f"no workflow {ref}")
         return workflow
+
+    def search(self, query: str, *, limit: int = 20) -> list[Workflow]:
+        """Candidate workflows for a text query (name and goal), newest first."""
+        terms = _terms(query)
+        if not terms:
+            return []
+        clauses = []
+        params: list[Any] = []
+        for term in terms:
+            clauses.append("(LOWER(name) LIKE ? OR LOWER(COALESCE(goal, '')) LIKE ?)")
+            params.extend([f"%{term}%", f"%{term}%"])
+        params.append(int(max(1, limit)))
+        rows = self.store.query(
+            "SELECT * FROM workflows WHERE " + " OR ".join(clauses)
+            + " ORDER BY rowid DESC LIMIT ?",
+            params,
+        )
+        return [_workflow_from_row(row) for row in rows]
 
     def list(self, *, status: str | None = None, mode: str | None = None,
              limit: int = 20) -> list[Workflow]:

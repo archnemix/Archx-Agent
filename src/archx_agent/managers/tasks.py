@@ -90,6 +90,13 @@ def _pid_alive(pid: int) -> bool:
     return True
 
 
+def _terms(query: str) -> list[str]:
+    """Lower-cased search terms, longest first, capped so a paragraph cannot explode."""
+    words = [word.strip(".,;:!?()[]{}'\"").lower() for word in (query or "").split()]
+    terms = [word for word in words if len(word) >= 2]
+    return sorted(set(terms), key=len, reverse=True)[:8]
+
+
 def _json(value: Any, default: Any) -> Any:
     if value in (None, ""):
         return default
@@ -786,6 +793,38 @@ class TaskManager(BaseManager):
         return Result.ok(_artifact_from_row(row))
 
     # -- reads -------------------------------------------------------------
+    def search(
+        self,
+        query: str,
+        *,
+        status: str | None = None,
+        kind: str | None = None,
+        limit: int = 20,
+    ) -> list[Task]:
+        """Candidate tasks for a text query (title and type), newest first.
+
+        Matching is deliberately broad - any query term - and the caller ranks the
+        candidates. Doing the ranking in SQL would hide *why* something matched.
+        """
+        terms = _terms(query)
+        if not terms:
+            return []
+        clauses = ["(" + " OR ".join("LOWER(title) LIKE ?" for _ in terms) + ")"]
+        params: list[Any] = [f"%{term}%" for term in terms]
+        if status:
+            clauses.append("status = ?")
+            params.append(status)
+        if kind:
+            clauses.append("type = ?")
+            params.append(kind)
+        params.append(int(max(1, limit)))
+        rows = self.store.query(
+            "SELECT rowid AS seq, * FROM tasks WHERE " + " AND ".join(clauses)
+            + " ORDER BY rowid DESC LIMIT ?",
+            params,
+        )
+        return [_task_from_row(row) for row in rows]
+
     def get(self, task_id: str) -> Task:
         row = self.store.query_one(
             "SELECT rowid AS seq, * FROM tasks WHERE id = ?", (task_id,)

@@ -21,11 +21,10 @@ This file records what is **not** true yet. If a feature is not listed as verifi
 
 ## Not built yet
 
-Milestones M20-M40 are not implemented: cloud provider catalogue, capability-safe
-router, tool registry and permission centre, MCP, task history UI, agent workflows,
-scheduler, Simple Mode, Researcher Mode, GUI, Learning Mode, coding workspace,
-experimental mode, play mode, voice/multimodal, datasets, training, remote compute,
-Blender, automations, hardening. The database schema already reserves tables for them
+Milestones M28-M40 are not implemented: Researcher Mode, GUI core, Learning Mode, coding
+workspace, experimental mode, play mode, voice/multimodal, dataset preparation, training,
+remote compute, Blender/3D, automations and release hardening. M17-M27 are implemented and
+verified (see [PROGRESS.md](PROGRESS.md)). The database schema already reserves tables for them
 (versions 5-8) so they can be added without renumbering.
 
 ## Known limitations inside implemented features
@@ -131,6 +130,34 @@ Blender, automations, hardening. The database schema already reserves tables for
   calendar scheduling arrives with M39 automations.
 * **Pause granularity is a workflow step.** A running `command` job refuses `pause`; there
   is no checkpoint inside a command's execution.
+* **Unified search is keyword-only outside memory.** Only the memory source has an
+  embedding path; conversations, tasks, workflows, artifacts and files are scored by term
+  coverage, so a query with no shared vocabulary with the text finds nothing. The report
+  says `keyword-only` instead of implying semantic search ran.
+* **Search has no index, so it is linear.** Every query scans the managers (and up to
+  `search.max_files` files). That is deliberate at this scale; a corpus of hundreds of
+  thousands of files would need an index that could go stale.
+* **File search is confined to the tool roots.** A file elsewhere on disk is not found,
+  which is correct for the permission model and surprising if you expect a desktop search.
+* **File search skips binaries, huge files and noise directories, silently from the
+  user's point of view** beyond the aggregate counts in `report.degraded`. It does not
+  report which individual files were skipped.
+* **No ranking feedback and no fuzzy matching.** A typo scores zero; there is no
+  spell correction, stemming or synonym expansion, so `locks` does not match `locked`.
+* **Simple Mode's intent detection is rule-based**, not a classifier. A sentence that
+  sounds like a search but starts with "tell me..." is treated as chat. The reason line
+  makes the mistake visible rather than hiding it.
+* **Simple Mode cannot answer "why did that fail?" beyond the first cause.** It reports the
+  refusal and one next step; deeper diagnosis is `trace`/`tasks show`, which it points at.
+* **A refusal still writes a task row.** A workflow stopped by a missing grant is recorded
+  as a failed task, so repeated attempts accumulate history. That is honest, and it makes
+  `tasks list` noisier than a user might expect.
+* **Approvals granted through Simple Mode keep the approval's scope.** A `once`,
+  conversation-scoped grant authorises exactly one run of exactly that conversation, so an
+  identical request afterwards asks again. Widening that would be a privilege change, not a
+  convenience improvement.
+* **The Simple Mode REPL keeps state only in memory.** Leaving it loses the conversation
+  handle (the conversation itself is stored); `--json` is refused there.
 * **Secrets**: values are never stored by Archx; only `secret://` references are kept.
   The redaction pass is pattern + registry based, so an unusual credential format could
   slip through. Exports are re-redacted, and tests grep artifacts for registered secrets.

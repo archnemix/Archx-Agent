@@ -32,6 +32,7 @@ from typing import Any, Callable
 
 from archx_agent.helpers.exceptions import (
     ApprovalRequiredError,
+    ArchxError,
     ConflictError,
     ValidationError,
 )
@@ -559,7 +560,7 @@ class AgentRunner:
         return data
 
 
-class WorkflowFailed(Exception):
+class WorkflowFailed(ArchxError):
     """A run stopped because a step failed.
 
     Carries the workflow and task ids so a caller can report them without re-querying, and

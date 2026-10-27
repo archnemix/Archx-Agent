@@ -27,8 +27,8 @@ not fully demonstrated · **not started**
 | **M24** | **Task history, content versions, reproduction records** | **done** | `tests/test_tasks_m24.py` (75), `docs/TASKS.md`, `scripts/acceptance_m24.sh` incl. a real SIGKILL |
 | **M25** | **Agent workflows: user-directed and model-proposed, with subagents** | **done** | `tests/test_agent_m25.py` (60), `docs/AGENTS.md`, `scripts/acceptance_m25.sh` (real HTTP plan) |
 | **M26** | **Resource and job scheduler** | **done** | `tests/test_scheduler_m26.py` (94), `docs/SCHEDULER.md`, `scripts/acceptance_m26.sh` (SIGKILL + pause/resume) |
-| M27 | Simple Mode and search | next | - |
-| M28 | Researcher Mode | not started | - |
+| **M27** | **Simple Mode and unified search** | **done** | `tests/test_search_m27.py` (42) + `tests/test_simple_m27.py` (67), `docs/SIMPLE_MODE.md`, `scripts/acceptance_m27.sh` (23 checks) |
+| M28 | Researcher Mode | next | - |
 | M29 | GUI core workflows | not started | - |
 | M30 | Learning Mode | not started | - |
 | M31 | Coding workspace | not started | - |

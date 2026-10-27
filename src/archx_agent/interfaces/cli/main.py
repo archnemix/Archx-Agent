@@ -34,6 +34,7 @@ from archx_agent.helpers.exceptions import (
     ValidationError,
 )
 from archx_agent.helpers.jsonio import json_text
+from archx_agent.application.search import SEARCH_KINDS
 from archx_agent.managers.memory import CATEGORIES, KINDS as MEMORY_KINDS, MemoryManager
 from archx_agent.managers.models import VERIFICATION_STATES
 from archx_agent.managers.permissions import CAPABILITIES
@@ -692,6 +693,29 @@ def build_parser() -> argparse.ArgumentParser:
     jb_recover.add_argument("--stale-after", type=int,
                             help="a live worker is considered stale after this many seconds")
     jb_sub.add_parser("reap", help="fail running jobs whose hard deadline has passed")
+
+    # -- unified search --------------------------------------------------
+    srch = sub.add_parser("search", help="one search across conversations, memory, tasks, workflows and files")
+    srch.add_argument("query")
+    srch.add_argument("--kind", action="append", choices=list(SEARCH_KINDS),
+                      help="limit to one source (repeatable)")
+    srch.add_argument("--limit", type=int,
+                      help="merged results (default: search.default_limit)")
+    srch.add_argument("--per-source", type=int,
+                      help="hits per source (default: search.per_source)")
+    srch.add_argument("--project")
+    srch.add_argument("--conversation")
+    srch.add_argument("--no-files", action="store_true", help="skip file contents")
+
+    # -- simple mode -----------------------------------------------------
+    simple = sub.add_parser("simple", help="Simple Mode: ask in plain language (no subcommand = chat loop)")
+    sm_sub = simple.add_subparsers(dest="simple_command")
+    sm_ask = sm_sub.add_parser("ask", help="ask one question and see what was done and why")
+    sm_ask.add_argument("text")
+    sm_ask.add_argument("--model")
+    sm_ask.add_argument("--conversation")
+    sm_sub.add_parser("status", help="model, memory, tasks and queue in plain language")
+    sm_sub.add_parser("help", help="what Simple Mode understands")
 
     # -- task history ---------------------------------------------------
     tasks = sub.add_parser("tasks", help="task history, artifacts and reproduction records")
@@ -2730,6 +2754,119 @@ def _execute_workflow(ws, workflow, *, approve: bool) -> tuple[int, dict[str, An
     return EXIT_OK, result.to_dict()
 
 
+def cmd_search(args: argparse.Namespace) -> int:
+    with _workspace(args) as ws:
+        if ws.search is None:
+            return fail("search is not available in this workspace", EXIT_UNAVAILABLE)
+        try:
+            report = ws.search.search(
+                args.query,
+                kinds=args.kind,
+                limit=args.limit,
+                per_source=args.per_source,
+                project_id=args.project,
+                conversation_id=args.conversation,
+                include_files=False if args.no_files else None,
+            )
+        except ValidationError as exc:
+            return fail(exc.message, EXIT_USAGE)
+        if args.json:
+            emit_json(report.to_dict())
+            return EXIT_OK
+        if not report.hits:
+            emit(f"no matches for \"{report.query}\"")
+        else:
+            for hit in report.hits:
+                emit(f"[{hit.kind}] {hit.title}  ({hit.score:.2f})")
+                if hit.snippet:
+                    emit(f"    {hit.snippet}")
+                if hit.ref:
+                    emit(f"    -> {hit.ref}")
+        if report.counts:
+            emit("")
+            emit("sources: " + ", ".join(f"{k} {v}" for k, v in sorted(report.counts.items())))
+        for note in report.degraded:
+            emit(f"degraded: {note}")
+        for kind, reason in sorted(report.skipped.items()):
+            emit(f"skipped {kind}: {reason}")
+        emit(f"({report.elapsed_ms:.0f}ms, scanned {sum(report.scanned.values())} record(s))")
+        return EXIT_OK
+
+
+def _render_simple(result) -> None:
+    emit(result.headline)
+    if result.detail:
+        for line in result.detail.splitlines():
+            emit(f"  {line}" if not line.startswith(" ") else line)
+    if result.next_step:
+        emit("")
+        emit(f"next: {result.next_step}")
+    emit("")
+    emit(f"(why: {result.why})")
+
+
+def cmd_simple(args: argparse.Namespace) -> int:
+    with _workspace(args) as ws:
+        if ws.simple is None:
+            return fail("Simple Mode is not available in this workspace", EXIT_UNAVAILABLE)
+        command = getattr(args, "simple_command", None)
+        if command == "status":
+            result = ws.simple.status()
+        elif command == "help":
+            result = ws.simple.help()
+        elif command == "ask":
+            try:
+                result = ws.simple.ask(
+                    args.text,
+                    model_id=getattr(args, "model", None),
+                    conversation_id=getattr(args, "conversation", None),
+                )
+            except ArchxError as exc:
+                code = EXIT_USAGE if isinstance(exc, ValidationError) else EXIT_ERROR
+                return fail(getattr(exc, "message", str(exc)), code)
+        else:
+            return _simple_loop(ws, args)
+        if args.json:
+            emit_json(result.to_dict())
+        else:
+            _render_simple(result)
+        if result.data.get("approval_id"):
+            return EXIT_DENIED
+        return EXIT_OK
+
+
+def _simple_loop(ws, args: argparse.Namespace) -> int:
+    """A small REPL. Chat keeps one conversation; every line is explained."""
+    if args.json:
+        return fail("--json needs a subcommand (ask/status/help)", EXIT_USAGE)
+    conversation_id = None
+    emit(f"{BRAND} Simple Mode - type /help for what I understand, /quit to leave.")
+    while True:
+        try:
+            line = input("> ")
+        except (EOFError, KeyboardInterrupt):
+            emit("")
+            return EXIT_OK
+        line = line.strip()
+        if not line:
+            continue
+        if line in {"/quit", "/exit", "quit", "exit"}:
+            return EXIT_OK
+        try:
+            result = ws.simple.ask(line, conversation_id=conversation_id)
+        except ValidationError as exc:
+            print(f"error: {exc.message}", file=sys.stderr)
+            continue
+        except ArchxError as exc:
+            print(f"error: {exc.message}", file=sys.stderr)
+            continue
+        if result.intent == "quit":
+            return EXIT_OK
+        if result.data.get("conversation_id"):
+            conversation_id = result.data["conversation_id"]
+        _render_simple(result)
+
+
 def cmd_jobs(args: argparse.Namespace) -> int:
     with _workspace(args) as ws:
         manager = ws.jobs
@@ -3451,6 +3588,8 @@ HANDLERS = {
     "extensions": cmd_extensions,
     "agent": cmd_agent,
     "jobs": cmd_jobs,
+    "search": cmd_search,
+    "simple": cmd_simple,
     "tasks": cmd_tasks,
     "versions": cmd_versions,
     "eval": cmd_eval,

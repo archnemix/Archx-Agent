@@ -82,10 +82,21 @@ archx-agent jobs run                                     # drain (exit 3 = work 
 archx-agent jobs pause jb_... && archx-agent jobs resume jb_...
 archx-agent jobs recover                                 # after a crash: requeue, do not guess
 
-# 9. inspect everything that happened
+# 9. one search, and a front door that explains itself
+archx-agent search "database locks"          # conversations, memory, tasks, workflows, files
+archx-agent search kafka --kind memory --no-files
+archx-agent simple ask "where did I write about database locks"
+archx-agent simple ask "remember that the staging key lives in vault"
+archx-agent simple status
+archx-agent simple                            # a small loop: /help for what it understands
+
+# 10. inspect everything that happened
 archx-agent trace list --limit 20
 archx-agent db check
 ```
+
+Simple Mode never widens your authority: when a request needs a permission or an approval,
+it prints the exact `archx-agent approvals approve ...` command and stops (exit `4`).
 
 `--json` is accepted before or after the subcommand. `--home DIR` keeps a separate
 workspace (useful for experiments and tests).
@@ -118,9 +129,11 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 | Task history, content versions with diffs/restore, and evidence-based reproduction records | verified (M24) |
 | Agent workflows: user-written plans, model-proposed plans behind approval, subagents, budgets | verified (M25) |
 | Durable job queue: priorities, concurrency with resource admission, hard deadlines, pause/resume, crash recovery | verified (M26) |
+| Unified search across conversations, memory, tasks, workflows, projects, artifacts, tools and files | verified (M27) |
+| Simple Mode: plain-language intents with a stated reason, honest refusals and printed next steps | verified (M27) |
 | Provider runtime boundary: llama.cpp in-process, OpenAI-compatible HTTP, tested error classification | verified for HTTP; llama.cpp needs the optional dependency and a model file |
 | CLI | verified end-to-end |
-| Research, learning, coding, play modes, media, datasets, training, remote compute, Blender, automations | **not built yet** (M27–M40, see PLAN.md) |
+| Research, learning, coding, play modes, media, datasets, training, remote compute, Blender, automations | **not built yet** (M28–M40, see PLAN.md) |
 
 ## Design principles (enforced, not aspirational)
 
@@ -140,6 +153,7 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 * [GAPS.md](GAPS.md) - known limitations, honestly stated
 * [THINKING.md](THINKING.md) - decision log with reasons
 * [CHANGELOG.md](CHANGELOG.md)
+* [docs/SIMPLE_MODE.md](docs/SIMPLE_MODE.md) - unified search, its ranking, and every Simple Mode intent
 * [docs/AGENTS.md](docs/AGENTS.md) - workflow definitions, step kinds, approval gates and budgets
 * [docs/SCHEDULER.md](docs/SCHEDULER.md) - durable jobs, deadlines, concurrency, pause/resume, crash recovery
 * [docs/TASKS.md](docs/TASKS.md) - task history, content versions, and what "reproducible" means

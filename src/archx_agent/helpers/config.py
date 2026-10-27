@@ -204,6 +204,17 @@ SPEC: dict[str, tuple[type, Any, Validator, str]] = {
         "Requeue jobs whose worker disappeared when a workspace opens."),
     "scheduler.reap_on_open": (bool, True, _bool,
         "Fail running jobs whose hard deadline already passed when a workspace opens."),
+    # ---- search / simple mode
+    "search.default_limit": (int, 10, _range(1, 200, integer=True),
+        "How many merged results a search returns when no limit is given."),
+    "search.per_source": (int, 10, _range(1, 200, integer=True),
+        "Maximum hits taken from each source before merging."),
+    "search.include_files": (bool, True, _bool,
+        "Search file contents inside the tool roots (never outside them)."),
+    "search.max_files": (int, 400, _range(1, 100000, integer=True),
+        "Stop scanning after this many files."),
+    "search.max_file_bytes": (int, 262144, _range(1024, 100000000, integer=True),
+        "Skip files larger than this when searching contents."),
     # ---- agents
     "agent.max_subagents": (int, 4, _range(1, 64, integer=True), "Concurrent subagents."),
     "agent.max_steps": (int, 40, _range(1, 1000, integer=True), "Agent step ceiling."),

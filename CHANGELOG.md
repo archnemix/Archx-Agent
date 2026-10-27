@@ -3,6 +3,44 @@
 All notable changes. Format loosely follows Keep a Changelog; versions track the
 milestone block rather than semantic-release cadence, because M01-M20 are one development series.
 
+## [0.27.0] - M27 Simple Mode and unified search
+
+### Added
+- `application/search.py`: `SearchService` - one query across eight sources (`conversation`,
+  `memory`, `task`, `workflow`, `project`, `artifact`, `file`, `tool`), with one shared
+  scoring function (term coverage, phrase bonus, title bonus), per-source caps, kind
+  weights for cross-kind ties, project/conversation scoping, and a `SearchReport` that
+  carries `counts`, `scanned`, `skipped`, `degraded` and `elapsed_ms`. A source that fails
+  degrades the report instead of failing the search.
+- File search inside `ws.tool_roots()` only: skip directories, dotfiles, binaries (NUL
+  sniff), oversized files (`search.max_file_bytes`) and a hard file budget
+  (`search.max_files`), with every skip reported. Search never writes.
+- `application/simple.py`: `SimpleMode` with a closed intent set (`chat`, `search`,
+  `recall`, `remember`, `status`, `workflow`, `help`, `quit`), `detect_intent()` returning
+  `(intent, why)` with the reason shown to the user, and `SimpleResult` carrying
+  `headline`, `detail`, `next_step` and structured `data`.
+- `TasksManager.search` and `WorkflowsManager.search` so unified search reads the managers
+  that already own the data instead of maintaining an index.
+- CLI: `search QUERY [--kind ...] [--limit] [--per-source] [--project] [--conversation]
+  [--no-files]`; `simple ask TEXT`, `simple status`, `simple help`, and a bare `simple`
+  REPL that keeps one conversation and explains every answer.
+- Config: `search.default_limit`, `search.per_source`, `search.include_files`,
+  `search.max_files`, `search.max_file_bytes`.
+- `docs/SIMPLE_MODE.md`, `scripts/acceptance_m27.sh` (23 self-checking assertions).
+
+### Changed
+- `WorkflowFailed` is now an `ArchxError`, so a failed workflow is reported as an error
+  message with an exit code instead of escaping as a bare `Exception` traceback.
+- Simple Mode refuses to escalate: a step without its grant prints
+  `archx-agent approvals approve ap_...` and exits `4`, and no grant is created.
+- Simple Mode's `status` labels a simulated test double as `SIMULATED - no model is run`.
+
+### Notes
+- Search is keyword-only except for memory, which uses its embedding index when one is
+  configured; the report says `keyword-only` when it is not (see `GAPS.md`).
+- A `once` approval is spent by the run it authorises: the next identical request asks
+  again, which is the permission centre's design, not a Simple Mode regression.
+
 ## [0.26.0] - M26 resource and job scheduler
 
 ### Added

@@ -66,6 +66,8 @@ from archx_agent.managers.versions import VersionManager
 from archx_agent.managers.workflows import WorkflowManager
 from archx_agent.application.router import ModelRouter
 from archx_agent.application.scheduler import JobRunner
+from archx_agent.application.search import SearchService
+from archx_agent.application.simple import SimpleMode
 from archx_agent.managers.schema import MIGRATIONS, SCHEMA_VERSION
 
 
@@ -89,6 +91,8 @@ class Workspace:
     workflows: WorkflowManager | None = None
     jobs: JobManager | None = None
     scheduler: Any = None
+    search: SearchService | None = None
+    simple: SimpleMode | None = None
     reproduction: ReproductionManager | None = None
     router: Any = None
     context: ContextManager | None = None
@@ -323,6 +327,8 @@ class Workspace:
                 )
         except Exception as exc:  # noqa: BLE001 - a bad plugin must not stop the workspace
             ws.warnings.append(f"could not restore dynamic tools: {exc}")
+        ws.search = SearchService(ws)
+        ws.simple = SimpleMode(ws)
         ws.router = ModelRouter(
             models,
             config=config,

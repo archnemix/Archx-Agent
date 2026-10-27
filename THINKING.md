@@ -550,6 +550,67 @@ The manager owns rows, transitions and recovery; the runner owns processes, thre
 signals. That split keeps `managers/` testable without spawning anything and keeps the only
 `subprocess` code in one file that can be reviewed as such.
 
+## Simple Mode and search (M27)
+
+**D97. Search reads the managers; it does not build an index.**
+An index is a second copy of the truth with its own staleness, its own schema and its own
+failure mode ("why is this result missing?"). At the sizes this app produces, scanning the
+managers costs milliseconds and can never disagree with `memory list`. The cost is that
+search time grows linearly and file search must be budgeted (`search.max_files`); the
+benefit is that a hit is a row, and `report.counts` is a fact rather than a guess.
+
+**D98. One scoring function for every source.**
+Each source could have had its own notion of relevance, which is how a merged list becomes
+unexplainable. `score_text` treats title and body the same way everywhere: term coverage
+(so a full match is at least 1.0), a phrase bonus, a title bonus. `KIND_WEIGHT` breaks ties
+only. The cost is that a source cannot express source-specific relevance (a task's status
+match counts like a memory's body match); the benefit is that "why is this first" has one
+answer, and `search --json` exposes the score.
+
+**D99. A broken source degrades the report; it never fails the search.**
+Each source returns `(hits, note, consumed)` and the caller catches exceptions per source.
+"Nothing found" and "I could not look" are different facts: the first is `hits == []`, the
+second lands in `degraded` with the reason and is printed. The cost is that a systematic bug
+in one manager shows up as a note rather than a crash; the trace and the note are how it
+gets noticed. Failing the whole search because the embedding index is missing would make the
+feature useless in exactly the setup most users start with.
+
+**D100. File search inherits the sandbox roots.**
+`ws.tool_roots()` is where file tools are allowed to work. Searching anywhere else would give
+Simple Mode a read primitive that `fs.read` does not have - a permission bypass dressed as a
+convenience. So file search reads only there, skips noise directories, refuses files with a
+NUL byte, and enforces size and count budgets so a stray `node_modules` cannot turn a
+question into a minute of I/O.
+
+**D101. Search never writes.**
+No "recent searches", no counters, no trace event per query. A read path that writes is a
+read path that can fail for write reasons, and search is the thing a user reaches for when
+something is already wrong. The property is a test (`test_search_does_not_write_anything`),
+not a comment.
+
+**D102. Simple Mode is a front door with a stated reason, not an agent.**
+It has no planning loop and no free-form tool access. Every intent maps to a call that
+already existed, and `detect_intent` returns `(intent, why)` so the answer shows which rule
+matched. The alternative - a model deciding what the user meant - would need a model to be
+configured before the app can say "you have no model configured", which is circular, and it
+would make the difference between "searched" and "answered from memory" invisible.
+
+**D103. Refusals are results, and they carry the exact next command.**
+No model, no grant, a checkpoint, a missing model for a model step: each returns a
+`SimpleResult` with `headline` (what happened), `detail` (why) and `next_step` (the command
+that would unblock it). The CLI exits `4` when the result contains an `approval_id` so a
+script can tell "answered" from "needs a human". The alternative - raising - turned the
+first acceptance run into a traceback, which is how this decision got made: a friendly front
+end that crashes on its most common refusal is neither friendly nor honest.
+
+**D104. `remember` writes a real memory, with the duplicate check intact.**
+A separate "simple notes" store would have been easier and would have been a second memory
+system - the thing M17 spent a milestone avoiding. Simple Mode writes `permanent` memory with
+`provenance.mode = "simple"`, the category inferred only from unambiguous words
+(`always`/`never`/`from now on` ⇒ `preference`, otherwise `fact`), and reports a duplicate as
+"I did not store that" with the existing id. If the inference is wrong the user can edit the
+memory; if the store were separate, nothing else in the app could find it.
+
 ## Storage and config
 
 **D31. Unknown config keys are errors.**
