@@ -21,10 +21,10 @@ This file records what is **not** true yet. If a feature is not listed as verifi
 
 ## Not built yet
 
-Milestones M28-M40 are not implemented: Researcher Mode, GUI core, Learning Mode, coding
-workspace, experimental mode, play mode, voice/multimodal, dataset preparation, training,
-remote compute, Blender/3D, automations and release hardening. M17-M27 are implemented and
-verified (see [PROGRESS.md](PROGRESS.md)). The database schema already reserves tables for them
+Milestones M29-M40 are not implemented: GUI core, Learning Mode, coding workspace,
+experimental mode, play mode, voice/multimodal, dataset preparation, training, remote
+compute, Blender/3D, automations and release hardening. M17-M28 are implemented and verified
+(see [PROGRESS.md](PROGRESS.md)). The database schema already reserves tables for them
 (versions 5-8) so they can be added without renumbering.
 
 ## Known limitations inside implemented features
@@ -75,8 +75,8 @@ verified (see [PROGRESS.md](PROGRESS.md)). The database schema already reserves 
   to any model in this build.
 * **No cost-aware routing.** Prices from M20 are recorded but not used by the router score.
 * **Tools do not run from a model yet.** M22 built the registry, the permission centre and
-  the execution path; no chat turn can request a tool until M25. `net.fetch` is declared
-  and deliberately unimplemented, so it can only ever be refused.
+  the execution path; M25 runs tool steps in workflows. No ordinary chat turn can request a
+  tool, so a model cannot decide to call one on its own.
 * **`shell.run` is a granted capability, not a syscall sandbox.** Any program on `PATH`
   that is not on `tools.shell_denylist` can run once a grant exists. The denylist and the
   minimal environment reduce the blast radius; they do not contain a hostile program.
@@ -158,6 +158,33 @@ verified (see [PROGRESS.md](PROGRESS.md)). The database schema already reserves 
   convenience improvement.
 * **The Simple Mode REPL keeps state only in memory.** Leaving it loses the conversation
   handle (the conversation itself is stored); `--json` is refused there.
+* **Web research only reads the URLs you supply.** There is no crawler, no search-engine
+  integration and no discovery: `--mode web` with no `--url` is a usage error, not an empty
+  result. Finding sources is your job (or a future MCP search tool's).
+* **No search API is configured or assumed.** No key, no endpoint, no scraping. Adding one
+  means writing a tool with its own capability, which is why it is not smuggled into the
+  researcher.
+* **PDFs, office documents and images are not read.** `net.fetch` only accepts text content
+  types, and extraction arrives with M35 dataset preparation.
+* **Credibility is not assessed.** Every web page is `credibility='unknown'` and every local
+  document is `internal`. Archx does not rate publishers, so a persuasive blog and a
+  specification look the same in the source list.
+* **Stance needs a model.** Without one, every source is `unknown` and the report says the
+  absence of a judgement is not agreement. Relevance is term overlap, not understanding, so a
+  source can be highly relevant and irrelevant to the actual question.
+* **Planning and judging cost tokens.** `research.max_judged_sources` bounds the judgements,
+  but a run with a model performs one call per judged source plus the plan plus the reading.
+* **The report is only as good as the excerpts.** The extractive answer quotes a window of at
+  most `research.excerpt_chars`; a document whose relevant sentence sits outside that window
+  contributes nothing useful and no warning.
+* **`research verify` checks form, not truth.** It confirms that citations resolve and that
+  claims carry one; it cannot tell whether the cited sentence supports the claim.
+* **A research run has no resume.** If it fails mid-gather the run is `failed`; there is no
+  cursor to continue from (unlike a workflow job). Re-running re-reads the sources.
+* **`net.fetch` has no robots.txt check, no caching, no cookies and no per-host rate limit.**
+  It is a single-request fetcher, and the user supplies the URLs, so politeness is manual.
+* **`net.fetch` follows at most `tools.fetch_max_redirects` (3) and fails closed beyond it.**
+  Legitimate sites with longer chains (login walls, CDNs) are refused rather than chased.
 * **Secrets**: values are never stored by Archx; only `secret://` references are kept.
   The redaction pass is pattern + registry based, so an unusual credential format could
   slip through. Exports are re-redacted, and tests grep artifacts for registered secrets.

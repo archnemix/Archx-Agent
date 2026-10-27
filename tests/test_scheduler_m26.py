@@ -781,7 +781,8 @@ class TestCliJobs:
 # --------------------------------------------------------------------------
 class TestSchemaAndConfig:
     def test_the_jobs_table_has_the_worker_columns(self, ws):
-        assert ws.store.schema_version() == 17
+        # the schema keeps moving; this test owns the jobs columns, not the version number
+        assert ws.store.schema_version() >= 17
         columns = {
             row["name"] for row in ws.store.query("PRAGMA table_info(jobs)", ())
         }
@@ -805,7 +806,8 @@ class TestSchemaAndConfig:
                         overrides={"scheduler.poll_seconds": 0})
 
     def test_known_kinds_and_statuses_are_stable(self):
-        assert JOB_KINDS == ("command", "workflow")
+        # M28 added "research"; the list stays an explicit allowlist, which is the point
+        assert JOB_KINDS == ("command", "workflow", "research")
         assert STATUSES == (
             "queued", "running", "paused", "completed", "failed", "cancelled", "interrupted"
         )

@@ -60,6 +60,7 @@ from archx_agent.managers.permissions import PermissionManager
 from archx_agent.managers.projects import ProjectManager
 from archx_agent.managers.providers import ProviderManager, is_loopback_url
 from archx_agent.managers.reproduction import ReproductionManager
+from archx_agent.managers.research import ResearchManager
 from archx_agent.managers.tasks import TaskManager
 from archx_agent.managers.tools import ToolManager
 from archx_agent.managers.versions import VersionManager
@@ -93,6 +94,7 @@ class Workspace:
     scheduler: Any = None
     search: SearchService | None = None
     simple: SimpleMode | None = None
+    research: ResearchManager | None = None
     reproduction: ReproductionManager | None = None
     router: Any = None
     context: ContextManager | None = None
@@ -327,6 +329,9 @@ class Workspace:
                 )
         except Exception as exc:  # noqa: BLE001 - a bad plugin must not stop the workspace
             ws.warnings.append(f"could not restore dynamic tools: {exc}")
+        ws.research = ResearchManager(
+            store, coordinator, events=events, config=config
+        )
         ws.search = SearchService(ws)
         ws.simple = SimpleMode(ws)
         ws.router = ModelRouter(
@@ -388,6 +393,13 @@ class Workspace:
         from .agent import AgentRunner
 
         return AgentRunner(self)
+
+    @property
+    def researcher(self):
+        """The research runner (imported lazily so the composition root stays acyclic)."""
+        from .researcher import ResearchRunner
+
+        return ResearchRunner(self)
 
     @property
     def chat(self):

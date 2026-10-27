@@ -162,6 +162,7 @@ class JobRunner:
         handler: Callable[[Job], Mapping[str, Any] | None] = {
             "command": self._run_command,
             "workflow": self._run_workflow,
+            "research": self._run_research,
         }.get(job.kind, None)  # type: ignore[assignment]
         if handler is None:  # pragma: no cover - enqueue validates the kind
             self.jobs.fail(job.id, f"no runner for job kind {job.kind!r}")
@@ -312,6 +313,60 @@ class JobRunner:
         # The task is closed by execute() *after* the job is marked completed, so the
         # timeline reads "... command_succeeded, job_completed, summary, completed".
         return result
+
+    # -- research jobs -----------------------------------------------------
+    def _run_research(self, job: Job) -> Mapping[str, Any]:
+        """Run a research question as a job.
+
+        Research is the first job kind that is neither a process nor a workflow: it is a
+        long, multi-step, network-touching activity with its own record. Adding it here
+        rather than in a parallel runner is the M26 extension point working as designed -
+        the queue owns *when*, the runner owns *what*, and the research run owns *why*.
+        """
+        question = str(job.payload.get("question") or "").strip()
+        if not question:
+            raise ValidationError("a research job needs payload.question")
+        urls = job.payload.get("urls") or []
+        if isinstance(urls, str):
+            urls = [urls]
+        self._log_task(job, "research_started", question[:200])
+        from archx_agent.application.researcher import ResearchRunner
+
+        outcome = ResearchRunner(self.ws).run(
+            question,
+            mode=job.payload.get("mode"),
+            urls=list(urls),
+            max_subquestions=job.payload.get("max_subquestions"),
+            subquestions=job.payload.get("subquestions"),
+            model_id=job.payload.get("model_id"),
+            report_format=job.payload.get("format"),
+            use_model=bool(job.payload.get("use_model", True)),
+            allow_private_hosts=job.payload.get("allow_private_hosts"),
+            project_id=job.project_id,
+        )
+        run = outcome["run"]
+        if run.get("task_id"):
+            self.jobs.link_task(job.id, run["task_id"])
+        if run.get("status") != "completed":
+            raise ValidationError(
+                f"the research run finished {run.get('status')} "
+                f"(coverage {float(run.get('coverage') or 0):.0%}); report {outcome['report_path']}"
+            )
+        return {
+            "run_id": run["id"],
+            "report_path": outcome["report_path"],
+            "coverage": run["coverage"],
+            "sources": run["evidence_count"],
+            "verification": outcome["verification"],
+        }
+
+    def _log_task(self, job: Job, kind: str, detail: str) -> None:
+        if not job.task_id:
+            return
+        try:
+            self.ws.tasks.log(job.task_id, kind, detail=detail[:2000])
+        except Exception:  # noqa: BLE001 - logging must not fail a job
+            pass
 
     # -- workflow jobs -----------------------------------------------------
     def _run_workflow(self, job: Job) -> Mapping[str, Any]:

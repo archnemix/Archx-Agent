@@ -75,7 +75,7 @@ CAPABILITIES: dict[str, Capability] = {
     "process.exec": Capability("process.exec", "run a program shipped by a trusted extension", "high", "executes"),
     # Declared now so grants/messages are consistent, but nothing implements it in
     # this build: a capability nobody can exercise must not be advertised as available.
-    "net.fetch": Capability("net.fetch", "fetch a URL (no tool implements this yet)", "medium", "network"),
+    "net.fetch": Capability("net.fetch", "fetch an http(s) URL (private addresses refused by default)", "medium", "network"),
 }
 
 RISK_LEVELS = ("low", "medium", "high")

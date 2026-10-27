@@ -90,7 +90,14 @@ archx-agent simple ask "remember that the staging key lives in vault"
 archx-agent simple status
 archx-agent simple                            # a small loop: /help for what it understands
 
-# 10. inspect everything that happened
+# 10. research a question: a plan, real sources, citations, and what it could not establish
+archx-agent research run "how does sqlite locking work"
+archx-agent research run "how does sqlite locking work" --no-model   # extractive, no model calls
+archx-agent research run "..." --mode web --url https://example.com/page   # needs a net.fetch grant
+archx-agent research sources rs_...     # what was read, and what could not be
+archx-agent research verify rs_...      # exit 3 if a citation does not resolve
+
+# 11. inspect everything that happened
 archx-agent trace list --limit 20
 archx-agent db check
 ```
@@ -131,9 +138,11 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 | Durable job queue: priorities, concurrency with resource admission, hard deadlines, pause/resume, crash recovery | verified (M26) |
 | Unified search across conversations, memory, tasks, workflows, projects, artifacts, tools and files | verified (M27) |
 | Simple Mode: plain-language intents with a stated reason, honest refusals and printed next steps | verified (M27) |
+| Researcher Mode: validated plans, real sources, checked citations, coverage and limitations | verified (M28) |
+| `net.fetch` as a capability: http(s) only, private addresses refused, redirects re-checked | verified (M28) |
 | Provider runtime boundary: llama.cpp in-process, OpenAI-compatible HTTP, tested error classification | verified for HTTP; llama.cpp needs the optional dependency and a model file |
 | CLI | verified end-to-end |
-| Research, learning, coding, play modes, media, datasets, training, remote compute, Blender, automations | **not built yet** (M28–M40, see PLAN.md) |
+| Learning, coding, GUI, play modes, media, datasets, training, remote compute, Blender, automations | **not built yet** (M29–M40, see PLAN.md) |
 
 ## Design principles (enforced, not aspirational)
 
@@ -153,6 +162,7 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 * [GAPS.md](GAPS.md) - known limitations, honestly stated
 * [THINKING.md](THINKING.md) - decision log with reasons
 * [CHANGELOG.md](CHANGELOG.md)
+* [docs/RESEARCH.md](docs/RESEARCH.md) - research runs, evidence rules, citations, `net.fetch` limits
 * [docs/SIMPLE_MODE.md](docs/SIMPLE_MODE.md) - unified search, its ranking, and every Simple Mode intent
 * [docs/AGENTS.md](docs/AGENTS.md) - workflow definitions, step kinds, approval gates and budgets
 * [docs/SCHEDULER.md](docs/SCHEDULER.md) - durable jobs, deadlines, concurrency, pause/resume, crash recovery

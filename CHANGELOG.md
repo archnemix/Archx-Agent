@@ -3,6 +3,44 @@
 All notable changes. Format loosely follows Keep a Changelog; versions track the
 milestone block rather than semantic-release cadence, because M01-M20 are one development series.
 
+## [0.28.0] - M28 Researcher Mode
+
+### Added
+- `managers/research.py`: research runs and sources as records - question, mode, plan,
+  `planned_by`, coverage, evidence count, limitations, the report itself, and every source
+  (including the ones that could not be read) with kind, ref, status, error, checksum,
+  relevance, stance and the model's quotes.
+- `application/researcher.py`: the pipeline - plan (validated model JSON or deterministic
+  rules, or the user's own subquestions), gather (local search and/or web), read (hashed
+  excerpts), judge (stance and relevance, with fabricated quotes dropped), synthesise
+  (extractive answer cited line by line; uncited model prose demoted), verify (every
+  citation must resolve, every claim must cite).
+- `adapters/net_fetch.py` + a real `net.fetch` tool: http(s) only, no credentials in URLs,
+  loopback/private/link-local/reserved addresses refused unless explicitly allowed, manual
+  redirects with a hop limit re-checked per hop, byte limit, content-type allowlist, sha256,
+  HTML-to-text, and every call behind the `net.fetch` capability.
+- CLI: `research run|list|show|sources|report|verify|search|stats|delete`, with
+  `--mode local|web|mixed`, `--url`, `--urls-from`, `--subquestion`, `--no-model`,
+  `--format`, `--out`, `--allow-private-hosts`, and exit codes `0/3/4/2/1`.
+- `jobs submit research` - a research run can be queued (M26's first new job kind).
+- Schema v18: `research_runs` gains `mode`, `plan`, `planned_by`, `coverage`,
+  `evidence_count`, `report`, `error`, `model_id`, `settings`, `updated_at`;
+  `research_sources` gains `kind`, `ref`, `status`, `error`, `checksum`, `bytes`,
+  `relevance`, `credibility`, `claims`, `subquestion`.
+- Config: `paths.research`, `research.*` (8 keys) and `tools.fetch_*` (5 keys).
+- `docs/RESEARCH.md`, `scripts/acceptance_m28.sh` (30 self-checking assertions).
+
+### Changed
+- `net.fetch` is no longer a declared-but-unimplemented capability; it is a working tool
+  with its own limits (see `docs/TOOLS.md`).
+- `research.report_format` default is now `markdown` (was an unused `html`).
+
+### Notes
+- Web research needs an explicit `net.fetch` grant; the first attempt is refused and creates
+  nothing. A `once` grant is scoped to the task that asked, so a new run asks again.
+- Coverage is measured, not asserted: an empty run is `incomplete` and exits 3 with a report
+  whose first line is "I found no evidence".
+
 ## [0.27.0] - M27 Simple Mode and unified search
 
 ### Added

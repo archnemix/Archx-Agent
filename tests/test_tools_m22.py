@@ -293,7 +293,7 @@ class TestRegistry:
 
     def test_tool_with_unknown_capability_is_refused(self, ws):
         spec = ToolSpec(
-            name="net.fetch", summary="nope", capability="net.telepathy", risk="low", inputs={}
+            name="http.request", summary="nope", capability="net.telepathy", risk="low", inputs={}
         )
         with pytest.raises(ToolValidationError, match="unknown capability"):
             ws.tools.register_spec(spec)

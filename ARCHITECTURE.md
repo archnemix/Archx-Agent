@@ -190,6 +190,38 @@ runner refuses it until a human approves; checkpoints are checked before the run
 refusal cannot leave half a plan executed. The workflow row is the plan, the task row is the
 run, and the conversation is the transcript - there is no fourth record.
 
+## Researcher Mode (M28)
+
+```
+research run                        application/researcher.py
+  plan     model JSON (validated) | deterministic rules | user subquestions   -> planned_by
+  gather   local  SearchService over memory/conversation/task/workflow/file
+           web    net.fetch tool -> permission centre -> adapters/net_fetch.py
+  read     file text inside ws.tool_roots(), sha256, excerpt window
+  judge    relevance = term coverage; stance needs a model AND quotes found in the excerpt
+  write    managers/research.py : research_runs + research_sources (one row per attempt)
+  report   extractive answer, every line [S<n>]; uncited model prose demoted
+  verify   citations must resolve; claims must cite; CLI exits 3 otherwise
+  record   report file (<home>/research/) + row + research task + artifact checksum
+```
+
+Three boundaries make this trustworthy rather than impressive. **The plan is data**: it is
+stored, it names its author, and the first subquestion is the user's own question. **Every
+source is a row**, so a failed fetch is visible rather than absent, and the excerpt that gets
+quoted is hashed. **The report is checked after it is written** - `verify` is a separate
+function that both the run and `research verify` call, so a hand-edited report is checked by
+the same rule as a generated one.
+
+`net.fetch` is the only new way out of the process. It lives in `adapters/` (all network code
+does), is registered as a normal tool with capability `net.fetch`, and re-checks every
+redirect hop's resolved addresses: a 302 to `169.254.169.254` is the classic way past a
+one-time URL check. Private targets need `tools.fetch_allow_private_hosts=true` *and* the
+grant, because those are different decisions.
+
+`jobs submit research` registers the third job kind, which is the M26 extension point used as
+intended: the queue knows nothing about HTTP or citations, it only knows the run is work that
+can fail, and the run keeps its own record.
+
 ## Simple Mode and search (M27)
 
 ```

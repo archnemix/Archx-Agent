@@ -145,6 +145,28 @@ BUILTIN_SPECS: tuple[ToolSpec, ...] = (
         side_effects="executes a process",
     ),
     ToolSpec(
+        name="net.fetch",
+        summary="fetch a text document from an http(s) URL",
+        capability="net.fetch",
+        risk="medium",
+        inputs={
+            "url": "http(s) URL to fetch",
+            "timeout": "seconds before the request is abandoned",
+            "max_bytes": "stop after this many bytes",
+            "max_redirects": "how many redirects to follow",
+            "allow_private_hosts": "permit private/loopback addresses (still needs the grant)",
+        },
+        required=("url",),
+        types={
+            "url": "str",
+            "timeout": "int",
+            "max_bytes": "int",
+            "max_redirects": "int",
+            "allow_private_hosts": "bool",
+        },
+        side_effects="reads a remote document; sends the request to that host",
+    ),
+    ToolSpec(
         name="archx.info",
         summary="report workspace size and tool roots (read-only, no permission needed)",
         capability=None,
@@ -748,6 +770,31 @@ class ToolManager(BaseManager):
                 cwd=args.get("cwd"),
                 timeout=int(args["timeout"]) if args.get("timeout") else int(self._cfg("tools.timeout_seconds", 60)),
             )
+        if spec.name == "net.fetch":
+            from archx_agent.adapters.net_fetch import fetch_limits, fetch_url
+
+            limits = fetch_limits(self.config)
+            allow_private = (
+                args["allow_private_hosts"]
+                if "allow_private_hosts" in args
+                else limits["allow_private_hosts"]
+            )
+            result = fetch_url(
+                args["url"],
+                timeout=float(args.get("timeout") or limits["timeout_seconds"]),
+                max_bytes=int(args.get("max_bytes") or limits["max_bytes"]),
+                max_redirects=int(args.get("max_redirects") or limits["max_redirects"]),
+                allow_private_hosts=bool(allow_private),
+            )
+            # The full text can be large; the run result keeps a bounded copy and says so.
+            keep = int(self._cfg("tools.fetch_store_chars", 20000))
+            if len(result.get("text") or "") > keep:
+                result["text"] = result["text"][:keep]
+                result["text_truncated"] = True
+            else:
+                result["text_truncated"] = False
+            result["limits"] = limits
+            return result
         extra = self._handlers.get(spec.name)
         if extra is not None:
             return extra(args)

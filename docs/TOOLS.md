@@ -26,11 +26,15 @@ origin.
 | `fs.write` | medium | writes | create or modify files inside the tool roots |
 | `fs.delete` | high | deletes | delete files inside the tool roots |
 | `shell.run` | high | executes | run a local process |
-| `net.fetch` | medium | network | declared for M23; **no tool implements it in this build** |
+| `net.fetch` | medium | network | fetch a text document over http(s) (M28) |
 
-A capability that nothing implements is still listed, because a grant for it can be
-refused honestly ("no tool in this build performs `net.fetch`") rather than pretending it
-does not exist.
+`net.fetch` was declared in M22 and implemented in M28, when Researcher Mode needed it.
+Until then a grant for it could only be refused honestly; now the grant is what lets a fetch
+happen at all. The tool refuses non-http(s) schemes, credentials in a URL, private/loopback
+addresses (unless `tools.fetch_allow_private_hosts` is set deliberately), non-text content
+types, redirect chains longer than `tools.fetch_max_redirects`, and bodies over
+`tools.fetch_max_bytes`. Each redirect hop is re-checked, because the target is chosen by the
+remote server.
 
 ## Built-in tools
 
@@ -173,8 +177,8 @@ escape, denylist), `5` unavailable subsystem.
 
 * No tool-calling loop in chat. The registry and the permission centre are ready for it;
   M25 wires a model's requested tool call through this path.
-* No network tool (`net.fetch` is declared only), because nothing in this build fetches
-  URLs and an unverified capability must not be advertised.
+* No network tool at the time: `net.fetch` was declared only, and M28 implemented it when
+  Researcher Mode needed real sources (see [RESEARCH.md](RESEARCH.md)).
 * No extension/MCP tool registration; M23 adds it with a trust level and the same checks.
 * No recursive directory deletion, no shell pipelines, no background processes.
 * `permissions check` does not plan ahead: it answers for one capability, subject and

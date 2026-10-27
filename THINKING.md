@@ -611,6 +611,57 @@ system - the thing M17 spent a milestone avoiding. Simple Mode writes `permanent
 "I did not store that" with the existing id. If the inference is wrong the user can edit the
 memory; if the store were separate, nothing else in the app could find it.
 
+## Researcher Mode (M28)
+
+**D105. A research plan must name its author.** `planned_by` is `model` only when a model
+returned JSON that parsed and validated; otherwise it is `rules` or `user`, and the report
+says which. The alternative - one plan shape with no provenance - makes "the model decided
+what to investigate" indistinguishable from "a template did", and the second one is what
+happens whenever a model is unavailable or verbose.
+
+**D106. The first subquestion is the question you asked.** A decomposition that never asks
+the original question answers something adjacent and looks thorough. Putting the user's own
+words first also gives the rules plan a natural anchor: the other facets are chosen by the
+*shape* of the question (how/what/why/should) and read as English, because a plan nobody can
+read is a plan nobody can correct.
+
+**D107. A failed source is a row, not an omission.** 404s, binary pages, refused connections
+and blocked addresses are stored with `status='failed'` and the error, shown by
+`research sources`, listed in the limitations, and excluded from coverage. Omitting them
+would make an empty report look like a searched one; storing them makes the difference
+between "nothing exists" and "I could not look" visible, which is the same distinction search
+(M27) makes with `degraded`.
+
+**D108. Quotes are matched to the excerpt; unverifiable quotes are dropped.** A model asked
+to justify a stance will happily invent a sentence. Matching each `quote` against the excerpt
+it was given (whitespace-normalised substring) is cheap, deterministic, and turns a
+fabrication into an empty claim list. The cost is that a legitimate paraphrase is also
+dropped; the benefit is that every quote in a report can be found in the source.
+
+**D109. Uncited prose is demoted, not deleted and not trusted.** The extractive answer is
+assembled from quotes, so it is always citable. Model prose gets its own section, and any
+paragraph without a resolving citation moves to "statements I could not tie to a source". We
+tested this with the simulated runtime, which produces exactly such prose: the guard fires on
+every run and the report stays honest. Deleting it would hide that the model was asked; a
+separate section keeps the audit trail and refuses the claim.
+
+**D110. Coverage is arithmetic over subquestions, and an empty run is `incomplete`.** Not
+"completed with no sources" - the CLI exits 3 and the report's first line is "I found no
+evidence". The temptation to call it success because nothing errored is the exact failure
+this milestone exists to prevent.
+
+**D111. `net.fetch` is a tool, not a helper the researcher calls.** Putting HTTP in the
+researcher would have created a second way to reach the network that the permission centre
+does not see. As a registered tool it inherits grants, approvals, denials and run records.
+The private-address check is in the adapter, because it must apply to every hop of a
+redirect - a check on the URL a user typed is not the same check.
+
+**D112. Seed URLs come from the user; Archx does not crawl or scrape a search engine.**
+A crawler needs a politeness policy, a robots.txt story, rate limits, and a search backend
+(none reachable here). Pretending otherwise would ship a feature that fails silently offline.
+Explicit seeds are honest, verifiable in the acceptance run (a real local HTTP server), and
+they compose with M23's MCP tools if someone wants a search provider later.
+
 ## Storage and config
 
 **D31. Unknown config keys are errors.**

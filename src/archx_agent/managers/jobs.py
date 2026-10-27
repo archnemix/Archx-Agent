@@ -60,7 +60,7 @@ JOB_TABLES = ("jobs",)
 
 #: What a job can be. New kinds register a runner in the application layer; the
 #: manager itself does not execute anything.
-JOB_KINDS = ("command", "workflow")
+JOB_KINDS = ("command", "workflow", "research")
 
 #: Kinds a running job may be paused at a checkpoint. A child process cannot be
 #: frozen safely (its children, sockets and temp files would be in an unknown
@@ -75,6 +75,7 @@ CONTROLS = ("pause", "cancel", None)
 DEFAULT_ESTIMATES: dict[str, dict[str, int]] = {
     "command": {"cpu_percent": 25, "memory_mb": 256},
     "workflow": {"cpu_percent": 50, "memory_mb": 512},
+    "research": {"cpu_percent": 25, "memory_mb": 512},
 }
 
 _UPDATE_COLUMNS = {

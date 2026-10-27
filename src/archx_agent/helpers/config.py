@@ -102,6 +102,7 @@ SPEC: dict[str, tuple[type, Any, Validator, str]] = {
     "paths.projects": (str, "", _path, "Directory for project workspaces (default <home>/projects)."),
     "paths.artifacts": (str, "", _path, "Directory for artifact blobs (default <home>/artifacts)."),
     "paths.backups": (str, "", _path, "Directory for backups (default <home>/backups)."),
+    "paths.research": (str, "", _path, "Directory for research reports (default <home>/research)."),
     # ---- storage
     "storage.db_path": (str, "", _path, "Primary SQLite database (default <home>/archx.db)."),
     "storage.events_path": (str, "", _path, "Trace database (default <home>/events.db)."),
@@ -236,7 +237,19 @@ SPEC: dict[str, tuple[type, Any, Validator, str]] = {
     "learning.active_goal_limit": (int, 1, _range(1, 10, integer=True), "Concurrent learning goals."),
     "learning.try_first": (bool, False, _bool, "Encourage the learner to attempt before hints."),
     "research.max_subquestions": (int, 8, _range(1, 50, integer=True), "Research question decomposition cap."),
-    "research.report_format": (str, "html", _one_of("html", "markdown"), "Research report output format."),
+    "research.report_format": (str, "markdown", _one_of("html", "markdown"), "Research report output format."),
+    "research.default_mode": (str, "local", _one_of("local", "web", "mixed"), "Where a research run looks by default."),
+    "research.max_sources": (int, 24, _range(1, 200, integer=True), "Stop gathering after this many sources."),
+    "research.per_source_hits": (int, 5, _range(1, 50, integer=True), "Hits taken per source kind per subquestion."),
+    "research.gather_limit": (int, 12, _range(1, 100, integer=True), "Merged hits considered per subquestion."),
+    "research.max_source_bytes": (int, 262144, _range(1024, 50000000, integer=True), "Read at most this much of one source."),
+    "research.excerpt_chars": (int, 600, _range(100, 5000, integer=True), "How much of a source is quoted as evidence."),
+    "research.max_judged_sources": (int, 12, _range(1, 200, integer=True), "How many sources a model may judge (costs tokens)."),
+    "tools.fetch_timeout_seconds": (int, 15, _range(1, 600, integer=True), "net.fetch request timeout."),
+    "tools.fetch_max_bytes": (int, 1000000, _range(1024, 100000000, integer=True), "net.fetch byte limit."),
+    "tools.fetch_max_redirects": (int, 3, _range(0, 20, integer=True), "net.fetch redirect limit (each hop is re-checked)."),
+    "tools.fetch_allow_private_hosts": (bool, False, _bool, "Allow net.fetch to reach loopback/private addresses."),
+    "tools.fetch_store_chars": (int, 20000, _range(1000, 2000000, integer=True), "How much fetched text is kept in the run record."),
     "experiments.deadline_minutes": (int, 120, _range(1, 10080, integer=True), "Default experiment deadline."),
     "play.default_game": (str, "tictactoe", _one_of("tictactoe", "connect4", "nim"), "First built-in game."),
     # ---- training / remote / blender
@@ -254,6 +267,7 @@ _PATH_DEFAULTS = {
     "paths.projects": "projects",
     "paths.artifacts": "artifacts",
     "paths.backups": "backups",
+    "paths.research": "research",
     "storage.db_path": "archx.db",
     "storage.events_path": "events.db",
     "extensions.directory": "extensions",
@@ -302,7 +316,10 @@ class Config:
 
     def ensure_dirs(self) -> dict[str, Path]:
         created: dict[str, Path] = {}
-        for key in ("paths.home", "paths.models", "paths.projects", "paths.artifacts", "paths.backups"):
+        for key in (
+            "paths.home", "paths.models", "paths.projects", "paths.artifacts",
+            "paths.backups", "paths.research",
+        ):
             created[key] = ensure_directory(self.path(key))
         ensure_directory(self.path("storage.db_path").parent)
         ensure_directory(self.path("extensions.directory"))
