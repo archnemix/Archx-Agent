@@ -192,6 +192,10 @@
     else blocked.append(table(["what", "next"], hints));
   };
 
+  document.getElementById("status-refresh").addEventListener("click", () => {
+    loaders.status().catch((error) => report(document.getElementById("status-blocked"), error));
+  });
+
   // ------------------------------------------------------------------- chat
   async function loadConversations() {
     const list = clear(document.getElementById("chat-conversations"));

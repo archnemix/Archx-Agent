@@ -595,6 +595,21 @@ class TestAssets:
         assert offered and set(offered) == set(KINDS)
         assert offered[0] == "permanent", "the default the panel sends must be valid"
 
+    def test_every_control_in_the_page_is_wired(self):
+        """No placeholder controls: each id the script touches exists, and each refresh
+        button actually has a listener (which is how an unwired button hides)."""
+        html = (ASSETS / "index.html").read_text()
+        script = (ASSETS / "app.js").read_text()
+        ids = set(__import__("re").findall(r'id="([^"]+)"', html))
+        used = set(__import__("re").findall(r'getElementById\("([^"]+)"\)', script))
+        assert used <= ids, f"the script asks for ids the page does not have: {sorted(used - ids)}"
+        wired = set(__import__("re").findall(r'getElementById\("([^"]+)"\)\.addEventListener', script))
+        refresh = {name for name in ids if name.endswith("-refresh")}
+        assert refresh <= wired, f"buttons with no listener: {sorted(refresh - wired)}"
+        views = set(__import__("re").findall(r'data-view="([^"]+)"', html))
+        sections = {name[5:] for name in ids if name.startswith("view-")}
+        assert views == sections, "every tab must have a section and every section a tab"
+
     def test_the_page_loads_nothing_from_anywhere_else(self):
         """No CDN, no font host, no remote script: the GUI works with the network unplugged.
 
