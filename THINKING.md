@@ -707,6 +707,61 @@ more for a page holding a token than for a landing page.
 **D120. `Server:` says the app, not the interpreter.** A version banner is free
 reconnaissance. The header keeps the product version (useful) and drops Python's.
 
+## Learning Mode (M30)
+
+**D121. A tutor may only grade what it can check.** Free-text marking by a model is
+unfalsifiable, irreproducible and impossible to appeal: the learner cannot see why "mostly
+right" became 0.6, and a second run may disagree. So `grade_answer` has two paths - a
+normalised comparison against the answer the learner wrote down when they made the card, or a
+1-5 rating by the learner - and every attempt row records which one fired. A tutor that
+cannot check an answer is not useless; it is useful *as a scheduler and a prompt*, and that
+is what it does here.
+
+**D122. Help is gated behind an attempt, not behind a paywall of politeness.** `learning.try_first`
+exists because a hint before an attempt converts a question into reading comprehension. The
+refusal names the switch that caused it (`learning.try_first`) so the behaviour is a policy the
+learner can change, not a mystery. The GUI returns the same decision as a `409 try_first`
+instead of an alert box, so the page can offer "answer first" instead of a dead end.
+
+**D123. Hints are a ladder, never a peek.** "Show me all hints" is the same as showing the
+answer. Levels are explicit (`--level N`) and reveal the prefix of the ladder, so escalation
+costs a decision each time. The ladder is capped (5) at both `add_item` and `update_item`,
+because a sixth rung is the answer with extra steps.
+
+**D124. A schedule is only honest if it can be printed.** SM-2 is a heuristic, and heuristics
+become magic when hidden. Every answer returns ease, interval, streak, lapses, status, the
+next due date *and* a sentence ("correct 2 in a row, so the interval grows to 3 day(s)"). The
+numbers are stored on the item and the interval is stored on the attempt, so the schedule has
+a history rather than a state.
+
+**D125. A lapse is immediate, mastery is slow.** Wrong answers come back now (interval 0,
+ease −0.2 floored at 1.3) because the forgetting happened now. Mastery requires a streak (4)
+**and** an interval of at least 14 days, so a burst of correct answers in one sitting cannot
+master anything. That asymmetry is the whole value of spaced repetition; making it symmetric
+would make the numbers look nicer and mean less.
+
+**D126. Nothing to study is a result, not an error.** `NothingToStudy` exits 3 and names the
+next due date and the commands that would add work. The alternative - inventing three new
+cards to keep the session going - is how a study app becomes a content treadmill.
+
+**D127. A session is a task, because a sitting is work.** Learning sessions reuse M24's task
+records rather than adding a parallel timer: the sitting shows in the Tasks panel, has a
+status, and carries a summary. Answering with no session open attributes the attempt to a
+practice session for today rather than leaving it orphaned - unattributed work is how
+statistics start lying.
+
+**D128. Completion is the learner's signature.** No combination of streaks, intervals or item
+counts flips a goal to `completed`. `goal complete` records who decided ("your call against
+your criteria"), because "the deck ran out" is not "you learned it". This is the same rule as
+M22's approvals: the app can do the work, but it may not sign for the user.
+
+**D129. A plan without a model must admit it is rules.** The rule planner rewords the
+learner's own objective and criteria into checkpoints ("Can you show this: <criterion>?"),
+creates no answer keys, and the returned record says `planned_by = rules` with a sentence
+telling the learner to edit the deck. A model plan follows the M28 policy: JSON only, every
+field validated, fallback with the failure named. Inventing an answer key from a model is how
+a study tool starts teaching wrong things confidently.
+
 ## Storage and config
 
 **D31. Unknown config keys are errors.**

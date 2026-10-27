@@ -1,4 +1,4 @@
-# The local web GUI (M29)
+# The local web GUI (M29, extended in M30)
 
 ```bash
 archx-agent gui serve                 # http://127.0.0.1:8765/?token=…
@@ -44,6 +44,7 @@ HttpOnly session cookie, and never keeps the token itself.
 | **Access** | pending approvals, approve/deny, active grants, revoke, capability list | `PermissionManager` |
 | **Memory** | add and list memories (with the duplicate check) | `MemoryManager` |
 | **Models** | the catalogue and *why* each model can or cannot run here | `ModelManager` + `runtime_availability` |
+| **Learning** | goals and criteria, add an item, next-up with its `why`, one hint per click (409 before an attempt), answer and see the schedule, sessions, propose items, start a review | `LearningService` - the same path as `learning …` |
 
 There are no placeholder controls. If a panel would need something this build does not have,
 the panel is not drawn: there is no "Settings" tab that pretends, no disabled "Train" button,
@@ -107,11 +108,15 @@ The page uses only these; so can you.
 | GET | `/api/approvals`, POST `/api/approvals/{id}/{approve,deny}` | decisions |
 | GET | `/api/permissions`, POST `/api/permissions/{id}/revoke` | grants and capabilities |
 | GET/POST | `/api/research`, GET `/api/research/{id}`, GET `/api/research/{id}/report` | runs, sources, verification, the report |
+| GET | `/api/learning`, `/api/learning/goals/{id}` | goals with progress, then items, next-up, sessions |
+| POST | `/api/learning/goals`, `/api/learning/goals/{id}/items`, `/api/learning/goals/{id}/{plan,answer,review}`, `/api/learning/items/{id}/hint` | create a goal, add an item, plan, answer, review, reveal one hint |
 
 Success is `{"ok": true, "data": …}`; failure is `{"ok": false, "error": {"code", "message",
 "data"}}` with codes `validation`, `not_found`, `conflict`, `approval_required`,
 `permission_denied`, `unauthorized`, `csrf`, `too_many_attempts`, `no_route`, `no_cors`,
-`too_large`, `bad_json`, `internal`.
+`too_large`, `bad_json`, `internal`, plus the two learning refusals `try_first` (a hint before
+the first attempt, matching the CLI's exit 3) and `nothing_due` (a review with nothing
+scheduled).
 
 ## Configuration
 

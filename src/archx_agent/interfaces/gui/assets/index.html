@@ -17,6 +17,7 @@
     <button class="tab" data-view="status" type="button">Status</button>
     <button class="tab" data-view="chat" type="button">Chat</button>
     <button class="tab" data-view="research" type="button">Research</button>
+    <button class="tab" data-view="learning" type="button">Learning</button>
     <button class="tab" data-view="search" type="button">Search</button>
     <button class="tab" data-view="tasks" type="button">Tasks</button>
     <button class="tab" data-view="jobs" type="button">Jobs</button>
@@ -117,6 +118,33 @@
       </aside>
       <div class="main">
         <div id="research-detail" class="panel"><p class="muted">Pick a run to see its report.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-learning" hidden>
+    <div class="row space">
+      <h2>Learning</h2>
+      <span class="muted small">a goal with criteria, items with a schedule, and grades that say who graded them</span>
+    </div>
+    <div class="split">
+      <aside class="side">
+        <div class="row space">
+          <h3>Goals</h3>
+          <button id="learning-refresh" type="button" class="ghost">…</button>
+        </div>
+        <ul id="learning-goals" class="list"></ul>
+        <form id="learning-goal-form" class="card">
+          <label>new goal <input id="learning-title" required placeholder="Rust ownership"></label>
+          <label>done when (optional) <input id="learning-criteria" placeholder="explain a borrow error"></label>
+          <div class="row">
+            <button type="submit" class="primary">Create goal</button>
+            <span id="learning-goal-status" class="muted small"></span>
+          </div>
+        </form>
+      </aside>
+      <div class="main">
+        <div id="learning-detail" class="panel"><p class="muted">Pick a goal, or create one.</p></div>
       </div>
     </div>
   </section>

@@ -98,6 +98,8 @@ escape, and symlink escape before any IO.
 | 15 | task history: task log, version ordinals, reproduction links |
 | 16 | agent workflows: definitions and ordered step records |
 | 17 | scheduler: job claims, attempts, deadlines, control, cursor, dedupe |
+| 18 | research: runs and sources (plan, `planned_by`, coverage, checksums) |
+| 19 | learning: sessions and attempts, plus the per-item schedule columns (M30) |
 
 Migrations are applied in order with a **pre-migration backup**; a database whose schema
 is newer than the build is refused (downgrade would corrupt data).
@@ -215,6 +217,27 @@ header - so a custom header is something only same-origin code can add.
 `gui serve` flushes its banner (a piped stdout is block-buffered, and a token nobody can see
 is not a token), and a non-loopback bind is refused without `--allow-remote` - the flag is
 the only place where "expose this" is a decision rather than an accident.
+
+## Learning Mode (M30)
+
+```
+learning goal/item/session/attempt  ->  managers/learning.py   (rows, coordinator writes)
+                                    ->  application/learning.py (grade, schedule, hint, plan)
+                                    ->  CLI `learning ...`, GUI `/api/learning*`
+```
+
+* **Schema v19** adds `learning_sessions` and `learning_attempts` and the schedule columns on
+  the v8 `learning_lessons`. One migration, no renumbering.
+* **The manager owns the rows; the service owns the policy.** `schedule()`, `grade_answer()`
+  and `_rule_plan()` are pure functions of the item and the answer, which is why the tests can
+  assert the whole schedule table without a clock.
+* **A session is a task** (`tasks.create("learning", ...)`), so a sitting appears in the task
+  history, has a status, and can be interrupted like any other work.
+* **The GUI is a client** (M29 rule, unchanged): eight routes, all calling the same service,
+  with `409 try_first` / `409 nothing_due` mirroring the CLI's exit 3.
+* **Storage:** every write goes through the coordinator (`learning.*` operations), so an
+  attempt row and the item's new schedule commit together; deleting a goal removes its
+  children in one operation.
 
 ## Researcher Mode (M28)
 

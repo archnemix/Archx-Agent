@@ -21,13 +21,27 @@ This file records what is **not** true yet. If a feature is not listed as verifi
 
 ## Not built yet
 
-Milestones M30-M40 are not implemented: Learning Mode, coding workspace, experimental mode,
-play mode, voice/multimodal, dataset preparation, training, remote compute, Blender/3D,
-automations and release hardening. M17-M29 are implemented and verified (see
-[PROGRESS.md](PROGRESS.md)). The database schema already reserves tables for them
+Milestones M31-M40 are not implemented: coding workspace, experimental mode, play mode,
+voice/multimodal, dataset preparation, training, remote compute, Blender/3D, automations and
+release hardening. M17-M30 are implemented and verified (see [PROGRESS.md](PROGRESS.md)). The database schema already reserves tables for them
 (versions 5-8) so they can be added without renumbering.
 
 ## Known limitations inside implemented features
+* **Learning Mode does not grade prose.** An answer is marked correct only by a normalised
+  comparison against the expected answer the learner wrote, or by the learner's own 1-5
+  rating; both are recorded (`graded_by = exact` / `self`). There is no rubric marking, no
+  partial credit and no model judgement, so "how well did I explain it" is not measured - only
+  "did it match". Media items, generated exercises and multiple choice are not built (M34).
+* **Learning sessions have no clock.** A session records start, end and counts, but no
+  per-item duration, and the day boundary for "today's practice session" is the ISO date
+  string of the stored timestamps, not a local timezone.
+* **The learning schedule is per item and per home.** No cross-goal queue, no per-learner
+  profile, no jitter, no interval fuzz - the SM-2-lite table in `docs/LEARNING.md` is the whole
+  model.
+* **The GUI adds learning items and answers them but cannot delete or reorder.** Deleting a
+  goal (with `--yes`) or an item stays a CLI act; the page deliberately has no destructive
+  control.
+
 
 * **`initialization` layer is empty.** Startup prerequisite checks currently live in
   `application/workspace.py`. The layer must earn its place or be deleted at M40.

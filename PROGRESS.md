@@ -1,6 +1,6 @@
 # Progress
 
-Last updated: M29 complete (GUI core workflows). Next: M30.
+Last updated: M30 complete (Learning Mode). Next: M31.
 
 ## Verified in this session
 
@@ -9,6 +9,7 @@ reproduced in [docs/VERIFICATION.md](docs/VERIFICATION.md).
 
 | Milestone | What was verified | How |
 |-----------|-------------------|-----|
+| M30 | a learning goal carries criteria and is a record; its items carry a question, an optional answer key, an ordered hint ladder and their own SM-2-lite schedule; an answer is graded **exact** (normalised comparison against the expected answer) or **self** (1-5) and the row says which - there is no model grading; `learning.try_first` refuses a hint before the first attempt (CLI exit 3, GUI 409 `try_first`) and the ladder is revealed one level at a time; every answer returns interval, ease, streak, status, due date and the sentence explaining them; `next` says why it chose that item and refuses with exit 3 when nothing is due; a session is a real `learning` task with a summary; a plan without a model declares `planned_by = rules`, uses only the learner's own words and never invents an answer key; completion is explicit (`goal complete`), never inferred from a mastered deck; the GUI adds items, reveals hints and answers through the same service, and both directions are checked | `pytest tests/test_learning_m30.py` (117); `scripts/acceptance_m30.sh` (85 self-checking assertions incl. a refused hint, a lapse, a self-graded item, an item added in the GUI visible to the CLI, and a delete that takes the children) |
 | M29 | a local GUI serves the same app over a socket: every panel (status, chat, research, search, tasks, jobs, approvals/grants, memory, models) calls the real managers, so a chat turn made in the browser is a `chat` task the CLI can show, a memory is a real memory and a research run is a real run with the same `[S<n>]` labels; the page is public but every API call needs the per-process token (header, bearer, query, or an HttpOnly SameSite cookie exchanged at `POST /api/session`); a cookie-authenticated write without `X-Archx-Request: gui` is 403, `OPTIONS` is 405 and no CORS header is ever sent; assets are served by exact name so no path escapes; web research without `net.fetch` is a 403 naming the approval, approving it in the GUI mints exactly that grant, the same request then reads a real page, and revoking removes it; a non-loopback bind without `--allow-remote` exits 2 | `pytest tests/test_gui_m29.py` (81); `scripts/acceptance_m29.sh` (46 self-checking assertions over a real socket, including the approval, a real web-research run, a spent one-shot grant and a queued job run from the page) |
 | M28 | a research run stores a plan that names its author (`model`/`rules`/`user`), reads real local documents and (opt-in) real HTTP pages through the `net.fetch` capability, records every source including the ones that failed, hashes what it read, drops model quotes that are not in the excerpt, demotes uncited model prose instead of presenting it as a finding, computes coverage, writes a report with `[S<n>]` citations, attaches it to a research task as an artifact, and reports "I found no evidence" with exit 3 when there is none; `research verify` re-checks every citation independently | `pytest tests/test_research_m28.py` (97); `scripts/acceptance_m28.sh` (30 self-checking assertions incl. a real local HTTP site, an approval refusal, a spent grant, a 404, a binary page and a queued job) |
 | M27 | unified search finds a query in conversations, memory, tasks, workflows, projects, artifacts, tools and files with one shared scoring rule, per-source caps and honest `degraded`/`skipped` notes; a source that fails degrades the report instead of failing the search; file search stays inside the tool roots, skips binaries/oversize/noise directories and never writes; Simple Mode classifies eight intents and prints the reason it chose one, stores `remember` as a real permanent memory with the duplicate check intact, reads `status` from the live app, and refuses a missing model, a missing grant or a checkpoint by printing the exact next command and exiting 4 without creating a grant | `pytest tests/test_search_m27.py` (42) + `pytest tests/test_simple_m27.py` (67); `scripts/acceptance_m27.sh` (23 self-checking assertions incl. approve-then-run and a spent one-shot grant) |
@@ -98,11 +99,11 @@ about 3.13 and about llama.cpp).
 
 ## Next steps (in order)
 
-1. M30: Learning Mode, on top of the same task, memory and context services - a learning
-   goal is a record, and a session is a task with a plan.
-2. M31 onward per PLAN.md.
+1. M31: Coding workspace - editing, running and testing code under the permission centre,
+   with diffs as artifacts and reproducible tasks.
+2. M32 onward per PLAN.md.
 
 ## Known breakage
 
 None known. `GAPS.md` lists limitations (no reachable model weights, single Python
-version, no GUI yet).
+version, no model grading in Learning Mode by design).

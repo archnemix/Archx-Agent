@@ -53,6 +53,7 @@ from archx_agent.managers.embeddings import EmbeddingManager
 from archx_agent.managers.conversation import ConversationManager
 from archx_agent.managers.extensions import ExtensionManager
 from archx_agent.managers.jobs import JobManager
+from archx_agent.managers.learning import LearningManager
 from archx_agent.managers.mcp import McpManager
 from archx_agent.managers.memory import MemoryManager
 from archx_agent.managers.models import ModelManager, ModelRecord
@@ -95,6 +96,7 @@ class Workspace:
     search: SearchService | None = None
     simple: SimpleMode | None = None
     research: ResearchManager | None = None
+    learning: LearningManager | None = None
     reproduction: ReproductionManager | None = None
     router: Any = None
     context: ContextManager | None = None
@@ -332,6 +334,9 @@ class Workspace:
         ws.research = ResearchManager(
             store, coordinator, events=events, config=config
         )
+        ws.learning = LearningManager(
+            store, coordinator, events=events, config=config
+        )
         ws.search = SearchService(ws)
         ws.simple = SimpleMode(ws)
         ws.router = ModelRouter(
@@ -400,6 +405,13 @@ class Workspace:
         from .researcher import ResearchRunner
 
         return ResearchRunner(self)
+
+    @property
+    def tutor(self):
+        """The learning service (imported lazily so the composition root stays acyclic)."""
+        from .learning import LearningService
+
+        return LearningService(self)
 
     @property
     def chat(self):

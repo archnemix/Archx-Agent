@@ -353,6 +353,14 @@ class McpStdioClient(_JsonRpcBase):
     # -- lifecycle --------------------------------------------------------
     def _exit_message(self) -> str:
         code = self.process.poll()
+        if code is None:
+            # The stdout pipe can reach EOF a moment before the child is reaped, so
+            # poll() still says "running" even though the server just died. Give the
+            # process a short chance to report its real status rather than guessing.
+            try:
+                code = self.process.wait(timeout=1.0)
+            except subprocess.TimeoutExpired:  # pragma: no cover - hung child
+                code = None
         detail = "; ".join(self.stderr_tail(3))
         if code is None:
             return f"{self.name}: the server connection closed unexpectedly"

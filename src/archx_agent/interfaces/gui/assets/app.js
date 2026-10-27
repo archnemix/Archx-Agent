@@ -394,6 +394,219 @@
     }
   });
 
+  // --------------------------------------------------------------- learning
+  state.learningId = null;
+
+  async function loadLearningGoals() {
+    const list = clear(document.getElementById("learning-goals"));
+    const data = await api("GET", "/api/learning?limit=30");
+    if (!data.goals.length) list.append(el("li", { class: "sub", text: "no goals yet" }));
+    for (const goal of data.goals) {
+      list.append(el("li", {
+        class: goal.id === state.learningId ? "active" : "",
+        onclick: () => openLearning(goal.id),
+      }, [
+        el("span", { text: goal.title }),
+        el("span", { class: "sub", text: goal.status + " · " + goal.stats.items + " item(s) · " + goal.stats.due + " due · " + (goal.stats.accuracy === null ? "no attempts" : Math.round(goal.stats.accuracy * 100) + "% correct") }),
+      ]));
+    }
+  }
+
+  function learningAnswerForm(goalId, item, panel) {
+    const answer = el("textarea", { rows: "3", placeholder: "your answer" });
+    const rating = el("select", {}, [
+      el("option", { value: "" }, ["self-rating (needed when there is no expected answer)"]),
+      el("option", { value: "1" }, ["1 – no idea"]),
+      el("option", { value: "2" }, ["2 – shaky"]),
+      el("option", { value: "3" }, ["3 – mostly right"]),
+      el("option", { value: "4" }, ["4 – confident"]),
+      el("option", { value: "5" }, ["5 – could teach it"]),
+    ]);
+    const feedback = el("div", { class: "warnings" });
+    const form = el("form", { class: "card" }, [
+      el("label", {}, ["answer ", answer]),
+      el("label", {}, ["how did it go? ", rating]),
+      el("div", { class: "row" }, [
+        el("button", { class: "primary", type: "submit", text: "Answer" }),
+        el("span", { class: "muted small", text: item.graded_by_hint || "graded against the expected answer, or by your rating" }),
+      ]),
+      feedback,
+    ]);
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      clear(feedback);
+      const button = form.querySelector("button[type=submit]");
+      button.disabled = true;
+      try {
+        const result = await api("POST", "/api/learning/goals/" + encodeURIComponent(goalId) + "/answer", {
+          item_id: item.id,
+          answer: answer.value,
+          self_rating: rating.value || null,
+        });
+        const grade = result.grade;
+        feedback.append(el("div", { text: (grade.correct ? "correct" : "not yet") + " (graded by " + grade.graded_by + ") – " + grade.feedback }));
+        feedback.append(el("div", { text: "next review: " + result.schedule.due_at + " · " + result.schedule.why }));
+        if (result.explanation) feedback.append(el("div", { text: "explanation: " + result.explanation }));
+        await openLearning(goalId);
+        await loadLearningGoals();
+      } catch (error) {
+        feedback.append(el("div", { class: "error", text: error.message }));
+      } finally {
+        button.disabled = false;
+      }
+    });
+    panel.append(form);
+  }
+
+  function learningItemForm(goalId) {
+    const note = el("span", { class: "muted small" });
+    const prompt = el("input", { placeholder: "Which journal mode lets readers keep reading?" });
+    const expected = el("input", { placeholder: "answer Archx can check (leave blank to self-grade)" });
+    const hints = el("textarea", { rows: "3", placeholder: "one hint per line, easiest first" });
+    const form = el("form", { class: "card" }, [
+      el("label", { text: "add an item" }, [prompt]),
+      el("label", { text: "expected answer" }, [expected]),
+      el("label", { text: "hint ladder" }, [hints]),
+      el("div", { class: "row" }, [
+        el("button", { type: "submit", class: "primary", text: "Add item" }),
+        note,
+      ]),
+    ]);
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = form.querySelector("button[type=submit]");
+      button.disabled = true;
+      clear(note);
+      try {
+        const item = await api("POST", "/api/learning/goals/" + encodeURIComponent(goalId) + "/items", {
+          prompt: prompt.value,
+          expected: expected.value,
+          hints: hints.value,
+        });
+        note.append(el("span", { class: "muted small", text: "added " + shortId(item.id) }));
+        await openLearning(goalId);
+      } catch (error) {
+        note.append(el("span", { class: "error", text: error.message }));
+      } finally {
+        button.disabled = false;
+      }
+    });
+    return form;
+  }
+
+  async function openLearning(goalId) {
+    state.learningId = goalId;
+    await loadLearningGoals();
+    const panel = clear(document.getElementById("learning-detail"));
+    const data = await api("GET", "/api/learning/goals/" + encodeURIComponent(goalId));
+    const goal = data.goal;
+    const stats = data.stats;
+    panel.append(el("h3", { text: goal.title }));
+    panel.append(el("div", { class: "row" }, [
+      statusBadge(goal.status),
+      el("span", { class: "muted small", text: "level " + goal.level }),
+      el("span", { class: "muted small", text: stats.items + " item(s)" }),
+      el("span", { class: "muted small", text: stats.due + " due" }),
+      el("span", { class: "muted small", text: stats.attempts + " attempt(s)" }),
+      el("span", { class: "muted small", text: stats.accuracy === null ? "nothing graded yet" : Math.round(stats.accuracy * 100) + "% correct" }),
+    ]));
+    if (goal.objective) panel.append(el("p", { class: "muted", text: goal.objective }));
+    if ((goal.success_criteria || []).length) {
+      panel.append(el("p", { class: "small", text: "done when: " + goal.success_criteria.join("; ") }));
+    }
+
+    const tools = el("div", { class: "row" });
+    tools.append(el("button", {
+      text: "Propose items (no model)", onclick: async () => {
+        try {
+          const result = await api("POST", "/api/learning/goals/" + encodeURIComponent(goalId) + "/plan", { use_model: false });
+          await openLearning(goalId);
+          await loadLearningGoals();
+          const detail = document.getElementById("learning-detail");
+          detail.append(el("p", { class: "muted small", text: "planned " + result.items.length + " by " + result.planned_by + ": " + result.why }));
+        } catch (error) { window.alert(error.message); }
+      },
+    }));
+    tools.append(el("button", {
+      text: "Start a review of what is due", onclick: async () => {
+        try {
+          await api("POST", "/api/learning/goals/" + encodeURIComponent(goalId) + "/review", {});
+          await openLearning(goalId);
+        } catch (error) { window.alert(error.message); }
+      },
+    }));
+    panel.append(tools);
+    panel.append(learningItemForm(goalId));
+
+    panel.append(el("h3", { text: "Next up" }));
+    const next = data.next || {};
+    if (next.nothing_to_study) {
+      panel.append(el("p", { class: "muted", text: next.message || "nothing to study right now" }));
+    } else {
+      const item = next.item;
+      panel.append(el("p", { text: item.prompt }));
+      panel.append(el("p", { class: "muted small", text: next.why + (item.hint_count ? " · " + item.hint_count + " hint(s)" : "") }));
+      const hintBox = el("div", { class: "warnings" });
+      const hintButton = el("button", {
+        text: "Reveal a hint", onclick: async () => {
+          clear(hintBox);
+          try {
+            const result = await api("POST", "/api/learning/items/" + encodeURIComponent(item.id) + "/hint", { level: (item.revealed || 0) + 1 });
+            item.revealed = result.level;
+            hintBox.append(el("div", { text: "hint " + result.level + " of " + result.total + ": " + result.hint }));
+          } catch (error) {
+            hintBox.append(el("div", { class: "error", text: error.message }));
+          }
+        },
+      });
+      if (item.hint_count) panel.append(hintButton);
+      panel.append(hintBox);
+      learningAnswerForm(goalId, item, panel);
+    }
+
+    panel.append(el("h3", { text: "Items and schedule" }));
+    panel.append(table(["item", "status", "due", "streak", "interval", "next review", "prompt"], data.items.map((item) => [
+      shortId(item.id), statusBadge(item.status), item.due ? "yes" : "no", String(item.streak),
+      item.interval_days + "d", item.due_at || "–", item.prompt,
+    ]), "no items yet – propose some, or add them from the CLI"));
+
+    if ((data.sessions || []).length) {
+      panel.append(el("h3", { text: "Sessions" }));
+      panel.append(table(["session", "mode", "status", "answered", "correct", "started"], data.sessions.map((session) => [
+        shortId(session.id), session.mode, statusBadge(session.status), String(session.items_attempted),
+        String(session.items_correct), session.started_at,
+      ])));
+    }
+  }
+
+  loaders.learning = async () => {
+    await loadLearningGoals();
+    if (state.learningId) await openLearning(state.learningId);
+  };
+
+  document.getElementById("learning-refresh").addEventListener("click", () => {
+    loaders.learning().catch((error) => report(document.getElementById("learning-detail"), error));
+  });
+
+  document.getElementById("learning-goal-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const status = document.getElementById("learning-goal-status");
+    status.textContent = "";
+    const criteria = document.getElementById("learning-criteria").value.trim();
+    try {
+      const goal = await api("POST", "/api/learning/goals", {
+        title: document.getElementById("learning-title").value,
+        criteria: criteria ? [criteria] : [],
+      });
+      document.getElementById("learning-title").value = "";
+      document.getElementById("learning-criteria").value = "";
+      await openLearning(goal.id);
+    } catch (error) {
+      status.textContent = "";
+      report(document.getElementById("learning-detail"), error);
+    }
+  });
+
   // ----------------------------------------------------------------- search
   document.getElementById("search-form").addEventListener("submit", async (event) => {
     event.preventDefault();

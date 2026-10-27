@@ -3,6 +3,46 @@
 All notable changes. Format loosely follows Keep a Changelog; versions track the
 milestone block rather than semantic-release cadence, because M01-M20 are one development series.
 
+## [0.30.0] - M30 Learning Mode
+
+### Added
+- `managers/learning.py`: goals, items, sessions and attempts as records over the v8
+  learning tables, with coordinator write handlers, prefix resolution, a due query, stats,
+  keyword search and a cascading delete. An item carries its own schedule: status, ease,
+  interval, streak, lapses, due date and counts.
+- Schema **v19** (`LEARNING_V19`): `learning_sessions` and `learning_attempts`, plus the
+  columns the item schedule needs on the v8 tables. No migration was renumbered.
+- `application/learning.py`: `grade_answer` (exact / self only), the SM-2-lite `schedule`
+  with a returned `why`, `next_item`/`ask`, `hint` with `learning.try_first`,
+  `start_session`/`review`/`end_session`, `plan` (model JSON validated, rules fallback with
+  the reason), and `report`/`write_report`. Refusals: `HintBeforeAttempt`, `NothingToStudy`.
+- CLI: a `learning` group - `goal {create,list,show,edit,complete,delete}`,
+  `item {add,list,edit,delete}`, `plan`, `next`, `ask`, `hint`, `answer`,
+  `session {start,list,end}`, `review`, `stats`, `search`, `report`. A hint before an attempt
+  exits 3; nothing-to-study exits 3.
+- `learning item edit`: `--prompt`, `--expected`, `--hint` (replace), `--add-hint` (append),
+  `--clear-hints`, `--explanation`, `--subtopic`. The ladder cap applies here too.
+- GUI: a **Learning** tab (goals, criteria, next-up with the `why`, add an item, per-click
+  hint rung, answer form, item/schedule table, sessions, propose-items, start-a-review) and
+  eight `/api/learning*` routes, including `POST /api/learning/goals/{id}/items`.
+- Config: `learning.active_goal_limit`, `learning.try_first`, `learning.daily_review_limit`,
+  `learning.max_hints`, `learning.mastery_streak`, `learning.start_ease`, `learning.min_ease`,
+  `learning.max_plan_items`.
+- `docs/LEARNING.md`, `tests/test_learning_m30.py` (117 tests), `scripts/acceptance_m30.sh`
+  (85 checks on a fresh home, half through a real socket).
+
+### Changed
+- The hint refusal no longer points at a command that did not exist.
+- The due query now returns something already seen and due before brand-new material.
+- `McpStdioClient` waits for a child's real exit status before saying the connection closed,
+  so a server that dies during the handshake is reported with its status, not as a mystery.
+
+### Notes
+- There is no model grading, and no path that implies one: an answer is checked against an
+  expected answer or rated by the learner, and the row says which.
+- Completing a goal is an explicit act against the learner's criteria; a mastered deck does
+  not complete anything.
+
 ## [0.29.0] - M29 GUI core workflows
 
 ### Added

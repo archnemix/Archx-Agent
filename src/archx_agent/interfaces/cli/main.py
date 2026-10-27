@@ -772,6 +772,112 @@ def build_parser() -> argparse.ArgumentParser:
     res_del.add_argument("run")
     res_del.add_argument("--yes", action="store_true")
 
+    # -- learning ------------------------------------------------------
+    learn = sub.add_parser("learning", help="Learning Mode: goals, reviewable items, sessions")
+    ln_sub = learn.add_subparsers(dest="learning_command", required=True)
+
+    ln_goal = ln_sub.add_parser("goal", help="the goal: what you are learning and what counts as done")
+    ln_goal_sub = ln_goal.add_subparsers(dest="learning_goal_command", required=True)
+    ln_goal_new = ln_goal_sub.add_parser("create", help="create a goal")
+    ln_goal_new.add_argument("title")
+    ln_goal_new.add_argument("--objective", help="what you want to be able to do (default: the title)")
+    ln_goal_new.add_argument("--topic", help="the subject, used by the planner and search")
+    ln_goal_new.add_argument("--level", choices=["beginner", "intermediate", "advanced"],
+                             default="beginner")
+    ln_goal_new.add_argument("--criteria", action="append", default=[], metavar="TEXT",
+                             help="a success criterion (repeatable). Completion is measured against these")
+    ln_goal_new.add_argument("--priority", type=int, default=5, help="0-9, higher sorts first")
+    ln_goal_new.add_argument("--target-date", help="when you mean to be done (ISO date)")
+    ln_goal_list = ln_goal_sub.add_parser("list", help="goals, active first")
+    ln_goal_list.add_argument("--status", choices=["active", "paused", "completed", "abandoned"])
+    ln_goal_list.add_argument("--limit", type=int, default=20)
+    ln_goal_show = ln_goal_sub.add_parser("show", help="one goal with its items, schedule and stats")
+    ln_goal_show.add_argument("goal")
+    ln_goal_edit = ln_goal_sub.add_parser("edit", help="change a goal")
+    ln_goal_edit.add_argument("goal")
+    ln_goal_edit.add_argument("--title")
+    ln_goal_edit.add_argument("--objective")
+    ln_goal_edit.add_argument("--topic")
+    ln_goal_edit.add_argument("--level", choices=["beginner", "intermediate", "advanced"])
+    ln_goal_edit.add_argument("--priority", type=int)
+    ln_goal_edit.add_argument("--status", choices=["active", "paused", "completed", "abandoned"])
+    ln_goal_edit.add_argument("--criteria", action="append", default=[], metavar="TEXT")
+    ln_goal_done = ln_goal_sub.add_parser("complete", help="close a goal against your criteria")
+    ln_goal_done.add_argument("goal")
+    ln_goal_done.add_argument("--note", help="what convinced you it is done")
+    ln_goal_del = ln_goal_sub.add_parser("delete", help="delete a goal and everything under it")
+    ln_goal_del.add_argument("goal")
+    ln_goal_del.add_argument("--yes", action="store_true")
+
+    ln_item = ln_sub.add_parser("item", help="what is studied: a question with an answer, hints and a schedule")
+    ln_item_sub = ln_item.add_subparsers(dest="learning_item_command", required=True)
+    ln_item_add = ln_item_sub.add_parser("add", help="add one item to a goal")
+    ln_item_add.add_argument("goal")
+    ln_item_add.add_argument("prompt")
+    ln_item_add.add_argument("--expected", help="the answer Archx can check exactly (omit to self-grade)")
+    ln_item_add.add_argument("--hint", action="append", default=[], metavar="TEXT",
+                             help="a hint, ordered; repeat for the ladder")
+    ln_item_add.add_argument("--explanation", help="shown after the attempt, right or wrong")
+    ln_item_add.add_argument("--subtopic")
+    ln_item_list = ln_item_sub.add_parser("list", help="items of a goal, with their schedule")
+    ln_item_list.add_argument("goal")
+    ln_item_list.add_argument("--due", action="store_true", help="only what is due now")
+    ln_item_list.add_argument("--status", choices=["new", "learning", "review", "mastered"])
+    ln_item_edit = ln_item_sub.add_parser("edit", help="change an item's question, answer key or hints")
+    ln_item_edit.add_argument("item")
+    ln_item_edit.add_argument("--prompt", help="reword the question")
+    ln_item_edit.add_argument("--expected", help="the answer Archx can check exactly")
+    ln_item_edit.add_argument("--hint", action="append", default=None, metavar="TEXT",
+                              help="replace the whole ladder; repeat for each rung, in order")
+    ln_item_edit.add_argument("--add-hint", action="append", default=[], metavar="TEXT",
+                              help="append one rung to the end of the ladder")
+    ln_item_edit.add_argument("--clear-hints", action="store_true", help="remove every hint")
+    ln_item_edit.add_argument("--explanation", help="shown after the attempt, right or wrong")
+    ln_item_edit.add_argument("--subtopic")
+    ln_item_del = ln_item_sub.add_parser("delete", help="delete one item")
+    ln_item_del.add_argument("item")
+    ln_item_del.add_argument("--yes", action="store_true")
+
+    ln_plan = ln_sub.add_parser("plan", help="propose items for a goal (checkpoints without a model)")
+    ln_plan.add_argument("goal")
+    ln_plan.add_argument("--no-model", action="store_true", help="use rule checkpoints only")
+    ln_plan.add_argument("--max", type=int, dest="max_items")
+    ln_plan.add_argument("--model")
+    ln_next = ln_sub.add_parser("next", help="what to study now, and why")
+    ln_next.add_argument("goal")
+    ln_hint = ln_sub.add_parser("hint", help="reveal one hint (refused until you have tried)")
+    ln_hint.add_argument("item")
+    ln_hint.add_argument("--level", type=int, default=1)
+    ln_answer = ln_sub.add_parser("answer", help="answer an item and see the grade and the new schedule")
+    ln_answer.add_argument("item")
+    ln_answer.add_argument("answer")
+    ln_answer.add_argument("--self-rate", type=int, help="1-5, needed when the item has no expected answer")
+    ln_answer.add_argument("--session", help="attach to a session (default: the open one, or a new one)")
+    ln_answer.add_argument("--hints", type=int, default=0, help="how many hints you used")
+
+    ln_session = ln_sub.add_parser("session", help="a sitting of practice, review or explanation")
+    ln_session_sub = ln_session.add_subparsers(dest="learning_session_command", required=True)
+    ln_session_start = ln_session_sub.add_parser("start", help="start a session on a goal")
+    ln_session_start.add_argument("goal")
+    ln_session_start.add_argument("--mode", choices=["practice", "review", "explain"], default="practice")
+    ln_session_list = ln_session_sub.add_parser("list", help="recent sessions")
+    ln_session_list.add_argument("--goal")
+    ln_session_list.add_argument("--limit", type=int, default=10)
+    ln_session_end = ln_session_sub.add_parser("end", help="close a session and summarise it")
+    ln_session_end.add_argument("session")
+
+    ln_review = ln_sub.add_parser("review", help="start a review session of everything due")
+    ln_review.add_argument("goal")
+    ln_review.add_argument("--limit", type=int)
+    ln_stats = ln_sub.add_parser("stats", help="progress counts")
+    ln_stats.add_argument("goal", nargs="?")
+    ln_search = ln_sub.add_parser("search", help="search goals and items")
+    ln_search.add_argument("query")
+    ln_search.add_argument("--limit", type=int, default=10)
+    ln_report = ln_sub.add_parser("report", help="print a progress report (and optionally write it)")
+    ln_report.add_argument("goal")
+    ln_report.add_argument("--write", help="write the report here")
+
     # -- simple mode -----------------------------------------------------
     simple = sub.add_parser("simple", help="Simple Mode: ask in plain language (no subcommand = chat loop)")
     sm_sub = simple.add_subparsers(dest="simple_command")
@@ -2858,6 +2964,397 @@ def cmd_search(args: argparse.Namespace) -> int:
         return EXIT_OK
 
 
+def cmd_learning(args: argparse.Namespace) -> int:
+    """`learning ...` - goals, items, sessions, hints, answers and schedules."""
+    from archx_agent.application.learning import HintBeforeAttempt, NothingToStudy
+
+    with _workspace(args) as ws:
+        if ws.learning is None:
+            return fail("Learning Mode is not available in this workspace", EXIT_UNAVAILABLE)
+        manager, tutor = ws.learning, ws.tutor
+        command = args.learning_command
+
+        if command == "goal":
+            sub = args.learning_goal_command
+            if sub == "create":
+                goal = manager.create_goal(
+                    args.title,
+                    objective=args.objective,
+                    topic=args.topic,
+                    level=args.level,
+                    success_criteria=args.criteria,
+                    priority=args.priority,
+                    target_date=args.target_date,
+                )
+                if args.json:
+                    emit_json(goal.to_dict())
+                    return EXIT_OK
+                emit(f"created goal {goal.id}  {goal.title}")
+                emit(f"  level     {goal.level}")
+                emit(f"  objective {goal.objective}")
+                if goal.success_criteria:
+                    emit("  done when " + "; ".join(goal.success_criteria))
+                emit("")
+                emit(f"next: archx-agent learning plan {goal.id}   (propose items for this goal)")
+                return EXIT_OK
+            if sub == "list":
+                goals = manager.list_goals(status=args.status, limit=args.limit)
+                if args.json:
+                    emit_json([goal.to_dict() for goal in goals])
+                    return EXIT_OK
+                if not goals:
+                    emit("no goals yet - start with: archx-agent learning goal create \"Rust ownership\"")
+                    return EXIT_OK
+                emit(table(
+                    [[goal.id, goal.status, goal.level, goal.title[:44],
+                      manager.stats(goal.id)["items"], manager.stats(goal.id)["due"], goal.updated_at]
+                     for goal in goals],
+                    ["id", "status", "level", "title", "items", "due", "updated"],
+                ))
+                return EXIT_OK
+            if sub == "show":
+                goal = manager.require_goal(args.goal)
+                items = manager.items(goal.id)
+                stats = manager.stats(goal.id)
+                sessions = manager.sessions(goal.id, limit=5)
+                if args.json:
+                    emit_json({
+                        "goal": goal.to_dict(),
+                        "items": [item.to_dict() for item in items],
+                        "stats": stats,
+                        "sessions": [session.to_dict() for session in sessions],
+                    })
+                    return EXIT_OK
+                emit(f"{goal.id}  {goal.title}")
+                emit(f"  status    {goal.status}   level {goal.level}   priority {goal.priority}")
+                emit(f"  objective {goal.objective}")
+                if goal.topic:
+                    emit(f"  topic     {goal.topic}")
+                if goal.success_criteria:
+                    for criterion in goal.success_criteria:
+                        emit(f"  done when {criterion}")
+                emit(f"  items     {stats['items']} ({', '.join(f'{k} {v}' for k, v in stats['by_status'].items()) or 'none'})   due {stats['due']}")
+                emit(f"  attempts  {stats['attempts']}   correct {stats['correct']}"
+                     + (f" ({stats['accuracy']:.0%})" if stats["accuracy"] is not None else ""))
+                if items:
+                    emit("")
+                    emit(table(
+                        [[item.id, item.status, "yes" if item.due else "no", item.streak,
+                          f"{item.interval_days:g}d", item.prompt[:60]]
+                         for item in items],
+                        ["item", "status", "due", "streak", "interval", "prompt"],
+                    ))
+                else:
+                    emit("")
+                    emit(f"next: archx-agent learning plan {goal.id}   (or add one with item add)")
+                if sessions:
+                    emit("")
+                    emit(table(
+                        [[session.id, session.mode, session.status, session.items_attempted,
+                          session.items_correct, session.started_at] for session in sessions],
+                        ["session", "mode", "status", "answered", "correct", "started"],
+                    ))
+                return EXIT_OK
+            if sub == "edit":
+                fields = {}
+                for name in ("title", "objective", "topic", "level", "priority", "status"):
+                    value = getattr(args, name)
+                    if value is not None:
+                        fields[name] = value
+                if args.criteria:
+                    fields["success_criteria"] = args.criteria
+                if not fields:
+                    return fail("nothing to change: pass at least one option", EXIT_USAGE)
+                goal = manager.update_goal(args.goal, **fields)
+                if args.json:
+                    emit_json(goal.to_dict())
+                    return EXIT_OK
+                emit(f"updated {goal.id}: " + ", ".join(sorted(fields)))
+                return EXIT_OK
+            if sub == "complete":
+                goal = manager.complete_goal(args.goal, note=args.note or "")
+                if args.json:
+                    emit_json(goal.to_dict())
+                    return EXIT_OK
+                emit(f"completed {goal.id}  {goal.title}")
+                emit("  this is your call against your criteria - Archx did not decide it for you")
+                return EXIT_OK
+            if sub == "delete":
+                goal = manager.require_goal(args.goal)
+                if not args.yes:
+                    return fail(
+                        f"deleting {goal.id} removes its items, sessions and attempts; "
+                        "re-run with --yes",
+                        EXIT_USAGE,
+                    )
+                result = manager.delete_goal(goal.id)
+                emit(f"deleted {goal.id}" + ("" if args.json else " (with its items and attempts)"))
+                if args.json:
+                    emit_json(result)
+                return EXIT_OK
+
+        if command == "item":
+            sub = args.learning_item_command
+            if sub == "add":
+                item = manager.add_item(
+                    args.goal, args.prompt, expected=args.expected, hints=args.hint,
+                    explanation=args.explanation, subtopic=args.subtopic,
+                )
+                if args.json:
+                    emit_json(item.to_dict())
+                    return EXIT_OK
+                emit(f"added item {item.id} to {item.goal_id}")
+                emit(f"  prompt {item.prompt}")
+                if item.expected:
+                    emit(f"  graded against: {item.expected}")
+                else:
+                    emit("  no expected answer: this item is self-graded (--self-rate)")
+                if item.hints:
+                    emit(f"  hints  {len(item.hints)}")
+                return EXIT_OK
+            if sub == "edit":
+                item = manager.require_item(args.item)
+                changes: dict[str, object] = {}
+                if args.prompt:
+                    changes["topic"] = args.prompt
+                if args.expected is not None:
+                    changes["expected"] = args.expected
+                if args.explanation is not None:
+                    changes["explanation"] = args.explanation
+                if args.subtopic is not None:
+                    changes["subtopic"] = args.subtopic
+                if args.clear_hints and args.add_hint:
+                    changes["hints"] = list(args.add_hint)
+                elif args.clear_hints:
+                    changes["hints"] = []
+                elif args.hint is not None:
+                    changes["hints"] = args.hint
+                elif args.add_hint:
+                    changes["hints"] = [*item.hints, *args.add_hint]
+                if not changes:
+                    return fail(
+                        "nothing to change: pass --prompt, --expected, --hint, --add-hint,"
+                        " --clear-hints, --explanation or --subtopic",
+                        EXIT_USAGE,
+                    )
+                updated = manager.update_item(item.id, **changes)
+                if args.json:
+                    emit_json(updated.to_dict())
+                    return EXIT_OK
+                emit(f"updated item {updated.id}")
+                emit(f"  prompt {updated.prompt}")
+                emit(f"  ladder {len(updated.hints)} hint(s)")
+                emit("  graded against: " + (updated.expected or "your own rating (self)"))
+                return EXIT_OK
+            if sub == "list":
+                items = manager.due_items(args.goal) if args.due else manager.items(
+                    args.goal, status=args.status
+                )
+                if args.json:
+                    emit_json([item.to_dict() for item in items])
+                    return EXIT_OK
+                if not items:
+                    emit("nothing due" if args.due else "no items yet")
+                    return EXIT_OK
+                emit(table(
+                    [[item.id, item.status, "yes" if item.due else "no", item.streak,
+                      f"{item.interval_days:g}d", item.due_at or "-", item.prompt[:56]]
+                     for item in items],
+                    ["item", "status", "due", "streak", "interval", "next review", "prompt"],
+                ))
+                return EXIT_OK
+            if sub == "delete":
+                item = manager.require_item(args.item)
+                if not args.yes:
+                    return fail(f"deleting {item.id} removes its attempts; re-run with --yes", EXIT_USAGE)
+                result = manager.delete_item(item.id)
+                if args.json:
+                    emit_json(result)
+                else:
+                    emit(f"deleted {item.id}")
+                return EXIT_OK
+
+        if command == "plan":
+            outcome = tutor.plan(
+                args.goal, use_model=not bool(args.no_model), max_items=args.max_items,
+                model_id=args.model,
+            )
+            if args.json:
+                emit_json(outcome)
+                return EXIT_OK
+            emit(f"planned {len(outcome['items'])} item(s) by {outcome['planned_by']}")
+            emit(f"  why: {outcome['why']}")
+            for item in outcome["items"]:
+                emit(f"  - {item['id']}  {item['prompt'][:70]}")
+            if outcome["planned_by"] == "rules":
+                emit("")
+                emit("these are checkpoints of your own goal, not a curriculum: edit or delete them")
+            return EXIT_OK
+
+        if command == "next":
+            try:
+                payload = tutor.next_item(args.goal)
+            except NothingToStudy as exc:
+                if args.json:
+                    emit_json({"nothing_to_study": True, "message": exc.message})
+                else:
+                    emit(exc.message)
+                return EXIT_DEGRADED
+            if args.json:
+                emit_json(payload)
+                return EXIT_OK
+            item = payload["item"]
+            emit(f"{item['id']}  {item['prompt']}")
+            emit(f"  why        {payload['why']}")
+            emit(f"  status     {item['status']}   due now {payload['due_count']}"
+                 + (f"   hints {item['hint_count']}" if item["hint_count"] else ""))
+            emit("")
+            emit(f"next: archx-agent learning answer {item['id']} \"...\""
+                 + ("   (or --self-rate 1-5)" if not item["expected"] else ""))
+            return EXIT_OK
+
+        if command == "hint":
+            try:
+                payload = tutor.hint(args.item, level=args.level)
+            except HintBeforeAttempt as exc:
+                if args.json:
+                    emit_json({"refused": True, "message": exc.message})
+                else:
+                    emit(exc.message)
+                return EXIT_DEGRADED
+            if args.json:
+                emit_json(payload)
+                return EXIT_OK
+            emit(f"hint {payload['level']} of {payload['total']}: {payload['hint']}")
+            if payload["more"]:
+                emit(f"  {payload['more']} more available with --level {payload['level'] + 1}")
+            return EXIT_OK
+
+        if command == "answer":
+            outcome = tutor.answer(
+                args.item, args.answer, self_rating=args.self_rate,
+                session_id=args.session, hints_used=args.hints,
+            )
+            if args.json:
+                emit_json(outcome)
+                return EXIT_OK
+            grade = outcome["grade"]
+            emit(("correct" if grade["correct"] else "not yet") + f"  (graded by {grade['graded_by']})")
+            emit(f"  {grade['feedback']}")
+            schedule = outcome["schedule"]
+            emit(f"  schedule   {schedule['why']}")
+            emit(f"  next due   {schedule['due_at']}   status {schedule['status']}"
+                 f"   ease {schedule['ease']:g}   streak {schedule['streak']}")
+            if outcome.get("explanation"):
+                emit(f"  explanation {outcome['explanation']}")
+            if outcome["session"]:
+                session = outcome["session"]
+                emit(f"  session    {session['id']} ({session['items_attempted']} answered,"
+                     f" {session['items_correct']} correct)")
+            return EXIT_OK
+
+        if command == "session":
+            sub = args.learning_session_command
+            if sub == "start":
+                outcome = tutor.start_session(args.goal, mode=args.mode)
+                if args.json:
+                    emit_json(outcome)
+                    return EXIT_OK
+                session = outcome["session"]
+                emit(f"started {session['mode']} session {session['id']} on {session['goal_id']}")
+                if outcome.get("task_id"):
+                    emit(f"  task {outcome['task_id']} (this sitting is in the task history)")
+                emit(f"  queue {len(outcome['queue'])} item(s)")
+                for item in outcome["queue"][:10]:
+                    emit(f"    - {item['id']}  {item['prompt'][:60]}")
+                return EXIT_OK
+            if sub == "list":
+                sessions = manager.sessions(args.goal, limit=args.limit)
+                if args.json:
+                    emit_json([session.to_dict() for session in sessions])
+                    return EXIT_OK
+                if not sessions:
+                    emit("no sessions yet")
+                    return EXIT_OK
+                emit(table(
+                    [[session.id, session.goal_id, session.mode, session.status,
+                      session.items_attempted, session.items_correct, session.graded_by or "-",
+                      session.started_at] for session in sessions],
+                    ["session", "goal", "mode", "status", "answered", "correct", "graded by", "started"],
+                ))
+                return EXIT_OK
+            if sub == "end":
+                outcome = tutor.end_session(args.session)
+                if args.json:
+                    emit_json(outcome)
+                    return EXIT_OK
+                emit(f"closed {outcome['session']['id']}")
+                emit(f"  {outcome['summary']}")
+                return EXIT_OK
+
+        if command == "review":
+            try:
+                outcome = tutor.review(args.goal, limit=args.limit)
+            except NothingToStudy as exc:
+                if args.json:
+                    emit_json({"nothing_due": True, "message": exc.message})
+                else:
+                    emit(exc.message)
+                return EXIT_DEGRADED
+            if args.json:
+                emit_json(outcome)
+                return EXIT_OK
+            emit(f"review session {outcome['session']['id']} with {len(outcome['items'])} due item(s)")
+            for item in outcome["items"]:
+                emit(f"  - {item['id']}  {item['prompt'][:64]}")
+            return EXIT_OK
+
+        if command == "stats":
+            stats = manager.stats(args.goal)
+            if args.json:
+                emit_json(stats)
+                return EXIT_OK
+            if args.goal:
+                emit(f"{stats['title']}  ({stats['status']})")
+                emit(f"  items     {stats['items']}   mastered {stats['mastered']}   due {stats['due']}")
+                emit(f"  attempts  {stats['attempts']}   correct {stats['correct']}"
+                     + (f" ({stats['accuracy']:.0%})" if stats["accuracy"] is not None else ""))
+                emit(f"  sessions  {stats['sessions']}")
+            else:
+                emit(f"goals     {stats['goals']}")
+                emit(f"items     {stats['items']}   mastered {stats['mastered']}   due {stats['due']}")
+                emit(f"attempts  {stats['attempts']}   correct {stats['correct']}"
+                     + (f" ({stats['accuracy']:.0%})" if stats["accuracy"] is not None else ""))
+                emit(f"sessions  {stats['sessions']}")
+            return EXIT_OK
+
+        if command == "search":
+            hits = manager.search(args.query, limit=args.limit)
+            if args.json:
+                emit_json(hits)
+                return EXIT_OK
+            if not hits:
+                emit("no learning matches")
+                return EXIT_OK
+            emit(table([[hit["kind"], hit["id"], hit["status"], f"{hit['score']:.2f}", hit["title"][:60]]
+                        for hit in hits], ["kind", "id", "status", "score", "title"]))
+            return EXIT_OK
+
+        if command == "report":
+            if args.write:
+                path = tutor.write_report(args.goal, args.write)
+                emit(f"wrote {path}")
+                return EXIT_OK
+            text = tutor.report(args.goal)
+            if args.json:
+                emit_json({"report": text})
+            else:
+                emit(text.rstrip())
+            return EXIT_OK
+
+    return fail(f"unknown learning command {command!r}", EXIT_USAGE)
+
+
 def cmd_gui(args: argparse.Namespace) -> int:
     """`gui serve` / `gui routes`."""
     from archx_agent.interfaces.gui.server import GuiApi, GuiServer
@@ -3938,6 +4435,7 @@ HANDLERS = {
     "search": cmd_search,
     "simple": cmd_simple,
     "research": cmd_research,
+    "learning": cmd_learning,
     "gui": cmd_gui,
     "tasks": cmd_tasks,
     "versions": cmd_versions,
