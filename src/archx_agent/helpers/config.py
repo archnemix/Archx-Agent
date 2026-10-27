@@ -181,6 +181,14 @@ SPEC: dict[str, tuple[type, Any, Validator, str]] = {
     "mcp.server_enabled": (bool, False, _bool, "Expose the optional MCP server (off by default)."),
     "mcp.server_host": (str, "127.0.0.1", _str, "Bind address for the MCP server."),
     "mcp.server_port": (int, 8848, _range(1, 65535, integer=True), "Port for the MCP server."),
+    # ---- task history / versions / reproduction
+    "tasks.enabled": (bool, True, _bool, "Record durable task history for chat turns and tool work."),
+    "tasks.auto_record_chat": (bool, True, _bool,
+        "Record one task per chat turn (disable to keep the history for explicit work only)."),
+    "tasks.interrupt_stale_on_open": (bool, True, _bool,
+        "On startup, mark tasks a previous process left running as interrupted."),
+    "tasks.max_version_bytes": (int, 1048576, _range(1024, 100000000, integer=True),
+        "Largest content a version record stores (larger content records only its checksum)."),
     # ---- scheduler
     "scheduler.max_concurrent_jobs": (int, 2, _range(1, 256, integer=True), "Maximum concurrent jobs."),
     "scheduler.cpu_limit_percent": (int, 80, _range(1, 100, integer=True), "CPU utilization ceiling."),

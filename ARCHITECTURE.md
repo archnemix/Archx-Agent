@@ -163,6 +163,27 @@ before the request (`QuotaExhaustedError`); cost is only reported when the user 
 prices, and is labelled an estimate. Usage events are append-only per request, so a
 provider that starts failing shows up in the same table as the successful calls.
 
+## Task history, versions and reproduction (M24)
+
+```
+chat turn / tool run / agent step
+        |  TaskManager.create(kind, title)            managers/tasks.py
+        +-> tasks row + task_log rows (seq)          (owner: workspace instance + pid)
+        +-> link(conversation, model, tool)          -> tool_runs.task_id, events.task_id
+        +-> attach_artifact(path) -> checksum -> VersionManager.record  managers/versions.py
+        |                                        -> version_records (ordinal, append-only)
+        +-> complete / fail / (interrupt on next open if the owner died)
+
+tasks reproduce <id> -> ReproductionManager.assess     managers/reproduction.py
+        reads: tasks, models, tools (+grants), mcp, extensions, config, conversations
+        emits: fidelity (exact|partial|impossible), issues, environment, replay commands
+```
+
+The task is the join key: tool runs, trace events and artifacts already carry `task_id`, so
+there is one history rather than four. A version belongs to a subject (file path, prompt,
+memory) and is append-only; reproduction reads the *live* registry and model table rather
+than a stored copy, which is the only way `verify` can tell that something disappeared.
+
 ## MCP and extensions (M23)
 
 ```

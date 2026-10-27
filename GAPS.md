@@ -91,6 +91,14 @@ Blender, automations, hardening. The database schema already reserves tables for
   ordinary process. Manifest hashes are recorded; they do not prove authorship.
 * **No OAuth for MCP HTTP servers**, no sampling/elicitation/prompts, and binary MCP
   content is JSON-serialised rather than stored as an attachment.
+* **`tasks reproduce` does not re-run the task.** It assesses and prints commands; actually
+  replaying work belongs to M25/M26. A record could therefore be right about the plan and
+  still be stale about the world by the time someone follows it.
+* **No retention for task/version history.** It is append-only by design; pruning arrives
+  with M40.
+* **Version content is stored twice** (the row and the replayable write journal); a 1 MiB
+  version costs about 2 MiB.
+* **A task's `tools` list is what it used, not a plan.** Declared plans arrive with M25.
 * **No GUI yet**, so "primary workflow usable with no placeholder controls" (M29) is
   not demonstrated.
 * **Windows and macOS are untested.** Path containment tests cover symlinks and

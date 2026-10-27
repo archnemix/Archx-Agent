@@ -3,6 +3,39 @@
 All notable changes. Format loosely follows Keep a Changelog; versions track the
 milestone block rather than semantic-release cadence, because M01-M20 are one development series.
 
+## [0.24.0] - M24 task history, content versions and reproduction
+
+### Added
+- `TaskManager` (`managers/tasks.py`): durable tasks with sequence-ordered timelines
+  (`task_log`), parent/child trees, final terminal states, open questions, filters and
+  statistics; artifacts as references with checksum, size, MIME and a content version.
+- `VersionManager` (`managers/versions.py`): append-only content history per subject with
+  deduplication, explicit labels, unified diffs and restore-as-new-version; binary and
+  oversized content recorded as checksum-only (`content_stored=false`).
+- `ReproductionManager` (`managers/reproduction.py`): environment capture, fidelity
+  (`exact`/`partial`/`impossible`) derived from evidence, replay commands built from the
+  real tool arguments, `--record` and `--verify`.
+- Every chat turn is a task (created before the model call); a tool run inside a task is
+  linked to it and logged on its timeline, denials included. `ChatService.send(task_id=...)`
+  attaches a turn to an existing task.
+- Interruption: on open, tasks whose owning process is gone are marked `interrupted`
+  (manual tasks and tasks owned by another live process are left alone and reported).
+- CLI: `tasks list|show|start|queue|complete|fail|cancel|log|question|resolve|artifacts|
+  attach|reproduce|stats`; `versions list|record|show|diff|restore|subjects`.
+- Schema v15: `task_log`; `version_records.ordinal/size/restored_from/content_stored`;
+  `reproduction_records.app_version/recorded_by`; indexes (51 tables).
+- Settings: `tasks.enabled`, `tasks.auto_record_chat`, `tasks.interrupt_stale_on_open`,
+  `tasks.max_version_bytes`.
+- `docs/TASKS.md` and an acceptance script that includes a real SIGKILL.
+
+### Changed
+- The package version is now reported as `0.24.0` (pyproject and `__version__` had drifted
+  behind the changelog at `0.17.0`).
+
+### Fixed
+- `tasks show` crashed on the human-readable path (it read a `timeline` attribute that lives
+  on the task's data, not the task object).
+
 ## [0.23.0] - M23 MCP client/server and extensions
 
 ### Added

@@ -24,8 +24,8 @@ not fully demonstrated · **not started**
 | **M21** | **Capability-safe model router + model management** | **done** | `tests/test_router_m21.py` (33), `docs/ROUTING.md`, `scripts/acceptance_m21.sh` |
 | **M22** | **Tool registry + Permission & Approval Center** | **done** | `tests/test_tools_m22.py` (78) + 13 CLI tests, `docs/TOOLS.md`, `scripts/acceptance_m22.sh` |
 | **M23** | **MCP client/server + extension foundation** | **done** | `tests/test_mcp_m23.py` (43) + `tests/test_extensions_m23.py` (35) + 9 CLI tests, `docs/MCP.md`, `scripts/acceptance_m23.sh` |
-| M24 | Task history + version links | next | - |
-| M25 | Agent workflow execution | not started | - |
+| **M24** | **Task history, content versions, reproduction records** | **done** | `tests/test_tasks_m24.py` (75), `docs/TASKS.md`, `scripts/acceptance_m24.sh` incl. a real SIGKILL |
+| M25 | Agent workflow execution | next | - |
 | M26 | Resource and job scheduler | not started | - |
 | M27 | Simple Mode and search | not started | - |
 | M28 | Researcher Mode | not started | - |

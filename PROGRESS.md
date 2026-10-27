@@ -1,6 +1,6 @@
 # Progress
 
-Last updated: M23 complete (MCP client/server + extensions). Next: M24.
+Last updated: M24 complete (task history, content versions, reproduction). Next: M25.
 
 ## Verified in this session
 
@@ -9,6 +9,7 @@ reproduced in [docs/VERIFICATION.md](docs/VERIFICATION.md).
 
 | Milestone | What was verified | How |
 |-----------|-------------------|-----|
+| M24 | every chat turn and tool task is a durable record with a sequence-ordered timeline; terminal states are final; a task whose owner process died is marked `interrupted` on the next open (manual tasks and tasks owned by other live processes are left alone); artifacts are references with checksums; content versions are append-only with deduplication, diffs and restore-as-new-version; reproduction derives `exact`/`partial`/`impossible` from the live environment, prints the commands that would replay the task, and `--verify` detects a removed model (exit 3) or changed settings | `pytest tests/test_tasks_m24.py` (75); `scripts/acceptance_m24.sh` (real SIGKILL, re-runs a printed command) |
 | M01-M09 | package installs, `archx-agent --version`, helper invariants (paths, Result, errors, tokens, redaction, config) | `pytest tests/test_foundation.py tests/test_config.py`, CLI smoke |
 | M10 | conversation create/append ordering by sequence, context clear preserves history, restart-safe reading | `pytest tests/test_memory_m17.py::TestConversationBasics` |
 | M11 | committed-only success, exactly-once by op id, durable two-phase + replay, backpressure=PENDING, graceful drain, multi-thread safety, **SIGKILL mid-write recovery**, multi-process writes | `pytest tests/test_storage.py` |
@@ -25,7 +26,7 @@ reproduced in [docs/VERIFICATION.md](docs/VERIFICATION.md).
 | M22 | tools declare capability/risk/dry-run; ungranted operations are refused with an approval id; approval mints exactly the requested grant; scoped grants (once/task/conversation/project/persistent) are checked, single-use grants consumed before the work; sandbox refuses traversal, absolute escapes and symlink escapes; argv-only processes with a denylist, minimal env and timeouts; every attempt (including denials) has a `tool_runs` row and trace events | `pytest tests/test_tools_m22.py` (78) + `tests/test_cli.py::TestCliTools` (13); `scripts/acceptance_m22.sh` (real files and processes) |
 | M21 | capability states with evidence (verified/inferred/unverified/unsupported/unavailable); eligibility before score; a model whose runtime is missing is refused; probes record measurements; `require_verified` policy; remote never auto-chosen; fallback is traceable and never silent | `pytest tests/test_router_m21.py` (33); `scripts/acceptance_m21.sh` |
 
-**Test suite: 468 tests, 0 failures, 0 skipped** on Python 3.11.2 (see note in GAPS
+**Test suite: 543 tests, 0 failures, 0 skipped** on Python 3.11.2 (see note in GAPS
 about 3.13 and about llama.cpp).
 
 ## Acceptance evidence
@@ -37,6 +38,11 @@ about 3.13 and about llama.cpp).
   hybrid 0.850, on a 20-item corpus with 12 graded queries.
 * M19: `docs/VERIFICATION.md#m19-acceptance` - manifests for all five strategies,
   including omitted reasons and proof that stored history is unchanged.
+* M24: `docs/VERIFICATION.md#m24-acceptance` - a chat turn and a tool task become records;
+  an artifact goes through v1 -> v2 -> restore-as-v3 with a real diff; a deterministic task
+  reproduces `exact`; a simulated model is `partial`; removing the model makes `--verify`
+  report `impossible` (exit 3); a **real SIGKILL** of a process that started a task leaves
+  it `interrupted` on the next command.
 * M23: `docs/VERIFICATION.md#m23-acceptance` - a real MCP server process is discovered,
   trusted, enabled, then refused until `mcp.call` is granted; a real extension program runs
   only after install+trust+enable+grant; and our own MCP server (in a separate process) is
@@ -57,8 +63,9 @@ about 3.13 and about llama.cpp).
 
 ## Next steps (in order)
 
-1. M24: unified task history + version links + reproduction records.
-2. M25 onward per PLAN.md.
+1. M25: agent workflow execution (user-directed and AI-directed with subagents), built on
+   the task records from M24.
+2. M26 onward per PLAN.md.
 
 ## Known breakage
 

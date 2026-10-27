@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping
 
+from archx_agent import __version__
 from archx_agent.adapters.embedding_runtime import (
     EmbeddingProvider,
     HashEmbeddingProvider,
@@ -57,7 +58,10 @@ from archx_agent.managers.models import ModelManager, ModelRecord
 from archx_agent.managers.permissions import PermissionManager
 from archx_agent.managers.projects import ProjectManager
 from archx_agent.managers.providers import ProviderManager, is_loopback_url
+from archx_agent.managers.reproduction import ReproductionManager
+from archx_agent.managers.tasks import TaskManager
 from archx_agent.managers.tools import ToolManager
+from archx_agent.managers.versions import VersionManager
 from archx_agent.application.router import ModelRouter
 from archx_agent.managers.schema import MIGRATIONS, SCHEMA_VERSION
 
@@ -77,6 +81,9 @@ class Workspace:
     tools: ToolManager | None = None
     mcp: McpManager | None = None
     extensions: ExtensionManager | None = None
+    versions: VersionManager | None = None
+    tasks: TaskManager | None = None
+    reproduction: ReproductionManager | None = None
     router: Any = None
     context: ContextManager | None = None
     embeddings: EmbeddingManager | None = None
@@ -220,6 +227,51 @@ class Workspace:
                 timeout_seconds=int(config.get("tools.timeout_seconds")),
             ),
         )
+        ws.versions = VersionManager(
+            store,
+            coordinator,
+            events=events,
+            max_bytes=int(config.get("tasks.max_version_bytes")),
+        )
+        ws.tasks = TaskManager(
+            store,
+            coordinator,
+            events=events,
+            versions=ws.versions,
+            home=str(config.path("paths.home")),
+            max_version_bytes=int(config.get("tasks.max_version_bytes")),
+        )
+        ws.tools.tasks = ws.tasks
+        ws.reproduction = ReproductionManager(
+            store,
+            coordinator,
+            tasks=ws.tasks,
+            models=models,
+            tools=ws.tools,
+            conversations=conversations,
+            mcp=ws.mcp,
+            extensions=ws.extensions,
+            config=config,
+            events=events,
+            home=str(config.path("paths.home")),
+            app_version=__version__,
+            schema_version=SCHEMA_VERSION,
+        )
+        if config.get("tasks.interrupt_stale_on_open"):
+            try:
+                swept = ws.tasks.interrupt_stale()
+                if swept["interrupted"]:
+                    ws.warnings.append(
+                        f"marked {swept['interrupted']} task(s) as interrupted: the process that "
+                        "owned them is gone"
+                    )
+                if swept["skipped"]:
+                    ws.warnings.append(
+                        f"{len(swept['skipped'])} running task(s) belong to another live process "
+                        "or are tracked manually; they were left alone"
+                    )
+            except Exception as exc:  # noqa: BLE001 - a stale row must not block startup
+                ws.warnings.append(f"could not sweep interrupted tasks: {exc}")
         try:
             restored_mcp = ws.mcp.restore()
             restored_ext = ws.extensions.restore()
@@ -314,6 +366,7 @@ class Workspace:
             "models": len(self.models.list()),
             "conversations": self.conversations.stats()["active_conversations"],
             "memories": self.memory.stats()["total_active"],
+            "tasks": self.tasks.stats()["total"] if self.tasks is not None else 0,
             "warnings": self.warnings,
             "opened_at": iso_now(),
         }

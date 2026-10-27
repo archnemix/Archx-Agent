@@ -319,6 +319,69 @@ own API keys.
 description, so a grant or a request for it is refused with a real reason. Omitting it would
 make the refusal look like a typo.
 
+## Task history, versions and reproduction (M24)
+
+**D68. The task is the join key, not a new log.**
+`tool_runs`, trace events and artifacts already had a `task_id` column that nothing filled.
+Adding a "run history" beside them would have created a second answer to "what happened".
+Instead the task record was wired into the columns that already existed, and chat turns and
+tool calls now fill them. One join, no reconciliation.
+
+**D69. A task is created before the work, not after it.**
+A record written on success only explains success. The chat path therefore creates the task,
+then calls the model, then closes the task - and closes it as *failed* with the error when
+the call raises. The cost is a task row for a turn that fails; the benefit is that failure is
+visible in the history instead of absent from it.
+
+**D70. Interruption needs an owner, not a clock.**
+The first version marked any `running` task as interrupted on open, which made
+`tasks start` impossible: every CLI command is a new process, so the task it had just
+created was "stale" before the next verb ran. A timestamp has the same problem in reverse -
+a long task looks dead, a crashed one looks alive. Tasks now record their workspace instance
+and pid; the sweep interrupts only tasks whose owner is *gone*, leaves manual tasks alone,
+and reports tasks owned by another live process instead of taking them over.
+
+**D71. Terminal states are final, and that is a feature.**
+Completing a completed task raises `ConflictError`. Silently accepting it would let a caller
+overwrite an outcome (and its outputs) after the fact, which is exactly the history damage
+this milestone exists to prevent. The error names the current state.
+
+**D72. Versions are append-only; restore is a new version.**
+Rewriting history would make "what did this look like last Tuesday" unanswerable. Restoring
+writes a new row with `restored_from`, so both the state and the fact that someone went back
+are recorded. The cost is rows; the alternative is a lie.
+
+**D73. Unchanged content is not a version.**
+Deduplicating by checksum keeps the history meaningful: every version is a change someone
+can point at. Re-attaching an untouched file returns the existing version with
+`created=false` rather than adding noise.
+
+**D74. Large content is recorded as a checksum, not truncated.**
+A half-document that looks complete is worse than an honest "content not stored". Explicit
+content above the limit is refused (there is nowhere else to keep it); file content above
+the limit records size and checksum, because the file itself still exists. Diff and restore
+refuse to operate on a body that was never stored.
+
+**D75. Reproduction is a claim with evidence, and `exact` is hard to earn.**
+Fidelity is computed from the live environment: the model must be registered and
+deterministic (not a test double, not a remote endpoint that can drift), the tools must
+still exist, dynamic servers must still be trusted, output artifacts must still be on disk,
+there must be no unanswered question and no consumed single-use grant. Anything less is
+`partial`; a missing ingredient is `impossible`. This is why a simulated model can never be
+`exact` - it performs no inference, so there is nothing to reproduce.
+
+**D76. Reproduction records commands instead of running them.**
+Re-running is work, and work belongs to M25/M26. Storing the commands (built from the tool
+runs' recorded arguments and the message that started the turn) makes the record actionable
+without pretending it was executed; the acceptance script runs one of the printed commands
+to check that the claim is true.
+
+**D77. Artifacts stay where the user put them.**
+The database stores a path, a checksum and a version; it does not swallow the file. A
+gigabyte-scale output must not double the disk cost, and the user's own file layout is not
+ours to rearrange. `MISSING` is a first-class state, and it blocks a claim of exact
+reproduction.
+
 ## MCP and extensions (M23)
 
 **D59. Trust, enable and permission are three separate answers.**

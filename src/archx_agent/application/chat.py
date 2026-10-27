@@ -46,10 +46,12 @@ class ChatReply:
     finish_reason: str = "stop"
     simulated: bool = False
     warnings: list[str] = field(default_factory=list)
+    task: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "conversation_id": self.conversation_id,
+            "task": self.task,
             "user_message_id": self.user_message.id,
             "assistant_message_id": self.assistant_message.id if self.assistant_message else None,
             "text": self.text,
@@ -113,6 +115,89 @@ class ChatService:
         system_prompt: str | None = None,
         stream_callback: Callable[[str], None] | None = None,
         params: GenerationParams | None = None,
+        task_id: str | None = None,
+    ) -> ChatReply:
+        """Answer one message, recording it as a task.
+
+        The task is the durable record of the turn: it is created before the model is
+        called, completed only after the reply was stored, and marked failed (with the
+        error) when the turn raises. A caller may pass an existing ``task_id`` to attach
+        the turn to a bigger task (an agent run, for example) instead of creating one.
+        """
+        text = (text or "").strip()
+        if not text:
+            raise ValidationError("message must not be empty")
+        task = None
+        created_task = False
+        if task_id is None and self.ws.tasks is not None and self.ws.config.get("tasks.enabled") \
+                and self.ws.config.get("tasks.auto_record_chat"):
+            task = self.ws.tasks.create(
+                "chat",
+                _title_from(text),
+                conversation_id=conversation_id,
+                model_id=model_id,
+                start=True,
+                metadata={"chars": len(text)},
+            )
+            created_task = True
+        elif task_id is not None and self.ws.tasks is not None:
+            task = self.ws.tasks.get(task_id)
+        try:
+            reply = self._send(
+                text,
+                task=task,
+                conversation_id=conversation_id,
+                model_id=model_id,
+                title=title,
+                strategy=strategy,
+                manual_ids=manual_ids,
+                approved_proposal_id=approved_proposal_id,
+                system_prompt=system_prompt,
+                stream_callback=stream_callback,
+                params=params,
+            )
+        except BaseException as exc:
+            if created_task and task is not None:
+                try:
+                    self.ws.tasks.fail(task.id, exc)
+                except Exception:  # noqa: BLE001 - failing to record must not mask the error
+                    pass
+            raise
+        if created_task and task is not None:
+            try:
+                task = self.ws.tasks.complete(
+                    task.id,
+                    summary=(reply.text or "")[:500],
+                    outputs=[reply.assistant_message.id] if reply.assistant_message else [],
+                    tools=None,
+                    model_id=reply.model.get("model_id"),
+                    resource_use={
+                        "prompt_tokens": reply.prompt_tokens,
+                        "completion_tokens": reply.completion_tokens,
+                        "latency_ms": reply.latency_ms,
+                    },
+                )
+                reply.task = task.to_dict()
+            except Exception as exc:  # noqa: BLE001
+                reply.warnings.append(f"could not close the task record: {exc}")
+        elif task is not None:
+            reply.task = task.to_dict() if hasattr(task, "to_dict") else None
+        return reply
+
+    def _send(
+        self,
+        text: str,
+        *,
+        task=None,
+        conversation_id: str | None = None,
+        model_id: str | None = None,
+        title: str | None = None,
+        strategy: str | None = None,
+        manual_ids: Sequence[str] | None = None,
+        approved_proposal_id: str | None = None,
+        system_prompt: str | None = None,
+        stream_callback: Callable[[str], None] | None = None,
+        params: GenerationParams | None = None,
     ) -> ChatReply:
         text = (text or "").strip()
         if not text:
@@ -125,6 +210,11 @@ class ChatService:
             if conversation_id
             else self.ws.conversations.create(title or _title_from(text), model_id=model_id)
         )
+        if task is not None:
+            try:
+                self.ws.tasks.link(task.id, conversation_id=conversation.id, model_id=model_id or conversation.model_id)
+            except Exception:  # noqa: BLE001 - linking is bookkeeping, not the answer
+                pass
         decision = self.ws.route_model(task="chat", model_id=model_id or conversation.model_id)
         record = decision.chosen
         if record is None:  # pragma: no cover - route_model raises instead
@@ -166,6 +256,12 @@ class ChatService:
             text,
             metadata={"manifest_id": manifest.id},
         )
+        if task is not None:
+            try:
+                self.ws.tasks.set_inputs(task.id, [user_message.id])
+                self.ws.tasks.log(task.id, "message", detail=user_message.id)
+            except Exception:  # noqa: BLE001
+                pass
         if manifest.degraded:
             warnings.append(manifest.notes or "retrieval was degraded")
 

@@ -1648,3 +1648,394 @@ home: /tmp/archx-m23-acc
 | whitelist | `fs.write` is not exposed: "self does not expose 'fs.write' (discovered: archx.info, fs.list, fs.read)" |
 | trace | `mcp` discovery/trust/sync events, `permission` decisions, `tool_call` rows including denials |
 | `db check` | integrity ok, foreign keys ok, schema v14, 50 tables |
+
+## M24 acceptance transcript
+
+Run it yourself: `./scripts/acceptance_m24.sh`. Everything below happens through the
+installed `archx-agent` console script. The crash is a **real** SIGKILL of a second Python
+process that had started a task, and one of the commands a reproduction record printed is
+executed here to prove the record is actionable.
+
+
+### home
+/tmp/archx-m24-acc
+$ archx-agent init
+Archx Agent initialised
+  home       /tmp/archx-m24-acc
+  database   /tmp/archx-m24-acc/archx.db
+  traces     /tmp/archx-m24-acc/events.db
+  config     /tmp/archx-m24-acc/config.json
+  schema     v15
+  models     none found in the models directory
+             add one with: archx-agent models add-http ...
+[exit 0]
+
+### a chat turn is a task: it is created before the model is called and closed after the reply is stored
+$ archx-agent models add-scripted --name sim
+registered SIMULATED model sim (mdl_0001m5yacamd000000006a46780e98e515d1)
+  this runtime performs no inference; it exists to exercise the app offline
+[exit 0]
+$ archx-agent chat --message summarise the plan in one line
+[SIMULATED] I received 6 words. No model was run.
+
+[model sim (test-double) SIMULATED | 0ms | context 52/7424 tokens | strategy oldest_first]
+[warning] routing: simulated: performs no inference
+[warning] routing: a simulated test double is eligible for this task; it performs no inference
+[warning] no embedding index is configured; semantic search is unavailable and results are keyword-only
+[warning] this reply came from the simulated test double; no model was run (set a real model to get real output)
+[exit 0]
+$ archx-agent tasks list
+seq  time      type  status     tools  open  title                         
+---  --------  ----  ---------  -----  ----  ------------------------------
+1    09:17:07  chat  completed  0      0     summarise the plan in one line
+[exit 0]
+$ archx-agent tasks show tk_0001m5yacasa0000000003ec1160638ff6f9
+tk_0001m5yacasa0000000003ec1160638ff6f9  chat  [completed]  summarise the plan in one line
+  created 2026-10-27T09:17:07.242Z   started 2026-10-27T09:17:07.242Z   finished 2026-10-27T09:17:07.257Z
+  conversation conv_0001m5yacase00000003271a50575184c53c
+  model mdl_0001m5yacamd000000006a46780e98e515d1
+
+  timeline:
+      1  09:17:07  created      chat: summarise the plan in one line
+      2  09:17:07  started      
+      3  09:17:07  message      msg_0001m5yacasm0000000059fc0b093f68293e
+      4  09:17:07  summary      [SIMULATED] I received 6 words. No model was run.
+      5  09:17:07  completed    
+[exit 0]
+
+### task history is a sequence: every step has its own number, even in the same millisecond
+$ archx-agent tasks start --type tool --title write and read a report
+tk_0001m5yacbe400000000e45bfa9d6c5c37bf  tool  [running]  write and read a report
+[exit 0]
+$ archx-agent permissions grant fs.write --subject fs.write --duration persistent --confirm
+granted fs.write -> fs.write [persistent]  (id pg_0001m5yacbr2000000003ede22c97eb5bd6a, by user:cli)
+[exit 0]
+$ archx-agent permissions grant fs.read --subject fs.read --duration persistent --confirm
+granted fs.read -> fs.read [persistent]  (id pg_0001m5yacbx700000000ccf55fb51c848840, by user:cli)
+[exit 0]
+$ archx-agent tasks log tk_0001m5yacbe400000000e45bfa9d6c5c37bf --kind step --detail about to write the report
+tk_0001m5yacbe400000000e45bfa9d6c5c37bf: logged step (step 8)
+[exit 0]
+$ archx-agent tools run fs.write --arg path=report.txt --arg content=alpha
+beta
+ --task tk_0001m5yacbe400000000e45bfa9d6c5c37bf
+fs.write succeeded in 4.0ms  (run tr_0001m5yacc7g0000000091b89163ab4c1e68)
+{
+  "path": "report.txt",
+  "bytes_written": 11,
+  "bytes_after": 11,
+  "sha256": "e49c81e2d2f84e259d40e2fb8192f3bcd198b355184845d76d8f58807d0d78ee",
+  "existed": false,
+  "previous_sha256": null,
+  "previous_bytes": 0,
+  "append": false,
+  "dry_run": false
+}
+[exit 0]
+$ archx-agent tools run fs.read --arg path=report.txt --task tk_0001m5yacbe400000000e45bfa9d6c5c37bf
+fs.read succeeded in 4.0ms  (run tr_0001m5yaccch000000003f7290208b35525d)
+{
+  "path": "report.txt",
+  "bytes": 11,
+  "sha256": "e49c81e2d2f84e259d40e2fb8192f3bcd198b355184845d76d8f58807d0d78ee",
+  "truncated": false,
+  "total_lines": 2,
+  "line_count": 2,
+  "content": "alpha\nbeta"
+}
+[exit 0]
+
+### the artifact is a reference with a checksum, and attaching it records content version v1
+$ archx-agent tasks attach tk_0001m5yacbe400000000e45bfa9d6c5c37bf /tmp/archx-m24-acc/workspace/report.txt --kind report
+ar_0001m5yacchp0000000281a18ba8f078a92c  report.txt  11 bytes  sha256 e49c81e2d2f8...
+version v1
+[exit 0]
+$ archx-agent tasks show tk_0001m5yacbe400000000e45bfa9d6c5c37bf
+tk_0001m5yacbe400000000e45bfa9d6c5c37bf  tool  [running]  write and read a report
+  created 2026-10-27T09:17:07.908Z   started 2026-10-27T09:17:07.908Z   finished -
+  tools fs.write, fs.read
+
+  timeline:
+      6  09:17:07  created      tool: write and read a report
+      7  09:17:07  started      
+      8  09:17:08  step         about to write the report
+      9  09:17:08  tool         fs.write succeeded
+     10  09:17:08  tool         fs.read succeeded
+     11  09:17:09  artifact     report: report.txt (11 bytes)
+
+seq  tool      status     error
+---  --------  ---------  -----
+1    fs.write  succeeded       
+2    fs.read   succeeded       
+
+artifact                                 kind    name        bytes  file     version
+---------------------------------------  ------  ----------  -----  -------  -------
+ar_0001m5yacchp0000000281a18ba8f078a92c  report  report.txt  11     present  v1     
+[exit 0]
+
+### changing the file and attaching it again is v2 - history is appended, never overwritten
+$ archx-agent tools run fs.write --arg path=report.txt --arg content=alpha
+beta
+gamma
+
+fs.write succeeded in 4.0ms  (run tr_0001m5yaccv9000000008fe649809a644b1e)
+{
+  "path": "report.txt",
+  "bytes_written": 17,
+  "bytes_after": 17,
+  "sha256": "4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996",
+  "existed": true,
+  "previous_sha256": "e49c81e2d2f84e259d40e2fb8192f3bcd198b355184845d76d8f58807d0d78ee",
+  "previous_bytes": 11,
+  "append": false,
+  "dry_run": false
+}
+[exit 0]
+$ archx-agent tasks attach tk_0001m5yacbe400000000e45bfa9d6c5c37bf /tmp/archx-m24-acc/workspace/report.txt --kind report
+ar_0001m5yacd0d00000002654eb1e28d431fa6  report.txt  17 bytes  sha256 4fdbc441ea7b...
+version v2
+[exit 0]
+$ archx-agent versions list artifact /tmp/archx-m24-acc/workspace/report.txt
+version  time      by    bytes  content  note                                    
+-------  --------  ----  -----  -------  ----------------------------------------
+v1       09:17:09  task  11     yes      attached to task tk_0001m5yacbe400000000
+v2       09:17:09  task  17     yes      attached to task tk_0001m5yacbe400000000
+[exit 0]
+$ archx-agent versions diff artifact /tmp/archx-m24-acc/workspace/report.txt
+v1 -> v2: +1 -0
+--- v1
++++ v2
+@@ -1,2 +1,3 @@
+ alpha
+ beta
++gamma
+[exit 0]
+
+### restoring v1 writes v3 (the two later states stay in the history)
+$ archx-agent versions restore artifact /tmp/archx-m24-acc/workspace/report.txt v1
+restored v1 as v3 of artifact /tmp/archx-m24-acc/workspace/report.txt (history kept)
+[exit 0]
+$ archx-agent versions list artifact /tmp/archx-m24-acc/workspace/report.txt
+version  time      by    bytes  content  note                                    
+-------  --------  ----  -----  -------  ----------------------------------------
+v1       09:17:09  task  11     yes      attached to task tk_0001m5yacbe400000000
+v2       09:17:09  task  17     yes      attached to task tk_0001m5yacbe400000000
+v3       09:17:09  user  11     yes      restored from v1                        
+[exit 0]
+$ archx-agent versions show artifact /tmp/archx-m24-acc/workspace/report.txt v3
+artifact /tmp/archx-m24-acc/workspace/report.txt v3  (11 bytes, 2026-10-27T09:17:09.990Z, by user)
+restored from v1
+note: restored from v1
+
+alpha
+beta
+
+[exit 0]
+$ archx-agent tasks complete tk_0001m5yacbe400000000e45bfa9d6c5c37bf --summary report written, read, versioned and restored
+tk_0001m5yacbe400000000e45bfa9d6c5c37bf completed
+[exit 0]
+
+### reproduction: a deterministic tool task is exact, and the printed command really runs
+$ archx-agent tasks start --type tool --title ask the app about itself
+tk_0001m5yace4s00000000257d749ac8e29a15  tool  [running]  ask the app about itself
+[exit 0]
+$ archx-agent tools run archx.info --task tk_0001m5yace4s00000000257d749ac8e29a15
+archx.info succeeded in 4.0ms  (run tr_0001m5yaceff00000000b7bf1f7dfe50622a)
+{
+  "home": "/tmp/archx-m24-acc",
+  "database": "/tmp/archx-m24-acc/archx.db",
+  "schema_version": 15,
+  "models": 1,
+  "conversations": 1,
+  "memories": 0,
+  "tool_limits": {
+    "roots": [
+      "/tmp/archx-m24-acc/workspace"
+    ],
+    "max_file_bytes": 2000000,
+    "max_output_bytes": 200000,
+    "timeout_seconds": 60,
+    "shell_denylist": [
+      "sudo",
+      "su",
+      "shutdown",
+      "reboot",
+      "halt",
+      "poweroff",
+      "mkfs",
+      "dd",
+      "fdisk",
+      "parted",
+      "mount",
+      "umount",
+      "chown",
+      "chroot"
+    ]
+  }
+}
+[exit 0]
+$ archx-agent tasks complete tk_0001m5yace4s00000000257d749ac8e29a15 --summary read the workspace facts
+tk_0001m5yace4s00000000257d749ac8e29a15 completed
+[exit 0]
+$ archx-agent tasks reproduce tk_0001m5yace4s00000000257d749ac8e29a15 --record
+fidelity: exact
+
+commands:
+  # task tk_0001m5yace4s00000000257d749ac8e29a15: tool - ask the app about itself
+  archx-agent --home /tmp/archx-m24-acc tools run archx.info
+  archx-agent --home /tmp/archx-m24-acc tasks show tk_0001m5yace4s00000000257d749ac8e29a15
+
+recorded as rp_0001m5yacesk00000000d9c3279aff3b1b31 (exact)
+[exit 0]
+
+### re-running the command the record printed (verified, not assumed)
+$ /home/user/Archx-Agent/.venv/bin/archx-agent tools run archx.info
+archx.info succeeded in 4.0ms  (run tr_0001m5yacf4w000000003d984c9277948f8a)
+{
+  "home": "/tmp/archx-m24-acc",
+  "database": "/tmp/archx-m24-acc/archx.db",
+[exit 0]
+$ archx-agent tasks reproduce tk_0001m5yace4s00000000257d749ac8e29a15 --verify rp_0001m5yacesk00000000d9c3279aff3b1b31
+recorded exact, now exact
+[exit 0]
+
+### a simulated model can never be reproduced exactly, and the record says why
+$ archx-agent tasks reproduce tk_0001m5yacasa0000000003ec1160638ff6f9 --record
+fidelity: partial
+  [caveat] model_simulated: sim is a simulated test double: it performs no inference, so its answer cannot be reproduced
+model: sim (scripted)
+
+commands:
+  # task tk_0001m5yacasa0000000003ec1160638ff6f9: chat - summarise the plan in one line
+  archx-agent --home /tmp/archx-m24-acc chat --conversation conv_0001m5yacase00000003271a50575184c53c --message 'summarise the plan in one line'
+  archx-agent --home /tmp/archx-m24-acc tasks show tk_0001m5yacasa0000000003ec1160638ff6f9
+
+recorded as rp_0001m5yacfew00000000b7aecb64478952c5 (partial)
+[exit 0]
+$ archx-agent tasks reproduce tk_0001m5yacasa0000000003ec1160638ff6f9 --verify rp_0001m5yacfew00000000b7aecb64478952c5
+recorded partial, now partial
+  [caveat] model_simulated: sim is a simulated test double: it performs no inference, so its answer cannot be reproduced
+[exit 0]
+
+### removing the model makes the same task impossible - and verify notices (exit 3)
+$ archx-agent models remove mdl_0001m5yacamd000000006a46780e98e515d1
+removed sim
+[exit 0]
+$ archx-agent tasks reproduce tk_0001m5yacasa0000000003ec1160638ff6f9 --verify rp_0001m5yacfew00000000b7aecb64478952c5
+recorded partial, now impossible
+  new: model_missing
+  resolved: model_simulated
+  [blocker] model_missing: the model mdl_0001m5yacamd000000006a46780e98e515d1 is no longer registered; a replay would select a different model
+[exit 3]
+
+### a real crash: a separate process starts a task and is killed with SIGKILL
+./scripts/acceptance_m24.sh: line 92: 38575 Killed                  "$PY" - "$HOME_DIR" <<'PY'
+import os, signal, sys
+from archx_agent.application.workspace import Workspace
+ws = Workspace.open(home=sys.argv[1], env={})
+task = ws.tasks.create("agent", "crashed while working", start=True)
+print("started", task.id)
+os.kill(os.getpid(), signal.SIGKILL)
+PY
+
+[the python process was killed with SIGKILL]
+$ archx-agent tasks list --status interrupted
+seq  time      type   status       tools  open  title                
+---  --------  -----  -----------  -----  ----  ---------------------
+4    09:17:12  agent  interrupted  0      0     crashed while working
+[exit 0]
+$ archx-agent tasks show tk_0001m5yacgbm00000000bc9e95e194318461
+tk_0001m5yacgbm00000000bc9e95e194318461  agent  [interrupted]  crashed while working
+  created 2026-10-27T09:17:12.948Z   started 2026-10-27T09:17:12.948Z   finished 2026-10-27T09:17:13.106Z
+  error interrupted on start: the process that owned this task is gone
+
+  timeline:
+     20  09:17:12  created      agent: crashed while working
+     21  09:17:12  started      
+     22  09:17:13  interrupted  interrupted on start: the process that owned this task is gone
+[exit 0]
+$ archx-agent tasks reproduce tk_0001m5yacgbm00000000bc9e95e194318461
+fidelity: partial
+  [caveat] task_interrupted: the task was interrupted; its end state is unknown, so a replay cannot be compared to it
+  [caveat] nothing_to_replay: the task recorded neither a model nor a tool, so there is nothing mechanical to replay
+
+commands:
+  # task tk_0001m5yacgbm00000000bc9e95e194318461: agent - crashed while working
+  archx-agent --home /tmp/archx-m24-acc tasks show tk_0001m5yacgbm00000000bc9e95e194318461
+[exit 0]
+
+### tasks can carry the questions they left open
+$ archx-agent tasks question tk_0001m5yacgbm00000000bc9e95e194318461 --text was the index rebuilt before the crash?
+tk_0001m5yacgbm00000000bc9e95e194318461: 1 open question(s)
+[exit 0]
+   [0] was the index rebuilt before the crash?
+
+  timeline:
+     20  09:17:12  created      agent: crashed while working
+     21  09:17:12  started      
+     22  09:17:13  interrupted  interrupted on start: the process that owned this task is gone
+     23  09:17:13  question     was the index rebuilt before the crash?
+[exit 0]
+$ archx-agent tasks resolve tk_0001m5yacgbm00000000bc9e95e194318461 0
+tk_0001m5yacgbm00000000bc9e95e194318461: 0 open question(s) remain
+[exit 0]
+
+### history, versions and traces are queryable, and the database is consistent
+$ archx-agent tasks stats
+tasks: 4
+  completed    3
+  interrupted  1
+open questions on 0 task(s)
+artifacts: 2
+[exit 0]
+$ archx-agent trace list --kind task --limit 6
+seq  time      kind  name            status  detail
+---  --------  ----  --------------  ------  ------
+6    09:17:07  task  task.created    ok            
+14   09:17:07  task  task.completed  ok            
+23   09:17:07  task  task.created    ok            
+75   09:17:10  task  task.completed  ok            
+78   09:17:10  task  task.created    ok            
+87   09:17:11  task  task.completed  ok            
+[exit 0]
+$ archx-agent versions subjects
+type      subject                                  versions  latest
+--------  ---------------------------------------  --------  ------
+artifact  /tmp/archx-m24-acc/workspace/report.txt  3         3     
+[exit 0]
+$ archx-agent db check
+integrity     ok
+foreign keys  ok
+schema        v15
+tables        51
+write journal 5 recent entries
+[exit 0]
+$ archx-agent db stats
+table                   rows
+----------------------  ----
+applied_writes          73  
+approval_requests       0   
+artifacts               2   
+
+### M24 checks, summarised
+
+| check | result |
+|-------|--------|
+| chat creates a task | `tasks list` shows a `chat` task with the model, conversation and completed status |
+| timeline | `tasks show` lists created, started, message, summary, completed with increasing step numbers |
+| manual task | `tasks start` + `tasks log` survive separate CLI invocations (a manual task is not swept) |
+| tool run inside a task | `tools run ... --task` appears in `tasks show` and on the timeline |
+| artifact | attach records path, size, sha256, MIME and content version `v1` |
+| re-attach | changed file becomes `v2`; history is appended |
+| diff | `versions diff` shows `+gamma` between `v1` and `v2` |
+| restore | `versions restore v1` writes `v3` with `restored_from=v1`; v1 and v2 are untouched |
+| reproduction (exact) | deterministic tool task -> `fidelity: exact`, exit 0, recorded as `rp_...` |
+| printed command | the `tools run archx.info` line printed by the record runs successfully here |
+| reproduction (partial) | simulated model -> `model_simulated` caveat, `fidelity: partial` |
+| verify | `--verify` reports `recorded exact, now exact` (no drift) |
+| model removed | `--verify` reports `recorded partial, now impossible`, new blocker `model_missing`, **exit 3** |
+| real crash | a separate process is SIGKILLed mid-task; the next command shows the task `interrupted` with "the process that owned this task is gone" |
+| interrupted task | reproduction says `partial` with `task_interrupted` and `nothing_to_replay` |
+| open questions | add and resolve; counts are reported |
+| trace | `trace list --kind task` shows created/completed/reproduction events in sequence |
+| `db check` | integrity ok, foreign keys ok, schema v15, 51 tables |

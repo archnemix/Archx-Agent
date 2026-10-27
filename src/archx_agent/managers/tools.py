@@ -294,6 +294,9 @@ class ToolManager(BaseManager):
         self.config = config
         self._runtime = runtime
         self._info_provider = info_provider
+        # Optional task history (M24). Set by the composition root after both managers
+        # exist; a tool call made inside a task is recorded on that task's timeline.
+        self.tasks = None
         self._specs: dict[str, ToolSpec] = {}
         self._handlers: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {}
         for spec in specs:
@@ -340,6 +343,12 @@ class ToolManager(BaseManager):
 
     def specs(self) -> list[ToolSpec]:
         return [self._specs[name] for name in sorted(self._specs)]
+
+    def roots(self) -> list[str]:
+        """The directories this workspace's execution sandbox is confined to."""
+        if self._runtime is None:
+            return []
+        return [str(root) for root in self._runtime.resolved_roots]
 
     def spec(self, name: str) -> ToolSpec:
         spec = self._specs.get(name)
@@ -580,6 +589,7 @@ class ToolManager(BaseManager):
             },
         )
         self._record_file_change(spec, args, run, context)
+        self._link_task(spec, context, run)
         run.seq = self.get_run(run.id).get("seq")
         if failure is not None:
             failure.run = run  # type: ignore[attr-defined]
@@ -660,6 +670,7 @@ class ToolManager(BaseManager):
             error=reason,
             payload={"run_id": run.id, "approval_id": approval_id, "refused_by": refused_by},
         )
+        self._link_task(spec, context, run)
         run.seq = self.get_run(run.id).get("seq")
         message = f"{spec.name}: {reason}"
         if approval_id:
@@ -670,6 +681,20 @@ class ToolManager(BaseManager):
         exc.run = run  # type: ignore[attr-defined]
         exc.capability = spec.capability  # type: ignore[attr-defined]
         raise exc
+
+    def _link_task(self, spec: ToolSpec, context: ToolContext, run: ToolRun) -> None:
+        """Record a tool call on the task's timeline, if the call belongs to a task."""
+        tasks = getattr(self, "tasks", None)
+        if tasks is None or not context.task_id:
+            return
+        try:
+            tasks.link(context.task_id, tools=[spec.name])
+            detail = f"{spec.name} {run.status}"
+            if run.error:
+                detail += f": {run.error[:300]}"
+            tasks.log(context.task_id, "tool", detail=detail)
+        except Exception:  # noqa: BLE001 - bookkeeping must never fail the call
+            pass
 
     def _record_file_change(
         self, spec: ToolSpec, args: dict[str, Any], run: ToolRun, context: ToolContext
