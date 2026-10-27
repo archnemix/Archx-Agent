@@ -3171,9 +3171,9 @@ every claim below was made by `curl` against the running GUI. Script:
 never prints its token.
 
 > The transcript below is the original M29 run (46 checks). The interface was later rebuilt
-> around modes with a tokenised stylesheet; the script grew to **53 checks**, the seven new
+> around modes with a tokenised stylesheet; the script grew to **54 checks**, the seven new
 > ones asserting the rail, its three groups, the mode tool strip, the theme switch and both
-> palettes. A re-run of the current script on a fresh home (`/tmp/m29-ui2`) passes 53/53:
+> palettes. A re-run of the current script on a fresh home (`/tmp/m29-ui2`) passes 54/54:
 >
 > ```text
 > [ok]   the page is a rail of modes, not a wall of tabs = 1
@@ -3184,7 +3184,7 @@ never prints its token.
 > [ok]   and a light one behind the same tokens = 1
 > [ok]   each mode has its own accent = yes
 >
-> M29 acceptance: 53 checks passed
+> M29 acceptance: 54 checks passed
 > ```
 
 ```text

@@ -30,7 +30,7 @@ acceptance not fully demonstrated · **not started**
 | **M26** | **Resource and job scheduler** | **done** | `tests/test_scheduler_m26.py` (94), `docs/SCHEDULER.md`, `scripts/acceptance_m26.sh` (SIGKILL + pause/resume) |
 | **M27** | **Simple Mode and unified search** | **done** | `tests/test_search_m27.py` (42) + `tests/test_simple_m27.py` (67), `docs/SIMPLE_MODE.md`, `scripts/acceptance_m27.sh` (23 checks) |
 | **M28** | **Researcher Mode** | **done · scoped** | `tests/test_research_m28.py` (97), `docs/RESEARCH.md`, `scripts/acceptance_m28.sh` (30 checks incl. real HTTP and an approval). Scope: reads local documents and the URLs you give it — **no web search, no crawler, no experiment runner** (`docs/MODES.md` §3.1) |
-| **M29** | **GUI core workflows** | **done** | `tests/test_gui_m29.py` (85), `docs/GUI.md`, `scripts/acceptance_m29.sh` (53 checks over a real socket) |
+| **M29** | **GUI core workflows** | **done** | `tests/test_gui_m29.py` (85), `docs/GUI.md`, `scripts/acceptance_m29.sh` (54 checks over a real socket) |
 | **M30** | **Learning Mode** | **done · scoped** | `tests/test_learning_m30.py` (121), `docs/LEARNING.md`, `scripts/acceptance_m30.sh` (89 checks). Scope: exact/self grading, no model marking; no media items (`docs/MODES.md` §3.2) |
 
 | M31 | Coding workspace | next | - |

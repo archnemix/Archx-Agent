@@ -129,6 +129,11 @@
         <div class="split wide">
           <form id="research-form" class="card">
             <h2 class="card-title">New research run</h2>
+            <p class="section-note">
+              Archx does not crawl and has no web search: it reads the URLs you paste here
+              (through <code>net.fetch</code>, which needs a grant) and documents in your tool
+              roots. No experiments run in this mode — that is M32.
+            </p>
             <label>Question
               <input id="research-question" required placeholder="how does sqlite locking work">
             </label>

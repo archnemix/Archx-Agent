@@ -115,6 +115,8 @@ check "the page is a rail of modes, not a wall of tabs" "$(curl -s "$BASE/" | gr
 check "the rail groups modes, work and control" "$(curl -s "$BASE/" | grep -c 'class="nav-label"')" "3"
 check "the header shows the current mode's tools" "$(curl -s "$BASE/" | grep -c 'id="mode-tools"')" "1"
 check "the theme switch is in the page" "$(curl -s "$BASE/" | grep -c 'id="theme-toggle"')" "1"
+check "the research page says it does not crawl or search" \
+  "$(curl -s "$BASE/" | grep -c 'does not crawl and has no web search')" "1"
 check "the stylesheet carries a dark palette" "$(curl -s "$BASE/style.css" | grep -c '#0a0c11')" "1"
 check "and a light one behind the same tokens" "$(curl -s "$BASE/style.css" | grep -c '#f5f6f9')" "1"
 check "each mode has its own accent" \

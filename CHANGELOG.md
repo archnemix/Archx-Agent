@@ -76,7 +76,7 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
   `gui routes`. A non-loopback bind without `--allow-remote` exits 2.
 - Config: `gui.host`, `gui.port`, `gui.allow_remote`, `gui.open_browser`,
   `gui.session_minutes`, `gui.max_body_bytes`.
-- `docs/GUI.md`, `tests/test_gui_m29.py` (85 tests), `scripts/acceptance_m29.sh` (53 checks
+- `docs/GUI.md`, `tests/test_gui_m29.py` (85 tests), `scripts/acceptance_m29.sh` (54 checks
   over a real socket, including an approval and a real web-research run).
 
 ### Changed
