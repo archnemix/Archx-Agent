@@ -100,6 +100,18 @@ else
   printf '%s goal(s) already exist; not adding more\n' "$GOALS"
 fi
 
+# ---------------------------------------------------------------- research
+say "one research run with sources, so the panel is not an empty form"
+RUNS="$("$CLI" --json research list --limit 1 2>/dev/null | jq_ "len(d)")"
+if [ "${RUNS:-0}" = "0" ]; then
+  # a real local run over the memories above: no model call, no network, and the run's own
+  # status stays whatever the evidence gave it
+  "$CLI" research run "how does sqlite locking work, and what does WAL change?" --no-model 2>&1 \
+    | sed -n 1,4p
+else
+  printf '%s research run(s) already exist; not adding more\n' "$RUNS"
+fi
+
 # ---------------------------------------------------------------- queue
 say "one queued job so the Jobs panel is not empty"
 QUEUED="$("$CLI" --json jobs list --status queued 2>/dev/null | jq_ "len(d)" 2>/dev/null || echo 0)"

@@ -105,6 +105,7 @@
     pause: ["M9 5v14", "M15 5v14"],
     stop: ["M6 6h12v12H6z"],
     retry: ["M20 11a8 8 0 1 0-2.3 5.7", "M20 4v7h-7"],
+    check: ["m5 13 4 4L19 7"],
   };
 
   const SVG_NS = "http://www.w3.org/2000/svg";
@@ -196,26 +197,38 @@
   /* A destructive act asks first: revoking a grant or denying an approval is not undoable
    * from this page, so it is confirmed in a real dialog rather than a mouse slip. */
   let modalResolve = null;
+  let modalWantsNote = false;
 
+  /* Resolves false when dismissed, true when confirmed, or {note} when it asked for one. */
   function ask(options) {
     const modal = document.getElementById("modal");
     document.getElementById("modal-title").textContent = options.title;
     document.getElementById("modal-text").textContent = options.text || "";
+    const field = document.getElementById("modal-field");
+    const note = document.getElementById("modal-note");
+    modalWantsNote = Boolean(options.note);
+    field.hidden = !modalWantsNote;
+    note.value = "";
     const ok = document.getElementById("modal-ok");
     ok.textContent = options.okLabel || "Confirm";
     ok.className = "btn " + (options.kind === "primary" ? "primary" : "danger");
     modal.hidden = false;
-    ok.focus();
+    (modalWantsNote ? note : ok).focus();
     return new Promise((resolve) => { modalResolve = resolve; });
   }
 
-  function settleModal(answer) {
+  function settleModal(confirmed) {
     const modal = document.getElementById("modal");
     if (modal.hidden) return;
+    const note = document.getElementById("modal-note").value.trim();
     modal.hidden = true;
+    const wantsNote = modalWantsNote;
+    modalWantsNote = false;
     const resolve = modalResolve;
     modalResolve = null;
-    if (resolve) resolve(answer);
+    if (!resolve) return;
+    if (!confirmed) return resolve(false);
+    return resolve(wantsNote ? { note } : true);
   }
 
   document.getElementById("modal-cancel").addEventListener("click", () => settleModal(false));
@@ -944,7 +957,8 @@
       el("span", { class: "t", text: run.question }),
       el("span", {
         class: "s",
-        text: run.status + " · " + Math.round((run.coverage || 0) * 100) + "% coverage · "
+        text: (run.closed ? "done · " : "") + run.status + " · "
+          + Math.round((run.coverage || 0) * 100) + "% coverage · "
           + run.plan_by + "/" + run.mode + " · " + shortId(run.id),
       }),
     ]);
@@ -979,9 +993,46 @@
           el("span", { text: "plan by " + run.plan_by }),
           el("span", { text: run.evidence_count + " usable source(s)" }),
           el("span", { text: shortId(run.id) }),
+          run.closed ? el("span", { class: "tag ok", text: "done " + stamp(run.closed_at) }) : null,
+          run.closed && run.closed_note ? el("span", { text: run.closed_note }) : null,
         ]),
       ]),
       el("div", { class: "row" }, [
+        run.closed
+          ? el("button", {
+            class: "btn tiny",
+            type: "button",
+            title: "Put this question back on the list",
+            onclick: async () => {
+              try {
+                await api("POST", "/api/research/" + encodeURIComponent(id) + "/reopen", {});
+                toast("Reopened", "the run is open again", "ok");
+                await openResearch(id);
+                await loadResearchList();
+              } catch (error) { toast("Could not reopen", error.message, "err"); }
+            },
+          }, ["reopen"])
+          : el("button", {
+            class: "btn tiny primary",
+            type: "button",
+            title: "Mark this question done",
+            onclick: async () => {
+              const answer = await ask({
+                title: "Mark this question done?",
+                text: "Closure is your call, not a coverage threshold: this records that you are finished with the question, whatever the run found. You can reopen it.",
+                okLabel: "Mark complete",
+                kind: "primary",
+                note: true,
+              });
+              if (!answer) return;
+              try {
+                await api("POST", "/api/research/" + encodeURIComponent(id) + "/close", { note: answer.note });
+                toast("Marked complete", "the run is closed; `research reopen` undoes it", "ok");
+                await openResearch(id);
+                await loadResearchList();
+              } catch (error) { toast("Could not close the run", error.message, "err"); }
+            },
+          }, [svgIcon("check"), "mark complete"]),
         el("button", {
           class: "btn tiny",
           type: "button",

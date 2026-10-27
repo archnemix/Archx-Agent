@@ -21,10 +21,18 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
   palettes and that no `style=`/`onclick=` attribute exists anywhere in the page.
 
 ### Added
+- **Research closure** (schema **v20**, `RESEARCH_CLOSURE_V20`): `research close RUN [--note]`
+  and `research reopen RUN`, `research list --closed/--open`, open/closed counts in
+  `research stats`, `POST /api/research/{id}/{close,reopen}`, and *mark complete* / *reopen* in
+  the GUI behind a note prompt. `closed_at` is written only by an explicit close, so a run's
+  own status and coverage are never rewritten by a judgement call.
+- `scripts/acceptance_research_close.sh` (35 self-checking assertions over a real socket) and
+  `tests/test_research_close.py` (28 tests).
 - `scripts/seed_demo.sh`: builds the preview workspace (`~/.archx-demo`) through the ordinary
   CLI - a scripted model, one conversation, three memories, a learning goal with a hint
-  ladder and two attempts, and a queued job. Idempotent, never destructive, so a restored
-  sandbox can rebuild the demo home instead of losing it.
+  ladder and two attempts, a local research run over those memories, and a queued job.
+  Idempotent, never destructive, so a restored sandbox can rebuild the demo home instead of
+  losing it.
 
 ## [0.30.0] - M30 Learning Mode
 

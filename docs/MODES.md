@@ -5,7 +5,7 @@ This file answers two questions that the milestone reports do not answer directl
 1. **What did I ask for?** — the forty milestones, in one list, with their real status.
 2. **What should each mode do, and what does it do now?** — the same shell, different tools.
 
-The interface is deliberately the same everywhere: a left rail of modes, one header that
+The interface is deliberately the same everywhere: a left sidebar of modes, one top bar that
 shows the tools the current mode has, and a work area. What changes between modes is the
 **tools** and the **controls** — a chat composer is not a hint ladder, and a citation check
 is not a schedule. The table below is the honest map of that difference.
@@ -56,7 +56,7 @@ are the application calls; "status" is what works today.
 | Mode | What it is for | Controls you get | Tools behind them | Status |
 |------|----------------|------------------|-------------------|--------|
 | **Chat** | talk to the local model, one turn at a time | conversation list, composer (Ctrl+Enter), model chip, warnings | `ChatService.send` → router → provider; each turn writes a `chat` task | **works** (refuses clearly when no model is reachable) |
-| **Research** | turn a question into a sourced report | question, where to look (local / mixed / web), seed URLs, own subquestions, no-model switch, run list, report, sources table, verification | `ResearchRunner` → plan (model or rules), reads local docs + supplied URLs through `net.fetch`, hashes what it read, drops unverifiable quotes, computes coverage, re-checks every citation | **works within its scope** — it does not search the web or run experiments (§3.1) |
+| **Research** | turn a question into a sourced report | question, where to look (local / mixed / web), seed URLs, own subquestions, no-model switch, run list, report, sources table, verification, **mark complete / reopen** | `ResearchRunner` → plan (model or rules), reads local docs + supplied URLs through `net.fetch`, hashes what it read, drops unverifiable quotes, computes coverage, re-checks every citation | **works within its scope** — it does not search the web or run experiments (§3.1) |
 | **Learning** | learn a topic with a schedule | goals + criteria, add item (question, answer key, hint ladder), next-up with `why`, one hint per click, answer form, item/schedule table, sessions, "propose items", "start a review" | `LearningService` → exact/self grading, SM-2-lite schedule, hint gating, sessions as tasks | **works within its scope** — no model grading, no media (§3.2) |
 | Search | find anything this home knows | query, files toggle, per-source notes | `SearchService` across conversations, memory, tasks, workflows, projects, artifacts, tools, files | works |
 | Tasks | see what ran and reproduce it | status filter, timeline, artifacts, reproduction | `TaskManager` | works |
@@ -91,6 +91,9 @@ What it does **not** do, and what that means for "let the AI search":
   job; the pieces it would sit on (jobs, tools, tasks, artifacts) exist and are tested.
 * **No chat in Research.** The mode is a form, not a conversation. "Ask a follow-up about this
   report" is not built.
+* **Completion is yours, not the runner's.** A run can be marked done (`research close`, or
+  *mark complete* in the page) and reopened; that records your judgement. It is not a claim
+  that the question was answered, and coverage never closes anything by itself.
 
 Closing this is a milestone, not a patch: a search provider behind the permission centre (or
 an MCP tool), a bounded browse loop with a per-run page budget, and a chat affordance that
@@ -109,7 +112,9 @@ answers them; deleting stays a CLI act.
 
 ### 3.3 The GUI is a client, not a product surface for everything
 
-Ten panels, all wired, nothing decorative. Workflow authoring, streaming tokens, files, a
+Ten panels, all wired, nothing decorative. The shell is one page with a sidebar, a top bar
+carrying each mode's live tool chips, three themes and a chat transcript with markdown,
+copy buttons and confirmations for anything that cannot be undone. Workflow authoring, streaming tokens, files, a
 multi-user story and TLS are not there; they are listed in `GAPS.md` and `docs/GUI.md` rather
 than implied by a greyed-out button.
 
@@ -120,5 +125,5 @@ M32 Experimental, M33 Play, M34 Voice — and the Research gaps in §3.1 are the
 should be repaired once M31 exists, because a browse loop needs the coding workspace's runner
 and the experimental mode's record to be worth anything.
 
-If a mode is missing from the rail, it is because the code is missing — not because the button
+If a mode is missing from the sidebar, it is because the code is missing — not because the button
 was hidden.

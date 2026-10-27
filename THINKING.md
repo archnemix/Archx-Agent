@@ -793,6 +793,16 @@ behind it. That belongs in `docs/MODES.md` and in the empty space where a search
 not in a disabled button that implies "coming soon". A mode that cannot do what its name
 suggests says so on its own page.
 
+**D134. "The run finished" and "I am done with this question" are two facts.** Coverage is a
+measurement of the sources a run managed to read; treating it as completion would let the tool
+close your question for you - and a research tool that decides when you are finished is the
+same failure as a study app that signs off your learning (D128). So closure is a separate
+column set by an explicit act (`research close`, or *mark complete* in the page), it is
+reversible with `research reopen`, both directions are traced, a second close is a conflict
+rather than a no-op, and closing never rewrites `status`, `coverage` or `evidence_count`. The
+page shows the timestamp and the note next to the run, so the number and the judgement stay
+side by side and are never mistaken for each other.
+
 ## Storage and config
 
 **D31. Unknown config keys are errors.**

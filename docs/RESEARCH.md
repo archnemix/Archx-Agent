@@ -112,12 +112,36 @@ archx-agent research run "..." --mode web --url https://… --url-file urls.txt
 archx-agent research run "..." --format html --out report.html
 archx-agent research list [--status] / show RUN / sources RUN / report RUN [--write PATH]
 archx-agent research verify RUN          # exit 3 if a citation or a claim fails the check
+archx-agent research close RUN [--note TEXT] / reopen RUN
 archx-agent research search QUERY / stats / delete RUN --yes
 archx-agent jobs submit research "…" --no-model      # the same run, queued (M26)
 ```
 
 Exit codes: `0` completed, `3` incomplete or a verification problem, `4` a capability is
 needed, `2` bad usage, `1` failed.
+
+## Closing a question (schema v20)
+
+A run's `status` describes what the runner did: `completed`, `incomplete`, `failed`. It says
+nothing about whether *you* are finished with the question, and deriving that from coverage is
+how a research tool starts flattering. So there is a second fact, and it is explicit:
+
+```bash
+archx-agent research close RUN --note "enough for the design doc"
+archx-agent research reopen RUN
+archx-agent research list --closed        # the ones you finished with
+archx-agent research list --open          # the ones still on your desk
+```
+
+`close` writes `closed_at` and `closed_note` and records a `research.closed` trace; it does
+**not** touch `status`, `coverage` or `evidence_count`. A second close is a conflict naming the
+first one, and reopening a run that was never closed is a conflict too - neither is a silent
+no-op. The GUI shows *mark complete* on an open run (with an optional note) and *reopen* on a
+closed one. `research list` prints a `closed` column; `research stats` counts open and closed.
+
+What closure is not: a claim that the question was answered. It is the record of your
+judgement, which is exactly what a local-first tool should keep - the number and the decision,
+side by side, never confused for one another.
 
 ## Configuration
 
@@ -146,5 +170,7 @@ needed, `2` bad usage, `1` failed.
   for web pages; the report says so instead of inventing a ranking.
 * It does not read PDFs or binary documents yet (M35 dataset prep brings extraction).
 * It does not chain runs or keep a "research project"; each run is a record you can cite.
+* It does not decide that a question is done. Only `research close` (or the button) does, and
+  that is a note about you, not about the evidence.
 * It cannot make a model cite honestly - only check whether it did, and demote what it did
   not. A model that quotes accurately and reasons badly is still a bad model.

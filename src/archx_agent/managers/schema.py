@@ -882,6 +882,20 @@ LEARNING_V19 = Migration(
     ),
 )
 
+RESEARCH_CLOSURE_V20 = Migration(
+    version=20,
+    name="research-closure",
+    statements=(
+        # A run's status describes what the runner did (completed / incomplete / failed). It
+        # does not describe whether *you* are done with the question - and inferring that from
+        # coverage is how a research tool starts flattering. Closure is a separate, explicit
+        # fact: closed_at is set only by `research close`, never by the runner.
+        "ALTER TABLE research_runs ADD COLUMN closed_at TEXT",
+        "ALTER TABLE research_runs ADD COLUMN closed_note TEXT",
+        "CREATE INDEX IF NOT EXISTS idx_research_runs_closed ON research_runs(closed_at)",
+    ),
+)
+
 MIGRATIONS: tuple[Migration, ...] = (
     CONVERSATIONS_V1,
     PROJECTS_V2,
@@ -902,6 +916,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     JOBS_V17,
     RESEARCH_V18,
     LEARNING_V19,
+    RESEARCH_CLOSURE_V20,
 )
 
 SCHEMA_VERSION = max(m.version for m in MIGRATIONS)

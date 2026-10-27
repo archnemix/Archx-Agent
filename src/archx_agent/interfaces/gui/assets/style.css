@@ -1067,4 +1067,5 @@ progress.bar::-moz-progress-bar { background: var(--accent); border-radius: 999p
 }
 .modal-card h2 { margin: 0 0 6px; font-size: 15.5px; font-weight: 700; letter-spacing: -0.01em; }
 .modal-card p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.55; }
+.modal-card .field { margin-top: 14px; }
 .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }

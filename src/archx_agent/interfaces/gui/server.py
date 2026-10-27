@@ -595,7 +595,13 @@ class GuiApi:
     # -- research -------------------------------------------------------
     @route("GET", "/api/research", "Research runs.")
     def get_research(self, request: Request, match: re.Match[str]) -> list[dict[str, Any]]:
-        runs = self.ws.research.list(limit=request.q_int("limit", 20), status=request.q("status") or None)
+        closure = request.q("closed")
+        closed = None if closure in (None, "") else str(closure).lower() in {"1", "true", "yes"}
+        runs = self.ws.research.list(
+            limit=request.q_int("limit", 20),
+            status=request.q("status") or None,
+            closed=closed,
+        )
         return [run.to_dict() for run in runs]
 
     @route("POST", "/api/research", "Run a research question now, in this process.")
@@ -647,6 +653,20 @@ class GuiApi:
             "labels": {str(source_id): label for source_id, label in labels.items()},
             "verification": verification,
         }
+
+    @route("POST", "/api/research/{run_id}/close", "Mark a run done - your call, not the runner's.")
+    def post_research_close(self, request: Request, match: re.Match[str]) -> dict[str, Any]:
+        run_id = unquote(match.group("run_id"))
+        note = request.payload().get("note") or ""
+        if not isinstance(note, str):
+            raise ApiError(400, "validation", "note must be text")
+        run = self.ws.research.close(run_id, note=note, by="user:gui")
+        return run.to_dict()
+
+    @route("POST", "/api/research/{run_id}/reopen", "Undo a close.")
+    def post_research_reopen(self, request: Request, match: re.Match[str]) -> dict[str, Any]:
+        run = self.ws.research.reopen(unquote(match.group("run_id")), by="user:gui")
+        return run.to_dict()
 
     @route("GET", "/api/research/{run_id}/report", "The report itself, as text.")
     def get_report(self, request: Request, match: re.Match[str]) -> Response:

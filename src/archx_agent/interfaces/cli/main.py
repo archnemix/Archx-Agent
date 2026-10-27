@@ -754,6 +754,8 @@ def build_parser() -> argparse.ArgumentParser:
                          help="let net.fetch reach loopback/private addresses (needs the grant too)")
     res_list = res_sub.add_parser("list", help="research runs (newest first)")
     res_list.add_argument("--status")
+    res_list.add_argument("--closed", action="store_true", help="only runs you marked done")
+    res_list.add_argument("--open", action="store_true", help="only runs you have not marked done")
     res_list.add_argument("--limit", type=int, default=20)
     res_show = res_sub.add_parser("show", help="one run: plan, coverage, limitations, sources")
     res_show.add_argument("run")
@@ -767,6 +769,11 @@ def build_parser() -> argparse.ArgumentParser:
     res_search = res_sub.add_parser("search", help="search past research runs")
     res_search.add_argument("query")
     res_search.add_argument("--limit", type=int, default=10)
+    res_close = res_sub.add_parser("close", help="mark a run done - your call, not the runner's")
+    res_close.add_argument("run")
+    res_close.add_argument("--note", help="what settled it")
+    res_reopen = res_sub.add_parser("reopen", help="undo a close")
+    res_reopen.add_argument("run")
     res_sub.add_parser("stats", help="research counts")
     res_del = res_sub.add_parser("delete", help="delete a run and its sources")
     res_del.add_argument("run")
@@ -3520,17 +3527,23 @@ def cmd_research(args: argparse.Namespace) -> int:
             return EXIT_DEGRADED if problems else EXIT_OK
 
         if command == "list":
-            rows = ws.research.list(limit=args.limit, status=args.status)
+            if getattr(args, "closed", False) and getattr(args, "open", False):
+                return fail("--closed and --open contradict each other", EXIT_USAGE)
+            closed = True if getattr(args, "closed", False) else (
+                False if getattr(args, "open", False) else None
+            )
+            rows = ws.research.list(limit=args.limit, status=args.status, closed=closed)
             if args.json:
                 emit_json([row.to_dict() for row in rows])
             elif not rows:
                 emit("no research runs")
             else:
                 emit(table(
-                    [[row.id, row.status, f"{row.coverage:.0%}", row.evidence_count,
+                    [[row.id, row.status, "done" if row.closed else "open",
+                      f"{row.coverage:.0%}", row.evidence_count,
                       row.planned_by, row.mode, row.question[:40], row.created_at[11:19]]
                      for row in rows],
-                    ["run", "status", "cover", "src", "plan", "mode", "question", "created"],
+                    ["run", "status", "closed", "cover", "src", "plan", "mode", "question", "created"],
                 ))
             return EXIT_OK
 
@@ -3610,6 +3623,25 @@ def cmd_research(args: argparse.Namespace) -> int:
                     emit(f"  - {claim}")
                 emit("result: " + ("ok" if result["ok"] else "problems found"))
             return EXIT_OK if result["ok"] else EXIT_DEGRADED
+
+        if command in {"close", "reopen"}:
+            try:
+                if command == "close":
+                    run = ws.research.close(args.run, note=args.note or "")
+                else:
+                    run = ws.research.reopen(args.run)
+            except NotFoundError as exc:
+                return fail(getattr(exc, "message", str(exc)), EXIT_USAGE)
+            if args.json:
+                emit_json(run.to_dict())
+                return EXIT_OK
+            if command == "close":
+                emit(f"closed {run.id}  {run.question[:60]}")
+                emit(f"  the run itself was {run.status} at {run.coverage:.0%} coverage")
+                emit("  this is your call, not a coverage threshold - reopen it with `research reopen`")
+            else:
+                emit(f"reopened {run.id}  {run.question[:60]}")
+            return EXIT_OK
 
         if command == "search":
             try:

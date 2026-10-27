@@ -80,8 +80,12 @@ def add(manager, goal, prompt="What does ownership mean?", **kwargs):
 # schema
 # --------------------------------------------------------------------------
 class TestSchema:
-    def test_the_schema_is_v19_and_the_versions_are_contiguous(self):
-        assert SCHEMA_VERSION == 19
+    def test_the_schema_reaches_v19_and_the_versions_are_contiguous(self):
+        # Later milestones add migrations on top; what M30 promises is that its own migration
+        # exists, is contiguous with the rest, and that the home is at the newest version.
+        assert SCHEMA_VERSION >= 19
+        assert any(migration.version == 19 and migration.name == "learning-mode"
+                   for migration in MIGRATIONS)
         versions = [migration.version for migration in MIGRATIONS]
         assert versions == sorted(versions)
         assert versions == list(range(1, SCHEMA_VERSION + 1))

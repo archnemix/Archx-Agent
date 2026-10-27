@@ -117,10 +117,18 @@ class ResearchRun:
     settings: dict[str, Any] = field(default_factory=dict)
     task_id: str | None = None
     updated_at: str | None = None
+    closed_at: str | None = None
+    closed_note: str | None = None
 
     @property
     def terminal(self) -> bool:
+        """The runner has nothing left to do. Not the same as the user being done."""
         return self.status in TERMINAL
+
+    @property
+    def closed(self) -> bool:
+        """The user marked this question done. Only `close()` sets it."""
+        return bool(self.closed_at)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -144,6 +152,9 @@ class ResearchRun:
             "created_at": self.created_at,
             "completed_at": self.completed_at,
             "updated_at": self.updated_at,
+            "closed": self.closed,
+            "closed_at": self.closed_at,
+            "closed_note": self.closed_note,
         }
 
 
@@ -179,6 +190,8 @@ def _run_from_row(row: Mapping[str, Any]) -> ResearchRun:
         settings=_json(row.get("settings"), {}),
         task_id=row.get("task_id"),
         updated_at=row.get("updated_at"),
+        closed_at=row.get("closed_at"),
+        closed_note=row.get("closed_note"),
     )
 
 
@@ -300,12 +313,23 @@ class ResearchManager(BaseManager):
             raise NotFoundError(f"no research run {run_id!r}")
         return _run_from_row(rows[0])
 
-    def list(self, *, limit: int = 20, status: str | None = None) -> list[ResearchRun]:
-        clause = " WHERE status = ?" if status else ""
-        params: tuple[Any, ...] = (status, limit) if status else (limit,)
+    def list(
+        self, *, limit: int = 20, status: str | None = None, closed: bool | None = None
+    ) -> list[ResearchRun]:
+        wheres: list[str] = []
+        params: list[Any] = []
+        if status:
+            wheres.append("status = ?")
+            params.append(status)
+        if closed is True:
+            wheres.append("closed_at IS NOT NULL")
+        elif closed is False:
+            wheres.append("closed_at IS NULL")
+        clause = (" WHERE " + " AND ".join(wheres)) if wheres else ""
+        params.append(limit)
         rows = self.store.query(
             "SELECT * FROM research_runs" + clause + " ORDER BY created_at DESC, rowid DESC LIMIT ?",
-            params,
+            tuple(params),
         )
         return [_run_from_row(row) for row in rows]
 
@@ -323,11 +347,16 @@ class ResearchManager(BaseManager):
             by_status[str(row["status"])] = int(row["n"])
         total = int(self.store.scalar("SELECT COUNT(*) FROM research_runs") or 0)
         sources = int(self.store.scalar("SELECT COUNT(*) FROM research_sources") or 0)
+        closed = int(
+            self.store.scalar("SELECT COUNT(*) FROM research_runs WHERE closed_at IS NOT NULL") or 0
+        )
         return {
             "total": total,
             "by_status": by_status,
             "sources": sources,
             "runs": total,
+            "closed": closed,
+            "open": total - closed,
         }
 
     def search(self, query: str, *, limit: int = 10) -> list[dict[str, Any]]:
@@ -466,6 +495,43 @@ class ResearchManager(BaseManager):
             payload={"run_id": run_id, "status": status,
                      "coverage": float(coverage or 0.0),
                      "evidence": int(evidence_count or 0)},
+        )
+        return self.get(run_id)
+
+    def close(self, run_id: str, *, note: str | None = None, by: str = "user:cli") -> ResearchRun:
+        """Mark a question done. This is the user's call; the runner never sets it.
+
+        The run's own status stays what the runner reported - closing records that *you* are
+        finished with the question, whatever the coverage turned out to be.
+        """
+        run = self.get(run_id)
+        if run.closed:
+            raise ConflictError(f"research run {run_id} was already closed at {run.closed_at}")
+        changes = {
+            "closed_at": iso_now(),
+            "closed_note": (note or "").strip() or None,
+            "updated_at": iso_now(),
+        }
+        self._write("research.update", {"id": run_id, "fields": changes})
+        self.trace(
+            "research", "research.closed", status="ok",
+            payload={"run_id": run_id, "by": by, "status": run.status,
+                     "coverage": float(run.coverage or 0.0)},
+        )
+        return self.get(run_id)
+
+    def reopen(self, run_id: str, *, by: str = "user:cli") -> ResearchRun:
+        """Undo a close. A run that was never closed is a conflict, not a silent no-op."""
+        run = self.get(run_id)
+        if not run.closed:
+            raise ConflictError(f"research run {run_id} is not closed")
+        self._write("research.update", {
+            "id": run_id,
+            "fields": {"closed_at": None, "closed_note": None, "updated_at": iso_now()},
+        })
+        self.trace(
+            "research", "research.reopened", status="ok",
+            payload={"run_id": run_id, "by": by},
         )
         return self.get(run_id)
 

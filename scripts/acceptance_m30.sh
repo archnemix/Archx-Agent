@@ -61,8 +61,10 @@ printf 'M30 acceptance on %s\n' "$HOME_DIR"
 say "a fresh home knows about learning"
 "$CLI" learning goal list >/dev/null
 check "the build is M30" "$("$CLI" --version | awk '{print $3}')" "0.30.0"
-check "the schema has been migrated to v19 for learning" \
-  "$(dbq 'select max(version) from schema_migrations')" "19"
+check "the schema has been migrated through v19 for learning" \
+  "$([ "$(dbq 'select max(version) from schema_migrations')" -ge 19 ] && echo yes)" "yes"
+check "the v19 migration is the learning one" \
+  "$(dbq "select name from schema_migrations where version = 19")" "learning-mode"
 check "a fresh home opens the learning tables" \
   "$(dbq "select count(*) from sqlite_master where type='table' and name like 'learning%'")" "5"
 check "the group is reachable from the CLI" "$("$CLI" learning --help | grep -c 'what you are learning')" "1"

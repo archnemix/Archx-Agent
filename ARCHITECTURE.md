@@ -226,6 +226,8 @@ learning goal/item/session/attempt  ->  managers/learning.py   (rows, coordinato
                                     ->  CLI `learning ...`, GUI `/api/learning*`
 ```
 
+* **Schema v20** adds `closed_at`/`closed_note` to a research run, so "the run finished" and
+  "I am done with the question" stay two facts.
 * **Schema v19** adds `learning_sessions` and `learning_attempts` and the schedule columns on
   the v8 `learning_lessons`. One migration, no renumbering.
 * **The manager owns the rows; the service owns the policy.** `schedule()`, `grade_answer()`

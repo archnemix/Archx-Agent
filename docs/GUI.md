@@ -37,7 +37,7 @@ HttpOnly session cookie, and never keeps the token itself.
 |-------|--------------|------------------------|
 | **Status** | counts, schema, what is blocked and the exact command that unblocks it | `workspace.info()`, live manager stats |
 | **Chat** | one turn, conversation list, warnings, `simulated` and token counts | `ChatService.send` - the same path as `chat --message` |
-| **Research** | run a question, watch coverage, read the report, see the sources *including the ones that failed* | `ResearchRunner.run` + `research verify`'s own check |
+| **Research** | run a question, watch coverage, read the report, see the sources *including the ones that failed*, then mark the question done (or reopen it) | `ResearchRunner.run` + `research verify`'s own check |
 | **Search** | one query across every source, with `degraded`/`skipped` notes | `SearchService.search` |
 | **Tasks** | history, timeline, artifacts, tool runs | `TaskManager` |
 | **Jobs** | queue, stats, pause/resume/cancel/retry, "run one queued job" | `JobManager` + `JobRunner` |
@@ -55,8 +55,8 @@ the command that would fix it - the same refusals as the CLI, in the same words.
 
 The page is only interesting with something in it. `scripts/seed_demo.sh [home]` builds a
 throwaway workspace (`~/.archx-demo` by default) through the ordinary CLI: a scripted model,
-one conversation, three memories, a learning goal with an item ladder and two attempts, and a
-queued job. It never deletes an existing home and skips whatever is already there, so it is
+one conversation, three memories, a learning goal with an item ladder and two attempts, one
+local research run with its sources, and a queued job. It never deletes an existing home and skips whatever is already there, so it is
 safe to re-run after a restore.
 
 ```bash
@@ -98,7 +98,9 @@ where the action was taken, with the error code. Every list (conversations, rese
 goals, tasks) is a picker that marks the open record; every long table is a scroll container
 with a sticky header; every copy, save, approve, deny, revoke, pause, resume, retry and cancel
 button is wired to the endpoint behind it, and a toast confirms what the server said.
-The three acts that cannot be undone from the page - denying an approval, revoking a
+The research panel carries one state change that belongs to the user alone: *mark complete*
+asks for an optional note and records your judgement without touching the run's own status,
+and *reopen* undoes it. The three acts that cannot be undone from the page - denying an approval, revoking a
 grant, cancelling a job - open a confirmation dialog that names exactly what will happen,
 and `Escape` or a click outside dismisses it.
 
@@ -177,7 +179,8 @@ The page uses only these; so can you.
 | GET | `/api/jobs`, POST `/api/jobs/{id}/{pause,resume,cancel,retry}`, POST `/api/jobs/drain` | the queue |
 | GET | `/api/approvals`, POST `/api/approvals/{id}/{approve,deny}` | decisions |
 | GET | `/api/permissions`, POST `/api/permissions/{id}/revoke` | grants and capabilities |
-| GET/POST | `/api/research`, GET `/api/research/{id}`, GET `/api/research/{id}/report` | runs, sources, verification, the report |
+| GET/POST | `/api/research`, GET `/api/research/{id}`, GET `/api/research/{id}/report` | runs (`?closed=1` / `?closed=0`), sources, verification, the report |
+| POST | `/api/research/{id}/{close,reopen}` | mark a question done (with an optional note) or put it back; `409` if it is already in that state |
 | GET | `/api/learning`, `/api/learning/goals/{id}` | goals with progress, then items, next-up, sessions |
 | POST | `/api/learning/goals`, `/api/learning/goals/{id}/items`, `/api/learning/goals/{id}/{plan,answer,review}`, `/api/learning/items/{id}/hint` | create a goal, add an item, plan, answer, review, reveal one hint |
 
