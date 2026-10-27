@@ -398,7 +398,7 @@
         <header class="page-head">
           <div>
             <h1>Models</h1>
-            <p>The catalogue, including what this build cannot run — and the reason it prints.</p>
+            <p>What this build can run, what it cannot — and the gates a cloud model has to pass before a byte leaves this machine.</p>
           </div>
           <div class="ph-actions">
             <button id="models-refresh" class="icon-btn" type="button" title="Reload models" aria-label="Reload models">
@@ -407,6 +407,32 @@
           </div>
         </header>
         <div class="page-body">
+          <form id="models-form" class="card">
+            <div class="card-head">
+              <h3>Connect Gemini</h3>
+              <p class="hint">The key is never typed into this page. Archx reads it from your environment at request time (<code>GEMINI_API_KEY</code> unless you name another reference) and stores only the reference — so the database, the trace and the logs cannot leak it.</p>
+            </div>
+            <div class="grid2">
+              <label class="field">Name in the catalogue
+                <input id="models-name" type="text" required placeholder="flash">
+              </label>
+              <label class="field">Model id
+                <input id="models-model" type="text" required placeholder="gemini-2.0-flash">
+              </label>
+            </div>
+            <div class="grid2">
+              <label class="field">Key reference
+                <input id="models-credential" type="text" placeholder="secret://env/GEMINI_API_KEY">
+              </label>
+              <label class="field">Endpoint (optional)
+                <input id="models-base" type="text" placeholder="https://generativelanguage.googleapis.com">
+              </label>
+            </div>
+            <div class="row between">
+              <button type="submit" class="btn primary">Register model</button>
+              <span id="models-status" class="hint"></span>
+            </div>
+          </form>
           <div id="models-list" class="stack"></div>
         </div>
       </section>

@@ -104,11 +104,95 @@ Not verified here:
 * pricing is unverified for the same reason, which is why no default prices ship;
 * region/residency claims are stored as text, not interpreted.
 
+## Google Gemini (a second wire protocol)
+
+Google's API is not OpenAI-shaped: it has no `/chat/completions`, no `messages` array and no
+`max_tokens`. Rather than translate one vendor's body into another's and hope, a second
+runtime speaks it directly - `adapters/gemini_runtime.py` (`runtime_id = "gemini"`,
+`provider = "google"`).
+
+```bash
+archx-agent models add-gemini --name flash --model gemini-2.0-flash \
+    --credential-ref secret://env/GEMINI_API_KEY     # the default, and the only form accepted
+archx-agent models probe flash --capability chat     # a real call; a pass is a measurement
+archx-agent chat --message "hello" --model flash
+```
+
+The endpoint is `https://generativelanguage.googleapis.com/v1beta/models/<id>:generateContent`
+(and `:streamGenerateContent?alt=sse` for streaming). What the client builds and parses:
+
+| Archx | Gemini |
+|-------|--------|
+| `{"role": "system"}` | `systemInstruction.parts[].text` (never a `contents` entry) |
+| `user` / `assistant` | `contents[].role` = `user` / `model`; consecutive same-role turns are merged, because the protocol alternates |
+| `temperature`, `top_p`, `max_tokens`, `stop` | `generationConfig.{temperature,topP,maxOutputTokens,stopSequences}` |
+| the reply | `candidates[0].content.parts[].text`, skipping parts marked `thought: true` |
+| `finish_reason` | `STOP` -> `stop`, `MAX_TOKENS` -> `length`, `SAFETY` -> `safety` |
+| token counts | `usageMetadata.{promptTokenCount,candidatesTokenCount,totalTokenCount}` |
+| a refusal | `promptFeedback.blockReason` is an error, not an empty answer |
+
+The key is sent only as the `x-goog-api-key` header - never in the query string, so it cannot
+end up in a URL that gets logged - and it is resolved from the reference at request time,
+registered with the redactor, and wiped on `close()`.
+
+### The failure taxonomy
+
+A provider that returns every problem as "something went wrong" is unusable, so each case maps
+to its own domain error with its own retry flag:
+
+| upstream | classified as | retried |
+|----------|---------------|---------|
+| 400/401/403, or a message saying the key is invalid | `AuthDeniedError` | no |
+| 404, "model not found" | `ModelNotFoundError` | no |
+| 429 naming quota, billing or credits | `QuotaExhaustedError` (`EntitlementError`) | no |
+| 429 for a burst limit | `RateLimitedError` | yes |
+| 5xx | `ProviderOutageError` | yes |
+| a non-JSON body | `MalformedOutputError` | no |
+| empty parts together with `SAFETY` | `MalformedOutputError` | no |
+| `promptFeedback.blockReason` | `ProviderError`, naming the reason | no |
+
+Gemini reports **both** a per-minute rate limit and an exhausted plan quota as
+`429 RESOURCE_EXHAUSTED`, so the split is made on the message. Telling a user to buy capacity
+over a burst limit is the kind of advice that costs money.
+
+Google echoes the offending key back inside its "API key not valid" message, so anything that
+becomes an error message is redacted to `[REDACTED]` before it is shown, traced or exported;
+`[REDACTED]` stays visible rather than being deleted, so a caller can see that the vendor
+repeated it. `scripts/acceptance_gemini.sh` asserts exactly this.
+
+### Is any of it verified?
+
+Verified here, against a real socket:
+
+* a real Gemini client driven end to end against `scripts/gemini_protocol_stub.py`, which
+  speaks the documented protocol (`pytest tests/test_gemini_m21.py`, 56 tests);
+* the four-rung consent ladder applied to this runtime, in the CLI and over HTTP
+  (`TestWorkspace`, `TestGui`);
+* the error taxonomy above, the redaction, streaming, and the fact that neither the database,
+  the trace, the logs nor the page ever contains the key;
+* `scripts/acceptance_gemini.sh`, 60 self-checking assertions.
+
+**Not verified:** that Google's service behaves as documented *today*. This sandbox's egress
+filter closes the TLS connection to `generativelanguage.googleapis.com`, so no live call was
+possible from here. The client's side of the protocol is proven; the vendor's side is not, and
+no document in this repository claims otherwise.
+
+### The same four gates, in the page
+
+`GET /api/models` returns each model's `gates`: `consent_policy`, `provider`, `privacy`,
+`consent`. They are computed by the same conditions `Workspace.assert_remote_allowed` enforces,
+so the page cannot show a green ladder for a call the workspace would refuse. The Models panel
+draws one row per rung and offers the button that climbs it
+(`POST /api/settings/model.local_only`, `POST /api/models/{id}/provider`,
+`POST /api/providers/{id}/privacy`, `POST /api/providers/{id}/consent`). A rung that cannot be
+climbed yet stays visible with the reason instead of disappearing.
+
 ## Adding a provider
 
 1. `providers add <name> --template <slug>` (or `--base-url` for anything custom);
 2. `providers confirm ...` with the terms *you* read;
 3. `providers consent <name>`;
-4. `models add-http --name <model> --base-url <url> --model <model_ref>`;
+4. `models add-http --name <model> --base-url <url> --model <model_ref>`
+   (or `models add-gemini` for Google);
 5. `archx-agent chat` - and if the provider is remote, `model.local_only` must be `false`
    first, which is a deliberate, visible change rather than a silent default.

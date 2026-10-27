@@ -192,6 +192,21 @@ def build_parser() -> argparse.ArgumentParser:
     m_add_http.add_argument("--credential-ref", help="secret://env/NAME reference (never the key itself)")
     m_add_http.add_argument("--capability", action="append", default=[])
     m_add_http.add_argument("--verification", default="inferred", choices=list(VERIFICATION_STATES))
+    m_add_gemini = m_sub.add_parser(
+        "add-gemini", help="register a Google Gemini model and run real inference through it"
+    )
+    m_add_gemini.add_argument("--name", required=True)
+    m_add_gemini.add_argument("--model", required=True, help="model id, e.g. gemini-2.0-flash")
+    m_add_gemini.add_argument(
+        "--credential-ref", default="secret://env/GEMINI_API_KEY",
+        help="where the key lives: secret://env/NAME or secret://file/PATH (never the key itself)",
+    )
+    m_add_gemini.add_argument("--base-url", default=None,
+                              help="override the endpoint (default: Google's generativelanguage host)")
+    m_add_gemini.add_argument("--api-version", default="v1beta")
+    m_add_gemini.add_argument("--context-length", type=int, default=1048576)
+    m_add_gemini.add_argument("--capability", action="append", default=[])
+    m_add_gemini.add_argument("--verification", default="inferred", choices=list(VERIFICATION_STATES))
     m_add_scripted = m_sub.add_parser("add-scripted", help="register the simulated test double (no inference)")
     m_add_scripted.add_argument("--name", default="simulated-demo")
     m_show = m_sub.add_parser("show", help="show one model in detail")
@@ -1250,6 +1265,41 @@ def cmd_models(args: argparse.Namespace) -> int:
             emit(f"registered {record.name} ({record.id}) provider={record.provider} runtime={record.runtime}")
             emit(f"  endpoint {args.base_url}")
             emit("  note: capabilities are claims until verified with `archx-agent models verify`")
+            return EXIT_OK
+        if command == "add-gemini":
+            from archx_agent.adapters.gemini_runtime import DEFAULT_BASE_URL
+
+            base_url = (args.base_url or DEFAULT_BASE_URL).rstrip("/")
+            if not str(args.credential_ref).startswith("secret://"):
+                return fail(
+                    "credentials must be a secret://env/NAME or secret://file/PATH reference, "
+                    "not the key itself (the key would end up in the config, the trace and the logs)",
+                    EXIT_USAGE,
+                )
+            record = ws.register_gemini(
+                args.name,
+                model_ref=args.model,
+                base_url=base_url,
+                credential_ref=args.credential_ref,
+                api_version=args.api_version,
+                context_length=args.context_length,
+                capabilities=args.capability or ["chat"],
+                verification=args.verification,
+            )
+            emit(f"registered {record.name} ({record.id}) provider={record.provider} runtime={record.runtime}")
+            emit(f"  model    {record.model_ref}")
+            emit(f"  endpoint {base_url}/{args.api_version}")
+            emit(f"  key      read at use time from {args.credential_ref} (never stored)")
+            ready, why = ws.runtime_availability(record)
+            emit(f"  runtime  {'ready' if ready else 'not ready'} - {why}")
+            if str(base_url).startswith("https://") and not record.provider.startswith("local"):
+                if ws.config.get("model.local_only"):
+                    emit("")
+                    emit("note: model.local_only is true, so a chat turn will refuse to send")
+                    emit("      anything to this endpoint until you set it false deliberately.")
+                emit("note: this endpoint is remote; `providers add google`, confirm its privacy")
+                emit("      terms and record consent before the first call (see docs/PROVIDERS.md).")
+            emit("note: capabilities are claims until measured with `archx-agent models probe`")
             return EXIT_OK
         if command == "add-scripted":
             record = ws.models.register_remote(

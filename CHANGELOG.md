@@ -5,7 +5,40 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 
 ## [Unreleased]
 
+### Added
+- **Google Gemini is a real provider.** `adapters/gemini_runtime.py` speaks the
+  `generateContent` / `streamGenerateContent` protocol natively (`contents`, `systemInstruction`,
+  `generationConfig`, `usageMetadata`, `promptFeedback`), sends the key only as the
+  `x-goog-api-key` header, and classifies 400/401/403, 404, 429-as-quota vs 429-as-burst-limit,
+  5xx, non-JSON and safety blocks into distinct domain errors with their own retry flags.
+  `models add-gemini --name flash --model gemini-2.0-flash [--credential-ref secret://env/…]`
+  registers it and refuses a literal key with exit 2.
+- `Workspace.register_gemini` is the one registration path, used by the CLI *and* the GUI.
+- The GUI Models panel is now actionable: a *Connect Gemini* form (the key is a `secret://`
+  reference, never typed in), `test chat` per model, and the **consent ladder** - four rungs
+  (`consent_policy`, `provider`, `privacy`, `consent`) rendered from the same conditions
+  `assert_remote_allowed` enforces, each with the button that climbs it.
+- API: `GET /api/models` gained `gates` + `provider_id`; `GET/POST /api/models`,
+  `GET /api/models/{id}`, `POST /api/models/{id}/{probe,provider}`, `GET /api/providers`,
+  `POST /api/providers/{id}/{privacy,consent}`, `POST /api/settings/model.local_only`
+  (persisted to `config.json`, so a restart agrees with the page).
+- `scripts/gemini_protocol_stub.py`, `scripts/acceptance_gemini.sh` (60 self-checking
+  assertions over a real socket) and `scripts/gui_smoke.mjs` (jsdom: ten tabs render, four
+  ladder rungs draw, the form posts, no page errors).
+- `tests/test_gemini_m21.py` (56 tests: request shape, credential handling, answer parsing,
+  streaming, the failure taxonomy, the consent gate, the GUI ladder).
+
 ### Changed
+- **Every network-capable runtime is gated by one allow-list.** `Workspace.NETWORK_RUNTIMES`
+  replaces the per-runtime check in `assert_remote_allowed`, so a new adapter cannot become a
+  way around the consent rules.
+- The "endpoint is not a registered provider" refusal now names the right template
+  (`--template google` for a Gemini model, `--template openai` for the rest).
+- `ModelManager.update` merges `facts` and `user_metadata` instead of replacing them, and
+  `facts` is a writable field - a model's endpoint and API version could previously be set
+  once and never corrected.
+- The provider-echoed key inside a Gemini error is redacted to `[REDACTED]` before the message
+  reaches the caller.
 - **The GUI is rebuilt.** One shell (`index.html` + `style.css` + `app.js`, still no build
   step, no CDN and no inline style): a 258px sidebar with Modes · Work · Control that
   collapses to a 64px icon rail and remembers it, a top bar with the current mode's live tool

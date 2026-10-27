@@ -803,6 +803,46 @@ rather than a no-op, and closing never rewrites `status`, `coverage` or `evidenc
 page shows the timestamp and the note next to the run, so the number and the judgement stay
 side by side and are never mistaken for each other.
 
+## A second provider protocol (Gemini)
+
+**D135. A vendor's protocol gets an adapter, not a translation layer.**
+The tempting shortcut was to make Gemini look OpenAI-shaped - rewrite `contents` into
+`messages` and post it to `/chat/completions`. It would have "worked" for the happy path and
+lied about everything else: no `systemInstruction`, no `thought` parts, no `promptFeedback`,
+and a 429 that means two different things. Writing the protocol down once, in one adapter, is
+less code than debugging a translator nobody can see.
+
+**D136. One allow-list decides what may touch the network.**
+`assert_remote_allowed` used to name the OpenAI-compatible runtimes explicitly, which was fine
+until a second adapter existed: the gate was one `if` away from not covering it. The gate is now
+driven by `Workspace.NETWORK_RUNTIMES`, and a test asserts the set contains every runtime that
+has a network transport. A new adapter is either in that set (gated) or has no network path;
+there is no third option.
+
+**D137. The page's ladder is the same ladder, computed by the same rules.**
+The Models panel shows four rungs per remote model. It would have been easy - and useless - to
+re-implement "is this allowed?" in JavaScript. `GET /api/models` exposes `gates`, built beside
+the enforcement code from the same conditions, and the acceptance script asserts that the
+ladder reads green exactly when a call would succeed. A UI that disagrees with the gate is
+worse than no UI: it teaches the user to expect a refusal.
+
+**D138. Errors are classified by message when the status is ambiguous.**
+Gemini uses `429 RESOURCE_EXHAUSTED` for a burst limit *and* for an exhausted plan. Reporting
+both as "quota exhausted" tells a user to buy capacity they do not need; reporting both as
+"rate limited" hides a billing problem. The classifier reads the message for quota, billing or
+credit wording and keeps them apart, and the acceptance script checks both branches.
+
+**D139. A redaction that deletes the evidence is not a redaction.**
+The vendor echoes the submitted key inside its own 400 body. Dropping the whole message would
+be safe and useless - the operator could not tell "wrong key" from "wrong endpoint". The
+message is kept, the key becomes `[REDACTED]`, and a test asserts the token is present, not
+merely that the key is absent, so a future "fix" that strips the message fails the suite.
+
+**D140. One registration path for two interfaces.**
+`models add-gemini` and the Models panel both call `Workspace.register_gemini`, so the rule
+"credentials are references, never literals" lives in one place. Duplicated registration code
+is how a GUI quietly becomes the one surface that stores a key.
+
 ## Storage and config
 
 **D31. Unknown config keys are errors.**

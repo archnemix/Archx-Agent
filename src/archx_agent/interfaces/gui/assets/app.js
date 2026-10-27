@@ -1674,23 +1674,159 @@
   });
 
   // ------------------------------------------------------------------- models
+  /* The consent ladder is not decoration: each rung posts the same call the CLI makes, and
+   * the next render reads the answer back from the server. Nothing here flips a flag locally. */
+  const GATE_ACTIONS = {
+    consent_policy: {
+      label: "Allow cloud routing",
+      run: (model) => api("POST", "/api/settings/model.local_only", { value: false }),
+      done: "Cloud routing allowed. This home may now talk to the endpoints you registered.",
+    },
+    provider: {
+      label: "Register the provider",
+      run: (model) => api("POST", "/api/models/" + encodeURIComponent(model.id) + "/provider", {}),
+      done: "Provider registered. Its privacy terms still need your answer.",
+    },
+    privacy: {
+      label: "Confirm what leaves the device",
+      // A provider's terms are the user's to state; guessing them here would be a fake answer.
+      run: (model) => api("POST", "/api/providers/" + encodeURIComponent(model.provider_id) + "/privacy", {
+        data_leaves_device: true,
+        training_use: "unknown",
+        retention: "unknown",
+      }),
+      done: "Recorded: prompts leave this device and the provider's training use is unknown.",
+    },
+    consent: {
+      label: "Record consent",
+      run: (model) => api("POST", "/api/providers/" + encodeURIComponent(model.provider_id) + "/consent",
+        { note: "consent recorded in the GUI" }),
+      done: "Consent recorded, with a timestamp.",
+    },
+  };
+
+  function gateRow(model, gate) {
+    const action = GATE_ACTIONS[gate.key];
+    // privacy and consent belong to a provider row; without one there is nothing to POST to
+    const needsProvider = gate.key === "privacy" || gate.key === "consent";
+    const blocked = needsProvider && !model.provider_id;
+    const control = gate.ok || !action || blocked ? null : el("button", {
+      class: "btn tiny",
+      type: "button",
+      onclick: async (event) => {
+        if (gate.key === "privacy") {
+          const sure = await ask({
+            title: "Send prompts to " + (model.provider || "this provider") + "?",
+            text: "Confirming this records that prompts and replies leave this machine and that the provider's training use is unknown. Only say yes if that is what you want.",
+            okLabel: "Yes, data leaves this device",
+          });
+          if (!sure) return;
+        }
+        const button = event.currentTarget;
+        button.disabled = true;
+        try {
+          await action.run(model);
+          toast("Done", action.done, "ok");
+          await loaders.models();
+          invalidateStatus();
+        } catch (error) {
+          button.disabled = false;
+          toast("Refused", error.message, "err");
+        }
+      },
+    }, [action.label]);
+    return el("div", { class: "rung" + (gate.ok ? " rung-ok" : "") }, [
+      el("span", { class: "rung-dot", "aria-hidden": "true" }),
+      el("div", { class: "rung-body" }, [
+        el("div", { class: "rung-label", text: gate.label }),
+        el("div", { class: "rung-detail", text: gate.detail }),
+      ]),
+      control,
+    ]);
+  }
+
+  function modelCard(model) {
+    const caps = (model.capabilities || []).map((cap) => el("span", { class: "tag", text: cap }));
+    return el("div", { class: "card model-card" }, [
+      el("div", { class: "row between" }, [
+        el("div", {}, [
+          el("div", { class: "model-name", text: model.name || model.id }),
+          el("span", { class: "model-backend", text: (model.provider || "?") + " · " + model.runtime }),
+        ]),
+        el("div", { class: "row" }, [
+          model.ready ? badge("ready", "ok") : badge("blocked", "bad"),
+          el("button", {
+            class: "btn tiny",
+            type: "button",
+            title: "Send one small prompt and record the measurement",
+            onclick: async (event) => {
+              const button = event.currentTarget;
+              button.disabled = true;
+              button.textContent = "testing…";
+              try {
+                const probe = await api("POST", "/api/models/" + encodeURIComponent(model.id) + "/probe",
+                  { capability: "chat" });
+                const result = probe.result || {};
+                if (result.outcome === "passed") {
+                  toast("Probe passed", result.detail, "ok");
+                } else {
+                  toast("Probe failed", result.detail || "the model did not answer", "err");
+                }
+                await loaders.models();
+              } catch (error) {
+                toast("Probe failed", error.message, "err");
+              } finally {
+                button.disabled = false;
+                button.textContent = "test chat";
+              }
+            },
+          }, ["test chat"]),
+        ]),
+      ]),
+      el("p", { class: "ready-reason", text: model.ready_reason }),
+      caps.length ? el("div", { class: "row caps" }, caps) : null,
+      el("div", { class: "rungs" }, (model.gates || []).map((gate) => gateRow(model, gate))),
+    ]);
+  }
+
   loaders.models = async () => {
     const models = await api("GET", "/api/models");
     const panel = clear(document.getElementById("models-list"));
-    panel.append(table(["name", "runtime", "task", "ready", "why", "capabilities"], models.map((model) => [
-      el("div", {}, [
-        el("div", { text: model.name || model.id }),
-        el("span", { class: "model-backend", text: model.provider || "" }),
-      ]),
-      model.runtime, model.task || "–",
-      model.ready ? badge("yes", "ok") : badge("no", "bad"),
-      el("span", { class: "ready-reason", text: model.ready_reason }),
-      (model.capabilities || []).join(", "),
-    ]), "no models registered – add one with `archx-agent models add-http`"));
+    if (!models.length) {
+      panel.append(el("p", { class: "muted-box", text: "No model is registered yet. Connect Gemini above, or add a local endpoint with `archx-agent models add-http`." }));
+      return;
+    }
+    for (const model of models) panel.append(modelCard(model));
   };
 
   document.getElementById("models-refresh").addEventListener("click", () => {
     loaders.models().catch((error) => report(document.getElementById("models-list"), error));
+  });
+
+  document.getElementById("models-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const status = document.getElementById("models-status");
+    const button = event.target.querySelector("button[type=submit]");
+    status.textContent = "registering…";
+    button.disabled = true;
+    try {
+      const created = await api("POST", "/api/models", {
+        name: document.getElementById("models-name").value,
+        model: document.getElementById("models-model").value,
+        credential_ref: document.getElementById("models-credential").value,
+        base_url: document.getElementById("models-base").value,
+      });
+      document.getElementById("models-credential").value = "";
+      status.textContent = created.ready ? "ready: " + created.ready_reason : created.ready_reason;
+      toast("Model registered", created.name + " · " + created.runtime, "ok");
+      await loaders.models();
+      invalidateStatus();
+    } catch (error) {
+      status.textContent = "";
+      toast("Could not register", error.message, "err");
+    } finally {
+      button.disabled = false;
+    }
   });
 
   // -------------------------------------------------------- chrome (theme, rail)

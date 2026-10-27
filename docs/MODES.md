@@ -63,7 +63,7 @@ are the application calls; "status" is what works today.
 | Jobs | run durable queued work | queue stats, pause/resume/cancel/retry, "run one queued job" | `JobManager` + `JobRunner` | works |
 | Access | decide what Archx may do | pending approvals, approve/deny, grants, revoke, capability list | `PermissionManager` | works |
 | Memory | what Archx keeps about you | kind, category, title, content, stored list | `MemoryManager` (duplicate check included) | works |
-| Models | which models can run here | catalogue with the reason each cannot | `ModelManager` + `runtime_availability` | works |
+| Models | which models can run here | catalogue with the reason each cannot, **Connect Gemini** (name, model id, key *reference*), `test chat` per model, and the four-rung consent ladder with the button that climbs each rung | `ModelManager` + `runtime_availability` + `Workspace.assert_remote_allowed` + `GeminiChatRuntime` | works |
 | Status | what this home is | counts, schema, blocked items and the exact next command | `workspace.info()` | works |
 | Coding / Experimental / Play / Voice | **planned** | — | — | **not built**; no button pretends otherwise |
 

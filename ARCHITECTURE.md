@@ -454,7 +454,14 @@ declarations - a failed probe always wins.
   dependency or the file is missing (never pretends to work);
 * `HttpChatRuntime` - OpenAI-compatible endpoint; classifies 401/402/404/429/5xx/
   timeouts into distinct domain errors with `retryable` flags;
+* `GeminiChatRuntime` - Google's `generateContent` / `streamGenerateContent`, a different
+  wire protocol rather than a translation of the OpenAI one (see `docs/PROVIDERS.md`);
 * `ScriptedRuntime` - a labelled test double, disabled unless explicitly enabled.
+
+Every runtime that can reach a network endpoint is listed in
+`Workspace.NETWORK_RUNTIMES`, and `assert_remote_allowed` gates all of them. Adding an
+adapter without adding it there is the one mistake that would let a provider bypass the
+consent rules, so the list is a single constant rather than a check per adapter.
 
 The catalogue (`managers/models.py`) keeps **facts** (observed), **claims** (from
 filenames/cards/providers) and **user metadata** (preferences) in separate columns, and

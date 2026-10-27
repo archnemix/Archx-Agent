@@ -272,12 +272,16 @@ class ModelManager(BaseManager):
             "provider",
             "last_error",
             "last_used_at",
+            # `facts` is how an endpoint is described (base_url, api_version). It was
+            # readable but not writable, so `models add-gemini` could set a base_url once and
+            # never correct it.
+            "facts",
         }
         sets, params = [], []
         for key, value in payload["fields"].items():
             if key not in allowed:
                 raise ValidationError(f"cannot update model field {key!r}")
-            if key in {"user_metadata", "capability_basis"}:
+            if key in {"user_metadata", "capability_basis", "facts"}:
                 value = json_text(value or {})
             elif key in {"verified_capabilities", "tags"}:
                 value = json_text(value or [])
@@ -558,7 +562,16 @@ class ModelManager(BaseManager):
         return "removed"
 
     def update(self, model_id: str, **fields: Any) -> ModelRecord:
-        self.require(model_id)
+        """Change one model row. Nested metadata is *merged*, not replaced."""
+        current = self.require(model_id)
+        if "user_metadata" in fields and fields["user_metadata"] is not None:
+            merged = dict(current.user_metadata)
+            merged.update(fields["user_metadata"])
+            fields["user_metadata"] = merged
+        if "facts" in fields and fields["facts"] is not None:
+            merged_facts = dict(current.facts or {})
+            merged_facts.update(fields["facts"])
+            fields["facts"] = merged_facts
         self._write("model.update", {"id": model_id, "fields": fields})
         return self.require(model_id)
 

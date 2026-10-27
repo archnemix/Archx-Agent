@@ -19,7 +19,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Sequence, Mapping
 
 from archx_agent import __version__
 from archx_agent.adapters.embedding_runtime import (
@@ -28,16 +28,22 @@ from archx_agent.adapters.embedding_runtime import (
     HttpEmbeddingProvider,
     SentenceTransformerProvider,
 )
+from archx_agent.adapters.gemini_runtime import DEFAULT_BASE_URL as GEMINI_BASE_URL, GeminiChatRuntime
 from archx_agent.adapters.http_runtime import HttpChatRuntime
 from archx_agent.adapters.llama_cpp_runtime import LlamaCppRuntime
 from archx_agent.adapters.extension_runtime import ExtensionRuntime
 from archx_agent.adapters.local_tools import LocalToolRuntime
 from archx_agent.adapters.model_runtime import ModelRuntime, ModelSpec
 from archx_agent.adapters.scripted_runtime import ENV_FLAG, ScriptedRuntime
+
+# Runtimes that can send data off this machine. `assert_remote_allowed` treats every one of
+# them the same way; adding a runtime here is a deliberate act, not an oversight to fix later.
+NETWORK_RUNTIMES = frozenset({"openai-http", "http", "gemini"})
 from archx_agent.helpers.backup_recovery import create_backup
 from archx_agent.helpers.config import Config, load_config, resolve_secret
 from archx_agent.helpers.events import EventStore
 from archx_agent.helpers.exceptions import (
+    ArchxError,
     ConfigError,
     ConsentRequiredError,
     ModelNotFoundError,
@@ -470,6 +476,23 @@ class Workspace:
             if not base_url:
                 return False, "no base_url configured"
             return True, "ready"
+        if record.runtime == "gemini":
+            facts = record.facts or {}
+            ref = (record.user_metadata or {}).get("credential_ref") or facts.get("credential_ref")
+            if not ref:
+                return False, (
+                    "no API key reference; register the model with "
+                    "--credential-ref secret://env/GEMINI_API_KEY"
+                )
+            try:
+                if not resolve_secret(ref):
+                    return False, f"the secret reference {ref} resolved to an empty value"
+            except ArchxError as exc:
+                return False, f"the secret reference {ref} could not be resolved: {exc.message}"
+            if not record.model_ref:
+                return False, "no model reference (register it with --model gemini-2.0-flash)"
+            endpoint = facts.get("base_url") or GEMINI_BASE_URL
+            return True, f"ready (endpoint {endpoint})"
         if record.runtime == "scripted":
             if not self.allow_test_double:
                 return False, "the simulated test double is disabled (use --allow-simulated)"
@@ -529,7 +552,9 @@ class Workspace:
         3. that provider must have *known* privacy terms and recorded consent.
         """
         base_url = (record.facts or {}).get("base_url") if record.facts else None
-        if record.runtime != "openai-http" or not base_url:
+        # Every runtime that can talk to a network endpoint is gated, not just the
+        # OpenAI-compatible one: a new adapter must not become a way around the consent rules.
+        if record.runtime not in NETWORK_RUNTIMES or not base_url:
             return
         if is_loopback_url(base_url):
             return
@@ -540,9 +565,10 @@ class Workspace:
             )
         provider = self._provider_for(record)
         if provider is None:
+            template = "google" if record.runtime == "gemini" else "openai"
             raise ConsentRequiredError(
                 f"the endpoint {base_url} is not a registered provider. Add it with "
-                "`archx-agent providers add <name> --template openai` (or --base-url), confirm its "
+                f"`archx-agent providers add <name> --template {template}` (or --base-url), confirm its "
                 "privacy terms and record consent before sending anything."
             )
         if not provider.privacy_known:
@@ -550,7 +576,63 @@ class Workspace:
         if not provider.consented:
             raise ConsentRequiredError(provider.blocking_reason() or "provider consent missing")
 
+    def register_gemini(
+        self,
+        name: str,
+        *,
+        model_ref: str,
+        base_url: str | None = None,
+        credential_ref: str = "secret://env/GEMINI_API_KEY",
+        api_version: str = "v1beta",
+        context_length: int = 1_048_576,
+        capabilities: Sequence[str] | None = None,
+        verification: str = "inferred",
+    ) -> ModelRecord:
+        """Register a Gemini model. The credential is a *reference*, never the key.
+
+        Both the CLI and the GUI go through this method so neither can quietly store a key.
+        """
+        from archx_agent.adapters.gemini_runtime import DEFAULT_BASE_URL
+
+        endpoint = (base_url or DEFAULT_BASE_URL).rstrip("/")
+        reference = str(credential_ref or "").strip()
+        if not reference.startswith("secret://"):
+            raise ValidationError(
+                "credentials must be a secret://env/NAME or secret://file/PATH reference, not "
+                "the key itself (a literal key would end up in the database, the trace and the logs)"
+            )
+        record = self.models.register_remote(
+            name,
+            provider="google",
+            runtime="gemini",
+            model_ref=model_ref,
+            base_url=endpoint,
+            context_length=context_length,
+            capabilities=list(capabilities or ["chat"]),
+            verification=verification,
+        )
+        metadata = dict(record.user_metadata or {})
+        metadata["credential_ref"] = reference
+        facts = dict(record.facts or {})
+        facts["api_version"] = api_version
+        return self.models.update(record.id, user_metadata=metadata, facts=facts)
+
+    def provider_for(self, record: ModelRecord):
+        """The registered provider that owns this model's endpoint, if any."""
+        return self._provider_for(record)
+
     def _provider_for(self, record: ModelRecord):
+        if self.providers is None:
+            return None
+        base_url = (record.facts or {}).get("base_url")
+        for provider in self.providers.list():
+            if base_url and provider.base_url and provider.base_url.rstrip("/") == str(base_url).rstrip("/"):
+                return provider
+            if provider.slug == (record.provider or "").lower() or provider.name == record.provider:
+                return provider
+        return None
+
+
         if self.providers is None:
             return None
         base_url = (record.facts or {}).get("base_url")
@@ -601,6 +683,31 @@ class Workspace:
             ref = (record.user_metadata or {}).get("credential_ref") or (record.facts or {}).get("credential_ref")
             api_key = resolve_secret(ref) if ref else None
             runtime = HttpChatRuntime(base_url, api_key=api_key, provider=record.provider)
+            runtime.load(
+                ModelSpec(
+                    id=record.id,
+                    provider=record.provider,
+                    runtime=record.runtime,
+                    model=record.model_ref,
+                    context_length=record.context_length or self.config.get("model.context_limit"),
+                )
+            )
+            return runtime
+        if record.runtime == "gemini":
+            facts = record.facts or {}
+            base_url = facts.get("base_url") or GEMINI_BASE_URL
+            ref = (record.user_metadata or {}).get("credential_ref") or facts.get("credential_ref")
+            if not ref:
+                raise ConfigError(
+                    f"model {record.name!r} is a Gemini model but has no credential reference; "
+                    "register it with --credential-ref secret://env/GEMINI_API_KEY"
+                )
+            api_key = resolve_secret(ref)
+            runtime = GeminiChatRuntime(
+                base_url,
+                api_key=api_key,
+                api_version=str(facts.get("api_version") or "v1beta"),
+            )
             runtime.load(
                 ModelSpec(
                     id=record.id,

@@ -43,7 +43,7 @@ HttpOnly session cookie, and never keeps the token itself.
 | **Jobs** | queue, stats, pause/resume/cancel/retry, "run one queued job" | `JobManager` + `JobRunner` |
 | **Access** | pending approvals, approve/deny, active grants, revoke, capability list | `PermissionManager` |
 | **Memory** | add and list memories (with the duplicate check) | `MemoryManager` |
-| **Models** | the catalogue and *why* each model can or cannot run here | `ModelManager` + `runtime_availability` |
+| **Models** | the catalogue and *why* each model can or cannot run here, a *Connect Gemini* form (the key is a `secret://` reference, never typed in), `test chat` per model, and the **consent ladder** | `ModelManager` + `runtime_availability` + `Workspace.assert_remote_allowed` |
 | **Learning** | goals and criteria, add an item, next-up with its `why`, one hint per click (409 before an attempt), answer and see the schedule, sessions, propose items, start a review | `LearningService` - the same path as `learning …` |
 
 There are no placeholder controls. If a panel would need something this build does not have,
@@ -170,7 +170,13 @@ The page uses only these; so can you.
 | GET | `/api/health` | version, uptime, request count (public) |
 | POST | `/api/session` | exchange the token for a cookie |
 | GET | `/api/status` | counts, schema, warnings, what is blocked |
-| GET | `/api/models` | catalogue, with why each model can or cannot run |
+| GET | `/api/models` | catalogue, with why each model can or cannot run, `gates` and `provider_id` |
+| GET | `/api/models/{id}` | one model: readiness and the consent ladder |
+| POST | `/api/models` | register a Gemini model (`credential_ref` must be `secret://…`; `400 literal_secret` otherwise) |
+| POST | `/api/models/{id}/probe`, `/api/models/{id}/provider` | measure one capability by calling it; register this model's endpoint as a provider |
+| GET | `/api/providers` | providers with `privacy_known`, `consented`, `blocking_reason` |
+| POST | `/api/providers/{id}/privacy`, `/api/providers/{id}/consent` | record what you confirmed; record consent |
+| POST | `/api/settings/model.local_only` | open or close cloud routing (written to `config.json`) |
 | GET | `/api/conversations`, `/api/conversations/{id}/messages` | history |
 | POST | `/api/chat` | one turn (creates a task, like the CLI) |
 | GET | `/api/search?q=` | unified search |
@@ -183,6 +189,24 @@ The page uses only these; so can you.
 | POST | `/api/research/{id}/{close,reopen}` | mark a question done (with an optional note) or put it back; `409` if it is already in that state |
 | GET | `/api/learning`, `/api/learning/goals/{id}` | goals with progress, then items, next-up, sessions |
 | POST | `/api/learning/goals`, `/api/learning/goals/{id}/items`, `/api/learning/goals/{id}/{plan,answer,review}`, `/api/learning/items/{id}/hint` | create a goal, add an item, plan, answer, review, reveal one hint |
+
+### The consent ladder in the page
+
+A remote model is drawn with four rungs, and each one is a real POST rather than a switch in
+the browser:
+
+| rung | shown when | the control | the call |
+|------|-----------|-------------|----------|
+| `consent_policy` | always | Allow cloud routing | `POST /api/settings/model.local_only {value:false}` |
+| `provider` | always | Register the provider | `POST /api/models/{id}/provider` |
+| `privacy` | always | Confirm what leaves the device | `POST /api/providers/{id}/privacy {data_leaves_device:true}` (after a dialog that says what that means) |
+| `consent` | always | Record consent | `POST /api/providers/{id}/consent` |
+
+The rungs come from the server (`gates`, computed next to `assert_remote_allowed`), so the
+panel cannot show a green ladder for a call the workspace would refuse. A rung that cannot be
+climbed yet - `privacy` before a provider exists - stays on screen with the reason instead of
+disappearing, and simply has no button. `test chat` runs a real probe and shows the measurement
+(`passed` with its latency, or the classified failure), never a green tick it did not earn.
 
 Success is `{"ok": true, "data": …}`; failure is `{"ok": false, "error": {"code", "message",
 "data"}}` with codes `validation`, `not_found`, `conflict`, `approval_required`,
