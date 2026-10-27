@@ -1,1 +1,122 @@
-# Archx-Agent
+# Archx Agent
+
+A modular, **local-first** AI operating environment: conversation, persistent memory,
+research, coding, experiments, learning, play, media, model management, datasets,
+training, remote compute, automation and extensible tool execution under one set of
+storage, settings, permissions, routing, tracing and task history.
+
+> **Status: work in progress.** Milestones are built and verified in order; see
+> [PROGRESS.md](PROGRESS.md) for exactly what works today and [GAPS.md](GAPS.md) for
+> what does not. Nothing is claimed as working without a recorded verification.
+
+## Install (development)
+
+```bash
+python -m venv .venv
+./.venv/bin/pip install -e .
+./.venv/bin/pip install pytest            # for the test suite
+./.venv/bin/archx-agent init
+```
+
+or, in one step: `./scripts/bootstrap.sh`.
+
+Python 3.11+ is required. The core has **no mandatory third-party dependencies**;
+model runtimes and media tooling are opt-in extras.
+
+## Quickstart
+
+```bash
+# 1. point it at a model
+#    a) local GGUF files (needs `pip install llama-cpp-python`)
+archx-agent models discover --dir ~/models
+#    b) any OpenAI-compatible HTTP endpoint (llama.cpp server, Ollama, vLLM, LM Studio)
+archx-agent models add-http --name local-llama --base-url http://127.0.0.1:8080 --model smollm2
+#    c) an explicitly simulated runtime, for exploring the app with no model at all
+archx-agent models add-scripted --name simulated-demo
+
+# 2. remote providers are opt-in: register, confirm the privacy terms, consent
+archx-agent providers add cloud --template openai --auth-ref secret://env/OPENAI_API_KEY
+archx-agent providers privacy          # shows what is known, and where it came from
+archx-agent providers confirm cloud --data-leaves-device yes
+archx-agent providers consent cloud
+archx-agent config set model.local_only false   # deliberately required for remote calls
+
+# 3. talk
+archx-agent chat --message "Summarise what you know about this project"
+archx-agent chat                       # interactive
+
+# 4. memory
+archx-agent memory add --kind permanent --category preference \
+  --title "Metric units" --content "Always use metric units" --tags style
+archx-agent memory search metric
+archx-agent memory policy              # documented policy for all six memory systems
+
+# 5. inspect everything that happened
+archx-agent trace list --limit 20
+archx-agent db check
+```
+
+`--json` is accepted before or after the subcommand. `--home DIR` keeps a separate
+workspace (useful for experiments and tests).
+
+### The simulated runtime is not a model
+
+`--allow-simulated` / `models add-scripted` enables a **test double** that returns
+canned text. Every surface labels it (`[SIMULATED]`), traces record it, and it is
+disabled unless you ask for it. It exists so the application can be exercised without
+downloading weights; it never stands in for a real model in acceptance evidence.
+
+## What works today
+
+| Area | State |
+|------|-------|
+| Layered architecture + enforced import matrix | verified |
+| Config (defaults → file → env → CLI), validated, with provenance | verified |
+| SQLite storage: serialised writer, journal, exactly-once replay, backpressure | verified (incl. SIGKILL crash test) |
+| Backup / verify / preview-restore / restore-aside / retention | verified |
+| Structured trace: capture levels, causal tree, redaction, export, retention | verified |
+| Conversations: create, search, rename, soft/hard delete, export, restart-safe ordering | verified |
+| Six memory systems with scope, provenance, history, dedupe, retention, artifacts | verified (M17) |
+| Embeddings: float32 vectors with model identity, states, hybrid retrieval, eval harness | verified (M18) |
+| Context strategies: oldest-first, summarise, AI-select, manual, AI-proposed | verified (M19) |
+| Model catalogue: facts vs claims vs user metadata, discovery, verification states | verified |
+| Providers: local/cloud catalogue, privacy metadata, confirmations, consent, availability, quotas, usage | verified (M20) |
+| Provider runtime boundary: llama.cpp in-process, OpenAI-compatible HTTP, tested error classification | verified for HTTP; llama.cpp needs the optional dependency and a model file |
+| CLI | verified end-to-end |
+| GUI, tools/MCP, agents, research, learning, play, media, datasets, training, remote compute, Blender, automations | **not built yet** (M21–M40, see PLAN.md) |
+
+## Design principles (enforced, not aspirational)
+
+1. **Local-first, not local-only.** Cloud and remote workers are optional and explicit.
+2. **Modular.** Replaceable providers, storage, executors and interfaces.
+3. **Real capabilities, not labels.** A capability is only routed on when it is verified.
+4. **Explicit authority, safe defaults.** Nothing grants itself permission.
+5. **Inspectable and reproducible.** Every consequential event is traced.
+6. **Preserve source data.** Compaction never deletes originals.
+7. **Demonstrable progress.** A milestone is done only when it works in the app.
+
+## Documentation
+
+* [ARCHITECTURE.md](ARCHITECTURE.md) - layers, invariants, data model, extension points
+* [PLAN.md](PLAN.md) - milestone scope and status
+* [PROGRESS.md](PROGRESS.md) - what is verified, how, and what is next
+* [GAPS.md](GAPS.md) - known limitations, honestly stated
+* [THINKING.md](THINKING.md) - decision log with reasons
+* [CHANGELOG.md](CHANGELOG.md)
+* [docs/PROVIDERS.md](docs/PROVIDERS.md) - provider catalogue, privacy metadata, consent gates
+* [docs/RETRIEVAL.md](docs/RETRIEVAL.md) - embedding design, scale thresholds, model research
+* [docs/RETRIEVAL_EVAL.md](docs/RETRIEVAL_EVAL.md) - measured retrieval quality
+* [docs/VERIFICATION.md](docs/VERIFICATION.md) - environment verification and acceptance transcripts
+
+## Tests
+
+```bash
+./.venv/bin/python -m pytest -q
+```
+
+Unit, integration, crash/recovery, multi-process and end-to-end CLI tests. Tests that
+cannot run are reported as **skipped**, never as passed.
+
+## License
+
+MIT.

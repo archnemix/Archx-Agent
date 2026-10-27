@@ -1,0 +1,487 @@
+"""The workspace: one opened Archx environment (database, trace, managers, runtimes).
+
+Opening a workspace is explicit and ordered:
+
+1. resolve configuration (file + env + overrides);
+2. create directories;
+3. open the primary database;
+4. back it up before a schema upgrade, then migrate;
+5. open the trace database (separate file, best effort);
+6. create the shared write coordinator and replay any interrupted intents;
+7. wire managers and register their write kinds.
+
+Failure at any step raises a domain error with enough context to act on, and
+never leaves a half-initialised workspace silently usable.
+"""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Mapping
+
+from archx_agent.adapters.embedding_runtime import (
+    EmbeddingProvider,
+    HashEmbeddingProvider,
+    HttpEmbeddingProvider,
+    SentenceTransformerProvider,
+)
+from archx_agent.adapters.http_runtime import HttpChatRuntime
+from archx_agent.adapters.llama_cpp_runtime import LlamaCppRuntime
+from archx_agent.adapters.model_runtime import ModelRuntime, ModelSpec
+from archx_agent.adapters.scripted_runtime import ENV_FLAG, ScriptedRuntime
+from archx_agent.helpers.backup_recovery import create_backup
+from archx_agent.helpers.config import Config, load_config, resolve_secret
+from archx_agent.helpers.events import EventStore
+from archx_agent.helpers.exceptions import (
+    ConfigError,
+    ConsentRequiredError,
+    ModelNotFoundError,
+    PermissionDeniedError,
+    PrivacyUnknownError,
+    ValidationError,
+)
+from archx_agent.helpers.sqlite_store import SqliteStore
+from archx_agent.helpers.timeutil import iso_now
+from archx_agent.helpers.write_coordinator import WriteCoordinator
+from archx_agent.managers.context import ContextManager
+from archx_agent.managers.embeddings import EmbeddingManager
+from archx_agent.managers.conversation import ConversationManager
+from archx_agent.managers.memory import MemoryManager
+from archx_agent.managers.models import ModelManager, ModelRecord
+from archx_agent.managers.projects import ProjectManager
+from archx_agent.managers.providers import ProviderManager, is_loopback_url
+from archx_agent.managers.schema import MIGRATIONS, SCHEMA_VERSION
+
+
+@dataclass
+class Workspace:
+    config: Config
+    store: SqliteStore
+    coordinator: WriteCoordinator
+    events: EventStore
+    conversations: ConversationManager
+    projects: ProjectManager
+    memory: MemoryManager
+    models: ModelManager
+    providers: ProviderManager | None = None
+    context: ContextManager | None = None
+    embeddings: EmbeddingManager | None = None
+    warnings: list[str] = field(default_factory=list)
+    _runtimes: dict[str, ModelRuntime] = field(default_factory=dict)
+
+    # -- lifecycle --------------------------------------------------------
+    @classmethod
+    def open(
+        cls,
+        *,
+        home: str | os.PathLike[str] | None = None,
+        config_path: str | os.PathLike[str] | None = None,
+        env: Mapping[str, str] | None = None,
+        overrides: Mapping[str, Any] | None = None,
+        create: bool = True,
+        allow_test_double: bool = False,
+    ) -> "Workspace":
+        config = load_config(home=home, config_path=config_path, env=env, overrides=overrides, create=create)
+        return cls.from_config(config, allow_test_double=allow_test_double)
+
+    @classmethod
+    def from_config(cls, config: Config, *, allow_test_double: bool = False) -> "Workspace":
+        warnings: list[str] = []
+        config.ensure_dirs()
+        db_path = config.path("storage.db_path")
+        store = SqliteStore(db_path, wal=config.get("storage.journal_mode") == "wal")
+        try:
+            current_version = store.schema_version()
+            target = SCHEMA_VERSION
+            if current_version and current_version < target and config.get("storage.auto_backup"):
+                try:
+                    info = create_backup(db_path, config.path("paths.backups"), label="pre-migration")
+                    warnings.append(f"backed up v{current_version} database before migration: {info.path.name}")
+                except Exception as exc:  # noqa: BLE001 - backup failure must warn, not block
+                    warnings.append(f"pre-migration backup failed ({exc}); continuing without it")
+            store.migrate(MIGRATIONS)
+            coordinator = WriteCoordinator(store, name="main", max_queue=config.get("storage.write_queue_size"))
+        except Exception:
+            store.close()
+            raise
+
+        events_path = config.path("storage.events_path")
+        try:
+            events = EventStore(events_path, capture_level=config.get("trace.capture_level"))
+        except Exception as exc:  # noqa: BLE001 - tracing must never block the app
+            warnings.append(f"trace store unavailable ({exc}); continuing without tracing")
+            events = EventStore(Path(events_path).with_name("events-fallback.db"), capture_level="summary")
+
+        try:
+            replayed = coordinator.replay()
+        except Exception as exc:  # noqa: BLE001
+            warnings.append(f"journal replay failed: {exc}")
+            replayed = 0
+
+        conversations = ConversationManager(store, coordinator, events=events)
+        projects = ProjectManager(
+            store, coordinator, events=events, projects_root=str(config.path("paths.projects"))
+        )
+        memory = MemoryManager(
+            store,
+            coordinator,
+            events=events,
+            artifacts_root=str(config.path("paths.artifacts")),
+            duplicate_threshold=config.get("memory.duplicate_threshold"),
+            active_ttl_minutes=config.get("memory.active_ttl_minutes"),
+        )
+        models = ModelManager(store, coordinator, events=events, models_root=str(config.path("paths.models")))
+        providers = ProviderManager(store, coordinator, events=events)
+        embedding_provider, embedding_warning = _build_embedding_provider(config)
+        if embedding_warning:
+            warnings.append(embedding_warning)
+        embeddings = EmbeddingManager(
+            store,
+            coordinator,
+            events=events,
+            conversations=conversations,
+            memory=memory,
+            provider=embedding_provider,
+        )
+        memory.embedding_index = embeddings if embedding_provider is not None else None
+        context = ContextManager(
+            store,
+            coordinator,
+            events=events,
+            conversations=conversations,
+            memory=memory,
+            context_limit=config.get("model.context_limit"),
+            output_budget=config.get("model.output_budget"),
+            reserve_tokens=config.get("context.reserve_tokens"),
+            memory_budget_ratio=config.get("context.memory_budget_ratio"),
+            protect_pinned=config.get("context.protect_pinned"),
+            default_strategy=config.get("context.strategy"),
+        )
+        ws = cls(
+            config=config,
+            store=store,
+            coordinator=coordinator,
+            events=events,
+            conversations=conversations,
+            projects=projects,
+            memory=memory,
+            models=models,
+            providers=providers,
+            context=context,
+            embeddings=embeddings,
+            warnings=warnings,
+            _runtimes={},
+        )
+        if replayed:
+            ws.warnings.append(f"replayed {replayed} interrupted write(s) from the journal")
+        allow_double = allow_test_double or os.environ.get(ENV_FLAG) == "1"
+        ws._allow_test_double = allow_double  # type: ignore[attr-defined]
+        events.record(
+            "system",
+            "workspace.opened",
+            level="summary",
+            payload={
+                "home": str(config.home),
+                "schema_version": SCHEMA_VERSION,
+                "replayed": replayed,
+                "warnings": warnings,
+            },
+        )
+        if config.get("trace.redact_secrets"):
+            from archx_agent.helpers import redaction
+
+            for key in ("ARCHX_GEMINI_API_KEY", "ARCHX_OPENAI_API_KEY", "GEMINI_API_KEY", "OPENAI_API_KEY"):
+                value = os.environ.get(key)
+                if value:
+                    redaction.register_secret(value)
+        return ws
+
+    def close(self) -> None:
+        for runtime in self._runtimes.values():
+            try:
+                runtime.close()
+            except Exception:  # noqa: BLE001
+                pass
+        self._runtimes.clear()
+        try:
+            self.events.record("system", "workspace.closed", level="summary")
+            self.events.flush(2.0)
+        except Exception:  # noqa: BLE001
+            pass
+        self.coordinator.stop()
+        self.events.close()
+        self.store.close()
+
+    @property
+    def chat(self):
+        """The chat service (imported lazily to keep the composition root acyclic)."""
+        from .chat import ChatService
+
+        if self.context is None:
+            raise ConfigError("workspace has no context manager")
+        return ChatService(self, self.context)
+
+    def __enter__(self) -> "Workspace":
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
+
+    # -- helpers ----------------------------------------------------------
+    @property
+    def allow_test_double(self) -> bool:
+        return bool(getattr(self, "_allow_test_double", False))
+
+    def info(self) -> dict[str, Any]:
+        return {
+            "home": str(self.config.home),
+            "database": str(self.store.path),
+            "events": str(self.events.path),
+            "schema_version": self.store.schema_version(),
+            "expected_schema_version": SCHEMA_VERSION,
+            "models": len(self.models.list()),
+            "conversations": self.conversations.stats()["active_conversations"],
+            "memories": self.memory.stats()["total_active"],
+            "warnings": self.warnings,
+            "opened_at": iso_now(),
+        }
+
+    # -- runtime resolution ----------------------------------------------
+    def runtime_for(self, record: ModelRecord) -> ModelRuntime:
+        self.assert_remote_allowed(record)
+        key = f"{record.runtime}:{record.id}"
+        cached = self._runtimes.get(key)
+        if cached is not None and cached.loaded:
+            return cached
+        runtime = self._build_runtime(record)
+        self._runtimes[key] = runtime
+        return runtime
+
+    def assert_remote_allowed(self, record: ModelRecord) -> None:
+        """Refuse to send data off this machine unless the user opted in.
+
+        Three independent gates, all of which must pass for a non-loopback endpoint:
+
+        1. ``model.local_only`` must be false (it is true by default);
+        2. the endpoint must belong to a registered provider;
+        3. that provider must have *known* privacy terms and recorded consent.
+        """
+        base_url = (record.facts or {}).get("base_url") if record.facts else None
+        if record.runtime != "openai-http" or not base_url:
+            return
+        if is_loopback_url(base_url):
+            return
+        if self.config.get("model.local_only"):
+            raise PermissionDeniedError(
+                "refusing to send data to a remote endpoint: model.local_only is true. "
+                "Register the endpoint as a provider and set model.local_only=false deliberately."
+            )
+        provider = self._provider_for(record)
+        if provider is None:
+            raise ConsentRequiredError(
+                f"the endpoint {base_url} is not a registered provider. Add it with "
+                "`archx-agent providers add <name> --template openai` (or --base-url), confirm its "
+                "privacy terms and record consent before sending anything."
+            )
+        if not provider.privacy_known:
+            raise PrivacyUnknownError(provider.blocking_reason() or "provider privacy terms unknown")
+        if not provider.consented:
+            raise ConsentRequiredError(provider.blocking_reason() or "provider consent missing")
+
+    def _provider_for(self, record: ModelRecord):
+        if self.providers is None:
+            return None
+        base_url = (record.facts or {}).get("base_url")
+        for provider in self.providers.list():
+            if base_url and provider.base_url and provider.base_url.rstrip("/") == str(base_url).rstrip("/"):
+                return provider
+            if provider.slug == (record.provider or "").lower() or provider.name == record.provider:
+                return provider
+        return None
+
+    def record_usage(self, record: ModelRecord, *, tokens_in: int, tokens_out: int, ok: bool, error: str | None = None) -> None:
+        """Attribute usage to the owning provider when one is registered."""
+        if self.providers is None:
+            return
+        provider = self._provider_for(record)
+        if provider is None:
+            return
+        self.providers.record_usage(
+            provider.id,
+            model_ref=record.model_ref or record.name,
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
+            ok=ok,
+            error=error,
+        )
+
+    def _build_runtime(self, record: ModelRecord) -> ModelRuntime:
+        if record.runtime == "llama-cpp":
+            runtime = LlamaCppRuntime(n_ctx=record.context_length)
+            runtime.load(
+                ModelSpec(
+                    id=record.id,
+                    provider=record.provider,
+                    runtime=record.runtime,
+                    path=record.path,
+                    context_length=record.context_length or self.config.get("model.context_limit"),
+                    quantization=record.quantization,
+                )
+            )
+            return runtime
+        if record.runtime in ("openai-http", "http"):
+            base_url = (record.facts or {}).get("base_url") or os.environ.get("ARCHX_HTTP_BASE_URL")
+            if not base_url:
+                raise ConfigError(
+                    f"model {record.name!r} uses an HTTP runtime but no base_url is configured "
+                    "(set model facts.base_url or ARCHX_HTTP_BASE_URL)"
+                )
+            ref = (record.user_metadata or {}).get("credential_ref") or (record.facts or {}).get("credential_ref")
+            api_key = resolve_secret(ref) if ref else None
+            runtime = HttpChatRuntime(base_url, api_key=api_key, provider=record.provider)
+            runtime.load(
+                ModelSpec(
+                    id=record.id,
+                    provider=record.provider,
+                    runtime=record.runtime,
+                    model=record.model_ref,
+                    context_length=record.context_length or self.config.get("model.context_limit"),
+                )
+            )
+            return runtime
+        if record.runtime == "scripted":
+            runtime = ScriptedRuntime(enabled=self.allow_test_double)
+            runtime.load(
+                ModelSpec(
+                    id=record.id,
+                    provider=record.provider,
+                    runtime=record.runtime,
+                    model=record.model_ref,
+                    context_length=record.context_length or self.config.get("model.context_limit"),
+                )
+            )
+            return runtime
+        raise ValidationError(
+            f"model {record.name!r} has unknown runtime {record.runtime!r} "
+            "(expected llama-cpp, openai-http or scripted)"
+        )
+
+    def resolve_model(self, model_id: str | None = None, *, task: str = "chat") -> ModelRecord:
+        """Resolve which model to use, explaining the choice."""
+        if model_id:
+            record = self.models.get(model_id)
+            if record.is_err:
+                record = self.models.by_name(model_id)
+            if record.is_err:
+                raise ModelNotFoundError(f"no model matches {model_id!r}", model=model_id)
+            chosen = record.value
+            if not chosen.is_usable:
+                raise ValidationError(
+                    f"model {chosen.name!r} is not usable (state={chosen.state})"
+                    + (f": {chosen.last_error}" if chosen.last_error else "")
+                )
+            return chosen
+        preferred = self.models.preferred_for(task)
+        if preferred and preferred.is_usable:
+            return preferred
+        default_id = self.config.get("model.default_id")
+        if default_id:
+            for candidate in (self.models.get(default_id), self.models.by_name(default_id)):
+                if candidate.is_ok and candidate.value.is_usable:
+                    return candidate.value
+        usable = [m for m in self.models.list(state="usable") if m.supports(task) or not m.verified_capabilities]
+        if not usable:
+            raise ModelNotFoundError(
+                "no usable model is configured. Run `archx-agent models discover` for local GGUF files, "
+                "`archx-agent models add-http` for an OpenAI-compatible endpoint, or "
+                "`archx-agent models add-scripted` to explore the app with simulated responses.",
+                task=task,
+            )
+        # prefer local, then verified, then fewer failures
+        usable.sort(key=lambda m: (m.provider != "local", m.verification_state != "verified", m.failure_count, m.name))
+        return usable[0]
+
+    def model_choice_explanation(self, record: ModelRecord) -> dict[str, Any]:
+        return {
+            "model_id": record.id,
+            "name": record.name,
+            "provider": record.provider,
+            "runtime": record.runtime,
+            # Locality is derived from the endpoint, never from a label: a model
+            # called "local-http" pointing at api.openai.com is not local.
+            "local": (
+                True
+                if record.runtime in ("llama-cpp", "scripted")
+                else is_loopback_url((record.facts or {}).get("base_url"))
+            ),
+            "verified_capabilities": record.verified_capabilities,
+            "verification_state": record.verification_state,
+            "policy_local_only": bool(self.config.get("model.local_only")),
+            "baseline": record.user_metadata.get("baseline", False),
+        }
+
+
+def _build_embedding_provider(config: Config) -> tuple[EmbeddingProvider | None, str | None]:
+    """Build the embedding provider, or explain why there is none.
+
+    Remote embeddings are off by default and always require an explicit
+    preference; we never silently send memory text to a remote service.
+    """
+    if not config.get("memory.embeddings_enabled"):
+        return None, None
+    kind = (config.get("memory.embedding_provider") or "local-hash").lower()
+    if kind in ("local-hash", "hash", "archx-hash"):
+        try:
+            return HashEmbeddingProvider(), None
+        except Exception as exc:  # noqa: BLE001
+            return None, f"local hash embeddings unavailable: {exc}"
+    if kind in ("http", "http-embeddings"):
+        base_url = os.environ.get("ARCHX_EMBEDDING_BASE_URL", "")
+        model = os.environ.get("ARCHX_EMBEDDING_MODEL", "")
+        if not base_url or not model:
+            return None, (
+                "memory.embedding_provider=http needs ARCHX_EMBEDDING_BASE_URL and ARCHX_EMBEDDING_MODEL"
+            )
+        if not config.get("memory.remote_embeddings") and base_url.startswith(("http://", "https://")):
+            host = base_url.split("//")[-1].split("/")[0].split(":")[0]
+            if host not in ("127.0.0.1", "localhost", "::1"):
+                return None, (
+                    "remote embedding endpoint configured but memory.remote_embeddings is false; "
+                    "embeddings are disabled"
+                )
+        api_key = os.environ.get("ARCHX_EMBEDDING_API_KEY")
+        try:
+            return HttpEmbeddingProvider(base_url, model=model, api_key=api_key), None
+        except Exception as exc:  # noqa: BLE001
+            return None, f"http embedding provider failed to initialise: {exc}"
+    if kind in ("sentence-transformers", "st"):
+        try:
+            return SentenceTransformerProvider(), None
+        except Exception as exc:  # noqa: BLE001
+            return None, (
+                f"local semantic embeddings unavailable ({exc}); "
+                "keyword retrieval stays active and is reported as degraded"
+            )
+    return None, f"unknown embedding provider {kind!r}; semantic retrieval disabled"
+
+
+def open_workspace(
+    *,
+    home: str | os.PathLike[str] | None = None,
+    config_path: str | os.PathLike[str] | None = None,
+    env: Mapping[str, str] | None = None,
+    overrides: Mapping[str, Any] | None = None,
+    allow_test_double: bool = False,
+) -> Workspace:
+    return Workspace.open(
+        home=home,
+        config_path=config_path,
+        env=env,
+        overrides=overrides,
+        allow_test_double=allow_test_double,
+    )
+
+
+__all__ = ["Workspace", "open_workspace"]

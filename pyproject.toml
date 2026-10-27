@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "archx-agent"
+version = "0.17.0"
+description = "Archx Agent - a modular, local-first AI operating environment"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Archx" }]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-cov>=4"]
+
+[project.scripts]
+archx-agent = "archx_agent.interfaces.cli.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+    "slow: long running tests",
+    "integration: tests that touch real databases, processes or files",
+]
+
+[tool.coverage.run]
+source = ["archx_agent"]

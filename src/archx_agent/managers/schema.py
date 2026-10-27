@@ -1,0 +1,617 @@
+"""Domain schema migrations.
+
+Version blocks are permanent. Never renumber a released migration: the journal
+and the ``schema_migrations`` table record applied versions, so renaming a
+migration's content in place would silently diverge between machines.
+
+    1  conversations & messages
+    2  projects (project identity for Project Memory etc.)
+    3  memory foundation (six systems, history, sources, artifacts)
+    4  context manifests & summaries
+    5  tasks, agent runs, artifacts, version links
+    6  tools, permissions, approvals, MCP servers, extensions
+    7  scheduler & jobs
+    8  research, learning, experiments, play, media, datasets, training, remote, automations
+    9  retrieval helpers (embeddings, indexes)
+    10 model catalogue + providers + credential references
+    11 context proposals (ai_proposed strategy)
+    12 providers, privacy metadata, availability checks, usage/quotas
+"""
+
+from __future__ import annotations
+
+from archx_agent.helpers.sqlite_store import Migration
+
+CONVERSATIONS_V1 = Migration(
+    version=1,
+    name="conversations",
+    statements=(
+        "CREATE TABLE IF NOT EXISTS conversations ("
+        " id TEXT PRIMARY KEY,"
+        " title TEXT NOT NULL,"
+        " created_at TEXT NOT NULL,"
+        " updated_at TEXT NOT NULL,"
+        " last_seq INTEGER NOT NULL DEFAULT 0,"
+        " project_id TEXT,"
+        " model_id TEXT,"
+        " context_strategy TEXT,"
+        " archived INTEGER NOT NULL DEFAULT 0,"
+        " deleted_at TEXT,"
+        " pinned INTEGER NOT NULL DEFAULT 0,"
+        " metadata TEXT)",
+        "CREATE INDEX IF NOT EXISTS idx_conversations_updated ON conversations(updated_at)",
+        "CREATE INDEX IF NOT EXISTS idx_conversations_project ON conversations(project_id)",
+        "CREATE TABLE IF NOT EXISTS messages ("
+        " id TEXT PRIMARY KEY,"
+        " conversation_id TEXT NOT NULL,"
+        " seq INTEGER NOT NULL,"
+        " role TEXT NOT NULL,"
+        " content TEXT NOT NULL,"
+        " created_at TEXT NOT NULL,"
+        " token_estimate INTEGER NOT NULL DEFAULT 0,"
+        " pinned INTEGER NOT NULL DEFAULT 0,"
+        " excluded INTEGER NOT NULL DEFAULT 0,"
+        " tool_calls TEXT,"
+        " tool_results TEXT,"
+        " metadata TEXT,"
+        " UNIQUE(conversation_id, seq))",
+        "CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id, seq)",
+        "CREATE TABLE IF NOT EXISTS conversation_settings ("
+        " conversation_id TEXT PRIMARY KEY,"
+        " key TEXT NOT NULL,"
+        " value TEXT NOT NULL)",
+    ),
+)
+
+PROJECTS_V2 = Migration(
+    version=2,
+    name="projects",
+    statements=(
+        "CREATE TABLE IF NOT EXISTS projects ("
+        " id TEXT PRIMARY KEY,"
+        " slug TEXT NOT NULL UNIQUE,"
+        " name TEXT NOT NULL,"
+        " root_path TEXT,"
+        " description TEXT,"
+        " status TEXT NOT NULL DEFAULT 'active',"
+        " created_at TEXT NOT NULL,"
+        " updated_at TEXT NOT NULL,"
+        " metadata TEXT)",
+        "CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status)",
+    ),
+)
+
+MEMORY_V3 = Migration(
+    version=3,
+    name="memory",
+    statements=(
+        "CREATE TABLE IF NOT EXISTS memories ("
+        " id TEXT PRIMARY KEY,"
+        " kind TEXT NOT NULL,"
+        " scope TEXT NOT NULL,"
+        " scope_id TEXT,"
+        " slot TEXT,"
+        " title TEXT NOT NULL,"
+        " content TEXT NOT NULL,"
+        " summary TEXT,"
+        " category TEXT NOT NULL,"
+        " project_id TEXT,"
+        " conversation_id TEXT,"
+        " task_id TEXT,"
+        " source TEXT NOT NULL,"
+        " provenance TEXT NOT NULL,"
+        " confidence REAL NOT NULL DEFAULT 0.8,"
+        " status TEXT NOT NULL DEFAULT 'active',"
+        " pinned INTEGER NOT NULL DEFAULT 0,"
+        " tags TEXT,"
+        " details TEXT,"
+        " evidence TEXT,"
+        " verification TEXT,"
+        " environment TEXT,"
+        " limitations TEXT,"
+        " worked INTEGER,"
+        " expires_at TEXT,"
+        " last_accessed_at TEXT,"
+        " access_count INTEGER NOT NULL DEFAULT 0,"
+        " duplicate_of TEXT,"
+        " supersedes TEXT,"
+        " version INTEGER NOT NULL DEFAULT 1,"
+        " embedding_state TEXT NOT NULL DEFAULT 'awaiting',"
+        " embedding_ref TEXT,"
+        " artifact_path TEXT,"
+        " checksum TEXT,"
+        " created_at TEXT NOT NULL,"
+        " updated_at TEXT NOT NULL,"
+        " deleted_at TEXT)",
+        "CREATE INDEX IF NOT EXISTS idx_memories_kind_scope ON memories(kind, scope, scope_id)",
+        "CREATE INDEX IF NOT EXISTS idx_memories_project ON memories(project_id)",
+        "CREATE INDEX IF NOT EXISTS idx_memories_status ON memories(status)",
+        "CREATE INDEX IF NOT EXISTS idx_memories_created ON memories(created_at)",
+        "CREATE TABLE IF NOT EXISTS memory_history ("
+        " hid INTEGER PRIMARY KEY AUTOINCREMENT,"
+        " memory_id TEXT NOT NULL,"
+        " version INTEGER NOT NULL,"
+        " change TEXT NOT NULL,"
+        " snapshot TEXT NOT NULL,"
+        " changed_at TEXT NOT NULL)",
+        "CREATE INDEX IF NOT EXISTS idx_memory_history_memory ON memory_history(memory_id, version)",
+        "CREATE TABLE IF NOT EXISTS memory_sources ("
+        " sid INTEGER PRIMARY KEY AUTOINCREMENT,"
+        " memory_id TEXT NOT NULL,"
+        " source_type TEXT NOT NULL,"
+        " reference TEXT,"
+        " excerpt TEXT,"
+        " retrieved_at TEXT NOT NULL,"
+        " checksum TEXT)",
+        "CREATE INDEX IF NOT EXISTS idx_memory_sources_memory ON memory_sources(memory_id)",
+        "CREATE TABLE IF NOT EXISTS memory_retrievals ("
+        " rid INTEGER PRIMARY KEY AUTOINCREMENT,"
+        " memory_id TEXT NOT NULL,"
+        " used_at TEXT NOT NULL,"
+        " reason TEXT,"
+        " budget_tokens INTEGER,"
+        " consumed_tokens INTEGER,"
+        " conversation_id TEXT,"
+        " task_id TEXT)",
+        "CREATE INDEX IF NOT EXISTS idx_memory_retrievals_memory ON memory_retrievals(memory_id)",
+        "CREATE TABLE IF NOT EXISTS learning_events ("
+        " id TEXT PRIMARY KEY,"
+        " goal_id TEXT,"
+        " topic TEXT NOT NULL,"
+        " outcome TEXT NOT NULL,"
+        " attempts INTEGER NOT NULL DEFAULT 1,"
+        " mistakes TEXT,"
+        " duration_seconds INTEGER,"
+        " created_at TEXT NOT NULL)",
+        "CREATE INDEX IF NOT EXISTS idx_learning_events_topic ON learning_events(topic)",
+    ),
+)
+
+CONTEXT_V4 = Migration(
+    version=4,
+    name="context",
+    statements=(
+        "CREATE TABLE IF NOT EXISTS context_manifests ("
+        " id TEXT PRIMARY KEY,"
+        " conversation_id TEXT NOT NULL,"
+        " message_id TEXT,"
+        " strategy TEXT NOT NULL,"
+        " token_budget INTEGER NOT NULL,"
+        " tokens_used INTEGER NOT NULL,"
+        " omitted TEXT NOT NULL DEFAULT '[]',"
+        " included TEXT NOT NULL DEFAULT '[]',"
+        " notes TEXT,"
+        " created_at TEXT NOT NULL)",
+        "CREATE INDEX IF NOT EXISTS idx_context_manifests_conversation ON context_manifests(conversation_id)",
+        "CREATE TABLE IF NOT EXISTS summaries ("
+        " id TEXT PRIMARY KEY,"
+        " conversation_id TEXT NOT NULL,"
+        " source_start_seq INTEGER NOT NULL,"
+        " source_end_seq INTEGER NOT NULL,"
+        " content TEXT NOT NULL,"
+        " token_estimate INTEGER NOT NULL,"
+        " generator TEXT NOT NULL,"
+        " created_at TEXT NOT NULL,"
+        " superseded_by TEXT)",
+        "CREATE INDEX IF NOT EXISTS idx_summaries_conversation ON summaries(conversation_id, source_start_seq)",
+    ),
+)
+
+TASKS_V5 = Migration(
+    version=5,
+    name="tasks-history",
+    statements=(
+        "CREATE TABLE IF NOT EXISTS tasks ("
+        " id TEXT PRIMARY KEY,"
+        " type TEXT NOT NULL,"
+        " title TEXT NOT NULL,"
+        " status TEXT NOT NULL,"
+        " conversation_id TEXT,"
+        " project_id TEXT,"
+        " parent_task_id TEXT,"
+        " run_id TEXT,"
+        " created_at TEXT NOT NULL,"
+        " started_at TEXT,"
+        " completed_at TEXT,"
+        " model_id TEXT,"
+        " agents TEXT,"
+        " tools TEXT,"
+        " resource_use TEXT,"
+        " cost_estimate REAL,"
+        " input_refs TEXT,"
+        " output_refs TEXT,"
+        " error TEXT,"
+        " unresolved TEXT,"
+        " trace_event_id TEXT,"
+        " version_info TEXT,"
+        " metadata TEXT)",
+        "CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_tasks_type ON tasks(type)",
+        "CREATE INDEX IF NOT EXISTS idx_tasks_conversation ON tasks(conversation_id)",
+        "CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id)",
+        "CREATE TABLE IF NOT EXISTS artifacts ("
+        " id TEXT PRIMARY KEY,"
+        " task_id TEXT,"
+        " project_id TEXT,"
+        " kind TEXT NOT NULL,"
+        " name TEXT NOT NULL,"
+        " path TEXT NOT NULL,"
+        " rel_path TEXT,"
+        " checksum TEXT,"
+        " size INTEGER,"
+        " mime TEXT,"
+        " created_at TEXT NOT NULL,"
+        " metadata TEXT)",
+        "CREATE INDEX IF NOT EXISTS idx_artifacts_task ON artifacts(task_id)",
+        "CREATE TABLE IF NOT EXISTS version_records ("
+        " id TEXT PRIMARY KEY,"
+        " subject_type TEXT NOT NULL,"
+        " subject_id TEXT NOT NULL,"
+        " version TEXT NOT NULL,"
+        " content TEXT NOT NULL,"
+        " checksum TEXT NOT NULL,"
+        " created_at TEXT NOT NULL,"
+        " created_by TEXT,"
+        " note TEXT)",
+        "CREATE INDEX IF NOT EXISTS idx_version_records_subject ON version_records(subject_type, subject_id)",
+        "CREATE TABLE IF NOT EXISTS reproduction_records ("
+        " id TEXT PRIMARY KEY,"
+        " task_id TEXT NOT NULL,"
+        " fidelity TEXT NOT NULL,"
+        " blockers TEXT,"
+        " environment TEXT,"
+        " commands TEXT,"
+        " created_at TEXT NOT NULL)",
+    ),
+)
+
+TOOLS_V6 = Migration(
+    version=6,
+    name="tools-permissions",
+    statements=(
+        "CREATE TABLE IF NOT EXISTS permission_grants ("
+        " id TEXT PRIMARY KEY,"
+        " scope TEXT NOT NULL,"
+        " capability TEXT NOT NULL,"
+        " subject TEXT NOT NULL,"
+        " constraints TEXT,"
+        " duration TEXT NOT NULL,"
+        " granted_by TEXT NOT NULL,"
+        " reason TEXT,"
+        " created_at TEXT NOT NULL,"
+        " expires_at TEXT,"
+        " revoked_at TEXT,"
+        " revoked_by TEXT,"
+        " conversation_id TEXT,"
+        " task_id TEXT,"
+        " project_id TEXT)",
+        "CREATE INDEX IF NOT EXISTS idx_perm_lookup ON permission_grants(capability, subject)",
+        "CREATE INDEX IF NOT EXISTS idx_perm_scope ON permission_grants(scope, scope)",
+        "CREATE TABLE IF NOT EXISTS tool_runs ("
+        " id TEXT PRIMARY KEY,"
+        " task_id TEXT,"
+        " tool_name TEXT NOT NULL,"
+        " arguments TEXT,"
+        " status TEXT NOT NULL,"
+        " result TEXT,"
+        " started_at TEXT NOT NULL,"
+        " ended_at TEXT,"
+        " duration_ms REAL,"
+        " error TEXT,"
+        " permission_id TEXT,"
+        " trace_event_id TEXT)",
+        "CREATE INDEX IF NOT EXISTS idx_tool_runs_tool ON tool_runs(tool_name, started_at)",
+        "CREATE TABLE IF NOT EXISTS mcp_servers ("
+        " id TEXT PRIMARY KEY,"
+        " name TEXT NOT NULL UNIQUE,"
+        " transport TEXT NOT NULL,"
+        " command TEXT,"
+        " args TEXT,"
+        " url TEXT,"
+        " env TEXT,"
+        " enabled INTEGER NOT NULL DEFAULT 0,"
+        " trusted INTEGER NOT NULL DEFAULT 0,"
+        " created_at TEXT NOT NULL,"
+        " updated_at TEXT NOT NULL,"
+        " last_connected_at TEXT,"
+        " last_error TEXT)",
+        "CREATE TABLE IF NOT EXISTS mcp_tools ("
+        " server_id TEXT NOT NULL,"
+        " name TEXT NOT NULL,"
+        " description TEXT,"
+        " schema TEXT,"
+        " enabled INTEGER NOT NULL DEFAULT 0,"
+        " discovered_at TEXT NOT NULL,"
+        " PRIMARY KEY(server_id, name))",
+        "CREATE TABLE IF NOT EXISTS extensions ("
+        " id TEXT PRIMARY KEY,"
+        " name TEXT NOT NULL UNIQUE,"
+        " version TEXT NOT NULL,"
+        " path TEXT,"
+        " manifest TEXT NOT NULL,"
+        " trust TEXT NOT NULL DEFAULT 'untrusted',"
+        " enabled INTEGER NOT NULL DEFAULT 0,"
+        " installed_at TEXT NOT NULL,"
+        " updated_at TEXT NOT NULL,"
+        " last_error TEXT)",
+    ),
+)
+
+JOBS_V7 = Migration(
+    version=7,
+    name="scheduler",
+    statements=(
+        "CREATE TABLE IF NOT EXISTS jobs ("
+        " id TEXT PRIMARY KEY,"
+        " kind TEXT NOT NULL,"
+        " title TEXT NOT NULL,"
+        " payload TEXT,"
+        " status TEXT NOT NULL,"
+        " priority INTEGER NOT NULL DEFAULT 5,"
+        " queue_seq INTEGER NOT NULL,"
+        " created_at TEXT NOT NULL,"
+        " started_at TEXT,"
+        " ended_at TEXT,"
+        " deadline TEXT,"
+        " progress REAL NOT NULL DEFAULT 0,"
+        " message TEXT,"
+        " error TEXT,"
+        " resource_estimate TEXT,"
+        " resource_observed TEXT,"
+        " result TEXT,"
+        " task_id TEXT,"
+        " project_id TEXT,"
+        " cancelled INTEGER NOT NULL DEFAULT 0)",
+        "CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status, queue_seq)",
+        "CREATE INDEX IF NOT EXISTS idx_jobs_kind ON jobs(kind)",
+    ),
+)
+
+FEATURES_V8 = Migration(
+    version=8,
+    name="feature-modes",
+    statements=(
+        "CREATE TABLE IF NOT EXISTS research_runs ("
+        " id TEXT PRIMARY KEY, status TEXT NOT NULL, question TEXT NOT NULL,"
+        " subquestions TEXT, report_path TEXT, report_format TEXT,"
+        " created_at TEXT NOT NULL, completed_at TEXT, limitations TEXT, task_id TEXT)",
+        "CREATE TABLE IF NOT EXISTS research_sources ("
+        " id INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT NOT NULL, url TEXT NOT NULL,"
+        " title TEXT, publisher TEXT, retrieved_at TEXT NOT NULL, excerpt TEXT,"
+        " subsection TEXT, limitations TEXT, stance TEXT)",
+        "CREATE TABLE IF NOT EXISTS learning_goals ("
+        " id TEXT PRIMARY KEY, title TEXT NOT NULL, objective TEXT NOT NULL, level TEXT,"
+        " status TEXT NOT NULL, path TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)",
+        "CREATE TABLE IF NOT EXISTS learning_lessons ("
+        " id TEXT PRIMARY KEY, goal_id TEXT NOT NULL, topic TEXT NOT NULL, subtopic TEXT,"
+        " position INTEGER NOT NULL, status TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,"
+        " best_score REAL, content TEXT, exercise TEXT, updated_at TEXT NOT NULL)",
+        "CREATE TABLE IF NOT EXISTS experiments ("
+        " id TEXT PRIMARY KEY, title TEXT NOT NULL, hypothesis TEXT, baseline TEXT,"
+        " target TEXT, criteria TEXT, status TEXT NOT NULL, deadline TEXT,"
+        " config TEXT, created_at TEXT NOT NULL, completed_at TEXT, report_path TEXT, task_id TEXT)",
+        "CREATE TABLE IF NOT EXISTS experiment_steps ("
+        " id INTEGER PRIMARY KEY AUTOINCREMENT, experiment_id TEXT NOT NULL, kind TEXT NOT NULL,"
+        " description TEXT, changes TEXT, measurement TEXT, result TEXT, created_at TEXT NOT NULL, seq INTEGER)",
+        "CREATE TABLE IF NOT EXISTS games ("
+        " id TEXT PRIMARY KEY, game_type TEXT NOT NULL, status TEXT NOT NULL,"
+        " state TEXT NOT NULL, config TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, winner TEXT)",
+        "CREATE TABLE IF NOT EXISTS game_moves ("
+        " id INTEGER PRIMARY KEY AUTOINCREMENT, game_id TEXT NOT NULL, seq INTEGER NOT NULL,"
+        " player TEXT NOT NULL, action TEXT NOT NULL, created_at TEXT NOT NULL, legal INTEGER NOT NULL)",
+        "CREATE TABLE IF NOT EXISTS media_jobs ("
+        " id TEXT PRIMARY KEY, kind TEXT NOT NULL, status TEXT NOT NULL, prompt TEXT,"
+        " model_id TEXT, output_path TEXT, metadata TEXT, created_at TEXT NOT NULL, completed_at TEXT, error TEXT, task_id TEXT)",
+        "CREATE TABLE IF NOT EXISTS datasets ("
+        " id TEXT PRIMARY KEY, name TEXT NOT NULL, source TEXT NOT NULL, revision TEXT,"
+        " license TEXT, format TEXT, record_count INTEGER, path TEXT, checksum TEXT,"
+        " created_at TEXT NOT NULL, task_id TEXT, metadata TEXT)",
+        "CREATE TABLE IF NOT EXISTS dataset_transforms ("
+        " id INTEGER PRIMARY KEY AUTOINCREMENT, dataset_id TEXT NOT NULL, seq INTEGER NOT NULL,"
+        " kind TEXT NOT NULL, config TEXT NOT NULL, records_in INTEGER, records_out INTEGER,"
+        " created_at TEXT NOT NULL, output_path TEXT, report TEXT)",
+        "CREATE TABLE IF NOT EXISTS training_jobs ("
+        " id TEXT PRIMARY KEY, method TEXT NOT NULL, base_model TEXT, dataset_id TEXT,"
+        " status TEXT NOT NULL, config TEXT, preflight TEXT, metrics TEXT, checkpoints TEXT,"
+        " created_at TEXT NOT NULL, started_at TEXT, completed_at TEXT, error TEXT, task_id TEXT)",
+        "CREATE TABLE IF NOT EXISTS remote_jobs ("
+        " id TEXT PRIMARY KEY, provider TEXT NOT NULL, status TEXT NOT NULL, config TEXT,"
+        " estimate TEXT, actual TEXT, outputs TEXT, created_at TEXT NOT NULL,"
+        " completed_at TEXT, error TEXT, approved_by TEXT, task_id TEXT)",
+        "CREATE TABLE IF NOT EXISTS automations ("
+        " id TEXT PRIMARY KEY, name TEXT NOT NULL, kind TEXT NOT NULL, schedule TEXT NOT NULL,"
+        " enabled INTEGER NOT NULL DEFAULT 1, config TEXT, permissions TEXT,"
+        " created_at TEXT NOT NULL, updated_at TEXT NOT NULL, last_run_at TEXT,"
+        " next_run_at TEXT, last_status TEXT, retry_policy TEXT)",
+        "CREATE TABLE IF NOT EXISTS automation_runs ("
+        " id TEXT PRIMARY KEY, automation_id TEXT NOT NULL, status TEXT NOT NULL,"
+        " started_at TEXT NOT NULL, ended_at TEXT, output TEXT, error TEXT, task_id TEXT)",
+    ),
+)
+
+RETRIEVAL_V9 = Migration(
+    version=9,
+    name="retrieval",
+    statements=(
+        "CREATE TABLE IF NOT EXISTS embeddings ("
+        " id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        " owner_type TEXT NOT NULL,"
+        " owner_id TEXT NOT NULL,"
+        " model_id TEXT NOT NULL,"
+        " dim INTEGER NOT NULL,"
+        " vector BLOB NOT NULL,"
+        " checksum TEXT NOT NULL,"
+        " state TEXT NOT NULL DEFAULT 'embedded',"
+        " created_at TEXT NOT NULL,"
+        " UNIQUE(owner_type, owner_id, model_id))",
+        "CREATE INDEX IF NOT EXISTS idx_embeddings_owner ON embeddings(owner_type, owner_id)",
+        "CREATE TABLE IF NOT EXISTS retrieval_runs ("
+        " id TEXT PRIMARY KEY,"
+        " query TEXT NOT NULL,"
+        " mode TEXT NOT NULL,"
+        " model_id TEXT,"
+        " results INTEGER NOT NULL,"
+        " degraded INTEGER NOT NULL DEFAULT 0,"
+        " notes TEXT,"
+        " created_at TEXT NOT NULL)",
+    ),
+)
+
+MODELS_V10 = Migration(
+    version=10,
+    name="model-catalogue",
+    statements=(
+        "CREATE TABLE IF NOT EXISTS models ("
+        " id TEXT PRIMARY KEY,"
+        " name TEXT NOT NULL,"
+        " provider TEXT NOT NULL,"
+        " runtime TEXT NOT NULL,"
+        " path TEXT,"
+        " model_ref TEXT,"
+        " format TEXT,"
+        " quantization TEXT,"
+        " param_count TEXT,"
+        " context_length INTEGER,"
+        " size_bytes INTEGER,"
+        " sha256 TEXT,"
+        " facts TEXT NOT NULL DEFAULT '{}',"
+        " claims TEXT NOT NULL DEFAULT '{}',"
+        " user_metadata TEXT NOT NULL DEFAULT '{}',"
+        " verified_capabilities TEXT NOT NULL DEFAULT '[]',"
+        " capability_basis TEXT NOT NULL DEFAULT '{}',"
+        " verification_state TEXT NOT NULL DEFAULT 'unverified',"
+        " state TEXT NOT NULL DEFAULT 'usable',"
+        " tags TEXT NOT NULL DEFAULT '[]',"
+        " notes TEXT,"
+        " success_count INTEGER NOT NULL DEFAULT 0,"
+        " failure_count INTEGER NOT NULL DEFAULT 0,"
+        " discovered_at TEXT NOT NULL,"
+        " updated_at TEXT NOT NULL,"
+        " last_used_at TEXT,"
+        " last_error TEXT)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_models_identity"
+        " ON models(provider, COALESCE(path,''), COALESCE(model_ref,''))",
+        "CREATE INDEX IF NOT EXISTS idx_models_state ON models(state)",
+        "CREATE INDEX IF NOT EXISTS idx_models_runtime ON models(runtime)",
+        "CREATE TABLE IF NOT EXISTS model_capability_tests ("
+        " id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        " model_id TEXT NOT NULL,"
+        " capability TEXT NOT NULL,"
+        " outcome TEXT NOT NULL,"
+        " detail TEXT,"
+        " latency_ms REAL,"
+        " resources TEXT,"
+        " run_at TEXT NOT NULL)",
+        "CREATE INDEX IF NOT EXISTS idx_cap_tests_model ON model_capability_tests(model_id, capability)",
+        "CREATE TABLE IF NOT EXISTS providers ("
+        " id TEXT PRIMARY KEY,"
+        " name TEXT NOT NULL UNIQUE,"
+        " kind TEXT NOT NULL,"
+        " base_url TEXT,"
+        " enabled INTEGER NOT NULL DEFAULT 0,"
+        " requires_credential INTEGER NOT NULL DEFAULT 0,"
+        " credential_ref TEXT,"
+        " privacy TEXT NOT NULL DEFAULT '{}',"
+        " quotas TEXT NOT NULL DEFAULT '{}',"
+        " claims TEXT NOT NULL DEFAULT '{}',"
+        " verified INTEGER NOT NULL DEFAULT 0,"
+        " created_at TEXT NOT NULL,"
+        " updated_at TEXT NOT NULL,"
+        " last_checked_at TEXT,"
+        " last_status TEXT,"
+        " last_error TEXT)",
+        "CREATE TABLE IF NOT EXISTS provider_usage ("
+        " id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        " provider TEXT NOT NULL,"
+        " model_id TEXT,"
+        " kind TEXT NOT NULL,"
+        " prompt_tokens INTEGER NOT NULL DEFAULT 0,"
+        " completion_tokens INTEGER NOT NULL DEFAULT 0,"
+        " cost_estimate REAL,"
+        " success INTEGER NOT NULL DEFAULT 1,"
+        " error_code TEXT,"
+        " occurred_at TEXT NOT NULL)",
+        "CREATE INDEX IF NOT EXISTS idx_provider_usage_provider ON provider_usage(provider, occurred_at)",
+        "CREATE TABLE IF NOT EXISTS credentials ("
+        " id TEXT PRIMARY KEY,"
+        " provider TEXT NOT NULL,"
+        " ref TEXT NOT NULL,"
+        " created_at TEXT NOT NULL,"
+        " last_checked_at TEXT,"
+        " valid INTEGER)",
+    ),
+)
+
+CONTEXT_PROPOSALS_V11 = Migration(
+    version=11,
+    name="context-proposals",
+    statements=(
+        "CREATE TABLE IF NOT EXISTS context_proposals ("
+        " id TEXT PRIMARY KEY,"
+        " conversation_id TEXT NOT NULL,"
+        " strategy TEXT NOT NULL,"
+        " payload TEXT NOT NULL,"
+        " rationale TEXT,"
+        " estimated_tokens INTEGER,"
+        " created_at TEXT NOT NULL,"
+        " approved_at TEXT,"
+        " applied_manifest_id TEXT,"
+        " rejected_at TEXT)",
+        "CREATE INDEX IF NOT EXISTS idx_context_proposals_conversation ON context_proposals(conversation_id)",
+    ),
+)
+
+PROVIDERS_V12 = Migration(
+    version=12,
+    name="provider-privacy",
+    statements=(
+        # v10 already created `providers` and `provider_usage`. Extending them is the
+        # only honest option: a second catalogue would be a second source of truth.
+        # `privacy` (v10) holds vendor *claims*; `privacy_confirmed` holds what the
+        # user confirmed. They are separate columns on purpose.
+        "ALTER TABLE providers ADD COLUMN slug TEXT",
+        "ALTER TABLE providers ADD COLUMN api_style TEXT",
+        "ALTER TABLE providers ADD COLUMN is_local INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE providers ADD COLUMN model_family TEXT",
+        "ALTER TABLE providers ADD COLUMN privacy_confirmed TEXT",
+        "ALTER TABLE providers ADD COLUMN claim_source TEXT",
+        "ALTER TABLE providers ADD COLUMN price_in_per_1k REAL",
+        "ALTER TABLE providers ADD COLUMN price_out_per_1k REAL",
+        "ALTER TABLE providers ADD COLUMN currency TEXT",
+        "ALTER TABLE providers ADD COLUMN notes TEXT",
+        "ALTER TABLE providers ADD COLUMN consent_at TEXT",
+        "ALTER TABLE providers ADD COLUMN consent_version TEXT",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_providers_slug ON providers(slug)",
+        "CREATE INDEX IF NOT EXISTS idx_providers_kind ON providers(kind)",
+        "CREATE TABLE IF NOT EXISTS provider_checks ("
+        " id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        " provider_id TEXT NOT NULL,"
+        " checked_at TEXT NOT NULL,"
+        " status TEXT NOT NULL,"        # reachable | auth_failed | unreachable | model_missing | rate_limited
+        " latency_ms REAL,"
+        " detail TEXT,"
+        " models_seen INTEGER)",
+        "CREATE INDEX IF NOT EXISTS idx_provider_checks_provider ON provider_checks(provider_id, id)",
+        "CREATE INDEX IF NOT EXISTS idx_provider_usage_time ON provider_usage(provider, occurred_at)",
+    ),
+)
+
+MIGRATIONS: tuple[Migration, ...] = (
+    CONVERSATIONS_V1,
+    PROJECTS_V2,
+    MEMORY_V3,
+    CONTEXT_V4,
+    TASKS_V5,
+    TOOLS_V6,
+    JOBS_V7,
+    FEATURES_V8,
+    RETRIEVAL_V9,
+    MODELS_V10,
+    CONTEXT_PROPOSALS_V11,
+    PROVIDERS_V12,
+)
+
+SCHEMA_VERSION = max(m.version for m in MIGRATIONS)
+
+
+__all__ = ["MIGRATIONS", "SCHEMA_VERSION"]
