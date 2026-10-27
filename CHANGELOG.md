@@ -5,6 +5,21 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 
 ## [Unreleased]
 
+### Changed
+- **The GUI is rebuilt.** One shell (`index.html` + `style.css` + `app.js`, still no build
+  step, no CDN and no inline style): a 258px sidebar with Modes · Work · Control that
+  collapses to a 64px icon rail and remembers it, a top bar with the current mode's live tool
+  chips, and three themes (dark, light, soft) as pure token swaps.
+- Chat is a transcript: avatars, per-message copy on hover, markdown replies with a language
+  label and copy button on every code block and copy-as-CSV / save on every table, four
+  empty-state prompts that fill the composer, and three dots while a turn is in flight.
+- Every panel gained the same furniture: pickers that mark the open record, sticky table
+  headers, inline refusals carrying the error code, and toasts for what the server answered.
+- Denying an approval, revoking a grant and cancelling a job now ask first, in a dialog that
+  names what will happen; `Escape` dismisses it.
+- `docs/GUI.md` rewritten for the new shell; `scripts/acceptance_m29.sh` now checks the three
+  palettes and that no `style=`/`onclick=` attribute exists anywhere in the page.
+
 ### Added
 - `scripts/seed_demo.sh`: builds the preview workspace (`~/.archx-demo`) through the ordinary
   CLI - a scripted model, one conversation, three memories, a learning goal with a hint

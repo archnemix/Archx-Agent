@@ -5,318 +5,470 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark light">
 <title>Archx Agent</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23000'/%3E%3Cpath d='M16 5 26 26h-5.2l-1.9-4.3h-5.8L11.2 26H6Zm0 8.6-2 4.6h4Z' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+
 <div class="app" id="app">
-  <aside class="rail">
-    <div class="rail-head">
-      <span class="mark" aria-hidden="true">A</span>
-      <span class="rail-name">
-        <strong>Archx</strong>
-        <span class="tiny muted" id="version">–</span>
-      </span>
-      <button id="rail-toggle" class="icon-btn" type="button" title="Collapse the sidebar"
-              aria-label="Collapse the sidebar">
+  <aside class="sidebar">
+    <div class="side-top">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><rect width="32" height="32" rx="8"/><path d="M16 5 26 26h-5.2l-1.9-4.3h-5.8L11.2 26H6Zm0 8.6-2 4.6h4Z"/></svg>
+        <span class="brand-name">Archx Agent<span class="tiny dim" id="version">–</span></span>
+      </div>
+      <button id="rail-toggle" class="icon-btn" type="button" title="Collapse the sidebar" aria-label="Collapse the sidebar">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h16"/></svg>
       </button>
     </div>
 
-    <nav id="tabs" class="nav" aria-label="Modes and panels">
-      <p class="nav-label">Modes</p>
-      <button class="tab" data-view="chat" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.4A8 8 0 1 1 21 12z"/></svg>
+    <nav id="tabs" class="page-nav" aria-label="Sections">
+      <div class="side-label">Modes</div>
+      <button class="tab" data-view="chat" type="button" title="Chat">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
         <span>Chat</span>
       </button>
-      <button class="tab" data-view="research" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.4-4.4"/></svg>
+      <button class="tab" data-view="research" type="button" title="Research">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.3-4.3"/></svg>
         <span>Research</span>
       </button>
-      <button class="tab" data-view="learning" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h7a3 3 0 0 1 3 3v11a3 3 0 0 0-3-3H4z"/><path d="M20 5h-3a3 3 0 0 0-3 3v11"/></svg>
+      <button class="tab" data-view="learning" type="button" title="Learning">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h6a3 3 0 0 1 3 3v11a3 3 0 0 0-3-3H4z"/><path d="M20 5h-2a3 3 0 0 0-3 3v11"/></svg>
         <span>Learning</span>
       </button>
 
-      <p class="nav-label">Work</p>
-      <button class="tab" data-view="search" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="5.5"/><path d="m19 19-3.8-3.8"/></svg>
+      <div class="side-label">Work</div>
+      <button class="tab" data-view="search" type="button" title="Search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m19 19-4-4"/></svg>
         <span>Search</span>
       </button>
-      <button class="tab" data-view="tasks" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>
+      <button class="tab" data-view="tasks" type="button" title="Tasks">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1.6 1.6L8.4 4.8M4 12l1.6 1.6L8.4 10.8M4 18l1.6 1.6L8.4 16.8"/></svg>
         <span>Tasks</span>
       </button>
-      <button class="tab" data-view="jobs" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>
+      <button class="tab" data-view="jobs" type="button" title="Jobs">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
         <span>Jobs</span>
       </button>
 
-      <p class="nav-label">Control</p>
-      <button class="tab" data-view="access" type="button">
+      <div class="side-label">Control</div>
+      <button class="tab" data-view="access" type="button" title="Access">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
         <span>Access</span>
       </button>
-      <button class="tab" data-view="memory" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4c-3 0-5 1.8-5 4s2 3 2 4-2 1.8-2 4 2 4 5 4 5-1.8 5-4-2-2-2-4 2-2 2-4-2-4-5-4z"/></svg>
+      <button class="tab" data-view="memory" type="button" title="Memory">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4c-3.3 0-5.5 2-5.5 4.2S8.5 11 8.5 12s-2 1.6-2 3.8S8.7 20 12 20s5.5-2 5.5-4.2-2-2.6-2-3.8 2-1.6 2-3.8S15.3 4 12 4Z"/><path d="M12 4v16"/></svg>
         <span>Memory</span>
       </button>
-      <button class="tab" data-view="models" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6v6H9z"/></svg>
+      <button class="tab" data-view="models" type="button" title="Models">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
         <span>Models</span>
       </button>
-      <button class="tab" data-view="status" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l4-5 3 3 4-6 5 8"/></svg>
+      <button class="tab" data-view="status" type="button" title="Status">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l4.5-5.5 3.2 3.2L16 8l4 9"/></svg>
         <span>Status</span>
       </button>
     </nav>
 
-    <div class="rail-foot">
-      <span id="conn" class="pill">starting</span>
-      <button id="theme-toggle" class="icon-btn" type="button" title="Switch theme"
-              aria-label="Switch between dark and light">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/></svg>
-      </button>
+    <div class="side-foot">
+      <div class="foot-row">
+        <button id="theme-toggle" class="icon-btn" type="button" title="Switch theme" aria-label="Switch between dark, light and soft themes">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+        </button>
+        <span id="conn" class="conn-state">starting</span>
+      </div>
+      <div class="privacy-note">
+        <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        <span id="footer-note">local only · this page talks to nothing but this server</span>
+      </div>
     </div>
   </aside>
 
-  <div class="shell">
-    <header class="topbar">
-      <div class="headline">
-        <h1 id="page-title">Status</h1>
-        <p id="page-sub" class="lede">what this home is, and what is blocked</p>
-      </div>
+  <div class="main">
+    <div class="topbar">
+      <span class="crumb">Archx / <b id="crumb-view">Chat</b></span>
+      <span class="topbar-sep" aria-hidden="true"></span>
       <div id="mode-tools" class="tools" aria-label="What this mode can do"></div>
-    </header>
+      <div class="top-actions">
+        <button id="reload-view" class="icon-btn" type="button" title="Reload this view" aria-label="Reload this view">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+        </button>
+      </div>
+    </div>
 
     <main id="views">
-      <section class="view" id="view-status">
-        <div class="row space">
-          <p class="section-note">The same numbers the CLI prints, and the command that unblocks anything that is not.</p>
-          <button id="status-refresh" type="button" class="ghost">Refresh</button>
-        </div>
-        <div id="status-cards" class="cards"></div>
-        <h2 class="sub-head">This home</h2>
-        <div id="status-info" class="panel"></div>
-        <h2 class="sub-head">What is blocked, and the exact next command</h2>
-        <div id="status-blocked" class="panel"></div>
-      </section>
-
-      <section class="view" id="view-chat" hidden>
-        <div class="chat-shell">
-          <aside class="chat-side">
-            <div class="row space">
-              <span class="mini-head">Conversations</span>
-              <button id="chat-conv-refresh" type="button" class="ghost tiny">Refresh</button>
-            </div>
-            <ul id="chat-conversations" class="list"></ul>
-            <button id="chat-new" type="button" class="ghost block">+ New conversation</button>
-          </aside>
-          <div class="chat-main">
-            <div id="chat-log" class="log"></div>
-            <div id="chat-warnings" class="warnings"></div>
-            <form id="chat-form" class="composer">
-              <textarea id="chat-input" rows="2" placeholder="Ask something — Ctrl+Enter sends"></textarea>
-              <div class="composer-row">
-                <span id="chat-model" class="tiny muted"></span>
-                <button type="submit" class="primary">Send</button>
+      <!-- ───────────── chat ───────────── -->
+      <section class="page" id="view-chat">
+        <header class="page-head">
+          <div>
+            <h1>Chat</h1>
+            <p>One turn at a time. Every reply is a task, with the model that produced it and the tokens it cost.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="chat-new" class="btn primary" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              New chat
+            </button>
+          </div>
+        </header>
+        <div class="page-body flush">
+          <div class="chat-layout">
+            <aside class="picker">
+              <div class="picker-head">
+                <span class="picker-label">Conversations</span>
+                <button id="chat-conv-refresh" class="icon-btn" type="button" title="Refresh the conversation list" aria-label="Refresh the conversation list">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+                </button>
               </div>
-            </form>
+              <ul id="chat-conversations" class="list"></ul>
+            </aside>
+            <div class="chat-main">
+              <div id="chat-log" class="messages"></div>
+              <div id="chat-warnings" class="warnings"></div>
+              <div class="composer-wrap">
+                <form id="chat-form" class="composer">
+                  <textarea id="chat-input" rows="1" placeholder="Send a message…  (Enter to send, Shift+Enter for a new line)"></textarea>
+                  <div class="composer-bar">
+                    <span id="chat-model" class="comp-meta"></span>
+                    <div class="comp-actions">
+                      <button type="submit" class="send-btn" title="Send" aria-label="Send message">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-4 7 4 7-14-7Z"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+                <p class="composer-note">Archx runs on your machine · answers are recorded as tasks you can replay</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section class="view" id="view-research" hidden>
-        <div class="split wide">
-          <form id="research-form" class="card">
-            <h2 class="card-title">New research run</h2>
-            <p class="section-note">
-              Archx does not crawl and has no web search: it reads the URLs you paste here
-              (through <code>net.fetch</code>, which needs a grant) and documents in your tool
-              roots. No experiments run in this mode — that is M32.
-            </p>
-            <label>Question
-              <input id="research-question" required placeholder="how does sqlite locking work">
+      <!-- ───────────── research ───────────── -->
+      <section class="page" id="view-research" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Research</h1>
+            <p>A plan that names its author, sources it actually read, citations it re-checks. No crawler and no web search: it reads the URLs you give it.</p>
+          </div>
+          <div class="ph-actions">
+            <span id="research-status" class="hint"></span>
+          </div>
+        </header>
+        <div class="page-body">
+          <form id="research-form" class="card research-form">
+            <div class="card-head">
+              <h3>New research run</h3>
+              <p class="hint">Archx does not crawl and has no web search: it reads the URLs you paste here (through <code>net.fetch</code>, which needs a grant) and documents in your tool roots. No experiments run in this mode — that is M32.</p>
+            </div>
+            <label class="field">Question
+              <input id="research-question" type="text" required placeholder="how does sqlite locking work">
             </label>
-            <label>Where to look
-              <select id="research-mode">
-                <option value="local">local — your own documents</option>
-                <option value="mixed">mixed — local + the URLs you give</option>
-                <option value="web">web — only the URLs you give</option>
-              </select>
-            </label>
-            <label>Seed URLs, one per line
-              <textarea id="research-urls" rows="2" placeholder="one URL per line"></textarea>
-            </label>
-            <label>Your own subquestions, one per line (optional)
-              <textarea id="research-subquestions" rows="2"></textarea>
-            </label>
-            <label class="check"><input id="research-nomodel" type="checkbox"> no model — extractive only, no token cost</label>
-            <div class="row space top">
-              <button type="submit" class="primary">Run research</button>
-              <span id="research-status" class="tiny muted"></span>
+            <div class="grid2">
+              <label class="field">Where to look
+                <select id="research-mode" class="sel">
+                  <option value="local">local — your own documents</option>
+                  <option value="mixed">mixed — local + the URLs you give</option>
+                  <option value="web">web — only the URLs you give</option>
+                </select>
+              </label>
+              <label class="field">Options
+                <span class="check check-top"><input id="research-nomodel" type="checkbox"> no model — extractive only, no token cost</span>
+              </label>
+            </div>
+            <div class="grid2">
+              <label class="field">Seed URLs, one per line
+                <textarea id="research-urls" rows="3" placeholder="one URL per line"></textarea>
+              </label>
+              <label class="field">Your own subquestions, one per line (optional)
+                <textarea id="research-subquestions" rows="3"></textarea>
+              </label>
+            </div>
+            <div class="row between">
+              <span class="hint">A web run asks for <code>net.fetch</code>; refusing it fails the run honestly.</span>
+              <button type="submit" class="btn primary">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                Run research
+              </button>
             </div>
           </form>
-          <div class="stack">
-            <div class="panel tight">
-              <span class="mini-head">Runs</span>
-              <ul id="research-list" class="list inline"></ul>
-            </div>
-            <div id="research-detail" class="panel">
-              <p class="muted">Pick a run to read its report, its sources and the citations it re-checked.</p>
-            </div>
+
+          <div class="section-head">
+            <div><h2>Runs</h2><p>Every run keeps its sources, including the ones that failed.</p></div>
+          </div>
+          <ul id="research-list" class="run-strip"></ul>
+          <div id="research-detail" class="stack">
+            <p class="dim small">Pick a run to read its report, its sources and the citations it re-checked.</p>
           </div>
         </div>
       </section>
 
-      <section class="view" id="view-learning" hidden>
-        <div class="split">
-          <aside class="side">
-            <div class="row space">
-              <span class="mini-head">Goals</span>
-              <button id="learning-refresh" type="button" class="ghost tiny">Refresh</button>
-            </div>
-            <ul id="learning-goals" class="list"></ul>
-            <form id="learning-goal-form" class="card">
-              <h2 class="card-title">New goal</h2>
-              <label>What are you learning?
-                <input id="learning-title" required placeholder="Rust ownership">
-              </label>
-              <label>Done when (optional)
-                <input id="learning-criteria" placeholder="explain a borrow error">
-              </label>
-              <div class="row space">
-                <button type="submit" class="primary">Create goal</button>
-                <span id="learning-goal-status" class="tiny muted"></span>
+      <!-- ───────────── learning ───────────── -->
+      <section class="page" id="view-learning" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Learning</h1>
+            <p>Goals with criteria, a hint ladder you have to climb, and a schedule that shows its arithmetic.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="learning-refresh" class="icon-btn" type="button" title="Reload goals" aria-label="Reload goals">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body flush">
+          <div class="split">
+            <aside class="picker">
+              <ul id="learning-goals" class="list"></ul>
+              <form id="learning-goal-form" class="card">
+                <div class="card-head"><h3>New goal</h3></div>
+                <label class="field">What are you learning?
+                  <input id="learning-title" type="text" required placeholder="Rust ownership">
+                </label>
+                <label class="field">Done when (optional)
+                  <input id="learning-criteria" type="text" placeholder="explain a borrow error">
+                </label>
+                <div class="row between">
+                  <button type="submit" class="btn primary">Create goal</button>
+                  <span id="learning-goal-status" class="hint"></span>
+                </div>
+              </form>
+            </aside>
+            <div class="detail">
+              <div id="learning-detail" class="stack">
+                <p class="dim small">Pick a goal, or create one. A goal is a record: its items, attempts and sessions are rows the CLI reads too.</p>
               </div>
-            </form>
-          </aside>
-          <div class="main">
-            <div id="learning-detail" class="panel">
-              <p class="muted">Pick a goal, or create one. A goal is a record: its items, attempts and
-                sessions are rows the CLI reads too.</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="view" id="view-search" hidden>
-        <form id="search-form" class="searchbar">
-          <input id="search-query" placeholder="Search conversations, memory, tasks, workflows, artifacts, tools and files" required>
-          <label class="check"><input id="search-files" type="checkbox" checked> files</label>
-          <button type="submit" class="primary">Search</button>
-        </form>
-        <div id="search-notes" class="warnings"></div>
-        <div id="search-results" class="panel"></div>
-      </section>
-
-      <section class="view" id="view-tasks" hidden>
-        <div class="row space">
-          <label class="inline">Status
-            <select id="tasks-status">
-              <option value="">any</option>
-              <option value="running">running</option>
-              <option value="completed">completed</option>
-              <option value="failed">failed</option>
-              <option value="interrupted">interrupted</option>
-              <option value="cancelled">cancelled</option>
-            </select>
-          </label>
-          <button id="tasks-refresh" type="button" class="ghost">Refresh</button>
-        </div>
-        <div class="split">
-          <aside class="side"><ul id="tasks-list" class="list"></ul></aside>
-          <div class="main">
-            <div id="task-detail" class="panel"><p class="muted">Pick a task to see its timeline, artifacts and reproduction record.</p></div>
+      <!-- ───────────── search ───────────── -->
+      <section class="page" id="view-search" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Search</h1>
+            <p>One query across conversations, memory, tasks, workflows, projects, artifacts, tools and files.</p>
           </div>
+        </header>
+        <div class="page-body">
+          <form id="search-form" class="searchbar">
+            <input id="search-query" placeholder="database locks" required aria-label="Search query">
+            <label class="check"><input id="search-files" type="checkbox" checked> files</label>
+            <button type="submit" class="btn primary">Search</button>
+          </form>
+          <div id="search-notes" class="warnings"></div>
+          <div id="search-results" class="stack"></div>
         </div>
       </section>
 
-      <section class="view" id="view-jobs" hidden>
-        <div class="row space">
-          <p class="section-note">Queued work, its attempts and its deadline. Running one here uses the same runner as the CLI.</p>
-          <div class="row">
-            <button id="jobs-refresh" type="button" class="ghost">Refresh</button>
-            <button id="jobs-run" type="button" class="primary">Run one queued job</button>
+      <!-- ───────────── tasks ───────────── -->
+      <section class="page" id="view-tasks" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Tasks</h1>
+            <p>What ran, in order, with artifacts and a reproduction record.</p>
           </div>
-        </div>
-        <div id="jobs-stats" class="cards"></div>
-        <div id="jobs-list" class="panel"></div>
-      </section>
-
-      <section class="view" id="view-access" hidden>
-        <p class="section-note">
-          Approving mints exactly the grant that was requested; revoking takes it away. Neither
-          button can widen a request — that is a separate, explicit grant from the CLI.
-        </p>
-        <div class="row space">
-          <span class="mini-head">Pending approvals</span>
-          <button id="access-refresh" type="button" class="ghost tiny">Refresh</button>
-        </div>
-        <div id="approvals-list" class="panel"></div>
-        <h2 class="sub-head">Active grants</h2>
-        <div id="grants-list" class="panel"></div>
-        <h2 class="sub-head">Capabilities</h2>
-        <div id="capabilities-list" class="panel"></div>
-      </section>
-
-      <section class="view" id="view-memory" hidden>
-        <div class="row space">
-          <p class="section-note">What Archx keeps about you, with the same duplicate check as <code>memory add</code>.</p>
-          <button id="memory-refresh" type="button" class="ghost">Refresh</button>
-        </div>
-        <form id="memory-form" class="card">
-          <div class="grid2">
-            <label>Kind
-              <select id="memory-kind">
-                <option value="permanent">permanent</option>
-                <option value="active">active</option>
-                <option value="archival">archival</option>
-                <option value="project">project</option>
-                <option value="solution">solution</option>
-                <option value="learning">learning</option>
+          <div class="ph-actions">
+            <label class="field field-inline">
+              <select id="tasks-status" class="sel" aria-label="Filter by status">
+                <option value="">any status</option>
+                <option value="running">running</option>
+                <option value="completed">completed</option>
+                <option value="failed">failed</option>
+                <option value="interrupted">interrupted</option>
+                <option value="cancelled">cancelled</option>
               </select>
             </label>
-            <label>Category <input id="memory-category" placeholder="fact / preference / …"></label>
+            <button id="tasks-refresh" class="icon-btn" type="button" title="Reload tasks" aria-label="Reload tasks">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
           </div>
-          <label>Title <input id="memory-title" required></label>
-          <label>Content <textarea id="memory-content" rows="2" required></textarea></label>
-          <div class="row space">
-            <button type="submit" class="primary">Store memory</button>
-            <span id="memory-status" class="tiny muted"></span>
+        </header>
+        <div class="page-body flush">
+          <div class="split">
+            <aside class="picker"><ul id="tasks-list" class="list"></ul></aside>
+            <div class="detail">
+              <div id="task-detail" class="stack">
+                <p class="dim small">Pick a task to see its timeline, artifacts and reproduction record.</p>
+              </div>
+            </div>
           </div>
-        </form>
-        <div id="memory-list" class="panel"></div>
+        </div>
       </section>
 
-      <section class="view" id="view-models" hidden>
-        <div class="row space">
-          <p class="section-note">Every model this build knows about, including the ones it cannot run — with the reason.</p>
-          <button id="models-refresh" type="button" class="ghost">Refresh</button>
+      <!-- ───────────── jobs ───────────── -->
+      <section class="page" id="view-jobs" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Jobs</h1>
+            <p>Durable queued work: claims, attempts, deadlines. Running one here uses the same runner as the CLI.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="jobs-refresh" class="icon-btn" type="button" title="Reload the queue" aria-label="Reload the queue">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+            <button id="jobs-run" class="btn primary" type="button">Run one queued job</button>
+          </div>
+        </header>
+        <div class="page-body">
+          <div id="jobs-stats" class="stats"></div>
+          <div class="section-head"><div><h2>Queue</h2><p>Newest first. Pause, resume, retry or cancel act on the record itself.</p></div></div>
+          <div id="jobs-list" class="stack"></div>
         </div>
-        <div id="models-list" class="panel"></div>
+      </section>
+
+      <!-- ───────────── access ───────────── -->
+      <section class="page" id="view-access" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Access</h1>
+            <p>Approving mints exactly the grant that was requested; revoking takes it away. Neither button can widen a request.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="access-refresh" class="icon-btn" type="button" title="Reload access" aria-label="Reload access">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body">
+          <div class="access-section">
+            <div class="section-head"><div><h2>Pending approvals</h2><p>Each one names the capability, the subject and the scope.</p></div></div>
+            <div id="approvals-list" class="stack"></div>
+          </div>
+          <div class="access-section">
+            <div class="section-head"><div><h2>Active grants</h2><p>What Archx may do right now.</p></div></div>
+            <div id="grants-list" class="stack"></div>
+          </div>
+          <div class="access-section">
+            <div class="section-head"><div><h2>Capabilities</h2><p>Every capability this build knows, and what it would allow.</p></div></div>
+            <div id="capabilities-list" class="stack"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ───────────── memory ───────────── -->
+      <section class="page" id="view-memory" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Memory</h1>
+            <p>What Archx keeps about you, with the same duplicate check as <code>memory add</code>.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="memory-refresh" class="icon-btn" type="button" title="Reload memories" aria-label="Reload memories">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body">
+          <form id="memory-form" class="card memory-form">
+            <div class="card-head"><h3>Store a memory</h3><p class="hint">A duplicate is refused with the existing id instead of being stored twice.</p></div>
+            <div class="grid2">
+              <label class="field">Kind
+                <select id="memory-kind" class="sel">
+                  <option value="permanent">permanent</option>
+                  <option value="active">active</option>
+                  <option value="archival">archival</option>
+                  <option value="project">project</option>
+                  <option value="solution">solution</option>
+                  <option value="learning">learning</option>
+                </select>
+              </label>
+              <label class="field">Category
+                <input id="memory-category" type="text" placeholder="fact / preference / …">
+              </label>
+            </div>
+            <label class="field">Title
+              <input id="memory-title" type="text" required>
+            </label>
+            <label class="field">Content
+              <textarea id="memory-content" rows="3" required></textarea>
+            </label>
+            <div class="row between">
+              <button type="submit" class="btn primary">Store memory</button>
+              <span id="memory-status" class="hint"></span>
+            </div>
+          </form>
+          <div id="memory-list" class="stack"></div>
+        </div>
+      </section>
+
+      <!-- ───────────── models ───────────── -->
+      <section class="page" id="view-models" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Models</h1>
+            <p>The catalogue, including what this build cannot run — and the reason it prints.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="models-refresh" class="icon-btn" type="button" title="Reload models" aria-label="Reload models">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body">
+          <div id="models-list" class="stack"></div>
+        </div>
+      </section>
+
+      <!-- ───────────── status ───────────── -->
+      <section class="page" id="view-status" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Status</h1>
+            <p>What this home is, what it can do right now, and the exact command that unblocks anything that it cannot.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="status-refresh" class="icon-btn" type="button" title="Reload status" aria-label="Reload status">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body">
+          <div id="status-cards" class="stats"></div>
+          <div class="status-grid">
+            <div>
+              <div class="section-head"><div><h2>This home</h2><p>Where the records live and which schema they are on.</p></div></div>
+              <div id="status-info" class="stack"></div>
+            </div>
+            <div>
+              <div class="section-head"><div><h2>What is blocked</h2><p>With the exact next command.</p></div></div>
+              <div id="status-blocked" class="stack"></div>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
-
-    <footer class="footer">
-      <span id="footer-note" class="tiny muted">local only · this page makes no network requests except to the server that served it</span>
-    </footer>
   </div>
 </div>
 
 <section id="gate" class="gate" hidden>
-  <form id="gate-form" class="card gate-card" autocomplete="off">
-    <span class="mark big" aria-hidden="true">A</span>
+  <form id="gate-form" class="gate-card" autocomplete="off">
+    <svg viewBox="0 0 32 32" width="40" height="40" aria-hidden="true"><rect width="32" height="32" rx="8"/><path d="M16 5 26 26h-5.2l-1.9-4.3h-5.8L11.2 26H6Zm0 8.6-2 4.6h4Z"/></svg>
     <h1>Archx Agent</h1>
-    <p class="muted">
-      This page is served by your own Archx process. Paste the access token it printed
-      (<code>access token: …</code>) to open a session. Nothing is stored except an HttpOnly
-      cookie this server issued.
-    </p>
-    <label>Access token <input id="gate-token" type="password" spellcheck="false" autofocus></label>
-    <button type="submit" class="primary block">Open session</button>
-    <p id="gate-error" class="error" role="alert"></p>
+    <p class="dim">This page is served by your own Archx process. Paste the access token it printed
+      (<code>access token: …</code>) to open a session. Nothing is stored except an HttpOnly cookie
+      this server issued.</p>
+    <label class="field">Access token
+      <input id="gate-token" type="password" spellcheck="false" autofocus>
+    </label>
+    <button type="submit" class="btn primary block">Open session</button>
+    <p id="gate-error" class="error-text" role="alert"></p>
   </form>
 </section>
+
+<div id="modal" class="modal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <h2 id="modal-title"></h2>
+    <p id="modal-text"></p>
+    <div class="confirm-actions">
+      <button id="modal-cancel" class="btn ghost" type="button">Cancel</button>
+      <button id="modal-ok" class="btn danger" type="button">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts" class="toasts" aria-live="polite"></div>
 
 <script src="/app.js"></script>
 </body>

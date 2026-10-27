@@ -72,11 +72,10 @@ not pretend the seed is a model.
 
 ## Layout, theme and modes
 
-The page is one shell with three parts: a left **rail** (Modes · Work · Control), a **header**
-that names the current mode, says what it is for and lists the tools that mode actually has,
-and a **work area**. The rail collapses to an icon strip (the button in its top corner, or
-automatically under 1180px) and remembers that choice; under 760px it becomes a horizontal
-strip. Nothing else moves: the modes differ in instruments, not in furniture.
+One shell, three parts: a left **sidebar** (Modes · Work · Control), a **top bar** that names
+the current mode and lists the tools that mode actually has, and a **work area**. The sidebar
+collapses to a 64px icon rail with the button in its top corner, or by itself under 1100px,
+and remembers which you chose; under 760px it becomes a horizontal strip.
 
 | Group | Panels |
 |-------|--------|
@@ -84,27 +83,43 @@ strip. Nothing else moves: the modes differ in instruments, not in furniture.
 | **Work** | Search (one query, nine sources), Tasks (timeline, artifacts, reproduction), Jobs (queue, pause/resume/cancel/retry, run one) |
 | **Control** | Access (approvals, grants, capabilities), Memory (add/list with the duplicate check), Models (why each one cannot run), Status (counts, schema, what is blocked) |
 
-The tool strip in the header is drawn from live data, so it cannot flatter: `model: none
-usable` and `net.fetch: not granted` are the app telling you what it can do right now. It is
-also where the modes stop looking identical — Chat spends tokens, Research spends network
+The tool strip in the top bar is drawn from live data, so it cannot flatter: `model: none
+usable` and `net.fetch: not granted` are the app saying what it can do right now. That strip
+is also where the modes stop looking identical - Chat spends tokens, Research spends network
 grants, Learning spends neither.
 
-**Colour is tokenised.** Four surface levels, three text levels, semantic ok/warn/bad and one
-accent per mode (`--mode-accent` is re-bound by `body[data-view=…]`). A dark palette is the
-default, a light palette is one attribute away (`data-theme`), the first visit follows
-`prefers-color-scheme`, and the toggle in the rail foot remembers your choice. Text is
-off-white on near-black rather than pure white on pure black, for the contrast that survives a
-long session.
+**It is built to be used, not just to be looked at.** Chat is a transcript with avatars, a
+role line and a per-message copy button that appears on hover (and stays visible on touch);
+replies are rendered as markdown - headings, lists, quotes, inline code, fenced blocks with a
+language label and a copy button, and tables with copy-as-CSV and save. The empty state offers
+four prompts that fill the composer instead of pretending to be buttons that do nothing. A
+waiting reply shows three dots, not a percentage. Warnings and refusals are rendered inline
+where the action was taken, with the error code. Every list (conversations, research runs,
+goals, tasks) is a picker that marks the open record; every long table is a scroll container
+with a sticky header; every copy, save, approve, deny, revoke, pause, resume, retry and cancel
+button is wired to the endpoint behind it, and a toast confirms what the server said.
+The three acts that cannot be undone from the page - denying an approval, revoking a
+grant, cancelling a job - open a confirmation dialog that names exactly what will happen,
+and `Escape` or a click outside dismisses it.
 
-**Keyboard.** `Ctrl/Cmd+Enter` sends in the composer; `Ctrl/Cmd+K` jumps to Search and focuses
-the query. Every control is a real `<button>`, `<input>` or `<select>` with a visible focus
-ring, and the rail marks the current mode with `aria-current`.
+**Colour is tokenised, and mostly absent.** Four surface levels (`--bg`, `--bg-2`, `--panel`,
+`--panel-2/3`), three text levels, and colour reserved for state (`--ok`, `--warn`,
+`--danger`). The accent is the text colour itself - white on black, black on white - so the
+interface reads like an instrument rather than a dashboard. Three themes ship: **dark**
+(default), **light**, and **soft** (warm off-white for daylight); the toggle cycles them, the
+first visit follows `prefers-color-scheme`, and the choice is remembered. A theme is a token
+swap on `data-theme` and nothing else.
 
-**No build step still holds.** Three files — `index.html`, `style.css`, `app.js` — served from
-package data by exact name, no framework, no CDN, no inline handler, no `style=` attribute
-(so the CSP stays `'self'` with no `unsafe-inline`). `tests/test_gui_m29.py` fails if the page
-uses a class with no rule behind it, if a mode has no title/tools entry, or if a `-refresh`
-button has no listener.
+**Keyboard.** `Enter` sends, `Shift+Enter` adds a line, `Ctrl/Cmd+K` jumps to Search and
+focuses the query. Every control is a real `<button>`, `<input>` or `<select>` with a visible
+focus ring; the sidebar marks the current mode with `aria-current`.
+
+**No build step still holds.** Three files - `index.html`, `style.css`, `app.js` - served from
+package data by exact name: no framework, no CDN, no icon font, no inline handler and no
+`style=` attribute anywhere (so the CSP stays `'self'` with no `unsafe-inline`; icons are SVG
+built with `createElementNS`, the coverage bar is a native `<progress>`, and the composer grows
+by `rows`). `tests/test_gui_m29.py` fails if the page uses an id or a class with no rule behind
+it, if a mode has no title/tools entry, or if a `-refresh` button has no listener.
 
 ## Security model
 

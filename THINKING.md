@@ -775,6 +775,18 @@ levels and one accent per mode, each with a dark and a light value; the toggle f
 is the difference between a palette that survives a long session and one that glares. The
 first visit follows the system preference and the choice is remembered.
 
+**D133. A local tool should look like an instrument, not a dashboard.** The first two
+passes at this shell were thin: correct tokens, then a flat list of panels, which read as a
+default-looking page with a chat box bolted on. The rebuild keeps one idea - surfaces step up
+in luminance, and colour is spent only on state - and spends the rest of the effort on craft:
+a 258px sidebar that collapses to a 64px rail, a transcript with avatars and per-message copy
+on hover, markdown with copyable code blocks and CSV-exportable tables, empty-state prompts
+that fill the composer, three dots instead of a fake percentage, toasts that repeat what the
+server said, sticky table headers, and a picker column that marks the open record. Per-mode
+accents are gone (D131): ten hues made ten mediocre palettes, and one monochrome accent makes
+the *tools* the difference between modes, which was the point. Three themes ship - dark,
+light, soft - because "dark mode" is not the same claim as "the light mode was designed".
+
 **D132. Honesty has a layout.** Research Mode is marked `partial`, not done: it reads local
 documents and the URLs you paste, and no search engine, crawler or experiment runner exists
 behind it. That belongs in `docs/MODES.md` and in the empty space where a search box would be,
