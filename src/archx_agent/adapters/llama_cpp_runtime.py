@@ -49,6 +49,11 @@ class LlamaCppRuntime(BaseRuntime):
         self._load_error: str | None = None
 
     # -- lifecycle --------------------------------------------------------
+    def available(self) -> tuple[bool, str]:
+        if not llama_cpp_available():
+            return False, f"llama-cpp-python is not installed ({INSTALL_HINT})"
+        return True, "ready"
+
     def load(self, spec: ModelSpec) -> None:
         if not llama_cpp_available():
             self._load_error = f"llama-cpp-python is not installed ({INSTALL_HINT})"

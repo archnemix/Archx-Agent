@@ -3,6 +3,32 @@
 All notable changes. Format loosely follows Keep a Changelog; versions track the
 milestone block rather than semantic-release cadence, because M01-M20 are one development series.
 
+## [0.21.0] - M21 capability-safe model router
+
+### Added
+- `ModelRouter` with capability states (`verified`/`inferred`/`unverified`/`unsupported`/
+  `unavailable`), each carrying its evidence; eligibility rules; deterministic scoring;
+  recorded decisions; probes; fallback planning.
+- `models route`, `models probe`, `models capabilities`; `RouterDecision` exposed on every
+  chat reply as `model.routing`.
+- Workspace policy keys `router.require_verified`, `router.allow_unverified_chat`,
+  `router.allow_cloud`, `router.prefer_local`, `router.fallback`, `router.max_fallbacks`.
+- `Workspace.runtime_availability` (cheap, no-load availability check) and
+  `BaseRuntime.available()`.
+- Visible fallback: `model.failed` / `model.fallback` trace events, `fallback_from` and
+  warnings on the reply.
+- Trace kinds `model` and `router`; `docs/ROUTING.md`; M21 acceptance script.
+
+### Fixed
+- The router could pick a model whose runtime cannot start (it ranked by score without
+  checking availability); eligibility is now a filter applied before ranking.
+- Registering a second remote model with the same provider and model reference silently
+  overwrote the first model's endpoint; it now raises `ConflictError` naming the existing
+  entry, and re-registering the identical endpoint is idempotent.
+- `models add-scripted --name other` silently reused the existing test double without
+  saying so.
+- Error hints told users to probe capabilities that cannot be probed (`ocr`, `vision`).
+
 ## [0.20.0] - M20 providers, privacy metadata and consent
 
 ### Added

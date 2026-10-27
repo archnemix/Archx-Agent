@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Sequence
 
 from archx_agent.adapters.model_runtime import GenerationParams
-from archx_agent.helpers.exceptions import ProviderError, ValidationError
+from archx_agent.helpers.exceptions import ArchxError, ProviderError, ValidationError
 from archx_agent.helpers.timeutil import iso_now
 from archx_agent.managers.context import ContextManager, ContextManifest, Summarizer
 from archx_agent.managers.conversation import Message
@@ -125,11 +125,23 @@ class ChatService:
             if conversation_id
             else self.ws.conversations.create(title or _title_from(text), model_id=model_id)
         )
-        record = self.ws.resolve_model(model_id or conversation.model_id, task="chat")
+        decision = self.ws.route_model(task="chat", model_id=model_id or conversation.model_id)
+        record = decision.chosen
+        if record is None:  # pragma: no cover - route_model raises instead
+            raise ProviderError("no model is eligible for chat", provider="router")
         if conversation.model_id != record.id:
             self.ws.conversations.set_model(conversation.id, record.id)
 
         warnings: list[str] = []
+        for note in decision.notes:
+            if "allowed by policy" in note or "simulated" in note:
+                warnings.append(f"routing: {note}")
+        for candidate in decision.candidates:
+            if candidate.eligible and candidate.simulated:
+                warnings.append(
+                    "routing: a simulated test double is eligible for this task; it performs no inference"
+                )
+                break
         generated = self.context.tokenizer
         if (strategy or conversation.context_strategy or self.context.default_strategy) in ("summarize", "ai_proposed"):
             if self.context.summarizer is None:
@@ -161,73 +173,136 @@ class ChatService:
         messages.extend(manifest.injected)
         messages.append({"role": "user", "content": text})
 
-        runtime = self.ws.runtime_for(record)
         generation = params or self._params
-        started = time.perf_counter()
-        simulated = bool(getattr(runtime, "simulated", False))
-        self.ws.events.record(
-            "model_call",
-            "model.request",
-            conversation_id=conversation.id,
-            message_id=user_message.id,
-            payload={
-                "model_id": record.id,
-                "model_name": record.name,
-                "provider": record.provider,
-                "runtime": record.runtime,
-                "simulated": simulated,
-                "messages": len(messages),
-                "manifest_id": manifest.id,
-                "tokens_estimate": manifest.tokens_used + generated.count(text),
-                "params": generation.to_dict(),
-            },
-        )
-        try:
-            if stream_callback is not None and runtime.supports_streaming:
-                chunks: list[str] = []
-                for piece in runtime.stream(messages, generation):
-                    chunks.append(piece)
-                    stream_callback(piece)
-                from archx_agent.adapters.model_runtime import ChatResult
+        from archx_agent.adapters.model_runtime import ChatResult
 
-                reply_text = "".join(chunks)
-                latency_ms = round((time.perf_counter() - started) * 1000, 2)
-                result = ChatResult(
-                    text=reply_text,
-                    model_id=record.id,
-                    prompt_tokens=manifest.tokens_used + generated.count(text),
-                    completion_tokens=generated.count(reply_text),
-                    latency_ms=latency_ms,
-                    raw={"simulated": simulated, "streamed": True},
-                )
-            else:
-                result = runtime.chat(messages, generation)
-        except ProviderError as exc:
+        attempts: list[ModelRecord] = [record]
+        if self.ws.config.get("router.fallback") and not model_id:
+            attempts.extend(m for m in decision.fallbacks if m.id != record.id)
+
+        primary = record
+        result = None
+        runtime = self.ws.runtime_for(record)
+        started = time.perf_counter()
+        last_error: ProviderError | None = None
+        for index, attempt in enumerate(attempts):
+            if index:
+                # A fallback with a smaller window than the manifest we already built
+                # cannot carry the same context; skip it rather than truncating silently.
+                window = attempt.context_length or self.ws.config.get("model.context_limit")
+                if window and manifest.tokens_used + generation.max_tokens > window:
+                    warnings.append(
+                        f"fallback {attempt.name} was skipped: the context needs "
+                        f"{manifest.tokens_used + generation.max_tokens} tokens but its window is {window}"
+                    )
+                    continue
+            try:
+                runtime = self.ws.runtime_for(attempt)
+            except ArchxError as exc:
+                warnings.append(f"fallback {attempt.name} could not be loaded: {exc.message}")
+                continue
+            simulated = bool(getattr(runtime, "simulated", False))
             self.ws.events.record(
                 "model_call",
-                "model.failed",
-                status="error",
+                "model.request",
                 conversation_id=conversation.id,
                 message_id=user_message.id,
-                duration_ms=round((time.perf_counter() - started) * 1000, 2),
                 payload={
-                    "model_id": record.id,
-                    "error_code": exc.code,
-                    "provider": getattr(exc, "provider", record.provider),
-                    "classified_as": type(exc).__name__,
-                    "retryable": getattr(exc, "retryable", False),
+                    "model_id": attempt.id,
+                    "model_name": attempt.name,
+                    "provider": attempt.provider,
+                    "runtime": attempt.runtime,
+                    "simulated": simulated,
+                    "messages": len(messages),
+                    "manifest_id": manifest.id,
+                    "tokens_estimate": manifest.tokens_used + generated.count(text),
+                    "params": generation.to_dict(),
+                    "attempt": index + 1,
+                    "fallback_from": primary.id if index else None,
                 },
-                error=exc.message,
             )
-            self.ws.models.record_usage(record.id, success=False, error=f"{type(exc).__name__}: {exc.message}")
-            self.ws.record_usage(
-                record,
-                tokens_in=getattr(exc, "prompt_tokens", 0) or 0,
-                tokens_out=0,
-                ok=False,
-                error=f"{type(exc).__name__}: {exc.message}",
+            started = time.perf_counter()
+            try:
+                if stream_callback is not None and runtime.supports_streaming:
+                    chunks: list[str] = []
+                    for piece in runtime.stream(messages, generation):
+                        chunks.append(piece)
+                        stream_callback(piece)
+                    reply_text = "".join(chunks)
+                    result = ChatResult(
+                        text=reply_text,
+                        model_id=attempt.id,
+                        prompt_tokens=manifest.tokens_used + generated.count(text),
+                        completion_tokens=generated.count(reply_text),
+                        latency_ms=round((time.perf_counter() - started) * 1000, 2),
+                        raw={"simulated": simulated, "streamed": True},
+                    )
+                else:
+                    result = runtime.chat(messages, generation)
+            except ProviderError as exc:
+                last_error = exc
+                self.ws.events.record(
+                    "model_call",
+                    "model.failed",
+                    status="error",
+                    conversation_id=conversation.id,
+                    message_id=user_message.id,
+                    duration_ms=round((time.perf_counter() - started) * 1000, 2),
+                    payload={
+                        "model_id": attempt.id,
+                        "error_code": exc.code,
+                        "provider": getattr(exc, "provider", attempt.provider),
+                        "classified_as": type(exc).__name__,
+                        "retryable": getattr(exc, "retryable", False),
+                        "attempt": index + 1,
+                    },
+                    error=exc.message,
+                )
+                self.ws.models.record_usage(
+                    attempt.id, success=False, error=f"{type(exc).__name__}: {exc.message}"
+                )
+                self.ws.record_usage(
+                    attempt,
+                    tokens_in=getattr(exc, "prompt_tokens", 0) or 0,
+                    tokens_out=0,
+                    ok=False,
+                    error=f"{type(exc).__name__}: {exc.message}",
+                )
+                next_attempt = attempts[index + 1] if index + 1 < len(attempts) else None
+                if next_attempt is not None and getattr(exc, "retryable", False):
+                    # Fallback is a visible, recorded decision - never a silent substitution.
+                    self.ws.events.record(
+                        "model_call",
+                        "model.fallback",
+                        status="warning",
+                        conversation_id=conversation.id,
+                        message_id=user_message.id,
+                        payload={
+                            "from": attempt.id,
+                            "from_name": attempt.name,
+                            "to": next_attempt.id,
+                            "to_name": next_attempt.name,
+                            "error_code": exc.code,
+                        },
+                    )
+                    warnings.append(
+                        f"{attempt.name} failed ({type(exc).__name__}: {exc.message}); "
+                        f"falling back to {next_attempt.name}"
+                    )
+                    continue
+                raise
+            record = attempt
+            break
+        if result is None:
+            assert last_error is not None
+            raise last_error
+        simulated = bool(getattr(runtime, "simulated", False))
+        if record.id != primary.id:
+            warnings.append(
+                f"answered by fallback model {record.name} instead of {primary.name}; "
+                "the reply records the substitution"
             )
-            raise
+            self.ws.conversations.set_model(conversation.id, record.id)
         latency_ms = round((time.perf_counter() - started) * 1000, 2)
         if result.text is None or not isinstance(result.text, str):
             raise ProviderError("runtime returned no text", provider=record.provider, model=record.id)
@@ -276,7 +351,11 @@ class ChatService:
             user_message=user_message,
             assistant_message=assistant,
             text=result.text,
-            model=self.ws.model_choice_explanation(record),
+            model={
+                **self.ws.model_choice_explanation(record),
+                "routing": decision.to_dict(),
+                "fallback_from": primary.id if record.id != primary.id else None,
+            },
             manifest=manifest,
             prompt_tokens=result.prompt_tokens,
             completion_tokens=result.completion_tokens,

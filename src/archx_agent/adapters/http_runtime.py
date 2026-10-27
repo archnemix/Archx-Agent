@@ -73,6 +73,11 @@ class HttpChatRuntime(BaseRuntime):
         self.is_local = is_local if is_local is not None else host in ("127.0.0.1", "localhost", "::1")
 
     # -- transport --------------------------------------------------------
+    def available(self) -> tuple[bool, str]:
+        if not self.base_url:
+            return False, "no base_url configured"
+        return True, "ready"
+
     def _request(self, method: str, path: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
         url = f"{self.base_url}{path}"
         data = json.dumps(body).encode("utf-8") if body is not None else None

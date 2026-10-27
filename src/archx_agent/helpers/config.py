@@ -123,6 +123,17 @@ SPEC: dict[str, tuple[type, Any, Validator, str]] = {
     "model.temperature": (float, 0.2, _range(0.0, 2.0), "Default sampling temperature."),
     "model.prefer_verified": (bool, True, _bool, "Prefer capability-verified models."),
     "model.allow_cloud_fallback": (bool, False, _bool, "Allow automatic cloud fallback (off by default)."),
+    # ---- router (capability-safe model selection)
+    "router.require_verified": (bool, False, _bool,
+        "Only route to models whose capability was proven by a recorded probe (chat included)."),
+    "router.allow_unverified_chat": (bool, True, _bool,
+        "Allow chat on models whose chat capability is only claimed (the decision records it)."),
+    "router.allow_cloud": (bool, False, _bool,
+        "Let the router *choose* a remote model by itself; explicit --model still works."),
+    "router.prefer_local": (bool, True, _bool, "Prefer local models when abilities are equal."),
+    "router.fallback": (bool, True, _bool,
+        "After a retryable provider failure, try the next eligible model."),
+    "router.max_fallbacks": (int, 2, _range(0, 10, integer=True), "Maximum fallback attempts."),
     # ---- context strategy
     "context.strategy": (str, "oldest_first", _one_of("oldest_first", "summarize", "ai_select", "manual", "ai_proposed"), "Context compaction strategy."),
     "context.reserve_tokens": (int, 256, _range(0, 32000, integer=True), "Head-room kept free in the context window."),

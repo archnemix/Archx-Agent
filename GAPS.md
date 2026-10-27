@@ -68,6 +68,13 @@ Blender, automations, hardening. The database schema already reserves tables for
 * **`providers check` only probes `/models`.** A provider that answers `/models` but
   fails completions is not detected by the probe; the first real request will fail with a
   classified error and be recorded in usage.
+* **Capability probes are shallow.** `models probe` sends a tiny prompt and checks the
+  shape of the answer: it proves the path works, not that the model is good at it. In this
+  environment the only successful probe is against the labelled test double.
+* **`tools` cannot be verified yet.** No adapter emits tool calls until M22, so
+  `--capability tools` always fails; the router will therefore not route tool-using work
+  to any model in this build.
+* **No cost-aware routing.** Prices from M20 are recorded but not used by the router score.
 * **No GUI yet**, so "primary workflow usable with no placeholder controls" (M29) is
   not demonstrated.
 * **Windows and macOS are untested.** Path containment tests cover symlinks and

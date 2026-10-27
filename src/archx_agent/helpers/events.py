@@ -48,6 +48,8 @@ KINDS = {
     "system",
     "storage",
     "provider",
+    "model",
+    "router",
     "scheduler",
     "job",
     "mcp",

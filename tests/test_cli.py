@@ -462,3 +462,60 @@ class TestCliProviders:
         result = run("chat", "--model", model_id, "-m", "hello", home=home)
         assert result.returncode != 0
         assert "local_only" in result.stderr
+
+
+class TestCliRouting:
+    def test_route_explains_choices_and_refusals(self, home):
+        run("models", "add-scripted", "--name", "sim", home=home)
+        decision = _json(run("models", "route", "--json", home=home, allow_simulated=True))
+        assert decision["chosen_name"] == "sim"
+        assert decision["acceptable"] is True
+        assert decision["policy"]["allow_cloud"] is False
+        assert "explanation" in decision and "chat" in decision["explanation"]
+
+    def test_no_model_is_a_clear_failure(self, home):
+        result = run("models", "route", home=home)
+        assert result.returncode != 0
+        assert "no usable model" in result.stderr
+        assert "models add-http" in result.stderr
+
+    def test_probe_changes_the_capability_state(self, home):
+        run("models", "add-scripted", "--name", "sim", home=home)
+        before = _json(run("models", "capabilities", "sim", "--json", home=home))
+        assert before["capabilities"]["chat"]["state"] == "inferred"
+        probed = _json(run("models", "probe", "sim", "--capability", "chat", "--json",
+                           home=home, allow_simulated=True))
+        assert probed["outcome"] == "passed"
+        assert probed["state_after"]["state"] == "verified"
+        after = _json(run("models", "capabilities", "sim", "--json", home=home))
+        assert after["capabilities"]["chat"]["state"] == "verified"
+        assert "probe passed" in after["capabilities"]["chat"]["basis"]
+
+    def test_probe_rejects_an_unmeasurable_capability(self, home):
+        run("models", "add-scripted", "--name", "sim", home=home)
+        result = run("models", "probe", "sim", "--capability", "vision", home=home, allow_simulated=True)
+        assert result.returncode != 0
+        assert "invalid choice" in result.stderr
+
+    def test_require_verified_policy_gates_routing(self, home):
+        run("models", "add-scripted", "--name", "sim", home=home)
+        run("config", "set", "router.require_verified", "true", home=home)
+        refused = run("models", "route", home=home, allow_simulated=True)
+        assert refused.returncode != 0
+        assert "not verified" in refused.stderr
+        run("models", "probe", "sim", "--capability", "chat", home=home, allow_simulated=True)
+        ok = _json(run("models", "route", "--json", home=home, allow_simulated=True))
+        assert ok["chosen_name"] == "sim"
+
+    def test_capability_regression_is_never_routed(self, home):
+        run("models", "add-scripted", "--name", "sim", home=home)
+        models = _json(run("models", "list", "--json", home=home))
+        model_id = models[0]["id"]
+        # measure a failure, then prove the router refuses the model
+        from archx_agent.application.workspace import open_workspace
+
+        with open_workspace(home=home) as ws:
+            ws.models.record_capability_test(model_id, "chat", "failed", detail="measured broken")
+        result = run("models", "route", home=home, allow_simulated=True)
+        assert result.returncode != 0
+        assert "unsupported" in result.stderr

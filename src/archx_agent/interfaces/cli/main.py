@@ -22,7 +22,7 @@ from archx_agent.helpers.backup_recovery import (
     verify_backup,
 )
 from archx_agent.helpers.config import list_settings, load_config, resolve_secret
-from archx_agent.helpers.exceptions import ArchxError, ProviderError, ValidationError
+from archx_agent.helpers.exceptions import ArchxError, ModelNotFoundError, ProviderError, ValidationError
 from archx_agent.helpers.jsonio import json_text
 from archx_agent.managers.memory import CATEGORIES, KINDS as MEMORY_KINDS, MemoryManager
 from archx_agent.managers.models import VERIFICATION_STATES
@@ -198,6 +198,19 @@ def build_parser() -> argparse.ArgumentParser:
     m_remove = m_sub.add_parser("remove", help="remove a model from the catalogue")
     m_remove.add_argument("model")
     m_remove.add_argument("--delete-file", action="store_true")
+    m_route = m_sub.add_parser("route", help="show which model the router would pick, and why")
+    m_route.add_argument("--task", default="chat")
+    m_route.add_argument("--require", action="append", help="required capability (repeatable)")
+    m_route.add_argument("--model", help="evaluate one specific model")
+    m_route.add_argument("--min-context", type=int, help="tokens of context the task needs")
+    m_route.add_argument("--allow-unverified", action="store_true",
+                         help="permit a capability that has only been claimed")
+    m_route.add_argument("--allow-cloud", action="store_true", help="let the router choose remote models")
+    m_probe = m_sub.add_parser("probe", help="exercise a capability and record the result")
+    m_probe.add_argument("model")
+    m_probe.add_argument("--capability", default="chat", choices=["chat", "tools", "json"])
+    m_caps = m_sub.add_parser("capabilities", help="capability states with their evidence")
+    m_caps.add_argument("model", nargs="?")
     m_sub.add_parser("storage", help="show model storage usage")
     m_compare = m_sub.add_parser("compare", help="compare models side by side")
     m_compare.add_argument("models", nargs="+")
@@ -694,7 +707,13 @@ def cmd_models(args: argparse.Namespace) -> int:
                 verification="unverified",
                 claims={"simulated": True},
             )
-            emit(f"registered SIMULATED model {record.name} ({record.id})")
+            if record.name != args.name:
+                emit(
+                    f"a simulated model is already registered as {record.name!r} ({record.id}); "
+                    "one test double is enough - reusing it"
+                )
+            else:
+                emit(f"registered SIMULATED model {record.name} ({record.id})")
             emit("  this runtime performs no inference; it exists to exercise the app offline")
             return EXIT_OK
         if command == "show":
@@ -766,6 +785,76 @@ def cmd_models(args: argparse.Namespace) -> int:
                 return fail(f"no model matches {args.model!r}")
             ws.models.remove(record.value.id, delete_file=args.delete_file)
             emit(f"removed {record.value.name}")
+            return EXIT_OK
+        if command == "route":
+            required = args.require or None
+            try:
+                decision = ws.route_model(
+                    task=args.task,
+                    model_id=args.model,
+                    required=required,
+                    allow_unverified=True if args.allow_unverified else None,
+                    allow_cloud=True if args.allow_cloud else None,
+                    min_context_tokens=args.min_context,
+                )
+            except ArchxError as exc:
+                return fail(exc.message, EXIT_UNAVAILABLE if isinstance(exc, ModelNotFoundError) else EXIT_USAGE)
+            data = decision.to_dict()
+            if args.json:
+                emit_json(data)
+            else:
+                if decision.chosen is None:
+                    emit("no eligible model")
+                else:
+                    emit(f"chosen    {decision.chosen.name}  ({decision.chosen.id})")
+                emit(f"task      {decision.task}  required={list(decision.required)}")
+                emit(f"why       {decision.explanation()}")
+                if decision.fallbacks:
+                    emit("fallbacks " + ", ".join(m.name for m in decision.fallbacks))
+                for candidate in decision.candidates:
+                    if candidate.eligible:
+                        mark = "*" if decision.chosen and candidate.model_id == decision.chosen.id else " "
+                        emit(f"  {mark} {candidate.name:<24} score {candidate.score:6.1f}  eligible")
+                    else:
+                        emit(f"    {candidate.name:<24} rejected: {candidate.blockers[0]}")
+            return EXIT_OK
+        if command == "probe":
+            try:
+                result = ws.router.probe(args.model, args.capability)
+            except ArchxError as exc:
+                return fail(exc.message, EXIT_USAGE)
+            if args.json:
+                emit_json(result)
+            else:
+                emit(f"{result['capability']}: {result['outcome']}  ({result['detail']})")
+                emit(f"  latency {result['latency_ms']} ms")
+                state = result["state_after"]
+                emit(f"  state now {state['state']} ({state['basis']})")
+                emit("  this drove the runtime; the result is recorded and the router will use it")
+            return EXIT_OK if result["outcome"] == "passed" else EXIT_DEGRADED
+        if command == "capabilities":
+            if args.model:
+                record = ws.models.get(args.model)
+                if record.is_err:
+                    record = ws.models.by_name(args.model)
+                if record.is_err:
+                    return fail(f"no model matches {args.model!r}")
+                matrix = ws.models.capability_matrix(record.value.id)
+                if args.json:
+                    emit_json({"model": record.value.name, "capabilities": matrix})
+                else:
+                    emit(f"{record.value.name} ({record.value.id})")
+                    for capability, state in matrix.items():
+                        emit(f"  {capability:<14} {state['state']:<12} {state['basis']}")
+                return EXIT_OK
+            rows = []
+            for record in ws.models.list():
+                for capability, state in ws.models.capability_matrix(record.id).items():
+                    rows.append([record.name, capability, state["state"], state["basis"]])
+            if args.json:
+                emit_json([{"model": r[0], "capability": r[1], "state": r[2], "basis": r[3]} for r in rows])
+            else:
+                emit(table(rows, ["model", "capability", "state", "basis"])) if rows else emit("no models")
             return EXIT_OK
         if command == "storage":
             data = ws.models.storage_summary()

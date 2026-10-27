@@ -163,6 +163,33 @@ before the request (`QuotaExhaustedError`); cost is only reported when the user 
 prices, and is labelled an estimate. Usage events are append-only per request, so a
 provider that starts failing shows up in the same table as the successful calls.
 
+## Routing (M21)
+
+`application/router.py` decides which model performs a task. Eligibility is a hard filter,
+evaluated per candidate and recorded verbatim:
+
+```
+model usable?                    -> else "model is missing/invalid"
+runtime can start here?          -> else "runtime unavailable: <reason>"   (no loading)
+each required capability?        -> verified | inferred (unless router.require_verified)
+                                  | unverified (chat only, or --allow-unverified)
+                                  | unsupported/unavailable -> never
+context window big enough?       -> else the numbers are reported
+remote endpoint?                 -> needs router.allow_cloud AND the M20 privacy/consent gates
+simulated test double?           -> needs --allow-simulated
+```
+
+Survivors are ordered by a deterministic score (capability level, task preference,
+default, locality, failure history, simulated penalty). The decision - chosen model,
+fallbacks, every rejection and its reason, plus the policy that was in force - is written
+to the trace and returned to the caller (`ChatReply.model.routing`).
+
+Fallback happens only for retryable provider errors, only to a model whose window can hold
+the manifest already built, and it is always recorded: `model.failed`, `model.fallback`,
+`fallback_from` on the reply, and a user-facing warning. Capability states are computed by
+`ModelManager.capability_state` from recorded probes first, then the runtime baseline, then
+declarations - a failed probe always wins.
+
 ## Model runtime boundary
 
 `adapters/model_runtime.py` defines `ModelRuntime` (`load`, `unload`, `health`, `chat`,

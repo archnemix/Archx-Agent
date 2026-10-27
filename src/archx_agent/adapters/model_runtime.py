@@ -109,7 +109,7 @@ class ModelRuntime(Protocol):
     is_local: bool
     supports_streaming: bool
 
-    def capabilities(self) -> frozenset[str]: ...
+    def available(self) -> tuple[bool, str]: ...
 
     def load(self, spec: ModelSpec) -> None: ...
 
@@ -128,6 +128,14 @@ class ModelRuntime(Protocol):
 
 class BaseRuntime:
     """Shared plumbing: model bookkeeping, capability declaration, close()."""
+
+    def available(self) -> tuple[bool, str]:
+        """Can this runtime run at all in this environment? ``(ok, reason_if_not)``.
+
+        This is a cheap check (an import, a file's existence, a setting) - it must never
+        load weights or open a socket. The router uses it so it cannot offer a model whose
+        runtime is missing."""
+        return True, "ready"
 
     runtime_id = "base"
     provider = "base"

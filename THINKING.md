@@ -215,6 +215,55 @@ a fabricated one.
 classifies the answer. It cannot verify that completions work, and it says so in the
 output.
 
+## Routing (M21)
+
+**D42. Eligibility is a hard filter; score only orders the survivors.**
+The first implementation scored candidates and picked the best. The acceptance run showed
+it choosing a GGUF file whose runtime (`llama-cpp-python`) is not installed, because a
+model with a good capability state still scored highest. A score can be tuned and argued
+with; an eligibility list with recorded reasons cannot. Order: filter, then rank.
+
+**D43. Runtime availability is part of eligibility, not a post-check.**
+Offering a model whose runtime cannot start is exactly "advertising a capability you do
+not have". `Workspace.runtime_availability` answers without loading weights (import check,
+file existence, endpoint configured, test double enabled), because a router must be cheap
+and must not allocate gigabytes to answer "may I use this?".
+
+**D44. `inferred` exists because "verified or nothing" would be useless offline.**
+Our adapter implementing chat is a real fact about our code, but it says nothing about a
+specific model file. Keeping `inferred` as a separate state - and offering
+`router.require_verified` for users who want the stricter line - is more honest than
+either treating adapter support as verification or refusing to run anything until a probe
+passes.
+
+**D45. A failed probe beats a claim, forever.**
+Once a capability has been measured as broken, later claims (a filename, a user marking it
+verified, a provider's marketing) cannot reinstate it. Re-probing creates a newer row, so
+the state can only improve through measurement.
+
+**D46. No fallback on non-retryable errors.**
+A 401/402/404 or an unsupported capability is a fact about configuration or policy.
+Retrying it on another provider would hide an auth mistake and could send the same data to
+a second vendor. Only retryable failures (network, rate limit, 5xx) fall back.
+
+**D47. Fallback is visible or it does not happen.**
+The reply carries `fallback_from` and a warning, the trace records `model.failed` and
+`model.fallback` with both model ids, the failing model's failure count increases, and the
+conversation switches to the model that answered. A silent substitution would make a
+working model indistinguishable from a broken one.
+
+**D48. The router may not choose a remote model on its own.**
+`router.allow_cloud` defaults to false and explicit `--model` overrides it (the user asking
+for a specific model is not the router choosing). Consent and `local_only` still apply to
+explicit choices. This keeps "automatic behaviour" and "sending data off the machine"
+strictly separate.
+
+**D49. Probes only for capabilities something can measure.**
+`chat`, `tools` and `json` are probeable by driving the runtime and inspecting the answer.
+`vision`, `ocr`, audio and video have no adapter in this build, so `models probe` rejects
+them by name. A green tick on an unmeasured capability is the failure mode this milestone
+exists to prevent.
+
 ## Storage and config
 
 **D31. Unknown config keys are errors.**

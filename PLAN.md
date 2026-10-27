@@ -21,8 +21,8 @@ not fully demonstrated · **not started**
 | **M18** | **Embedding + retrieval evaluation** | **done** | `tests/test_embeddings_m18.py` (29), `docs/RETRIEVAL_EVAL.md` |
 | **M19** | **Context Strategy Manager (five strategies)** | **done** (ai_proposed + manual + summarize + oldest_first + ai_select all exercised) | `tests/test_context_m19.py`, CLI `context` |
 | **M20** | **Cloud provider catalogue + privacy metadata** | **done** | `tests/test_providers_m20.py` (30), `docs/PROVIDERS.md`, `scripts/acceptance_m20.sh` |
-| M21 | Capability-safe model router + model management | next | - |
-| M22 | Tool registry + Permission & Approval Center | not started | - |
+| **M21** | **Capability-safe model router + model management** | **done** | `tests/test_router_m21.py` (33), `docs/ROUTING.md`, `scripts/acceptance_m21.sh` |
+| M22 | Tool registry + Permission & Approval Center | next | - |
 | M23 | MCP client/server + extension foundation | not started | - |
 | M24 | Task history + version links | not started | - |
 | M25 | Agent workflow execution | not started | - |

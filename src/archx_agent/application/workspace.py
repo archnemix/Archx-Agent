@@ -52,6 +52,7 @@ from archx_agent.managers.memory import MemoryManager
 from archx_agent.managers.models import ModelManager, ModelRecord
 from archx_agent.managers.projects import ProjectManager
 from archx_agent.managers.providers import ProviderManager, is_loopback_url
+from archx_agent.application.router import ModelRouter
 from archx_agent.managers.schema import MIGRATIONS, SCHEMA_VERSION
 
 
@@ -66,6 +67,7 @@ class Workspace:
     memory: MemoryManager
     models: ModelManager
     providers: ProviderManager | None = None
+    router: Any = None
     context: ContextManager | None = None
     embeddings: EmbeddingManager | None = None
     warnings: list[str] = field(default_factory=list)
@@ -81,10 +83,16 @@ class Workspace:
         env: Mapping[str, str] | None = None,
         overrides: Mapping[str, Any] | None = None,
         create: bool = True,
-        allow_test_double: bool = False,
+        allow_test_double: bool | None = None,
     ) -> "Workspace":
         config = load_config(home=home, config_path=config_path, env=env, overrides=overrides, create=create)
-        return cls.from_config(config, allow_test_double=allow_test_double)
+        # The environment flag is a legitimate way to enable the test double (the CLI
+        # passes it explicitly too); treat either as "the user asked for it".
+        environ = os.environ if env is None else env
+        enabled = allow_test_double if allow_test_double is not None else (
+            environ.get(ENV_FLAG) == "1"
+        )
+        return cls.from_config(config, allow_test_double=enabled)
 
     @classmethod
     def from_config(cls, config: Config, *, allow_test_double: bool = False) -> "Workspace":
@@ -169,10 +177,19 @@ class Workspace:
             memory=memory,
             models=models,
             providers=providers,
+            router=None,
             context=context,
             embeddings=embeddings,
             warnings=warnings,
             _runtimes={},
+        )
+        ws.router = ModelRouter(
+            models,
+            config=config,
+            runtime_for=ws.runtime_for,
+            availability_check=ws.runtime_availability,
+            remote_check=ws.assert_remote_allowed,
+            events=events,
         )
         if replayed:
             ws.warnings.append(f"replayed {replayed} interrupted write(s) from the journal")
@@ -249,6 +266,32 @@ class Workspace:
         }
 
     # -- runtime resolution ----------------------------------------------
+    def runtime_availability(self, record: ModelRecord) -> tuple[bool, str]:
+        """Can this model run here, checked *without* loading anything?
+
+        Loading a GGUF to answer "is it usable?" would cost seconds and gigabytes; the
+        router needs a cheap, honest answer instead. The checks mirror the runtimes'
+        own preconditions exactly.
+        """
+        if record.runtime == "llama-cpp":
+            from archx_agent.adapters.llama_cpp_runtime import INSTALL_HINT, llama_cpp_available
+
+            if not llama_cpp_available():
+                return False, f"llama-cpp-python is not installed ({INSTALL_HINT})"
+            if not record.path or not Path(record.path).exists():
+                return False, f"model file not found: {record.path}"
+            return True, "ready"
+        base_url = (record.facts or {}).get("base_url")
+        if record.runtime in ("openai-http", "http"):
+            if not base_url:
+                return False, "no base_url configured"
+            return True, "ready"
+        if record.runtime == "scripted":
+            if not self.allow_test_double:
+                return False, "the simulated test double is disabled (use --allow-simulated)"
+            return True, "ready (simulated - performs no inference)"
+        return False, f"unknown runtime {record.runtime!r}"
+
     def runtime_for(self, record: ModelRecord) -> ModelRuntime:
         self.assert_remote_allowed(record)
         key = f"{record.runtime}:{record.id}"
@@ -369,39 +412,36 @@ class Workspace:
         )
 
     def resolve_model(self, model_id: str | None = None, *, task: str = "chat") -> ModelRecord:
-        """Resolve which model to use, explaining the choice."""
-        if model_id:
-            record = self.models.get(model_id)
-            if record.is_err:
-                record = self.models.by_name(model_id)
-            if record.is_err:
-                raise ModelNotFoundError(f"no model matches {model_id!r}", model=model_id)
-            chosen = record.value
-            if not chosen.is_usable:
-                raise ValidationError(
-                    f"model {chosen.name!r} is not usable (state={chosen.state})"
-                    + (f": {chosen.last_error}" if chosen.last_error else "")
-                )
-            return chosen
-        preferred = self.models.preferred_for(task)
-        if preferred and preferred.is_usable:
-            return preferred
-        default_id = self.config.get("model.default_id")
-        if default_id:
-            for candidate in (self.models.get(default_id), self.models.by_name(default_id)):
-                if candidate.is_ok and candidate.value.is_usable:
-                    return candidate.value
-        usable = [m for m in self.models.list(state="usable") if m.supports(task) or not m.verified_capabilities]
-        if not usable:
-            raise ModelNotFoundError(
-                "no usable model is configured. Run `archx-agent models discover` for local GGUF files, "
-                "`archx-agent models add-http` for an OpenAI-compatible endpoint, or "
-                "`archx-agent models add-scripted` to explore the app with simulated responses.",
-                task=task,
-            )
-        # prefer local, then verified, then fewer failures
-        usable.sort(key=lambda m: (m.provider != "local", m.verification_state != "verified", m.failure_count, m.name))
-        return usable[0]
+        """Resolve which model to use for a task (capability-safe routing, M21)."""
+        decision = self.route_model(task=task, model_id=model_id)
+        if decision.chosen is None:  # pragma: no cover - route_model raises instead
+            raise ModelNotFoundError("no model is eligible", task=task)
+        return decision.chosen
+
+    def route_model(
+        self,
+        *,
+        task: str = "chat",
+        model_id: str | None = None,
+        required: Sequence[str] | None = None,
+        allow_unverified: bool | None = None,
+        allow_cloud: bool | None = None,
+        min_context_tokens: int | None = None,
+        exclude: Sequence[str] = (),
+    ) -> Any:
+        """Route a task to a model, returning the full decision."""
+        if self.router is None:  # pragma: no cover - always built in from_config
+            raise ConfigError("workspace has no router")
+        return self.router.route(
+            task,
+            required=required,
+            model_id=model_id,
+            allow_unverified=allow_unverified,
+            allow_cloud=allow_cloud,
+            allow_simulated=self.allow_test_double,
+            min_context_tokens=min_context_tokens,
+            exclude=exclude,
+        )
 
     def model_choice_explanation(self, record: ModelRecord) -> dict[str, Any]:
         return {
@@ -473,7 +513,7 @@ def open_workspace(
     config_path: str | os.PathLike[str] | None = None,
     env: Mapping[str, str] | None = None,
     overrides: Mapping[str, Any] | None = None,
-    allow_test_double: bool = False,
+    allow_test_double: bool | None = None,
 ) -> Workspace:
     return Workspace.open(
         home=home,

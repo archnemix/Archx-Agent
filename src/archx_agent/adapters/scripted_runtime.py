@@ -47,6 +47,13 @@ class ScriptedRuntime(BaseRuntime):
                 f"set {ENV_FLAG}=1 to use it deliberately, or configure a real model"
             )
 
+    def available(self) -> tuple[bool, str]:
+        try:
+            self._require()
+        except ProviderError as exc:
+            return False, exc.message
+        return True, "ready (simulated - performs no inference)"
+
     def load(self, spec: ModelSpec) -> None:
         self._require()
         if spec.runtime != self.runtime_id:

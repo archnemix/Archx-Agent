@@ -1,6 +1,6 @@
 # Progress
 
-Last updated: M20 complete (providers, privacy metadata, consent, usage). Next: M21.
+Last updated: M21 complete (capability-safe routing). Next: M22.
 
 ## Verified in this session
 
@@ -21,8 +21,9 @@ reproduced in [docs/VERIFICATION.md](docs/VERIFICATION.md).
 | M18 | float32 vectors with model identity, embedding states, cache checksums, degraded keyword fallback, hybrid ranking, model-change staleness, cross-model refusal, full evaluation report | `pytest tests/test_embeddings_m18.py`; `archx-agent eval retrieval` |
 | M19 | five strategies build manifests with reasons; oldest-first preserves history; manual selection; summarise keeps originals + source range; ai_proposed requires approval | `pytest tests/test_context_m19.py`; `archx-agent context ...` |
 | M20 | provider catalogue keeps facts/claims/user confirmations apart; loopback = local (derived); remote is blocked until privacy confirmed + consent recorded + `model.local_only=false`; availability probe distinguishes reachable/auth/404/429/500/refused; quotas enforced; usage and cost attributed per request | `pytest tests/test_providers_m20.py` (30); `scripts/acceptance_m20.sh` (real HTTP server) |
+| M21 | capability states with evidence (verified/inferred/unverified/unsupported/unavailable); eligibility before score; a model whose runtime is missing is refused; probes record measurements; `require_verified` policy; remote never auto-chosen; fallback is traceable and never silent | `pytest tests/test_router_m21.py` (33); `scripts/acceptance_m21.sh` |
 
-**Test suite: 251 tests, 0 failures, 0 skipped** on Python 3.11.2 (see note in GAPS
+**Test suite: 284 tests, 0 failures, 0 skipped** on Python 3.11.2 (see note in GAPS
 about 3.13 and about llama.cpp).
 
 ## Acceptance evidence
@@ -34,6 +35,10 @@ about 3.13 and about llama.cpp).
   hybrid 0.850, on a 20-item corpus with 12 graded queries.
 * M19: `docs/VERIFICATION.md#m19-acceptance` - manifests for all five strategies,
   including omitted reasons and proof that stored history is unchanged.
+* M21: `docs/VERIFICATION.md#m21-acceptance` - a discovered GGUF is refused because
+  llama.cpp is missing (not routed to and silently failed), a probe flips `inferred` to
+  `verified`, `require_verified` refuses then allows, a remote model is never chosen
+  automatically, and a dead endpoint falls back visibly.
 * M20: `docs/VERIFICATION.md#m20-acceptance` - a real OpenAI-compatible HTTP server is
   registered as a local provider, probed, chatted through, and charged for; a cloud
   provider is refused until confirmed + consented; a remote model is refused while
@@ -41,14 +46,12 @@ about 3.13 and about llama.cpp).
 
 ## Next steps (in order)
 
-1. M21: capability-safe router (verified/inferred/unverified/unsupported/unavailable)
-   with capability probes, local-only enforcement, model management commands.
-2. M22: tool registry + permission centre (grants with durations, approvals, denial
+1. M22: tool registry + permission centre (grants with durations, approvals, denial
    tracing).
 3. M23: MCP client (real subprocess/stdio + HTTP transports), optional server, extension
    trust boundary.
-4. M24: unified task history + version links + reproduction records.
-5. M25 onward per PLAN.md.
+3. M24: unified task history + version links + reproduction records.
+4. M25 onward per PLAN.md.
 
 ## Known breakage
 

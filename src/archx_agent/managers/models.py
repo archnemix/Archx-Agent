@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
-from archx_agent.helpers.exceptions import NotFoundError, ValidationError
+from archx_agent.helpers.exceptions import ConflictError, NotFoundError, ValidationError
 from archx_agent.helpers.jsonio import json_text, sha256_file
 from archx_agent.helpers.paths import ensure_directory
 from archx_agent.helpers.result import Err, Ok, Result
@@ -32,6 +32,22 @@ MODEL_TABLES = ("models", "model_capability_tests")
 
 STATES = ("usable", "disabled", "missing", "invalid", "removed")
 VERIFICATION_STATES = ("verified", "inferred", "unverified", "unsupported", "unavailable")
+
+#: Capability states, strongest first. ``verified`` means a recorded probe of *this*
+#: model succeeded; ``inferred`` means it follows from the adapter (a chat adapter
+#: implements chat); ``unverified`` means it was claimed and never exercised;
+#: ``unsupported`` means a probe ran and failed; ``unavailable`` means the artifact or
+#: runtime needed for it is missing.
+CAPABILITY_STATES = ("verified", "inferred", "unverified", "unsupported", "unavailable")
+
+#: What a runtime adapter guarantees by construction. This is a statement about our own
+#: code, not about a model: any runtime that implements ``chat`` can answer a chat.
+RUNTIME_BASELINE_CAPABILITIES: dict[str, frozenset[str]] = {
+    "llama-cpp": frozenset({"chat", "streaming"}),
+    "openai-http": frozenset({"chat", "streaming"}),
+    "http": frozenset({"chat", "streaming"}),
+    "scripted": frozenset({"chat", "streaming"}),
+}
 
 _QUANT_RE = re.compile(r"(?i)\b(i?q\d(?:_[a-z0-9]+)*|f16|bf16|f32|q8_0|q4_k_m|q5_k_m)\b")
 _PARAM_RE = re.compile(r"(?i)\b(\d+(?:\.\d+)?)\s*[bBmM]\b")
@@ -384,6 +400,24 @@ class ModelManager(BaseManager):
             raise ValidationError("model name must not be empty")
         if not model_ref:
             raise ValidationError("remote models require model_ref")
+        # Identity for a remote model is (provider, model_ref). Registering the same
+        # identity for a *different* endpoint used to silently overwrite the first entry,
+        # which made two distinct services indistinguishable. Refuse instead.
+        existing = self.store.query_one(
+            "SELECT id, name, facts FROM models WHERE provider = ? AND path IS NULL AND model_ref = ?"
+            " AND state != 'removed'",
+            (provider, model_ref),
+        )
+        if existing is not None:
+            previous = json.loads(existing["facts"] or "{}").get("base_url")
+            if previous == base_url:
+                return self.require(existing["id"])
+            raise ConflictError(
+                f"provider {provider!r} already has a model {existing['name']!r} with reference "
+                f"{model_ref!r} at {previous!r}; keep the model reference unique per endpoint "
+                "(or remove the old entry first)",
+                model=existing["id"],
+            )
         record = ModelRecord(
             id=new_id("mdl_"),
             name=name.strip(),
@@ -567,6 +601,74 @@ class ModelManager(BaseManager):
                 "run_at": iso_now(),
             },
         )
+
+    def latest_tests(self, model_id: str) -> dict[str, dict[str, Any]]:
+        """Most recent capability test per capability (latest row wins)."""
+        rows = self.store.query(
+            "SELECT capability, outcome, detail, latency_ms, run_at FROM model_capability_tests"
+            " WHERE model_id = ? ORDER BY id DESC",
+            (model_id,),
+        )
+        latest: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            latest.setdefault(row["capability"], row)
+        return latest
+
+    def capability_state(self, record: ModelRecord, capability: str) -> dict[str, Any]:
+        """Classify one capability of one model, with the evidence behind it.
+
+        Precedence (strongest first): a recorded probe, then the runtime baseline,
+        then the declared basis, then "no evidence". A failed probe beats everything
+        else - once we have measured a capability as broken, claims cannot override it.
+        """
+        tests = self.latest_tests(record.id)
+        test = tests.get(capability)
+        if test and test["outcome"] == "failed":
+            return {
+                "state": "unsupported",
+                "basis": "probe failed",
+                "detail": test.get("detail"),
+                "tested_at": test.get("run_at"),
+            }
+        if test and test["outcome"] == "passed":
+            return {
+                "state": "verified",
+                "basis": "probe passed",
+                "detail": test.get("detail"),
+                "tested_at": test.get("run_at"),
+                "latency_ms": test.get("latency_ms"),
+            }
+        if not record.is_usable:
+            return {
+                "state": "unavailable",
+                "basis": f"model state is {record.state}",
+                "detail": record.last_error,
+            }
+        declared = (record.capability_basis or {}).get(capability)
+        if capability in RUNTIME_BASELINE_CAPABILITIES.get(record.runtime, frozenset()):
+            return {
+                "state": "inferred",
+                "basis": f"the {record.runtime} adapter implements {capability}",
+                "detail": None,
+            }
+        if declared == "verified":
+            # A human marked it verified without a probe; treat as inferred-by-user.
+            return {"state": "inferred", "basis": "recorded by the user", "detail": None}
+        if declared == "unsupported":
+            return {"state": "unsupported", "basis": "recorded as unsupported", "detail": None}
+        if declared == "unavailable":
+            return {"state": "unavailable", "basis": "recorded as unavailable", "detail": None}
+        if capability in (record.verified_capabilities or []) or declared:
+            return {"state": "unverified", "basis": declared or "claimed", "detail": None}
+        return {"state": "unverified", "basis": "no evidence", "detail": None}
+
+    def capability_matrix(self, model_id: str) -> dict[str, dict[str, Any]]:
+        record = self.require(model_id)
+        declared = set(record.verified_capabilities or []) | set(record.capability_basis or {})
+        baseline = set(RUNTIME_BASELINE_CAPABILITIES.get(record.runtime, frozenset()))
+        tested = set(self.latest_tests(record.id))
+        capabilities = sorted(declared | baseline | tested)
+        return {cap: self.capability_state(record, cap) for cap in capabilities}
 
     def capability_history(self, model_id: str) -> list[dict[str, Any]]:
         return self.store.query(
