@@ -29,7 +29,7 @@ not fully demonstrated · **not started**
 | **M26** | **Resource and job scheduler** | **done** | `tests/test_scheduler_m26.py` (94), `docs/SCHEDULER.md`, `scripts/acceptance_m26.sh` (SIGKILL + pause/resume) |
 | **M27** | **Simple Mode and unified search** | **done** | `tests/test_search_m27.py` (42) + `tests/test_simple_m27.py` (67), `docs/SIMPLE_MODE.md`, `scripts/acceptance_m27.sh` (23 checks) |
 | **M28** | **Researcher Mode** | **done** | `tests/test_research_m28.py` (97), `docs/RESEARCH.md`, `scripts/acceptance_m28.sh` (30 checks incl. real HTTP and an approval) |
-| **M29** | **GUI core workflows** | **done** | `tests/test_gui_m29.py` (79), `docs/GUI.md`, `scripts/acceptance_m29.sh` (46 checks over a real socket) |
+| **M29** | **GUI core workflows** | **done** | `tests/test_gui_m29.py` (80), `docs/GUI.md`, `scripts/acceptance_m29.sh` (46 checks over a real socket) |
 | M30 | Learning Mode | next | - |
 
 | M31 | Coding workspace | not started | - |

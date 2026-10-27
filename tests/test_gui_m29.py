@@ -585,6 +585,16 @@ class TestAssets:
             assert asset.status == 200
             assert asset.body == (ASSETS / name).read_bytes()
 
+    def test_the_memory_kinds_in_the_page_are_the_ones_the_manager_accepts(self):
+        """A dropdown that offers a kind the manager refuses is a broken control."""
+        from archx_agent.managers.memory import KINDS
+
+        html = (ASSETS / "index.html").read_text()
+        block = html.split('id="memory-kind"')[1].split("</select>")[0]
+        offered = [value for value in __import__("re").findall(r'value="([^"]+)"', block)]
+        assert offered and set(offered) == set(KINDS)
+        assert offered[0] == "permanent", "the default the panel sends must be valid"
+
     def test_the_page_loads_nothing_from_anywhere_else(self):
         """No CDN, no font host, no remote script: the GUI works with the network unplugged.
 
