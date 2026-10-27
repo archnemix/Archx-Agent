@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Archx Agent</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="mark">A</span>
+    <span>Archx Agent</span>
+    <span id="version" class="muted small"></span>
+  </div>
+  <nav id="tabs" class="tabs" aria-label="Sections">
+    <button class="tab" data-view="status" type="button">Status</button>
+    <button class="tab" data-view="chat" type="button">Chat</button>
+    <button class="tab" data-view="research" type="button">Research</button>
+    <button class="tab" data-view="search" type="button">Search</button>
+    <button class="tab" data-view="tasks" type="button">Tasks</button>
+    <button class="tab" data-view="jobs" type="button">Jobs</button>
+    <button class="tab" data-view="access" type="button">Access</button>
+    <button class="tab" data-view="memory" type="button">Memory</button>
+    <button class="tab" data-view="models" type="button">Models</button>
+  </nav>
+  <div class="conn"><span id="conn" class="pill">starting</span></div>
+</header>
+
+<section id="gate" class="gate" hidden>
+  <form id="gate-form" class="card narrow" autocomplete="off">
+    <h2>Access token</h2>
+    <p class="muted">
+      This GUI is served by your own Archx process. Paste the token it printed
+      (<code>access token: …</code>) to open a session. Nothing is stored except an
+      HttpOnly cookie that this server issued.
+    </p>
+    <label>token <input id="gate-token" type="password" spellcheck="false" autofocus></label>
+    <button type="submit" class="primary">Open session</button>
+    <p id="gate-error" class="error" role="alert"></p>
+  </form>
+</section>
+
+<main id="views">
+  <section class="view" id="view-status">
+    <div class="row space">
+      <h2>Status</h2>
+      <button id="status-refresh" type="button">Refresh</button>
+    </div>
+    <div id="status-cards" class="cards"></div>
+    <h3>This home</h3>
+    <div id="status-info" class="panel"></div>
+    <h3>What is blocked, and the exact next command</h3>
+    <div id="status-blocked" class="panel"></div>
+  </section>
+
+  <section class="view" id="view-chat" hidden>
+    <div class="row space">
+      <h2>Chat</h2>
+      <span class="muted small">every turn is recorded as a task, exactly like <code>chat --message</code></span>
+    </div>
+    <div class="split">
+      <aside class="side">
+        <div class="row space">
+          <h3>Conversations</h3>
+          <button id="chat-conv-refresh" type="button" class="ghost">…</button>
+        </div>
+        <ul id="chat-conversations" class="list"></ul>
+        <button id="chat-new" type="button" class="ghost">+ new conversation</button>
+      </aside>
+      <div class="main">
+        <div id="chat-log" class="log"></div>
+        <form id="chat-form" class="composer">
+          <textarea id="chat-input" rows="3" placeholder="Ask something. Ctrl+Enter sends."></textarea>
+          <div class="row">
+            <button type="submit" class="primary">Send</button>
+            <span id="chat-model" class="muted small"></span>
+          </div>
+        </form>
+        <div id="chat-warnings" class="warnings"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-research" hidden>
+    <div class="row space">
+      <h2>Research</h2>
+      <span class="muted small">a plan that names its author, sources it actually read, citations it re-checks</span>
+    </div>
+    <form id="research-form" class="card">
+      <label>question <input id="research-question" required placeholder="how does sqlite locking work"></label>
+      <div class="grid2">
+        <label>mode
+          <select id="research-mode">
+            <option value="local">local (your own documents)</option>
+            <option value="mixed">mixed (local + web)</option>
+            <option value="web">web (only the URLs you give)</option>
+          </select>
+        </label>
+        <label class="check"><input id="research-nomodel" type="checkbox"> no model (extractive only, no token cost)</label>
+      </div>
+      <label>seed URLs, one per line (web/mixed need at least one – Archx does not crawl)
+        <textarea id="research-urls" rows="2" placeholder="one URL per line"></textarea>
+      </label>
+      <label>your own subquestions, one per line (optional – overrides the planner)
+        <textarea id="research-subquestions" rows="2"></textarea>
+      </label>
+      <div class="row">
+        <button type="submit" class="primary">Run research</button>
+        <span id="research-status" class="muted small"></span>
+      </div>
+    </form>
+    <div class="split">
+      <aside class="side">
+        <h3>Runs</h3>
+        <ul id="research-list" class="list"></ul>
+      </aside>
+      <div class="main">
+        <div id="research-detail" class="panel"><p class="muted">Pick a run to see its report.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-search" hidden>
+    <h2>Search</h2>
+    <form id="search-form" class="row">
+      <input id="search-query" placeholder="database locks" required>
+      <button type="submit" class="primary">Search</button>
+      <label class="check"><input id="search-files" type="checkbox" checked> include files</label>
+    </form>
+    <div id="search-notes" class="warnings"></div>
+    <div id="search-results" class="panel"></div>
+  </section>
+
+  <section class="view" id="view-tasks" hidden>
+    <div class="row space">
+      <h2>Tasks</h2>
+      <div class="row">
+        <select id="tasks-status">
+          <option value="">any status</option>
+          <option value="running">running</option>
+          <option value="completed">completed</option>
+          <option value="failed">failed</option>
+          <option value="interrupted">interrupted</option>
+          <option value="cancelled">cancelled</option>
+        </select>
+        <button id="tasks-refresh" type="button">Refresh</button>
+      </div>
+    </div>
+    <div class="split">
+      <aside class="side"><ul id="tasks-list" class="list"></ul></aside>
+      <div class="main"><div id="task-detail" class="panel"><p class="muted">Pick a task.</p></div></div>
+    </div>
+  </section>
+
+  <section class="view" id="view-jobs" hidden>
+    <div class="row space">
+      <h2>Jobs</h2>
+      <div class="row">
+        <button id="jobs-refresh" type="button">Refresh</button>
+        <button id="jobs-run" type="button" class="primary">Run one queued job</button>
+      </div>
+    </div>
+    <div id="jobs-stats" class="cards"></div>
+    <div id="jobs-list" class="panel"></div>
+  </section>
+
+  <section class="view" id="view-access" hidden>
+    <h2>Access</h2>
+    <p class="muted">
+      Approving mints exactly the grant that was requested. Revoking takes it away. Neither
+      button can widen a request – that is a separate, explicit grant from the CLI.
+    </p>
+    <div class="row space">
+      <h3>Pending approvals</h3>
+      <button id="access-refresh" type="button">Refresh</button>
+    </div>
+    <div id="approvals-list" class="panel"></div>
+    <h3>Active grants</h3>
+    <div id="grants-list" class="panel"></div>
+    <h3>Capabilities</h3>
+    <div id="capabilities-list" class="panel"></div>
+  </section>
+
+  <section class="view" id="view-memory" hidden>
+    <div class="row space">
+      <h2>Memory</h2>
+      <button id="memory-refresh" type="button">Refresh</button>
+    </div>
+    <form id="memory-form" class="card">
+      <div class="grid2">
+        <label>kind
+          <select id="memory-kind">
+            <option>permanent</option>
+            <option>episodic</option>
+            <option>semantic</option>
+            <option>procedural</option>
+            <option>working</option>
+            <option>preference</option>
+          </select>
+        </label>
+        <label>category <input id="memory-category" placeholder="fact / preference / …"></label>
+      </div>
+      <label>title <input id="memory-title" required></label>
+      <label>content <textarea id="memory-content" rows="2" required></textarea></label>
+      <div class="row"><button type="submit" class="primary">Store memory</button>
+        <span id="memory-status" class="muted small"></span></div>
+    </form>
+    <div id="memory-list" class="panel"></div>
+  </section>
+
+  <section class="view" id="view-models" hidden>
+    <div class="row space">
+      <h2>Models</h2>
+      <button id="models-refresh" type="button">Refresh</button>
+    </div>
+    <div id="models-list" class="panel"></div>
+  </section>
+</main>
+
+<footer class="footer">
+  <span id="footer-note" class="muted small">local only · no network requests are made by this page except to this server</span>
+</footer>
+
+<script src="/app.js"></script>
+</body>
+</html>

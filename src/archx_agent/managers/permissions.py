@@ -73,8 +73,8 @@ CAPABILITIES: dict[str, Capability] = {
     "shell.run": Capability("shell.run", "run a local process", "high", "executes"),
     "mcp.call": Capability("mcp.call", "invoke a tool on a configured MCP server", "medium", "network"),
     "process.exec": Capability("process.exec", "run a program shipped by a trusted extension", "high", "executes"),
-    # Declared now so grants/messages are consistent, but nothing implements it in
-    # this build: a capability nobody can exercise must not be advertised as available.
+    # Declared in M22, implemented in M28: `net.fetch` reads one http(s) document and
+    # refuses private addresses unless the user deliberately allows them.
     "net.fetch": Capability("net.fetch", "fetch an http(s) URL (private addresses refused by default)", "medium", "network"),
 }
 

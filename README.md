@@ -97,7 +97,12 @@ archx-agent research run "..." --mode web --url https://example.com/page   # nee
 archx-agent research sources rs_...     # what was read, and what could not be
 archx-agent research verify rs_...      # exit 3 if a citation does not resolve
 
-# 11. inspect everything that happened
+# 11. the same app in a browser: a local GUI with a token, no second implementation
+archx-agent gui serve                 # prints http://127.0.0.1:8765/?token=...
+archx-agent gui serve --port 0 --open # any free port, and open it
+archx-agent gui routes                # every endpoint it serves
+
+# 12. inspect everything that happened
 archx-agent trace list --limit 20
 archx-agent db check
 ```
@@ -139,10 +144,11 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 | Unified search across conversations, memory, tasks, workflows, projects, artifacts, tools and files | verified (M27) |
 | Simple Mode: plain-language intents with a stated reason, honest refusals and printed next steps | verified (M27) |
 | Researcher Mode: validated plans, real sources, checked citations, coverage and limitations | verified (M28) |
+| Local GUI: token-authenticated, CSRF-protected, every panel wired to the real services | verified (M29) |
 | `net.fetch` as a capability: http(s) only, private addresses refused, redirects re-checked | verified (M28) |
 | Provider runtime boundary: llama.cpp in-process, OpenAI-compatible HTTP, tested error classification | verified for HTTP; llama.cpp needs the optional dependency and a model file |
 | CLI | verified end-to-end |
-| Learning, coding, GUI, play modes, media, datasets, training, remote compute, Blender, automations | **not built yet** (M29–M40, see PLAN.md) |
+| Learning, coding, play modes, media, datasets, training, remote compute, Blender, automations | **not built yet** (M30–M40, see PLAN.md) |
 
 ## Design principles (enforced, not aspirational)
 
@@ -162,6 +168,7 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 * [GAPS.md](GAPS.md) - known limitations, honestly stated
 * [THINKING.md](THINKING.md) - decision log with reasons
 * [CHANGELOG.md](CHANGELOG.md)
+* [docs/GUI.md](docs/GUI.md) - the local web GUI, its security model and every endpoint
 * [docs/RESEARCH.md](docs/RESEARCH.md) - research runs, evidence rules, citations, `net.fetch` limits
 * [docs/SIMPLE_MODE.md](docs/SIMPLE_MODE.md) - unified search, its ranking, and every Simple Mode intent
 * [docs/AGENTS.md](docs/AGENTS.md) - workflow definitions, step kinds, approval gates and budgets

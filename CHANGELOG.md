@@ -3,6 +3,35 @@
 All notable changes. Format loosely follows Keep a Changelog; versions track the
 milestone block rather than semantic-release cadence, because M01-M20 are one development series.
 
+## [0.29.0] - M29 GUI core workflows
+
+### Added
+- `interfaces/gui/`: a local web GUI served by the app itself - status, chat, research,
+  search, tasks, jobs, approvals/grants, memory and models. Every control calls the same
+  managers the CLI calls; the GUI adds no tables and no second permission path.
+- `interfaces/gui/server.py`: `GuiApi` (routes, auth, CSRF, error mapping - no sockets, so it
+  is testable) and `GuiServer` (a threading HTTP server, loopback by default).
+- Static assets served from package data by exact name: one HTML page, one stylesheet, one
+  script. No framework, no build step, no CDN, no inline script, CSP `'self'` only.
+- Per-process access token, presented as a query parameter, a bearer header, a custom header,
+  or exchanged for an `HttpOnly; SameSite=Strict` cookie at `POST /api/session`. Cookie writes
+  must carry `X-Archx-Request: gui`; `OPTIONS` is refused and no CORS headers are ever sent.
+- CLI: `gui serve [--host] [--port] [--allow-remote] [--token] [--open/--no-open]` and
+  `gui routes`. A non-loopback bind without `--allow-remote` exits 2.
+- Config: `gui.host`, `gui.port`, `gui.allow_remote`, `gui.open_browser`,
+  `gui.session_minutes`, `gui.max_body_bytes`.
+- `docs/GUI.md`, `tests/test_gui_m29.py` (79 tests), `scripts/acceptance_m29.sh` (46 checks
+  over a real socket, including an approval and a real web-research run).
+
+### Changed
+- `gui serve` flushes its banner, so the token is visible when stdout is a pipe.
+- The permission centre's `net.fetch` comment no longer says nothing implements it.
+
+### Notes
+- Binding beyond loopback is deliberately awkward: the token becomes the only boundary
+  between that network and the user's data.
+- The GUI is a client, not a second application: deleting it would not remove a capability.
+
 ## [0.28.0] - M28 Researcher Mode
 
 ### Added

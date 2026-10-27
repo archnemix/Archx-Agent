@@ -662,6 +662,51 @@ A crawler needs a politeness policy, a robots.txt story, rate limits, and a sear
 Explicit seeds are honest, verifiable in the acceptance run (a real local HTTP server), and
 they compose with M23's MCP tools if someone wants a search provider later.
 
+## The GUI (M29)
+
+**D113. The GUI is a client, not a second application.** It could have been a second
+composition root that reaches into the database for speed. That is how two answers to "what
+happened" appear - and how a screen becomes a way to skip the approval centre. `gui serve`
+opens one workspace and every panel calls the services the CLI calls, so a chat turn in the
+browser is the same kind of task, with the same model resolution and the same permission
+checks. The GUI added no tables in M29; that is the evidence, not the intention.
+
+**D114. A web UI, not a desktop window.** A native shell would have meant a Qt/GTK dependency
+(none installable here), an X11 story in a container, and a second event loop. A local page
+needs nothing, works over SSH, and is testable with `curl` - which is exactly how the 46
+acceptance checks talk to it. The honest cost is that it is framed by a browser and cannot
+reach OS features; a native wrapper later changes nothing behind the page.
+
+**D115. The token is minted per process and the cookie is derived from it.** Printing a token
+keeps the boundary explicit: whoever reads the terminal can act as you, and nobody else can.
+Deriving the cookie (`HMAC(token)`) means the browser never stores the key itself and
+restarting the server invalidates every session without a session table to expire.
+
+**D116. A cookie alone may never write.** `SameSite=Strict` is good, but "good" is not a
+design: the rule is that cookie-authenticated writes must also carry a custom header, which a
+cross-site page cannot set without a preflight, and this server answers no preflights and
+sends no CORS headers. Token-header callers are exempt because a browser cannot be tricked
+into adding a header on their behalf. Two independent boundaries, one of which is structural.
+
+**D117. Loopback by default, and remote binding is awkward on purpose.** `--allow-remote`
+exists because a container or a preview is a real use case, but `gui serve --host 0.0.0.0`
+without it exits 2 with the reason. Convenience here is indistinguishable from a mistake
+later; the flag is the difference between "I meant this" and "it was the default".
+
+**D118. No panel exists for a feature that is not built.** A greyed-out "Train model" button
+is a promise the product cannot keep, and a "Settings" tab that writes nothing is a lie told
+in pixels. If a panel cannot act it says why and prints the command that would fix it - the
+same refusal text as the CLI. This is why the model panel shows *why* a model cannot run
+instead of hiding the row.
+
+**D119. The page is boring on purpose.** One HTML file, one stylesheet, one script, no
+framework, no build step, no CDN, no inline handler, `script-src 'self'`. It loads with the
+network unplugged (a test asserts it), and it can be reviewed in one sitting - which matters
+more for a page holding a token than for a landing page.
+
+**D120. `Server:` says the app, not the interpreter.** A version banner is free
+reconnaissance. The header keeps the product version (useful) and drops Python's.
+
 ## Storage and config
 
 **D31. Unknown config keys are errors.**

@@ -1,6 +1,6 @@
 # Progress
 
-Last updated: M28 complete (Researcher Mode). Next: M29.
+Last updated: M29 complete (GUI core workflows). Next: M30.
 
 ## Verified in this session
 
@@ -9,6 +9,7 @@ reproduced in [docs/VERIFICATION.md](docs/VERIFICATION.md).
 
 | Milestone | What was verified | How |
 |-----------|-------------------|-----|
+| M29 | a local GUI serves the same app over a socket: every panel (status, chat, research, search, tasks, jobs, approvals/grants, memory, models) calls the real managers, so a chat turn made in the browser is a `chat` task the CLI can show, a memory is a real memory and a research run is a real run with the same `[S<n>]` labels; the page is public but every API call needs the per-process token (header, bearer, query, or an HttpOnly SameSite cookie exchanged at `POST /api/session`); a cookie-authenticated write without `X-Archx-Request: gui` is 403, `OPTIONS` is 405 and no CORS header is ever sent; assets are served by exact name so no path escapes; web research without `net.fetch` is a 403 naming the approval, approving it in the GUI mints exactly that grant, the same request then reads a real page, and revoking removes it; a non-loopback bind without `--allow-remote` exits 2 | `pytest tests/test_gui_m29.py` (79); `scripts/acceptance_m29.sh` (46 self-checking assertions over a real socket, including the approval, a real web-research run, a spent one-shot grant and a queued job run from the page) |
 | M28 | a research run stores a plan that names its author (`model`/`rules`/`user`), reads real local documents and (opt-in) real HTTP pages through the `net.fetch` capability, records every source including the ones that failed, hashes what it read, drops model quotes that are not in the excerpt, demotes uncited model prose instead of presenting it as a finding, computes coverage, writes a report with `[S<n>]` citations, attaches it to a research task as an artifact, and reports "I found no evidence" with exit 3 when there is none; `research verify` re-checks every citation independently | `pytest tests/test_research_m28.py` (97); `scripts/acceptance_m28.sh` (30 self-checking assertions incl. a real local HTTP site, an approval refusal, a spent grant, a 404, a binary page and a queued job) |
 | M27 | unified search finds a query in conversations, memory, tasks, workflows, projects, artifacts, tools and files with one shared scoring rule, per-source caps and honest `degraded`/`skipped` notes; a source that fails degrades the report instead of failing the search; file search stays inside the tool roots, skips binaries/oversize/noise directories and never writes; Simple Mode classifies eight intents and prints the reason it chose one, stores `remember` as a real permanent memory with the duplicate check intact, reads `status` from the live app, and refuses a missing model, a missing grant or a checkpoint by printing the exact next command and exiting 4 without creating a grant | `pytest tests/test_search_m27.py` (42) + `pytest tests/test_simple_m27.py` (67); `scripts/acceptance_m27.sh` (23 self-checking assertions incl. approve-then-run and a spent one-shot grant) |
 | M26 | a submitted job is a durable `queued` row with a deadline and an attempt budget; claiming is one transaction (six threads over 24 jobs claim each exactly once); priority and `queue_seq` decide order; `dedupe_key` makes submission idempotent; a `command` job runs a real child in its own session and records exit code, stdout, stderr and duration; a non-zero exit fails the job and its task; a `workflow` job runs an M25 workflow and still cannot bypass the permission centre; a hard deadline kills the child (`sleep 30`, timeout 1, ~1s, no process left) and fails the job; a `SIGKILL`ed worker's job is requeued while attempts remain and `interrupted` when they do not; pause stops a running workflow at a step boundary with a durable cursor, and resume continues from it without replaying a step or duplicating the task; concurrency and the CPU/memory budget limit what runs at once (measured by wall clock); `jobs run` exits 3 rather than claiming success when work remains | `pytest tests/test_scheduler_m26.py` (94); `scripts/acceptance_m26.sh` (23 self-checking assertions incl. a real SIGKILL and a cross-process pause/resume) |
@@ -30,7 +31,7 @@ reproduced in [docs/VERIFICATION.md](docs/VERIFICATION.md).
 | M22 | tools declare capability/risk/dry-run; ungranted operations are refused with an approval id; approval mints exactly the requested grant; scoped grants (once/task/conversation/project/persistent) are checked, single-use grants consumed before the work; sandbox refuses traversal, absolute escapes and symlink escapes; argv-only processes with a denylist, minimal env and timeouts; every attempt (including denials) has a `tool_runs` row and trace events | `pytest tests/test_tools_m22.py` (78) + `tests/test_cli.py::TestCliTools` (13); `scripts/acceptance_m22.sh` (real files and processes) |
 | M21 | capability states with evidence (verified/inferred/unverified/unsupported/unavailable); eligibility before score; a model whose runtime is missing is refused; probes record measurements; `require_verified` policy; remote never auto-chosen; fallback is traceable and never silent | `pytest tests/test_router_m21.py` (33); `scripts/acceptance_m21.sh` |
 
-**Test suite: 903 tests, 0 failures, 0 skipped** on Python 3.11.2 (see note in GAPS
+**Test suite: 982 tests, 0 failures, 0 skipped** on Python 3.11.2 (see note in GAPS
 about 3.13 and about llama.cpp).
 
 ## Acceptance evidence
@@ -65,6 +66,14 @@ about 3.13 and about llama.cpp).
   nothing left behind, a workflow is paused by one process and resumed by another with every
   step run exactly once, a `SIGKILL`ed worker's job is recovered on attempt 2, and an
   ungranted `fs.write` step fails the job without writing a file.
+* M29: `docs/VERIFICATION.md#m29-acceptance-transcript` - a fresh home, the installed
+  console script, and a real socket: the page and its assets served with the security
+  headers, the API refusing an unauthenticated request, a chat turn recorded as a task, a
+  memory the CLI can show, a duplicate refused with 409, one search across the sources, web
+  research refused with an approval, approved in the GUI, the same request then reading a
+  real local page and verifying its citations, the one-shot grant spent, a standing grant
+  revoked, a queued job run from the page, the cookie/CSRF boundary in both directions, and
+  the port closed on Ctrl-C.
 * M28: `docs/VERIFICATION.md#m28-acceptance-transcript` - a rules plan and a user-directed
   plan, an extractive report whose citations all resolve, a question with no evidence
   (incomplete, exit 3), web research refused for lack of `net.fetch` with no grant created,
@@ -89,9 +98,9 @@ about 3.13 and about llama.cpp).
 
 ## Next steps (in order)
 
-1. M29: GUI core workflows, on top of the same services (`SearchService`, `SimpleMode`,
-   `ResearchRunner`) - the GUI is a client of the application layer, never a second one.
-2. M30 onward per PLAN.md.
+1. M30: Learning Mode, on top of the same task, memory and context services - a learning
+   goal is a record, and a session is a task with a plan.
+2. M31 onward per PLAN.md.
 
 ## Known breakage
 

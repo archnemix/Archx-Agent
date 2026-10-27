@@ -21,10 +21,10 @@ This file records what is **not** true yet. If a feature is not listed as verifi
 
 ## Not built yet
 
-Milestones M29-M40 are not implemented: GUI core, Learning Mode, coding workspace,
-experimental mode, play mode, voice/multimodal, dataset preparation, training, remote
-compute, Blender/3D, automations and release hardening. M17-M28 are implemented and verified
-(see [PROGRESS.md](PROGRESS.md)). The database schema already reserves tables for them
+Milestones M30-M40 are not implemented: Learning Mode, coding workspace, experimental mode,
+play mode, voice/multimodal, dataset preparation, training, remote compute, Blender/3D,
+automations and release hardening. M17-M29 are implemented and verified (see
+[PROGRESS.md](PROGRESS.md)). The database schema already reserves tables for them
 (versions 5-8) so they can be added without renumbering.
 
 ## Known limitations inside implemented features
@@ -108,8 +108,23 @@ compute, Blender/3D, automations and release hardening. M17-M28 are implemented 
 * **Planner quality is model quality.** With no real model available here, the plan-parsing
   paths are exercised against the protocol stub and the simulated double, which is stated
   wherever it happens.
-* **No GUI yet**, so "primary workflow usable with no placeholder controls" (M29) is
-  not demonstrated.
+* **The GUI is a web page, not a desktop window.** It needs a browser, it cannot reach OS
+  features (drag-and-drop, file pickers, notifications), and it is framed by whatever embeds
+  it. A native shell would wrap the same endpoints.
+* **One token is one user.** There are no accounts, no roles and no audit of *which person*
+  did something - only of which interface and which grant.
+* **The GUI cannot create, edit or run a workflow.** It lists tasks and jobs, but authoring a
+  workflow (M25) and approving a proposed plan stay in the CLI; a plan editor is a real
+  feature, not a panel.
+* **No live streaming in the GUI.** A reply appears when the turn finishes; there is no
+  token-by-token view, and no cancellation of an in-flight turn from the page.
+* **`gui serve` is one process serving one home.** Two homes need two ports; there is no
+  home switcher, because switching homes inside a running process would mean reopening the
+  database and every manager under live requests.
+* **No TLS and no HTTP/2.** Exposing the GUI beyond loopback means putting a real proxy in
+  front of it; the flag that allows a remote bind does not make the connection private.
+* **A hostile local user is out of scope.** The token protects against other origins and
+  other machines. Anything that can read your home can read `archx.db` and your terminal.
 * **Windows and macOS are untested.** Path containment tests cover symlinks and
   traversal on Linux; Windows-specific behaviours (drive letters, UNC paths,
   case-insensitive filesystems) are unverified.

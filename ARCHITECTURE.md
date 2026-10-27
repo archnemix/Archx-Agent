@@ -5,7 +5,7 @@ Six layers under `src/archx_agent/`. Dependency direction is enforced by
 upward import until it is reviewed and deliberately allowed.
 
 ```
-interfaces      CLI (and later GUI)
+interfaces      CLI, and the local web GUI
    │  may import: application, managers, helpers
    ▼
 application     composition root, orchestration, routing decisions
@@ -189,6 +189,32 @@ the permission centre is unavoidable. A model-proposed plan is stored `proposed`
 runner refuses it until a human approves; checkpoints are checked before the run starts so a
 refusal cannot leave half a plan executed. The workflow row is the plan, the task row is the
 run, and the conversation is the transcript - there is no fourth record.
+
+## The GUI (M29)
+
+```
+interfaces/gui/server.py
+   GuiApi    routes + auth + CSRF + error mapping        <- testable without a socket
+   GuiServer ThreadingHTTPServer (loopback by default)
+   assets/   index.html, app.js, style.css  <- no build step, no CDN, CSP 'self'
+        │
+        ▼  the same objects the CLI uses
+   ChatService · SearchService · ResearchRunner · JobRunner · managers
+```
+
+The GUI has no layer of its own: it is an `interfaces/` module calling `application/` and
+`managers/` exactly as `interfaces/cli` does. The import matrix test guards that direction,
+so a GUI helper cannot reach into the database behind a manager's back.
+
+Two properties are structural rather than promised. **Nothing is reachable without the
+token**, because authentication is a single gate in `GuiApi.dispatch` and every route passes
+through it. **A browser cannot write with a cookie alone**, because the CSRF check runs
+before routing and the server never answers a preflight or sends an `Access-Control-*`
+header - so a custom header is something only same-origin code can add.
+
+`gui serve` flushes its banner (a piped stdout is block-buffered, and a token nobody can see
+is not a token), and a non-loopback bind is refused without `--allow-remote` - the flag is
+the only place where "expose this" is a decision rather than an accident.
 
 ## Researcher Mode (M28)
 
