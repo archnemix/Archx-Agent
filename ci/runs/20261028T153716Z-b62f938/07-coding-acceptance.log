@@ -1,0 +1,166 @@
+$ bash scripts/acceptance_m31.sh
+M31 acceptance on /tmp/archx-m31-UtIlrJ
+
+### a session is a directory, a task and a row
+$ archx-agent code list
+cs_0001m61jx8d7000000000f6265a471befe81  open    second session  /tmp/archx-m31-UtIlrJ/project
+cs_0001m61jx87k000000032899dfb35890566d  open    fix the greeting  /tmp/archx-m31-UtIlrJ/project
+[ok]   the session is a database row = 1
+[ok]   the session binds the directory = /tmp/archx-m31-UtIlrJ/project
+[ok]   the session owns a coding task = coding
+[ok]   the schema grew, it did not reuse a table = code_changes
+
+### nothing happens without a grant
+[ok]   a write without fs.write exits 4 = 4
+[ok]   the file is untouched = 4579e386b95ec1ff0f24c9bedca59bf7efb6c657
+[ok]   the refusal names the approval = 2
+[ok]   the refusal created a pending request = True
+[ok]   the refused edit did not become a change row = 0
+error: fs.write: fs.write is not granted for 'fs.write'; approval ap_0001m61jx8td0000000198859fb9a2e0253f is pending (archx-agent approvals approve ap_0001m61jx8td0000000198859fb9a2e0253f)
+approve it with: archx-agent approvals approve ap_0001m61jx8td0000000198859fb9a2e0253f
+
+### approving is what makes it possible, and the write then lands
+$ archx-agent code write cs_0001m61jx87k000000032899dfb35890566d hello.py --file /tmp/archx-m31-UtIlrJ/new_hello.py
+modify hello.py  +1/-1
+  diff     ar_0001m61jxa1a0000000478dc760afd003058
+[exit 0]
+[ok]   the file really changed = 1
+[ok]   the change is a row with a diff = modify
+[ok]   the diff mentions the old and the new line = 2
+[ok]   the edit is attached to the task as an artifact = True
+
+### the runner records every command
+$ archx-agent code run cs_0001m61jx87k000000032899dfb35890566d "python3 try_it.py"
+hello archx
+[run passed: exit 0 in 11 ms]
+[output saved as ar_0001m61jxakd00000002a549f6bc0d49e93b]
+[ok]   the command passed = passed
+[ok]   the exit code is recorded = 0
+[ok]   the argv that ran is recorded, not just the string = ['python3', 'try_it.py']
+[ok]   a failing command exits 1 = 1
+[ok]   the failure is a failed row with its exit code = failed/1
+[ok]   the failure asked a question on the task = True
+[ok]   a timeout is a timeout, not a failure = timeout
+
+### a refusal is in the ledger too
+[ok]   a refused command is recorded as refused = refused
+
+### checks come from the project, and run as the project
+$ archx-agent code checks
+2 check(s) from archx.checks.json
+  test       /opt/hostedtoolcache/Python/3.11.17/x64/bin/python -m pytest -q test_hello.py  (120s)
+  compile    /opt/hostedtoolcache/Python/3.11.17/x64/bin/python -m compileall -q hello.py
+[ok]   two checks are declared = 2
+[ok]   the project's own test fails before the fix = 1
+[ok]   the failure is recorded under the check's name = test/failed
+$ archx-agent code test cs_0001m61jx87k000000032899dfb35890566d
+.                                                                        [100%]
+1 passed in 0.00s
+[check test passed: exit 0 in 198 ms]
+[output saved as ar_0001m61jxeat00000000f3e964b11db2bd53]
+[exit 0]
+[ok]   the same check passes after the edit = passed
+[ok]   the unknown-check message lists the declared ones = 1
+
+### the session is a patch you can read
+$ archx-agent code diff cs_0001m61jx87k000000032899dfb35890566d
+--- a/hello.py
++++ b/hello.py
+@@ -1,2 +1,2 @@
+ def greet(name):
+-    return "hi " + name
++    return "hello " + name
+--- a/hello.py
++++ b/hello.py
+@@ -1,2 +1,2 @@
+ def greet(name):
+-    return "hello " + name
++    return "hi " + name
+
+[1 file(s), +2/-2]
+[ok]   the patch covers the files the session edited = ['hello.py']
+[ok]   the patch is attached as an artifact = True
+
+### a session is reproducible
+[ok]   the reproducer reads the coding task = True
+[ok]   its plan contains the command that ran = True
+[ok]   a recorded run can be replayed = cr_0001m61jxakg00000000f978425d3f5d608b
+
+### the page is a client of the same service
+[ok]   the page lists the CLI's sessions = 2
+[ok]   the page knows the tool roots it may open = /tmp/archx-m31-UtIlrJ/project
+[ok]   a session opened in the page is a CLI session = True
+[ok]   a read without fs.read is a 403 that names the tool = 403
+[ok]   the refusal is a code the page can branch on = approval_required
+[ok]   a write from the page is a file on disk = 200
+[ok]   the file the page wrote is really there = 1
+[ok]   the CLI sees the page's edit = made_in_the_page.py
+[ok]   a run from the page is in the same ledger = passed
+[ok]   and the CLI can read that run = from the page
+[ok]   a bad timeout is a 400, not a 500 = 400
+[ok]   closing a session in the page closes it for the CLI = 200
+[ok]   a closed session refuses later edits with a 400 = 400
+[ok]   the coding routes are in the route table = 14
+
+### a closed session keeps its record
+$ archx-agent code close cs_0001m61jx87k000000032899dfb35890566d --note shipped
+closed cs_0001m61jx87k000000032899dfb35890566d  fix the greeting
+  the edits and runs stay readable: archx-agent code show cs_0001m61jx87k000000032899dfb35890566d
+[exit 0]
+[ok]   the task is completed with the session = completed
+[ok]   the edits are still readable = True
+
+### stopping the server closes the port
+[ok]   the port is closed, not orphaned = 000
+
+### summary
+ok   | the session is a database row | 1
+ok   | the session binds the directory | /tmp/archx-m31-UtIlrJ/project
+ok   | the session owns a coding task | coding
+ok   | the schema grew, it did not reuse a table | code_changes
+ok   | a write without fs.write exits 4 | 4
+ok   | the file is untouched | 4579e386b95ec1ff0f24c9bedca59bf7efb6c657
+ok   | the refusal names the approval | 2
+ok   | the refusal created a pending request | True
+ok   | the refused edit did not become a change row | 0
+ok   | the file really changed | 1
+ok   | the change is a row with a diff | modify
+ok   | the diff mentions the old and the new line | 2
+ok   | the edit is attached to the task as an artifact | True
+ok   | the command passed | passed
+ok   | the exit code is recorded | 0
+ok   | the argv that ran is recorded, not just the string | ['python3', 'try_it.py']
+ok   | a failing command exits 1 | 1
+ok   | the failure is a failed row with its exit code | failed/1
+ok   | the failure asked a question on the task | True
+ok   | a timeout is a timeout, not a failure | timeout
+ok   | a refused command is recorded as refused | refused
+ok   | two checks are declared | 2
+ok   | the project's own test fails before the fix | 1
+ok   | the failure is recorded under the check's name | test/failed
+ok   | the same check passes after the edit | passed
+ok   | the unknown-check message lists the declared ones | 1
+ok   | the patch covers the files the session edited | ['hello.py']
+ok   | the patch is attached as an artifact | True
+ok   | the reproducer reads the coding task | True
+ok   | its plan contains the command that ran | True
+ok   | a recorded run can be replayed | cr_0001m61jxakg00000000f978425d3f5d608b
+ok   | the page lists the CLI's sessions | 2
+ok   | the page knows the tool roots it may open | /tmp/archx-m31-UtIlrJ/project
+ok   | a session opened in the page is a CLI session | True
+ok   | a read without fs.read is a 403 that names the tool | 403
+ok   | the refusal is a code the page can branch on | approval_required
+ok   | a write from the page is a file on disk | 200
+ok   | the file the page wrote is really there | 1
+ok   | the CLI sees the page's edit | made_in_the_page.py
+ok   | a run from the page is in the same ledger | passed
+ok   | and the CLI can read that run | from the page
+ok   | a bad timeout is a 400, not a 500 | 400
+ok   | closing a session in the page closes it for the CLI | 200
+ok   | a closed session refuses later edits with a 400 | 400
+ok   | the coding routes are in the route table | 14
+ok   | the task is completed with the session | completed
+ok   | the edits are still readable | True
+ok   | the port is closed, not orphaned | 000
+
+M31 acceptance: 48 checks passed
