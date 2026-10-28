@@ -35,6 +35,11 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 - CI runs those three as their own steps (`stress and the hostile client`, `end to end across
   the cli, the gui and sqlite`) so their timings are visible on the runner instead of hidden
   inside a 400-second "unit tests" row.
+- `scripts/ci_evidence.sh <run-id>` rebuilds `docs/ci/` from what the workflow published, and
+  `docs/ci/RUNS.tsv` is the history its table is drawn from. The numbers in that README are now
+  lifted out of the logs instead of retyped after reading them.
+- **Run #8 (12 steps, all ok)** on the runner: 1384 tests in 372 s, 91 stress/edge in 46 s and
+  11 integration in 17 s - the same three counts as this sandbox. `docs/ci/`.
 - An `openai-compatible` provider template for third-party endpoints (Z.ai, DeepSeek, a gateway)
   whose wire is OpenAI's but whose terms nobody here can source: `--base-url` is required, the
   privacy block says "unknown - not transcribed", and all four consent rungs still apply.

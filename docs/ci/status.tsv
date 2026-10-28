@@ -1,13 +1,15 @@
-# run 20261028T122917Z-20bd680
+# run 20261028T135031Z-f506b82
 
 step	status	seconds
-install	ok	20
-pytest	ok	334
+install	ok	24
+pytest	ok	374
+stress-edge	ok	46
+integration	ok	18
 sdks	ok	2
-llama-cpp	ok	7
+llama-cpp	ok	2
 model-download	ok	1
 serve	ok	1
-completion	ok	1
-sdk-matrix	ok	12
-ollama	ok	66
-tunnel	ok	8
+completion	ok	0
+sdk-matrix	ok	15
+ollama	ok	84
+tunnel	ok	12

@@ -3770,7 +3770,7 @@ ollama    OK  'answer via the ollama client'         tokens=21/6  finish=stop  P
 That transcript is also what corrected the catalogue: Groq and Together append
 `/chat/completions` to their `base_url`, so the entries carry `/openai/v1` and `/v1`.
 
-### The CI workflow, run four times on GitHub
+### The CI workflow, run seven times on GitHub
 
 The workflow is triggered by editing `.ci/trigger` and pushing, and its output is read from the
 `ci-logs` branch. It has now actually run; `docs/ci/` keeps the parts worth reading.
@@ -3782,10 +3782,17 @@ run #3  20261028T113602Z-51d2787   all 10 steps ok; pytest 1251 passed on the ru
 run #4  20261028T115458Z-5e67bd9   all 10 steps ok, and the SDK matrix is clean
 run #5  20261028T121409Z-41da23e   all 10 steps ok; 1281 tests on the runner, streaming included
 run #6  20261028T122917Z-20bd680   all 10 steps ok; 1282 tests on the runner (the local count)
+run #7  40700132489              cancelled: the code push started it, then the .ci/trigger push
+                                  started #8 and concurrency cancelled the older one
+run #8  20261028T135031Z-f506b82   all 12 steps ok; 1384 tests, 91 stress/edge and 11 integration
+                                  tests on the runner - the same three counts as this sandbox
 
-$ gh api repos/archnemix/Archx-Agent/actions/runs --jq '.workflow_runs[] | {n:.run_number,conclusion}'
-{"n":4,"conclusion":"success"}  {"n":3,"conclusion":"success"}
-{"n":2,"conclusion":"failure"}  {"n":1,"conclusion":"cancelled"}
+$ gh api "repos/archnemix/Archx-Agent/actions/runs?per_page=10" \
+    --jq '.workflow_runs[] | {n:.run_number,conclusion}'
+{"n":8,"conclusion":"success"}   {"n":7,"conclusion":"cancelled"}
+{"n":6,"conclusion":"success"}   {"n":5,"conclusion":"success"}
+{"n":4,"conclusion":"success"}   {"n":3,"conclusion":"success"}
+{"n":2,"conclusion":"failure"}   {"n":1,"conclusion":"cancelled"}
 
 $ ./scripts/ci_logs.sh --run 20261028T115458Z-5e67bd9
 run     20261028T115458Z-5e67bd9
