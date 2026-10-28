@@ -33,6 +33,19 @@ class TestCatalogue:
             assert row["claim_source"], "every claim must say where it came from"
             assert "data_leaves_device" in row["privacy_claims"]
 
+    def test_a_third_party_endpoint_needs_a_url_and_its_own_confirmation(self, providers):
+        """"Any OpenAI-compatible vendor" has no default endpoint and no transcribed terms."""
+        # add() returns a Result, so the refusal is on the value, not an exception at the call
+        with pytest.raises(ValidationError):
+            providers.add("zai", template="openai-compatible").ok_or_raise()
+        provider = providers.add(
+            "zai", template="openai-compatible", base_url="https://api.z.ai/api/paas/v4"
+        ).ok_or_raise()
+        assert provider.kind == "cloud"
+        assert provider.data_leaves_device is True
+        assert provider.privacy_known is False
+        assert "confirm" in (provider.blocking_reason() or "")
+
     def test_loopback_detection(self):
         assert is_loopback_url("http://127.0.0.1:8080/v1")
         assert is_loopback_url("http://localhost:11434")

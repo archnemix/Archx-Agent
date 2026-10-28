@@ -83,7 +83,7 @@ edit .ci/trigger -> push -> .github/workflows/model-matrix.yml (18 steps)
 | ~~3~~ | ~~**Ollama through a real daemon**~~ | **Done.** `docker run ollama/ollama`, `ollama pull smollm2:135m`, client streamed 32 chunks, and the app probed it keyless (`state now verified`). | closed |
 | ~~4~~ | ~~`models probe --capability tools`~~ | **Done.** The runtime offers a tool, parses the call, and the probe distinguishes a call from a prose reply. | closed |
 | ~~5~~ | ~~**Streaming into the browser**~~ | **Done.** `POST /api/chat/stream` writes SSE for the same recorded turn; the page paints each chunk and swaps in the stored text at the end. | closed |
-| 6 | **Dedicated templates for other OpenAI-compatible vendors** (Z.ai, DeepSeek, …) | They work today via `add-sdk --sdk openai --base-url …`; a template needs privacy terms I can source rather than invent. | small, needs a source |
+| ~~6~~ | ~~**Templates for other OpenAI-compatible vendors**~~ | **Done, without inventing terms.** `--template openai-compatible` requires a base URL and records the privacy block as "unknown - not transcribed", so the consent ladder does the work. Per-vendor terms still need a human. | closed |
 | 7 | **M31 Coding workspace** | The next milestone in `PROGRESS.md`: editing, running and testing code under the permission centre, diffs as artifacts, reproducible tasks. | large |
 | 8 | **Cohere against the real service** | It has no keyless mode at all, so its only proof is a live call (#2) or the `/v2/chat` stub already used. | blocked on #2 |
 

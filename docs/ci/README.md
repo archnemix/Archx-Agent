@@ -1,51 +1,60 @@
-# The CI run that proves this, kept in the repository
+# The CI runs that prove this, kept in the repository
 
-This is the output of run **20261028T115458Z-5e67bd9** (GitHub run #4), triggered by editing
-`.ci/trigger` and pushing - no Actions API call anywhere. The complete folder lives on the
-`ci-logs` branch at `ci/runs/20261028T115458Z-5e67bd9/`; what is here is the part worth reading
-without fetching a branch.
+Everything here came from a file-triggered GitHub Actions run - editing `.ci/trigger` and
+pushing. No Actions API call is needed to start or to read it.
+
+| run | id | outcome |
+|-----|----|---------|
+| #3 | `20261028T113602Z-51d2787` | all 10 steps ok, 1251 tests on the runner |
+| #4 | `20261028T115458Z-5e67bd9` | all 10 steps ok, SDK matrix clean |
+| #5 | `20261028T121409Z-41da23e` | all 10 steps ok, **1281 tests on the runner** - the same number as local at that commit |
+
+The complete folder for every run is on the `ci-logs` branch:
 
 ```bash
-./scripts/ci_logs.sh --run 20261028T115458Z-5e67bd9
-git fetch origin ci-logs && git show FETCH_HEAD:ci/runs/20261028T115458Z-5e67bd9/console.log
+./scripts/ci_logs.sh --list
+./scripts/ci_logs.sh --run 20261028T121409Z-41da23e
+git fetch origin ci-logs && git show FETCH_HEAD:ci/runs/20261028T121409Z-41da23e/console.log
 ```
 
-`status.tsv` - one row per step, written as each step finished:
+## Status, newest run
 
 ```text
-# run 20261028T115458Z-5e67bd9
+# run 20261028T121409Z-41da23e
 
 step	status	seconds
-install	ok	19
-pytest	ok	258
+install	ok	29
+pytest	ok	316
 sdks	ok	2
-llama-cpp	ok	1
-model-download	ok	2
+llama-cpp	ok	3
+model-download	ok	1
 serve	ok	1
 completion	ok	0
-sdk-matrix	ok	11
-ollama	ok	62
-tunnel	ok	7
+sdk-matrix	ok	13
+ollama	ok	61
+tunnel	ok	9
 ```
 
-A real 135M model answered on a GitHub runner (`docs/ci/model-proof.json`):
+## A real model, on a CPU runner
+
+`docs/ci/model-proof.json`:
 
 ```json
 {
-  "text": "A tunnel is a sealed, underground passageway that connects two points, often through a physical barrier or artificial entrance.",
+  "text": "A tunnel is a narrow, winding passageway through a solid surface, often used for transportation or tunnels.",
   "usage": {
-    "completion_tokens": 24,
+    "completion_tokens": 22,
     "prompt_tokens": 40,
-    "total_tokens": 64,
+    "total_tokens": 62,
     "prompt_tokens_details": {
       "cached_tokens": 0
     }
   }
 }```
 
-## Every official client against that one endpoint
+## Every official client against that endpoint
 
-`scripts/remote_model.sh http://127.0.0.1:8080` - llama.cpp serving SmolLM2-135M Q4_K_M:
+llama.cpp serving SmolLM2-135M Q4_K_M on `127.0.0.1:8080`:
 
 ```text
 ### the same endpoint through each official SDK
@@ -54,13 +63,13 @@ A real 135M model answered on a GitHub runner (`docs/ci/model-proof.json`):
 OK    'Hello, welcome to my little corner of the internet!'
       tokens in/out 36/12  finish stop
       base http://127.0.0.1:8080/v1  ->  /chat/completions
-      streamed 6 chunk(s), 22 chars: "I'm counting to three."
+      streamed 4 chunk(s), 15 chars: 'Count to three.'
 
 --- anthropic
-OK    '"Hi! Hello! Hello again!"'
-      tokens in/out 12/9  finish stop
+OK    "I'm an AI assistant designed to help you with everything from business advice to personal matters."
+      tokens in/out 12/19  finish stop
       base http://127.0.0.1:8080  ->  /v1/messages
-      streamed 6 chunk(s), 21 chars: 'Okay, here are three.'
+      streamed 32 chunk(s), 61 chars: "(Counting three)\n\nHere's the countdown:\n\n1. 1000\n\n2. 10000\n\n3"
 
 --- google
 SKIP  the google client speaks :generateContent; this endpoint does not
@@ -69,16 +78,16 @@ SKIP  the google client speaks :generateContent; this endpoint does not
 OK    'Hello, welcome to my little corner of the internet.'
       tokens in/out 36/12  finish stop
       base http://127.0.0.1:8080  ->  /v1/chat/completions
-      streamed 6 chunk(s), 22 chars: "I'm counting to three."
+      streamed 2 chunk(s), 6 chars: 'Three.'
 
 --- groq
 SKIP  groq requests /openai/v1/chat/completions; this endpoint answers 404 there (model not found: Error code: 404 - {'error': {'message': 'File Not Found', 'type)
 
 --- together
-OK    'Hello!'
-      tokens in/out 36/3  finish stop
+OK    'Hello, welcome to my little corner of the internet.'
+      tokens in/out 36/12  finish stop
       base http://127.0.0.1:8080  ->  /v1/chat/completions
-      streamed 4 chunk(s), 15 chars: 'Count to three.'
+      streamed 6 chunk(s), 22 chars: "I'm counting to three."
 
 --- cohere
 SKIP  no /v2/chat here; the cohere client has nothing to talk to
@@ -87,36 +96,31 @@ SKIP  no /v2/chat here; the cohere client has nothing to talk to
 SKIP  no /api/tags here; the ollama client has nothing to talk to
 
 ### summary
-### summary
 4 SDK(s) completed a turn, 0 failed
-```
 
-Four clients completed a turn **and streamed** it; the four skips say exactly why. `groq` is the
-interesting one: its client hard-codes an `/openai/v1` prefix, so it cannot drive a llama.cpp
-server at all, and calling that a failure would be wrong.
+### and through Archx itself (t```
 
 ## A real Ollama daemon, its own client, and the app
 
-`docker run ollama/ollama` + `ollama pull smollm2:135m`, then the ollama client and then Archx
-itself - where the daemon is keyless, which is the rule this repository had to get right:
+`docker run ollama/ollama`, `ollama pull smollm2:135m`:
 
 ```text
 ### the same endpoint through each official SDK
 
 --- ollama
-OK    "Hello, I'm a helpful AI assistant named SmolLM, trained by Hugging Face"
-      tokens in/out 36/19  finish stop
+OK    'Hello, welcome to our chat about the latest trends in technology.'
+      tokens in/out 36/14  finish stop
       base http://127.0.0.1:11434  ->  /api/chat
-      streamed 32 chunk(s), 84 chars: 'Yes, I can do that. Here are three:\n\n1. "Yes, I can do that."\n2. "Yes, I can do that'
+      streamed 2 chunk(s), 6 chars: 'Three.'
 
 ### summary
 1 SDK(s) completed a turn, 0 failed
 
 ### and through Archx itself (the app, not just the SDK)
-home /tmp/archx-remote-2tUumB
+home /tmp/archx-remote-MFinhy
 
 $ archx-agent models add-sdk --name remote-ollama --sdk ollama --model local --base-url http://127.0.0.1:11434
-  registered remote-ollama (mdl_0001m61650x6000000002f6e2e42007b03b4) provider=ollama runtime=sdk
+  registered remote-ollama (mdl_0001m617a9y300000000e1a96add68709586) provider=ollama runtime=sdk
     sdk      ollama (`ollama`)
     model    local
     endpoint http://127.0.0.1:11434
@@ -127,10 +131,10 @@ $ archx-agent models add-sdk --name remote-ollama --sdk ollama --model local --b
   (remote: the four consent rungs apply before chat will send anything)
   probe:
     chat: failed  (ModelNotFoundError: model not found: model 'local' not found (status code: 404))
-      latency 169.5 ms
+      latency 182.4 ms
       state now unsupported (probe failed)
       this drove the runtime; the result is recorded and the router will use it
-registered ollama-local (mdl_0001m61651t90000000076d3a24cc5b345ce) provider=ollama runtime=sdk
+registered ollama-local (mdl_0001m617ab0200000000009550cd2879449b) provider=ollama runtime=sdk
   sdk      ollama (`ollama`)
   model    smollm2:135m
   endpoint http://127.0.0.1:11434
@@ -139,23 +143,20 @@ registered ollama-local (mdl_0001m61651t90000000076d3a24cc5b345ce) provider=olla
   runtime  ready - ready: a local Ollama needs no key (no data leaves this machine)
 note: capabilities are claims until measured with `archx-agent models probe`
 chat: passed  (40 chars, finish_reason=stop)
-  latency 283.3 ms
+  latency 293.3 ms
   state now verified (probe passed)
   this drove the runtime; the result is recorded and the router will use it
-I'm afraid I'm not an AI, but I can tell you that one of the most common colours is blue.
+One colour is blue.
 
-[model ollama-local (ollama) | 322ms | context 52/130304 tokens | strategy oldest_first]
+[model ollama-local (ollama) | 183ms | context 52/130304 tokens | strategy oldest_first]
 [warning] no embedding index is configured; semantic search is unavailable and results are keyword-only
 ```
 
 ## A public URL
 
-cloudflared quick tunnel in front of the same server:
-
 ```text
-
-url=https://somebody-guided-exclude-rca.trycloudflare.com
+url=https://rouge-conditional-satin-centers.trycloudflare.com
 public chat HTTP 200
-{"choices":[{"finish_reason":"length","index":0,"message":{"role":"assistant","content":"I'm ready for any question and request. Just go ahead and ask your query"}}],"created":1793188866,"model":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","system_fingerprint":"b11954-f1a7dea99","object":"chat.completion","usage":{"completion_tokens":16,"prompt_tokens":31,"total_tokens":47,"prompt_tokensopenai SDK via the public URL: Hi, hello.
-
+print("openai SDK via the public URL:", reply.choices[0].message.content.strip())
+{"choices":[{"finish_reason":"length","index":0,"message":{"role":"assistant","content":"Ping - I'm here to help you with any problem you're facing in"}}],"created":1793190088,"model":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","system_fingerprint":"b11954-f1a7dea99","object":"chat.completion","usage":{"completion_tokens":16,"prompt_tokens":31,"total_tokens":47,"prompt_tokens_details":{openai SDK via the public URL: "Hi, welcome to my office!"
 ```

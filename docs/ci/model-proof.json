@@ -1,9 +1,9 @@
 {
-  "text": "A tunnel is a sealed, underground passageway that connects two points, often through a physical barrier or artificial entrance.",
+  "text": "A tunnel is a narrow, winding passageway through a solid surface, often used for transportation or tunnels.",
   "usage": {
-    "completion_tokens": 24,
+    "completion_tokens": 22,
     "prompt_tokens": 40,
-    "total_tokens": 64,
+    "total_tokens": 62,
     "prompt_tokens_details": {
       "cached_tokens": 0
     }

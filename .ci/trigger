@@ -8,3 +8,5 @@ The trigger is a path filter, so it needs no Actions API permission - only a pus
 2026-10-28T11:54:51Z  rerun: exact client paths (groq /openai/v1, together /v1), streaming after close fixed, ollama daemon probed through the app
 
 2026-10-28T12:14:00Z  rerun: streaming into the page, and the tools probe
+
+2026-10-28T12:29:07Z  rerun: the openai-compatible template

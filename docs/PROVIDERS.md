@@ -392,6 +392,24 @@ cannot fail proves nothing, so it now has a real path:
 `tests/test_tool_probe.py` covers all four outcomes, including the CLI
 (`models probe stub-model --capability tools` → `tools: passed`, `state now verified`).
 
+## A third-party endpoint that speaks the OpenAI shape
+
+Z.ai, DeepSeek, a company gateway: the wire is OpenAI's, the terms are not. There is a template
+for them that refuses to pretend otherwise:
+
+```bash
+archx-agent providers add zai --template openai-compatible --base-url https://api.z.ai/api/paas/v4
+#   not usable yet: privacy terms are unknown; confirm them with `providers confirm <id> ...`
+```
+
+* `--base-url` is **required**. "Somebody else's server" has no sensible default, and inventing
+  one would send a request somewhere nobody chose. Omitting it is a validation error naming the
+  flag.
+* the privacy block says `unknown - not transcribed; ask the provider before sending data` for
+  training use and retention, and the claim source says `no claims recorded`. A vendor's terms are
+  not something to guess at, and `providers confirm` exists so a human can record what they read.
+* it is a cloud provider, so all four consent rungs apply before a byte leaves the machine.
+
 ## Adding a provider
 
 1. `providers add <name> --template <slug>` (or `--base-url` for anything custom);

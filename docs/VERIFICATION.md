@@ -3780,6 +3780,7 @@ run #1  20261028T110927Z-958fc22   hung on `serve` (backgrounded server held the
 run #2  1a084f3                    never started a job: "concurrency is already defined" (line 50)
 run #3  20261028T113602Z-51d2787   all 10 steps ok; pytest 1251 passed on the runner
 run #4  20261028T115458Z-5e67bd9   all 10 steps ok, and the SDK matrix is clean
+run #5  20261028T121409Z-41da23e   all 10 steps ok; 1281 tests on the runner, streaming included
 
 $ gh api repos/archnemix/Archx-Agent/actions/runs --jq '.workflow_runs[] | {n:.run_number,conclusion}'
 {"n":4,"conclusion":"success"}  {"n":3,"conclusion":"success"}
@@ -3859,3 +3860,61 @@ invalid workflow file, the `sdks` extra missing four clients, streaming after `t
 and the per-client base URLs. The last two were invisible to a stub that answered any path; that
 stub is now strict.
 
+## Chat streaming, over a real socket
+
+```text
+$ .venv/bin/python -m pytest tests/test_gui_stream.py -o addopts="" -q
+8 passed in 4.05s
+
+$ ./scripts/acceptance_m29.sh
+[ok]   the stream is server-sent events = text/event-stream; charset=utf-8
+[ok]   it sends more than one chunk, then a done frame = yes
+[ok]   and exactly one done frame = 1
+[ok]   the text the page paints adds up to the stored reply = 1
+[ok]   a stream needs a credential, and says so = 403
+M29 acceptance: 60 checks passed
+```
+
+The raw frames, from a real request:
+
+```text
+$ curl -sN -X POST -H 'X-Archx-Token: dbg' -H 'Content-Type: application/json' \
+    -d '{"message":"stream this one"}' http://127.0.0.1:8498/api/chat/stream
+event: chunk
+data: {"text": "[SIMULATED] "}
+
+event: chunk
+data: {"text": "I received 3 words. "}
+
+event: done
+data: {"conversation_id": "conv_0001m616df3k...", "task": {"id": "tk_...", ...}, "text": "..."}
+```
+
+Writing those tests caught a real breakage at once: the new `SSEStream` dataclass had been inserted
+*above* `Response.encode`, leaving the method on the wrong class, so every JSON response in the
+application raised `AttributeError` — including 401s and 404s. Eight new tests found it in four
+seconds. (The same class of mistake as run #2's duplicate `concurrency`: an edit that looks
+additive and is not.)
+
+## Tool calling, measured for the first time
+
+```text
+$ .venv/bin/python -m pytest tests/test_tool_probe.py -o addopts="" -q
+4 passed in 3.06s
+
+$ archx-agent models probe stub-model --capability tools
+tools: passed  (called record_value with {"value": 1}, finish_reason=tool_calls)
+  latency 12.4 ms
+  state now verified (probe passed)
+
+$ archx-agent models probe double --capability tools          # a runtime with no tool path
+tools: failed  (ValidationError: the scripted runtime has no tool-calling path, so tool use
+                 cannot be probed (evidence is not invented))
+```
+
+and a model that answers in prose while a tool is on the table:
+
+```text
+tools: failed  (MalformedOutputError: the model answered without calling the tool
+                (reply: 'I would rather talk.'); tool use is not proven)
+```

@@ -6,6 +6,9 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 ## [Unreleased]
 
 ### Added
+- An `openai-compatible` provider template for third-party endpoints (Z.ai, DeepSeek, a gateway)
+  whose wire is OpenAI's but whose terms nobody here can source: `--base-url` is required, the
+  privacy block says "unknown - not transcribed", and all four consent rungs still apply.
 - **The chat reply streams into the page.** `POST /api/chat/stream` writes server-sent events
   (`chunk` … `done`, or `error`) for the same turn the non-streaming route records; the page reads
   the body with `fetch`/`getReader`, paints each piece as it arrives, and replaces it with the

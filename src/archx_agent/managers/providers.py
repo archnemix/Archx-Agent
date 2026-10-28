@@ -168,6 +168,24 @@ KNOWN_PROVIDERS: dict[str, dict[str, Any]] = {
         },
         "claim_source": "endpoint only; privacy terms not transcribed (confirm them yourself)",
     },
+    # Any third-party endpoint that speaks the OpenAI shape (Z.ai, DeepSeek, a company gateway).
+    # The privacy block is deliberately empty of vendor specifics: inventing terms for a vendor is
+    # worse than making the user state them, and `providers confirm` exists for exactly that.
+    "openai-compatible": {
+        "label": "Any OpenAI-compatible endpoint",
+        "kind": "cloud",
+        "api_style": "openai",
+        "base_url": "",          # required: there is no default for "somebody else's server"
+        "model_family": "whatever the endpoint serves",
+        "is_local": False,
+        "privacy_claims": {
+            "data_leaves_device": True,
+            "training_use": "unknown - not transcribed; ask the provider before sending data",
+            "retention": "unknown - not transcribed; ask the provider before sending data",
+            "region": "unknown",
+        },
+        "claim_source": "no claims recorded; run `providers confirm` with the terms you read",
+    },
     "ollama": {
         "label": "Ollama (local daemon or Ollama Cloud)",
         "kind": "custom",
@@ -499,6 +517,13 @@ class ProviderManager(BaseManager):
             if api_style not in API_STYLES:
                 raise ValidationError(f"unknown api style {api_style!r} (expected one of {list(API_STYLES)})")
             base_url = base_url or entry.get("base_url")
+            if not base_url and template == "openai-compatible":
+                # "somebody else's server" has no sensible default; guessing one would send a
+                # request somewhere nobody chose
+                raise ValidationError(
+                    "the openai-compatible template needs --base-url: there is no default endpoint "
+                    "for an arbitrary vendor (e.g. --base-url https://api.z.ai/api/paas/v4)"
+                )
             if base_url:
                 parsed = urllib.parse.urlparse(base_url)
                 if parsed.scheme not in ("http", "https"):
