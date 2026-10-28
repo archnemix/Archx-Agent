@@ -4,3 +4,8 @@ step	status	seconds
 install	ok	25
 pytest	ok	388
 stress-edge	ok	48
+integration	ok	16
+coding-acceptance	ok	12
+experiment-acceptance	ok	9
+play-acceptance	ok	10
+sdks	ok	3
