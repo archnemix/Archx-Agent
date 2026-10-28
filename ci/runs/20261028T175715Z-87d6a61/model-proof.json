@@ -1,0 +1,11 @@
+{
+  "text": "A tunnel is a tunnelway or passageway through which a train moves, often using a track or cable to create a sealed or partially sealed tunnel.",
+  "usage": {
+    "completion_tokens": 31,
+    "prompt_tokens": 40,
+    "total_tokens": 71,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  }
+}
