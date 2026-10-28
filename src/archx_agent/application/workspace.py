@@ -29,6 +29,8 @@ from archx_agent.adapters.embedding_runtime import (
     SentenceTransformerProvider,
 )
 from archx_agent.adapters.gemini_runtime import DEFAULT_BASE_URL as GEMINI_BASE_URL, GeminiChatRuntime
+from archx_agent.adapters.sdk_runtime import SdkChatRuntime
+from archx_agent.adapters.sdk_transport import SDKS, sdk_available
 from archx_agent.adapters.http_runtime import HttpChatRuntime
 from archx_agent.adapters.llama_cpp_runtime import LlamaCppRuntime
 from archx_agent.adapters.extension_runtime import ExtensionRuntime
@@ -38,7 +40,7 @@ from archx_agent.adapters.scripted_runtime import ENV_FLAG, ScriptedRuntime
 
 # Runtimes that can send data off this machine. `assert_remote_allowed` treats every one of
 # them the same way; adding a runtime here is a deliberate act, not an oversight to fix later.
-NETWORK_RUNTIMES = frozenset({"openai-http", "http", "gemini"})
+NETWORK_RUNTIMES = frozenset({"openai-http", "http", "gemini", "sdk"})
 from archx_agent.helpers.backup_recovery import create_backup
 from archx_agent.helpers.config import Config, load_config, resolve_secret
 from archx_agent.helpers.events import EventStore
@@ -493,6 +495,27 @@ class Workspace:
                 return False, "no model reference (register it with --model gemini-2.0-flash)"
             endpoint = facts.get("base_url") or GEMINI_BASE_URL
             return True, f"ready (endpoint {endpoint})"
+        if record.runtime == "sdk":
+            facts = record.facts or {}
+            sdk = facts.get("sdk") or record.provider
+            ok, why = sdk_available(sdk)
+            if not ok:
+                return False, why
+            ref = (record.user_metadata or {}).get("credential_ref") or facts.get("credential_ref")
+            if not ref:
+                return False, (
+                    f"no API key reference; register the model with --credential-ref "
+                    f"secret://env/{SDKS[sdk].env_var}"
+                )
+            try:
+                if not resolve_secret(ref):
+                    return False, f"the secret reference {ref} resolved to an empty value"
+            except ArchxError as exc:
+                return False, f"the secret reference {ref} could not be resolved: {exc.message}"
+            if not record.model_ref:
+                return False, f"no model reference (register it with --model <{SDKS[sdk].label} model id>)"
+            endpoint = facts.get("base_url") or SDKS[sdk].default_base_url or "the SDK default"
+            return True, f"ready via the {SDKS[sdk].package} SDK (endpoint {endpoint})"
         if record.runtime == "scripted":
             if not self.allow_test_double:
                 return False, "the simulated test double is disabled (use --allow-simulated)"
@@ -565,7 +588,12 @@ class Workspace:
             )
         provider = self._provider_for(record)
         if provider is None:
-            template = "google" if record.runtime == "gemini" else "openai"
+            if record.runtime == "gemini":
+                template = "google"
+            elif record.runtime == "sdk":
+                template = (record.facts or {}).get("sdk") or "openai"
+            else:
+                template = "openai"
             raise ConsentRequiredError(
                 f"the endpoint {base_url} is not a registered provider. Add it with "
                 f"`archx-agent providers add <name> --template {template}` (or --base-url), confirm its "
@@ -615,6 +643,47 @@ class Workspace:
         metadata["credential_ref"] = reference
         facts = dict(record.facts or {})
         facts["api_version"] = api_version
+        return self.models.update(record.id, user_metadata=metadata, facts=facts)
+
+    def register_sdk(
+        self,
+        name: str,
+        *,
+        sdk: str,
+        model_ref: str,
+        base_url: str | None = None,
+        credential_ref: str | None = None,
+        context_length: int = 131_072,
+        capabilities: Sequence[str] | None = None,
+        verification: str = "inferred",
+    ) -> ModelRecord:
+        """Register a model that will be driven by a vendor's official SDK.
+
+        Shared by the CLI and the GUI for the same reason `register_gemini` is: one place
+        enforces "the credential is a reference, never the key".
+        """
+        if sdk not in SDKS:
+            raise ValidationError(f"unknown SDK {sdk!r} (known: {', '.join(sorted(SDKS))})")
+        reference = str(credential_ref or f"secret://env/{SDKS[sdk].env_var}").strip()
+        if not reference.startswith("secret://"):
+            raise ValidationError(
+                "credentials must be a secret://env/NAME or secret://file/PATH reference, not "
+                "the key itself (a literal key would end up in the database, the trace and the logs)"
+            )
+        record = self.models.register_remote(
+            name,
+            provider=SDKS[sdk].provider_template,
+            runtime="sdk",
+            model_ref=model_ref,
+            base_url=base_url or SDKS[sdk].default_base_url,
+            context_length=context_length,
+            capabilities=list(capabilities or ["chat"]),
+            verification=verification,
+        )
+        metadata = dict(record.user_metadata or {})
+        metadata["credential_ref"] = reference
+        facts = dict(record.facts or {})
+        facts["sdk"] = sdk
         return self.models.update(record.id, user_metadata=metadata, facts=facts)
 
     def provider_for(self, record: ModelRecord):
@@ -707,6 +776,35 @@ class Workspace:
                 base_url,
                 api_key=api_key,
                 api_version=str(facts.get("api_version") or "v1beta"),
+            )
+            runtime.load(
+                ModelSpec(
+                    id=record.id,
+                    provider=record.provider,
+                    runtime=record.runtime,
+                    model=record.model_ref,
+                    context_length=record.context_length or self.config.get("model.context_limit"),
+                )
+            )
+            return runtime
+        if record.runtime == "sdk":
+            facts = record.facts or {}
+            sdk = facts.get("sdk") or record.provider
+            if sdk not in SDKS:
+                raise ConfigError(
+                    f"model {record.name!r} names an unknown SDK {sdk!r} "
+                    f"(known: {', '.join(sorted(SDKS))})"
+                )
+            ref = (record.user_metadata or {}).get("credential_ref") or facts.get("credential_ref")
+            if not ref:
+                raise ConfigError(
+                    f"model {record.name!r} uses the {SDKS[sdk].label} SDK but has no credential "
+                    f"reference; register it with --credential-ref secret://env/{SDKS[sdk].env_var}"
+                )
+            runtime = SdkChatRuntime(
+                sdk,
+                api_key=resolve_secret(ref),
+                base_url=facts.get("base_url") or None,
             )
             runtime.load(
                 ModelSpec(

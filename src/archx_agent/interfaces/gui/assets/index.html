@@ -421,13 +421,18 @@
               </label>
             </div>
             <div class="grid2">
-              <label class="field">Key reference
-                <input id="models-credential" type="text" placeholder="secret://env/GEMINI_API_KEY">
+              <label class="field">How it is called
+                <select id="models-transport" class="sel">
+                  <option value="gemini">Google Gemini — Archx's own protocol client</option>
+                </select>
               </label>
               <label class="field">Endpoint (optional)
-                <input id="models-base" type="text" placeholder="https://generativelanguage.googleapis.com">
+                <input id="models-base" type="text" placeholder="the vendor's default endpoint">
               </label>
             </div>
+            <label class="field">Key reference
+              <input id="models-credential" type="text" placeholder="secret://env/GEMINI_API_KEY">
+            </label>
             <div class="row between">
               <button type="submit" class="btn primary">Register model</button>
               <span id="models-status" class="hint"></span>

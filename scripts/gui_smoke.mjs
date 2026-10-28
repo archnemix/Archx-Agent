@@ -58,6 +58,14 @@ const routes = {
   },
   "GET /api/models": MODELS,
   "GET /api/providers": [],
+  "GET /api/sdks": [
+    { key: "openai", label: "OpenAI", package: "openai", env_var: "OPENAI_API_KEY", installed: true },
+    { key: "anthropic", label: "Anthropic", package: "anthropic", env_var: "ANTHROPIC_API_KEY", installed: false },
+  ],
+  "GET /api/sdks": [
+    { key: "openai", label: "OpenAI", package: "openai", env_var: "OPENAI_API_KEY", installed: true },
+    { key: "anthropic", label: "Anthropic", package: "anthropic", env_var: "ANTHROPIC_API_KEY", installed: false },
+  ],
   "GET /api/conversations": [],
   "GET /api/tasks": [],
   "GET /api/tools": [],
@@ -145,6 +153,7 @@ const form = doc.getElementById("models-form");
 doc.getElementById("models-name").value = "flash";
 doc.getElementById("models-model").value = "gemini-2.0-flash";
 doc.getElementById("models-credential").value = "secret://env/GEMINI_API_KEY";
+assert(doc.querySelectorAll("#models-transport option").length >= 2, "the transport picker never filled");
 form.dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
 await tick();
 await tick();

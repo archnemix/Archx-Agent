@@ -207,6 +207,21 @@ def build_parser() -> argparse.ArgumentParser:
     m_add_gemini.add_argument("--context-length", type=int, default=1048576)
     m_add_gemini.add_argument("--capability", action="append", default=[])
     m_add_gemini.add_argument("--verification", default="inferred", choices=list(VERIFICATION_STATES))
+    m_add_sdk = m_sub.add_parser(
+        "add-sdk",
+        help="register a model driven by a vendor's official Python SDK (openai, anthropic, google, mistral)",
+    )
+    m_add_sdk.add_argument("--name", required=True)
+    m_add_sdk.add_argument("--sdk", required=True, help="which vendor client to use (see `models sdks`)")
+    m_add_sdk.add_argument("--model", required=True, help="the model id the vendor serves")
+    m_add_sdk.add_argument("--base-url", default=None,
+                           help="override the endpoint (a stub, a tunnel, a proxy)")
+    m_add_sdk.add_argument("--credential-ref", default=None,
+                           help="defaults to secret://env/<the SDK's own variable>")
+    m_add_sdk.add_argument("--context-length", type=int, default=131072)
+    m_add_sdk.add_argument("--capability", action="append", default=[])
+    m_add_sdk.add_argument("--verification", default="inferred", choices=list(VERIFICATION_STATES))
+    m_sdks = m_sub.add_parser("sdks", help="which vendor SDKs are installed in this interpreter")
     m_add_scripted = m_sub.add_parser("add-scripted", help="register the simulated test double (no inference)")
     m_add_scripted.add_argument("--name", default="simulated-demo")
     m_show = m_sub.add_parser("show", help="show one model in detail")
@@ -1265,6 +1280,54 @@ def cmd_models(args: argparse.Namespace) -> int:
             emit(f"registered {record.name} ({record.id}) provider={record.provider} runtime={record.runtime}")
             emit(f"  endpoint {args.base_url}")
             emit("  note: capabilities are claims until verified with `archx-agent models verify`")
+            return EXIT_OK
+        if command == "sdks":
+            from archx_agent.adapters.sdk_transport import SDKS, sdk_available
+
+            for key, spec in SDKS.items():
+                ok, why = sdk_available(key)
+                if args.json:
+                    continue
+                emit(f"{key:10s} {spec.label:16s} {'installed' if ok else 'MISSING':10s} "
+                     f"{spec.package:14s} key from {spec.env_var}")
+                if not ok:
+                    emit(f"           {why}")
+            if args.json:
+                emit_json({
+                    key: {"installed": sdk_available(key)[0], "package": spec.package,
+                          "env_var": spec.env_var, "base_url": spec.default_base_url}
+                    for key, spec in SDKS.items()
+                })
+            return EXIT_OK
+        if command == "add-sdk":
+            from archx_agent.adapters.sdk_transport import SDKS, sdk_available
+
+            if args.sdk not in SDKS:
+                return fail(f"unknown SDK {args.sdk!r} (known: {', '.join(sorted(SDKS))})", EXIT_USAGE)
+            try:
+                record = ws.register_sdk(
+                    args.name,
+                    sdk=args.sdk,
+                    model_ref=args.model,
+                    base_url=args.base_url,
+                    credential_ref=args.credential_ref,
+                    context_length=args.context_length,
+                    capabilities=args.capability or ["chat"],
+                    verification=args.verification,
+                )
+            except ArchxError as exc:
+                return fail(exc.message, EXIT_USAGE)
+            spec = SDKS[args.sdk]
+            emit(f"registered {record.name} ({record.id}) provider={record.provider} runtime={record.runtime}")
+            emit(f"  sdk      {spec.package} (`{spec.import_name}`)")
+            emit(f"  model    {record.model_ref}")
+            emit(f"  endpoint {(record.facts or {}).get('base_url') or 'the SDK default'}")
+            emit(f"  key      read at use time from {(record.user_metadata or {}).get('credential_ref')} (never stored)")
+            installed, why = sdk_available(args.sdk)
+            emit(f"  sdk      {'installed' if installed else 'NOT installed - ' + why}")
+            ready, why = ws.runtime_availability(record)
+            emit(f"  runtime  {'ready' if ready else 'not ready'} - {why}")
+            emit("note: capabilities are claims until measured with `archx-agent models probe`")
             return EXIT_OK
         if command == "add-gemini":
             from archx_agent.adapters.gemini_runtime import DEFAULT_BASE_URL

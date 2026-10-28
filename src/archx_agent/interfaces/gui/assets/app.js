@@ -1751,7 +1751,11 @@
       el("div", { class: "row between" }, [
         el("div", {}, [
           el("div", { class: "model-name", text: model.name || model.id }),
-          el("span", { class: "model-backend", text: (model.provider || "?") + " · " + model.runtime }),
+          el("span", {
+            class: "model-backend",
+            text: (model.provider || "?") + " · " + model.runtime +
+              ((model.facts || {}).sdk ? " · " + model.facts.sdk + " SDK" : ""),
+          }),
         ]),
         el("div", { class: "row" }, [
           model.ready ? badge("ready", "ok") : badge("blocked", "bad"),
@@ -1790,6 +1794,7 @@
   }
 
   loaders.models = async () => {
+    await loadSdkOptions();
     const models = await api("GET", "/api/models");
     const panel = clear(document.getElementById("models-list"));
     if (!models.length) {
@@ -1803,6 +1808,29 @@
     loaders.models().catch((error) => report(document.getElementById("models-list"), error));
   });
 
+  /* The transport picker lists the vendor SDKs that are actually importable in this
+   * interpreter, with the ones that are not marked rather than hidden: "install this to use
+   * it" is more useful than an option that silently disappears. */
+  let sdkOptions = null;
+  async function loadSdkOptions() {
+    if (sdkOptions) return sdkOptions;
+    const sdks = await api("GET", "/api/sdks").catch(() => []);
+    sdkOptions = sdks;
+    const picker = document.getElementById("models-transport");
+    const credential = document.getElementById("models-credential");
+    for (const sdk of sdks) {
+      picker.append(el("option", {
+        value: sdk.key,
+        text: sdk.label + " — the official " + sdk.package + " SDK" + (sdk.installed ? "" : " (not installed)"),
+      }));
+    }
+    picker.addEventListener("change", () => {
+      const chosen = sdks.find((sdk) => sdk.key === picker.value);
+      credential.setAttribute("placeholder", chosen ? "secret://env/" + chosen.env_var : "secret://env/GEMINI_API_KEY");
+    });
+    return sdkOptions;
+  }
+
   document.getElementById("models-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const status = document.getElementById("models-status");
@@ -1813,6 +1841,7 @@
       const created = await api("POST", "/api/models", {
         name: document.getElementById("models-name").value,
         model: document.getElementById("models-model").value,
+        transport: document.getElementById("models-transport").value,
         credential_ref: document.getElementById("models-credential").value,
         base_url: document.getElementById("models-base").value,
       });

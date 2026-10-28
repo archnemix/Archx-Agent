@@ -50,6 +50,7 @@ from archx_agent.helpers.exceptions import (
 )
 from archx_agent.helpers.jsonio import json_text
 from archx_agent.helpers.timeutil import iso_now
+from archx_agent.adapters.sdk_transport import SDKS, sdk_available
 from archx_agent.managers.providers import is_loopback_url
 
 ASSETS = Path(__file__).with_name("assets")
@@ -523,14 +524,38 @@ class GuiApi:
         record = self.ws.models.require(unquote(match.group("model_id")))
         return self._model_payload(record)
 
-    @route("POST", "/api/models", "Register a Gemini model whose key stays in the environment.")
+    @route("GET", "/api/sdks", "Which vendor SDKs are installed, and the variable each expects.")
+    def get_sdks(self, request: Request, match: re.Match[str]) -> list[dict[str, Any]]:
+        out = []
+        for key, spec in SDKS.items():
+            installed, why = sdk_available(key)
+            out.append({
+                "key": key,
+                "label": spec.label,
+                "package": spec.package,
+                "env_var": spec.env_var,
+                "base_url": spec.default_base_url,
+                "installed": installed,
+                "detail": why,
+            })
+        return out
+
+    @route("POST", "/api/models", "Register a model whose key stays in the environment.")
     def post_model(self, request: Request, match: re.Match[str]) -> dict[str, Any]:
         body = request.payload()
         name = str(body.get("name") or "").strip()
         model_ref = str(body.get("model") or "").strip()
         if not name or not model_ref:
             raise ApiError(400, "validation", "a model needs a name and a model id")
-        credential_ref = str(body.get("credential_ref") or "secret://env/GEMINI_API_KEY").strip()
+        transport = str(body.get("transport") or "gemini")
+        sdk = None if transport == "gemini" else transport
+        if sdk is not None and sdk not in SDKS:
+            raise ApiError(
+                400, "unknown_sdk",
+                f"unknown transport {transport!r} (gemini, or one of {', '.join(sorted(SDKS))})",
+            )
+        default_ref = f"secret://env/{SDKS[sdk].env_var}" if sdk else "secret://env/GEMINI_API_KEY"
+        credential_ref = str(body.get("credential_ref") or default_ref).strip()
         if not credential_ref.startswith("secret://"):
             raise ApiError(
                 400,
@@ -539,6 +564,19 @@ class GuiApi:
                 "secret://file/PATH reference, and put the key in the environment",
             )
         base_url = str(body.get("base_url") or "").strip() or None
+        if sdk is not None:
+            try:
+                record = self.ws.register_sdk(
+                    name,
+                    sdk=sdk,
+                    model_ref=model_ref,
+                    base_url=base_url,
+                    credential_ref=credential_ref,
+                    context_length=int(body.get("context_length") or 131_072),
+                )
+            except ArchxError as exc:
+                raise ApiError(400, "validation", exc.message) from exc
+            return self._model_payload(record)
         record = self.ws.register_gemini(
             name,
             model_ref=model_ref,

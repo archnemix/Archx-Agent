@@ -1,0 +1,238 @@
+name: local model tunnel
+
+# Runs a small, 4-bit-quantised model on a GitHub runner and exposes it over a Cloudflare
+# quick tunnel, so a base_url exists that every vendor SDK can be pointed at.
+#
+# Why this exists: Archx talks to vendors whose hosts a sandbox may not reach, and "our client
+# works" is only credible when *somebody else's* client can also reach a real server. A runner
+# downloads weights it is allowed to download, serves them with llama.cpp on CPU, proves a real
+# completion, then publishes the tunnel URL into `tunnel-url.txt` (artifact + job summary).
+#
+# The model is tiny on purpose: SmolLM-135M in Q4_K_M is ~100 MB, loads in seconds on two
+# cores, and its answers are nonsense. The point is that a token came out, not that it is good.
+
+on:
+  workflow_dispatch:
+    inputs:
+      model_repo:
+        description: Hugging Face repo holding the GGUF
+        default: bartowski/SmolLM2-135M-Instruct-GGUF
+        required: true
+      model_file:
+        description: the GGUF filename inside that repo
+        default: SmolLM2-135M-Instruct-Q4_K_M.gguf
+        required: true
+      keep_alive_minutes:
+        description: how long to leave the tunnel open (max 30)
+        default: "10"
+        required: true
+      prompt:
+        description: the prompt used to prove the server generates text
+        default: "In one short sentence, what is a tunnel?"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: local-model-tunnel
+  cancel-in-progress: true
+
+jobs:
+  serve:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CTX: "512"
+      PORT: "8080"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: cache the weights
+        uses: actions/cache@v4
+        with:
+          path: ~/model
+          key: gguf-${{ inputs.model_repo }}-${{ inputs.model_file }}
+
+      - name: fetch the quantised model
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/model"
+          target="$HOME/model/${{ inputs.model_file }}"
+          if [ -s "$target" ]; then
+            echo "already cached: $target"
+          else
+            url="https://huggingface.co/${{ inputs.model_repo }}/resolve/main/${{ inputs.model_file }}"
+            echo "downloading $url"
+            curl -fL --retry 3 --retry-delay 2 -o "$target.part" "$url"
+            mv "$target.part" "$target"
+          fi
+          ls -lh "$target"
+          # a GGUF starts with the magic "GGUF"; anything else is an HTML error page
+          head -c 4 "$target" | grep -q GGUF || { echo "::error::not a GGUF file"; exit 1; }
+          echo "MODEL_PATH=$target" >> "$GITHUB_ENV"
+
+      - name: install llama.cpp (prebuilt)
+        run: |
+          set -euo pipefail
+          # Asset names drift between releases, so ask the API which one is current instead of
+          # hard-coding a build number that will 404 in a month.
+          gh api repos/ggml-org/llama.cpp/releases/latest --jq '.assets[].browser_download_url' \
+            | grep -E 'bin-ubuntu-x64\.(zip|tar\.gz)$' | head -1 > /tmp/asset.txt
+          if [ ! -s /tmp/asset.txt ]; then
+            echo "::error::no prebuilt ubuntu-x64 llama.cpp asset in the latest release"
+            gh api repos/ggml-org/llama.cpp/releases/latest --jq '.assets[].name'
+            exit 1
+          fi
+          asset="$(cat /tmp/asset.txt)"
+          echo "asset: $asset"
+          mkdir -p "$HOME/llama"
+          curl -fsSL "$asset" -o /tmp/llama.bin
+          case "$asset" in
+            *.zip) unzip -o -q /tmp/llama.bin -d "$HOME/llama" ;;
+            *)     tar -xzf /tmp/llama.bin -C "$HOME/llama" ;;
+          esac
+          find "$HOME/llama" -maxdepth 2 -name 'llama-server*' -type f | head
+          server="$(find "$HOME/llama" -maxdepth 3 -name 'llama-server' -type f | head -1)"
+          [ -n "$server" ] || { echo "::error::llama-server not in the archive"; find "$HOME/llama" | head -40; exit 1; }
+          chmod +x "$server"
+          "$server" --version
+          echo "LLAMA_SERVER=$server" >> "$GITHUB_ENV"
+          echo "$(dirname "$server")" >> "$GITHUB_PATH"
+
+      - name: serve it
+        run: |
+          set -uo pipefail
+          # CPU only, a 512-token window, one slot: this is a smoke test, not a service.
+          "$LLAMA_SERVER" --model "$MODEL_PATH" --host 127.0.0.1 --port "$PORT" \
+            --ctx-size "$CTX" --n-gpu-layers 0 --threads 2 --parallel 1 \
+            --no-warmup --log-file "$RUNNER_TEMP/llama.log" &
+          echo $! > "$RUNNER_TEMP/llama.pid"
+          for i in $(seq 1 120); do
+            if curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; then
+              echo "server is up after ${i}s"; break
+            fi
+            sleep 1
+          done
+          curl -fsS "http://127.0.0.1:$PORT/health" || { tail -50 "$RUNNER_TEMP/llama.log"; exit 1; }
+
+      - name: prove it generates text (and keep the proof)
+        run: |
+          set -uo pipefail
+          cat > /tmp/req.json <<JSON
+          {"model":"local","messages":[{"role":"user","content":${{ toJSON(inputs.prompt) }}}],
+           "max_tokens":48,"temperature":0.2}
+          JSON
+          code="$(curl -sS -o /tmp/reply.json -w '%{http_code}' \
+            -H 'Content-Type: application/json' --data @/tmp/req.json \
+            "http://127.0.0.1:$PORT/v1/chat/completions")"
+          echo "HTTP $code"
+          cat /tmp/reply.json
+          python3 - <<'PY'
+          import json, pathlib, sys
+          data = json.loads(pathlib.Path("/tmp/reply.json").read_text())
+          text = data["choices"][0]["message"]["content"]
+          usage = data.get("usage", {})
+          if not text.strip():
+              sys.exit("the model returned no text")
+          proof = {"text": text, "usage": usage, "model": data.get("model")}
+          pathlib.Path("model-proof.json").write_text(json.dumps(proof, indent=2) + "\n")
+          print("PROOF:", text[:200].replace("\n", " "))
+          PY
+
+      - name: open a Cloudflare quick tunnel
+        run: |
+          set -uo pipefail
+          curl -fsSL -o "$RUNNER_TEMP/cloudflared" \
+            https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x "$RUNNER_TEMP/cloudflared"
+          "$RUNNER_TEMP/cloudflared" --version
+          "$RUNNER_TEMP/cloudflared" tunnel --no-autoupdate --url "http://127.0.0.1:$PORT" \
+            > "$RUNNER_TEMP/tunnel.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/tunnel.pid"
+          url=""
+          for i in $(seq 1 90); do
+            url="$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$RUNNER_TEMP/tunnel.log" | head -1 || true)"
+            [ -n "$url" ] && break
+            sleep 1
+          done
+          if [ -z "$url" ]; then
+            tail -40 "$RUNNER_TEMP/tunnel.log" || true
+            echo "::error::no trycloudflare URL appeared"
+            exit 1
+          fi
+          echo "TUNNEL_URL=$url" >> "$GITHUB_ENV"
+          {
+            echo "url=$url"
+            echo "model=${{ inputs.model_repo }}/${{ inputs.model_file }}"
+            echo "quantisation=Q4_K_M"
+            echo "started=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "keep_alive_minutes=${{ inputs.keep_alive_minutes }}"
+            echo "# quick tunnels are unauthenticated and expire; anyone with this URL can use it"
+          } > tunnel-url.txt
+          cat tunnel-url.txt
+
+      - name: confirm the tunnel reaches the model
+        run: |
+          set -uo pipefail
+          for i in $(seq 1 60); do
+            if curl -fsS --max-time 5 "$TUNNEL_URL/health" >/dev/null 2>&1; then
+              echo "public URL answers /health after ${i}s"; break
+            fi
+            sleep 2
+          done
+          code="$(curl -sS --max-time 30 -o /tmp/public.json -w '%{http_code}' \
+            -H 'Content-Type: application/json' \
+            --data '{"model":"local","messages":[{"role":"user","content":"ping"}],"max_tokens":8}' \
+            "$TUNNEL_URL/v1/chat/completions")"
+          echo "public chat HTTP $code"
+          head -c 400 /tmp/public.json || true
+          [ "$code" = "200" ] || { echo "::error::the public URL did not serve a completion"; exit 1; }
+
+      - name: publish the URL
+        run: |
+          {
+            echo "## A model is being served"
+            echo ""
+            echo '```'
+            cat tunnel-url.txt
+            echo '```'
+            echo ""
+            echo "Verified through the public URL: \`POST /v1/chat/completions\` returned 200."
+            echo ""
+            echo "Point any SDK at it:"
+            echo ""
+            echo '```bash'
+            echo "./scripts/remote_model.sh $TUNNEL_URL"
+            echo '```'
+            echo ""
+            echo "Backing evidence (the model's own words, and its token counts):"
+            echo ""
+            echo '```json'
+            cat model-proof.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: keep it alive
+        run: |
+          minutes="${{ inputs.keep_alive_minutes }}"
+          if ! [[ "$minutes" =~ ^[0-9]+$ ]]; then minutes=10; fi
+          [ "$minutes" -gt 30 ] && minutes=30
+          echo "holding the tunnel for ${minutes} minutes; cancel the run to stop sooner"
+          end=$(( $(date +%s) + minutes * 60 ))
+          while [ "$(date +%s)" -lt "$end" ]; do
+            sleep 30
+            if ! kill -0 "$(cat "$RUNNER_TEMP/llama.pid")" 2>/dev/null; then
+              echo "::error::the model server died"; tail -40 "$RUNNER_TEMP/llama.log"; exit 1
+            fi
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tunnel-url
+          path: |
+            tunnel-url.txt
+            model-proof.json
+          retention-days: 1
+          if-no-files-found: warn
