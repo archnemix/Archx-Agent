@@ -1,0 +1,11 @@
+{
+  "text": "A tunnel is a narrow, underground passageway through which you can move.",
+  "usage": {
+    "completion_tokens": 16,
+    "prompt_tokens": 40,
+    "total_tokens": 56,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  }
+}

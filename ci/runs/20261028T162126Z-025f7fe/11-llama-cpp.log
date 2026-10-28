@@ -24,3 +24,5 @@ $ bash -c
   echo "LLAMA_SERVER=$server" >> "$GITHUB_ENV"
 
 prebuilt: https://github.com/ggml-org/llama.cpp/releases/download/b11963/llama-b11963-bin-ubuntu-x64.tar.gz
+version: 0.8.0-dev (build 11963, commit 39febd2ad)
+built with GNU 11.4.0 for Linux x86_64
