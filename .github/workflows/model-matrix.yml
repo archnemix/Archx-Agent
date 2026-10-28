@@ -171,6 +171,11 @@ jobs:
       - name: end to end across the cli, the gui and sqlite
         run: run.sh integration python -m pytest tests/test_integration.py -o addopts="" -q
 
+      # The coding workspace, driven the way a person would use it: a real project, a real
+      # pytest run that fails and then passes, and the page writing a file the CLI then reads.
+      - name: coding workspace acceptance
+        run: run.sh coding-acceptance bash scripts/acceptance_m31.sh
+
       - name: sdk catalogue
         run: run.sh sdks archx-agent models sdks
 

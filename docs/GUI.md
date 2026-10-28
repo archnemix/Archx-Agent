@@ -274,6 +274,30 @@ The page uses only these; so can you.
 | POST | `/api/research/{id}/{close,reopen}` | mark a question done (with an optional note) or put it back; `409` if it is already in that state |
 | GET | `/api/learning`, `/api/learning/goals/{id}` | goals with progress, then items, next-up, sessions |
 | POST | `/api/learning/goals`, `/api/learning/goals/{id}/items`, `/api/learning/goals/{id}/{plan,answer,review}`, `/api/learning/items/{id}/hint` | create a goal, add an item, plan, answer, review, reveal one hint |
+| GET/POST | `/api/code/sessions` | coding sessions (with their edit/run counts), and the tool roots a session may open on; POST opens one |
+| GET | `/api/code/sessions/{id}` | one session: its edits, its runs, the task behind it |
+| GET | `/api/code/sessions/{id}/file?path=…`, `/tree?path=…`, `/checks`, `/diff` | read a file, list a directory, the project's declared checks, the session's whole patch |
+| POST | `/api/code/sessions/{id}/{read,write,delete,run,test,close}` | the same four tools the CLI uses; `run` needs `shell.run`, `write` needs `fs.write` |
+| POST | `/api/code/runs/{id}/rerun` | replay a recorded command |
+
+### The Code panel, and why it is not an IDE
+
+The panel is a session list, an open form, a path field, a read/save/delete row, a textarea, a
+command box and two buttons: *run*, and *run the test check*. There is no language server, no
+refactoring, no file tree you can drag. That is deliberate: the two things worth building were
+the permission boundary and the record, and both of them live below the page.
+
+Nothing in the panel is a capability of its own. Every button is one of four tools -
+`fs.read`, `fs.write`, `fs.delete`, `shell.run` - invoked through the same `ToolManager` the CLI
+uses, so with no grant the page gets the same `403 approval_required` the terminal gets `exit 4`
+for, and the approval it names is in the Access panel. The editor does not read your file to
+build a diff when reading is not allowed: it asks the permission centre first, gets "no", and
+says the diff shows only the new content. One save is one approval request, not two.
+
+The results are shown, not hidden: the ledger under the editor is the same `code_runs` table
+`code runs` prints, and a failed command is an ordinary answer (HTTP 200, `status: failed`,
+exit code in the row) because the request to run it succeeded. A refusal is a `403`; a bad field
+is a `400`; a closed session is a `400` that says so.
 
 ### The consent ladder in the page
 

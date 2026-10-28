@@ -31,9 +31,9 @@ acceptance not fully demonstrated · **not started**
 | **M27** | **Simple Mode and unified search** | **done** | `tests/test_search_m27.py` (42) + `tests/test_simple_m27.py` (67), `docs/SIMPLE_MODE.md`, `scripts/acceptance_m27.sh` (23 checks) |
 | **M28** | **Researcher Mode** | **done · scoped** | `tests/test_research_m28.py` (97), `docs/RESEARCH.md`, `scripts/acceptance_m28.sh` (30 checks incl. real HTTP and an approval). Scope: reads local documents and the URLs you give it — **no web search, no crawler, no experiment runner** (`docs/MODES.md` §3.1) |
 | **M29** | **GUI core workflows** | **done** | `tests/test_gui_m29.py` (85), `docs/GUI.md`, `scripts/acceptance_m29.sh` (54 checks over a real socket) |
-| **M30** | **Learning Mode** | **done · scoped** | `tests/test_learning_m30.py` (121), `docs/LEARNING.md`, `scripts/acceptance_m30.sh` (89 checks). Scope: exact/self grading, no model marking; no media items (`docs/MODES.md` §3.2) |
+| **M30** | **Learning Mode** | **done · scoped** | `tests/test_learning_m30.py` (121), `docs/LEARNING.md`, `scripts/acceptance_m30.sh` (90 checks). Scope: exact/self grading, no model marking; no media items (`docs/MODES.md` §3.2) |
 
-| M31 | Coding workspace | next | - |
+| **M31** | **Coding workspace** | **done** | `tests/test_coding_m31.py` (64), `docs/CODING.md`, `scripts/acceptance_m31.sh` (48 checks over a real socket). Scope: a session is a directory inside the tool roots, every read/write/run is a tool call, edits are diffs on the session task, and the runner records every command |
 | M32 | Experimental Mode | not started | - |
 | M33 | Play Mode | not started | - |
 | M34 | Voice and multimodal foundation | not started | - |

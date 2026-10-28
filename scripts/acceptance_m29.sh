@@ -166,9 +166,12 @@ for line in sys.stdin:
             done = payload
 print(1 if done and ''.join(chunks) == done['text'] else 0)
 ")" "1"
+# 401, not 403: a request with no cookie and no token is not a cross-site write, it is an
+# unidentified caller. The distinction is what lets a client know to log in rather than to add
+# a header (docs/GUI.md, "cross-site writes").
 check "a stream needs a credential, and says so" \
   "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Content-Type: application/json" \
-      -d '{"message":"no token"}' "$BASE/api/chat/stream")" "403"
+      -d '{"message":"no token"}' "$BASE/api/chat/stream")" "401"
 
 say "a memory stored in the GUI is a real memory"
 MEM="$(post_json "$BASE/api/memory" '{"kind":"permanent","title":"GUI note","content":"the GUI writes through the same manager","category":"fact"}')"

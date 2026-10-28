@@ -56,6 +56,7 @@ from archx_agent.helpers.exceptions import (
 from archx_agent.helpers.sqlite_store import SqliteStore
 from archx_agent.helpers.timeutil import iso_now
 from archx_agent.helpers.write_coordinator import WriteCoordinator
+from archx_agent.managers.coding import CodeManager
 from archx_agent.managers.context import ContextManager
 from archx_agent.managers.embeddings import EmbeddingManager
 from archx_agent.managers.conversation import ConversationManager
@@ -105,6 +106,7 @@ class Workspace:
     simple: SimpleMode | None = None
     research: ResearchManager | None = None
     learning: LearningManager | None = None
+    coding: CodeManager | None = None
     reproduction: ReproductionManager | None = None
     router: Any = None
     context: ContextManager | None = None
@@ -339,6 +341,7 @@ class Workspace:
                 )
         except Exception as exc:  # noqa: BLE001 - a bad plugin must not stop the workspace
             ws.warnings.append(f"could not restore dynamic tools: {exc}")
+        ws.coding = CodeManager(store, coordinator, events=events)
         ws.research = ResearchManager(
             store, coordinator, events=events, config=config
         )
@@ -420,6 +423,13 @@ class Workspace:
         from .learning import LearningService
 
         return LearningService(self)
+
+    @property
+    def code(self):
+        """The coding workspace (imported lazily to keep the composition root acyclic)."""
+        from .coding import CodingWorkspace
+
+        return CodingWorkspace(self)
 
     @property
     def chat(self):

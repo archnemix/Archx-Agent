@@ -37,7 +37,7 @@ there is no code.
 | M28 | **Research Mode** | **partial** | real runs over local docs and supplied URLs; no web search, no crawl, no experiments (see §3) |
 | M29 | GUI core workflows | done | this interface; a client of the same managers |
 | M30 | **Learning Mode** | **partial** | goals, items, hints, schedules, sessions; no model grading, no media (see §3) |
-| M31 | Coding workspace | not built | edit, run and test code under the permission centre |
+| M31 | **Coding workspace** | done | sessions on a directory, edits as diffs, a recorded runner, named checks (see §2) |
 | M32 | Experimental Mode | not built | run experiments, compare runs, keep the record |
 | M33 | Play Mode | not built | games, simulations, sandboxed tinkering |
 | M34 | Voice and multimodal | not built | speech in/out, images, audio — no hardware here |
@@ -65,7 +65,8 @@ are the application calls; "status" is what works today.
 | Memory | what Archx keeps about you | kind, category, title, content, stored list | `MemoryManager` (duplicate check included) | works |
 | Models | which models can run here | catalogue with the reason each cannot, **Connect Gemini** (name, model id, key *reference*), `test chat` per model, and the four-rung consent ladder with the button that climbs each rung | `ModelManager` + `runtime_availability` + `Workspace.assert_remote_allowed` + `GeminiChatRuntime` | works |
 | Status | what this home is | counts, schema, blocked items and the exact next command | `workspace.info()` | works |
-| Coding / Experimental / Play / Voice | **planned** | — | — | **not built**; no button pretends otherwise |
+| **Code** | edit, run and test a directory | session list + open form, file path, read/save/delete, command box, "run the test check", diff, the ledger of every run, close | `CodingWorkspace` → `fs.read`/`fs.write`/`fs.delete`/`shell.run` through `ToolManager`, so every action is a grant or an approval; edits land as diffs on the session's task | **works** — see §2.2 |
+| Experimental / Play / Voice | **planned** | — | — | **not built**; no button pretends otherwise |
 
 The header of every mode shows the tools *that mode* has, from live data — `net.fetch:
 not granted` in Research, `model: none usable` in Chat, `grading: exact or self` in
@@ -78,8 +79,7 @@ were asked to do, and no button pretending they exist. Nothing below has code to
 
 | # | Mode as asked | What it was asked to do | What exists to build it on |
 |---|---------------|-------------------------|----------------------------|
-| M31 | Coding workspace | edit, run and test code under the permission centre, with the runner recording every command | tool roots, `shell.run`, jobs, tasks, artifacts, reproduction |
-| M32 | Experimental Mode | run experiments, keep the parameters and results, compare runs | jobs, tasks, artifacts, versions, research sources |
+| M32 | Experimental Mode | run experiments, keep the parameters and results, compare runs | jobs, tasks, artifacts, versions, research sources, and now the M31 runner |
 | M33 | Play Mode | games, simulations and sandboxed tinkering | tools + permission centre (nothing may escape a grant) |
 | M34 | Voice and multimodal | speech in and out, images, audio | none in this build: no microphone, no weights, no GPU |
 | M35 | Dataset preparation | collect, clean, split and version a corpus | versions, artifacts, tool roots, search |
@@ -92,6 +92,29 @@ were asked to do, and no button pretending they exist. Nothing below has code to
 Each of these follows the rule the built modes already follow: a mode is a shell plus a set of
 tools, and if the tools are not there the mode is not drawn. That is why the list above is
 prose in a document rather than ten greyed-out entries in the sidebar.
+
+### 2.2 The Coding workspace, and what it is careful about
+
+The mode is deliberately small: one directory, one file at a time, one command at a time. It is
+an editor and a console, not an IDE, because the interesting part of the milestone is not the
+text box - it is the two rules underneath it.
+
+**Every action is a tool call.** Reading a file is `fs.read`, saving one is `fs.write`, running
+something is `shell.run`. There is no private filesystem path for the editor, so the panel cannot
+do anything `archx-agent tools run` could not, and a refusal is the same refusal the CLI gets -
+including the approval id. Writing a file you may not read is allowed and says so in the diff
+rather than raising a second approval request for the read.
+
+**The record outlives the process.** A session is a row with a task; an edit is a row with a
+unified diff, the checksums either side of it, and an artifact attached to the task; a command is
+a row with the argv that ran, the directory, the exit code, the duration and the output. Refusals
+are rows too. That is what makes `code diff`, `code rerun` and `tasks reproduce` possible on work
+that happened hours ago, and it is why the session's task is marked *manual*: the user works in a
+session across many commands, so the process exiting is not the work ending.
+
+What it does **not** do: no multi-file refactoring, no language server, no automatic fixing, no
+watching for changes. The checks are whatever the project declares in `archx.checks.json` - the
+app runs them and records them; it does not decide what "tested" means for your project.
 
 ## 3. What "done" does not mean (the honest gaps)
 
@@ -134,7 +157,7 @@ answers them; deleting stays a CLI act.
 
 ### 3.3 The GUI is a client, not a product surface for everything
 
-Ten panels, all wired, nothing decorative. The shell is one page with a sidebar, a top bar
+Eleven panels, all wired, nothing decorative. The shell is one page with a sidebar, a top bar
 carrying each mode's live tool chips, three themes and a chat transcript with markdown,
 copy buttons and confirmations for anything that cannot be undone. Workflow authoring, streaming tokens, files, a
 multi-user story and TLS are not there; they are listed in `GAPS.md` and `docs/GUI.md` rather
@@ -142,11 +165,10 @@ than implied by a greyed-out button.
 
 ## 4. Where this leaves the roadmap
 
-Built: M01–M30 (with the two honest `partial`s above), plus the Research completion model
-(§3.1). Next: **M31 Coding workspace**, then
-M32 Experimental, M33 Play, M34 Voice — and the Research gaps in §3.1 are the first thing that
-should be repaired once M31 exists, because a browse loop needs the coding workspace's runner
-and the experimental mode's record to be worth anything.
+Built: M01–M31 (with the two honest `partial`s above), plus the Research completion model
+(§3.1). Next: **M32 Experimental Mode**, then M33 Play, M34 Voice. The Research gaps in §3.1
+remain the most valuable repair, and they no longer have an excuse: the runner and the record
+they needed now exist in the coding workspace, which can be reused rather than invented.
 
 If a mode is missing from the sidebar, it is because the code is missing — not because the button
 was hidden.

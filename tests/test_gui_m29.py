@@ -606,8 +606,14 @@ class TestAssets:
         html = (ASSETS / "index.html").read_text()
         script = (ASSETS / "app.js").read_text()
         ids = set(__import__("re").findall(r'id="([^"]+)"', html))
+        # A panel that is rebuilt on every open creates its own nodes, so the ids it later looks
+        # up are declared in the script rather than in the page. Both count as "the page has it";
+        # the check that matters is that no id is asked for that nothing ever creates.
+        made = set(__import__("re").findall(r'id: "([^"]+)"', script))
         used = set(__import__("re").findall(r'getElementById\("([^"]+)"\)', script))
-        assert used <= ids, f"the script asks for ids the page does not have: {sorted(used - ids)}"
+        assert used <= ids | made, (
+            f"the script asks for ids nothing creates: {sorted(used - (ids | made))}"
+        )
         wired = set(__import__("re").findall(r'getElementById\("([^"]+)"\)\.addEventListener', script))
         refresh = {name for name in ids if name.endswith("-refresh")}
         assert refresh <= wired, f"buttons with no listener: {sorted(refresh - wired)}"

@@ -21,9 +21,9 @@ This file records what is **not** true yet. If a feature is not listed as verifi
 
 ## Not built yet
 
-Milestones M31-M40 are not implemented: coding workspace, experimental mode, play mode,
-voice/multimodal, dataset preparation, training, remote compute, Blender/3D, automations and
-release hardening. M17-M30 are implemented and verified (see [PROGRESS.md](PROGRESS.md)). The database schema already reserves tables for them
+Milestones M32-M40 are not implemented: experimental mode, play mode, voice/multimodal, dataset
+preparation, training, remote compute, Blender/3D, automations and release hardening. M17-M31 are
+implemented and verified (see [PROGRESS.md](PROGRESS.md)). The database schema already reserves tables for them
 (versions 5-8) so they can be added without renumbering.
 
 ## Per-mode limits

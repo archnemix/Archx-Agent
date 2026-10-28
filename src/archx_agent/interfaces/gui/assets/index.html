@@ -42,6 +42,10 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m19 19-4-4"/></svg>
         <span>Search</span>
       </button>
+      <button class="tab" data-view="code" type="button" title="Code">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 8-4 4 4 4M15 8l4 4-4 4"/></svg>
+        <span>Code</span>
+      </button>
       <button class="tab" data-view="tasks" type="button" title="Tasks">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1.6 1.6L8.4 4.8M4 12l1.6 1.6L8.4 10.8M4 18l1.6 1.6L8.4 16.8"/></svg>
         <span>Tasks</span>
@@ -259,6 +263,46 @@
           </form>
           <div id="search-notes" class="warnings"></div>
           <div id="search-results" class="stack"></div>
+        </div>
+      </section>
+
+      <!-- ───────────── code ───────────── -->
+      <section class="page" id="view-code" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Code</h1>
+            <p>Edit, run and test a directory. Every read, write and command goes through the permission centre, and the runner keeps the ledger.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="code-refresh" class="icon-btn" type="button" title="Reload sessions" aria-label="Reload sessions">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body flush">
+          <div class="split">
+            <aside class="picker">
+              <ul id="code-sessions" class="list"></ul>
+              <form id="code-open-form" class="card">
+                <div class="card-head"><h3>Open a session</h3><p class="hint">A session is a directory inside the tool roots. Leave the path empty for the first root.</p></div>
+                <label class="field">Directory
+                  <input id="code-root" type="text" placeholder="/path/inside/the/tool/roots">
+                </label>
+                <label class="field">What is it for?
+                  <input id="code-title" type="text" placeholder="fix the greeting">
+                </label>
+                <div class="row between">
+                  <button type="submit" class="btn primary">Open</button>
+                  <span id="code-open-status" class="hint"></span>
+                </div>
+              </form>
+            </aside>
+            <div class="detail">
+              <div id="code-detail" class="stack">
+                <p class="dim small">Pick a session, or open one. A write needs <code>fs.write</code> and a command needs <code>shell.run</code>: without a grant the page offers you the approval, and nothing happens until you decide.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

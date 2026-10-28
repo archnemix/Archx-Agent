@@ -44,6 +44,11 @@
       sub: "goals with criteria, a hint ladder, and a schedule that shows its arithmetic",
       tools: ["grading", "hints", "schedule"],
     },
+    code: {
+      title: "Code",
+      sub: "edit, run and test a directory · every step is a grant, and every command is recorded",
+      tools: ["shell.run", "diffs", "checks", "artifacts"],
+    },
     search: { title: "Search", sub: "one query across every source this home can see", tools: ["sources", "files"] },
     tasks: { title: "Tasks", sub: "what ran, in order, with artifacts and a reproduction record", tools: ["history", "artifacts"] },
     jobs: { title: "Jobs", sub: "durable queued work: attempts, deadlines, and a real runner", tools: ["queued", "running"] },
@@ -693,6 +698,12 @@
         chips.push(toolChip("hints", "one level at a time"));
       } else if (name === "schedule") {
         chips.push(toolChip("schedule", "interval · ease · why"));
+      } else if (name === "shell.run") {
+        chips.push(toolChip("shell.run", "needs a grant"));
+      } else if (name === "diffs") {
+        chips.push(toolChip("diffs", "as artifacts"));
+      } else if (name === "checks") {
+        chips.push(toolChip("checks", "from the project"));
       } else if (name === "files") {
         chips.push(toolChip("files", "opt-in"));
       } else if (name === "artifacts") {
@@ -1472,6 +1483,232 @@
       await openLearning(goal.id);
     } catch (error) {
       report(document.getElementById("learning-detail"), error);
+    }
+  });
+
+  // --------------------------------------------------------------------- code
+  // A session is a directory, and this panel is deliberately a small editor and a console -
+  // not an IDE. Everything it does is one API call the CLI can also make, so nothing here is
+  // a capability the app does not otherwise have.
+  async function loadCodeSessions() {
+    const list = clear(document.getElementById("code-sessions"));
+    const data = await api("GET", "/api/code/sessions");
+    state.code = state.code || {};
+    if (!data.sessions.length) {
+      list.append(el("li", { class: "dim small", text: "no sessions yet" }));
+    }
+    for (const session of data.sessions) {
+      const stats = session.stats || {};
+      const button = el("button", { type: "button", class: "list-item" + (state.code.id === session.id ? " active" : "") }, [
+        el("span", { class: "t", text: session.title }),
+        el("span", {
+          class: "s",
+          text: session.status + " · " + stats.changes + " edit(s) · " + stats.runs + " run(s)",
+        }),
+      ]);
+      button.addEventListener("click", () => openCode(session.id).catch((error) => report(document.getElementById("code-detail"), error)));
+      list.append(el("li", {}, [button]));
+    }
+    return data;
+  }
+
+  function codeToolbar(session) {
+    const card = el("div", { class: "card" });
+    card.append(el("div", { class: "card-head" }, [
+      el("h3", { text: "The runner" }),
+      el("p", { class: "hint", text: "A command runs in the session root. It needs shell.run; a refusal names the approval and starts nothing." }),
+    ]));
+
+    const commandInput = el("input", { id: "code-command", type: "text", placeholder: "python -m pytest -q" });
+    const runButton = el("button", { type: "button", class: "btn primary", text: "Run" });
+    const testButton = el("button", { type: "button", class: "btn", text: "Run the test check" });
+    const output = el("pre", { id: "code-output", class: "code-output" });
+    card.append(el("label", { class: "field" }, ["Command", commandInput]));
+    card.append(el("div", { class: "row between" }, [runButton, testButton]));
+
+    async function execute(promise) {
+      clear(output);
+      output.append(el("span", { class: "loading", text: "running…" }));
+      try {
+        const run = await promise;
+        clear(output);
+        const head = el("div", { class: "callout " + (run.status === "passed" ? "ok" : "warn") }, [
+          el("b", { text: run.status }),
+          " exit " + run.exit_code + " in " + Math.round(run.duration_ms || 0) + " ms",
+          run.check_name ? " · check " + run.check_name : "",
+        ]);
+        output.append(head);
+        if (run.stdout) output.append(el("div", { class: "mono", text: run.stdout }));
+        if (run.stderr) output.append(el("div", { class: "mono warn-text", text: run.stderr }));
+        if (run.artifact_id) output.append(el("div", { class: "small dim", text: "output kept as " + run.artifact_id }));
+        await openCode(session.id);
+        const again = document.getElementById("code-output");
+        if (again) { clear(again); again.append(head); }
+      } catch (error) {
+        clear(output);
+        report(output, error);
+      }
+    }
+
+    runButton.addEventListener("click", () => {
+      const command = commandInput.value.trim();
+      if (!command) return;
+      execute(api("POST", "/api/code/sessions/" + session.id + "/run", { command }));
+    });
+    testButton.addEventListener("click", () => {
+      execute(api("POST", "/api/code/sessions/" + session.id + "/test", { check: "test" }));
+    });
+    return card;
+  }
+
+  function codeEditor(session) {
+    const card = el("div", { class: "card" });
+    card.append(el("div", { class: "card-head" }, [
+      el("h3", { text: "The editor" }),
+      el("p", { class: "hint", text: "Reading needs fs.read and saving needs fs.write. A save records a diff and attaches it to this session's task." }),
+    ]));
+    const pathInput = el("input", { id: "code-path", type: "text", placeholder: "hello.py" });
+    const textarea = el("textarea", { id: "code-file", class: "code-editor", spellcheck: "false", rows: "10" });
+    const readButton = el("button", { type: "button", class: "btn", text: "Read" });
+    const saveButton = el("button", { type: "button", class: "btn primary", text: "Save" });
+    const deleteButton = el("button", { type: "button", class: "btn danger", text: "Delete" });
+    const note = el("span", { class: "hint" });
+
+    card.append(el("label", { class: "field" }, ["Path", pathInput]));
+    card.append(textarea);
+    card.append(el("div", { class: "row between" }, [readButton, saveButton, deleteButton, note]));
+
+    readButton.addEventListener("click", async () => {
+      const path = pathInput.value.trim();
+      if (!path) return;
+      try {
+        const file = await api("GET", "/api/code/sessions/" + session.id + "/file?path=" + encodeURIComponent(path));
+        textarea.value = file.content || "";
+        note.textContent = file.truncated ? "truncated at the tool limit" : (file.total_lines + " line(s)");
+      } catch (error) {
+        report(note, error);
+      }
+    });
+    saveButton.addEventListener("click", async () => {
+      const path = pathInput.value.trim();
+      if (!path) return;
+      try {
+        const change = await api("POST", "/api/code/sessions/" + session.id + "/write", { path, content: textarea.value });
+        note.textContent = change.action + " " + change.path + " +" + change.added + "/-" + change.removed;
+        await openCode(session.id);
+      } catch (error) {
+        report(note, error);
+      }
+    });
+    deleteButton.addEventListener("click", async () => {
+      const path = pathInput.value.trim();
+      if (!path) return;
+      const sure = await ask({
+        title: "Delete " + path + "?",
+        text: "The diff stays in the session record; the file does not come back.",
+        okLabel: "Delete",
+      });
+      if (!sure) return;
+      try {
+        await api("POST", "/api/code/sessions/" + session.id + "/delete", { path });
+        textarea.value = "";
+        await openCode(session.id);
+      } catch (error) {
+        report(note, error);
+      }
+    });
+    return card;
+  }
+
+  async function openCode(sessionId) {
+    const panel = clear(document.getElementById("code-detail"));
+    state.code = state.code || {};
+    state.code.id = sessionId;
+    const shown = await api("GET", "/api/code/sessions/" + sessionId);
+    const session = shown.session;
+    const stats = shown.stats || {};
+
+    const diffButton = el("button", { type: "button", class: "btn", text: "Diff" });
+    diffButton.addEventListener("click", async () => {
+      try {
+        const patch = await api("GET", "/api/code/sessions/" + sessionId + "/diff");
+        const box = document.getElementById("code-patch");
+        box.textContent = patch.patch || "this session made no changes";
+      } catch (error) {
+        report(panel, error);
+      }
+    });
+    panel.append(el("div", { class: "row between" }, [
+      el("h2", { text: session.title }),
+      el("div", { class: "row" }, [statusBadge(session.status), diffButton]),
+    ]));
+
+    panel.append(el("p", { class: "small dim", text: session.root + " · task " + (session.task_id || "-") }));
+    panel.append(el("div", { class: "row" }, [
+      toolChip("edits", stats.changes + " (+" + stats.added + "/-" + stats.removed + ")"),
+      toolChip("runs", String(stats.runs) + (stats.failed ? " · " + stats.failed + " not passed" : "")),
+      toolChip("checks", "archx.checks.json"),
+    ]));
+
+    panel.append(codeEditor(session));
+    panel.append(codeToolbar(session));
+    panel.append(el("pre", { id: "code-patch", class: "code-output dim", text: "press Diff for the session's whole patch" }));
+
+    if (shown.changes.length) {
+      panel.append(el("div", {}, [el("h3", { text: "Edits" })]));
+      panel.append(table(["action", "path", "lines", "when", "artifact"], shown.changes.map((change) => [
+        change.action, change.path, "+" + change.added + "/-" + change.removed,
+        stamp(change.created_at), change.artifact_id ? shortId(change.artifact_id) : "-",
+      ])));
+    }
+    if (shown.runs.length) {
+      panel.append(el("div", {}, [el("h3", { text: "The ledger" })]));
+      panel.append(table(["command", "status", "exit", "ms", "when"], shown.runs.map((run) => [
+        (run.check_name ? "[" + run.check_name + "] " : "") + run.command,
+        statusBadge(run.status), text(run.exit_code), text(Math.round(run.duration_ms || 0)),
+        stamp(run.created_at),
+      ])));
+    }
+    if (!session.open) {
+      panel.append(el("div", { class: "callout warn", text: "This session is closed. The record stays readable; open a new one to keep working." }));
+    } else {
+      const closeButton = el("button", { type: "button", class: "btn", text: "Close session" });
+      closeButton.addEventListener("click", async () => {
+        try {
+          await api("POST", "/api/code/sessions/" + sessionId + "/close", {});
+          await loadCodeSessions();
+          await openCode(sessionId);
+        } catch (error) {
+          report(panel, error);
+        }
+      });
+      panel.append(el("div", { class: "row" }, [closeButton]));
+    }
+    await loadCodeSessions();
+  }
+
+  loaders.code = async () => {
+    await loadCodeSessions();
+    if (state.code && state.code.id) await openCode(state.code.id);
+  };
+
+  document.getElementById("code-refresh").addEventListener("click", () => {
+    loaders.code().catch((error) => report(document.getElementById("code-detail"), error));
+  });
+
+  document.getElementById("code-open-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const status = document.getElementById("code-open-status");
+    status.textContent = "";
+    try {
+      const session = await api("POST", "/api/code/sessions", {
+        root: document.getElementById("code-root").value.trim() || null,
+        title: document.getElementById("code-title").value.trim() || null,
+      });
+      document.getElementById("code-title").value = "";
+      await openCode(session.id);
+    } catch (error) {
+      report(status, error);
     }
   });
 

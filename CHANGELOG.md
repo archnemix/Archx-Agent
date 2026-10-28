@@ -5,6 +5,30 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 
 ## [Unreleased]
 
+### Added - M31, the coding workspace
+- **A session is a directory, a task and a record.** `archx-agent code open` binds a directory
+  inside the tool roots and gives it a `coding` task marked *manual* (a session is used across
+  many commands, so a process exiting is not the work ending). The three tables are
+  `code_sessions`, `code_changes` and `code_runs` (schema v21).
+- **Every action is a tool call.** Reading is `fs.read`, saving `fs.write`, deleting `fs.delete`,
+  running `shell.run` - all through `ToolManager`, so the grants and approvals are the same ones
+  the CLI and the page already use. With no grant the file is untouched, the refusal names the
+  approval (exit 4, or `403 approval_required` over HTTP) and nothing half-happens. A write you
+  may not read still works and says the diff is partial, instead of raising a second approval.
+- **Edits are diffs you keep.** Every change is a row with a unified diff, both checksums and an
+  artifact on the session's task; `code diff` is the whole patch as one more artifact.
+- **The runner records every command** - the string as typed, the argv that ran, the directory,
+  the exit code, the duration, the output, and refusals as rows too. A failing command exits 1 and
+  asks a question on the task; a timeout is `timeout`, not `failed`; `code rerun` replays a row.
+- **Checks come from the project.** `archx.checks.json` is strict data (unknown fields, duplicate
+  names, a missing command and a bad timeout are refused by name); `code test` runs a named check
+  and records it under that name.
+- The GUI grew an eleventh panel: session list, open form, path field, read/save/delete, a
+  textarea, a command box, the check button, the diff and the ledger. It makes exactly the calls
+  the CLI makes, and `scripts/gui_smoke.mjs` (jsdom) exercises it.
+- `pytest tests/test_coding_m31.py` (64), `scripts/acceptance_m31.sh` (48 checks over a real
+  socket), `docs/CODING.md`.
+
 ### Fixed
 - **The GUI answered a client's mistake as a server fault.** A `model_id` that was not a string
   reached SQLite and came back as `500 ProgrammingError`; a model that does not exist came back

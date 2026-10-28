@@ -62,6 +62,35 @@ const routes = {
     { key: "openai", label: "OpenAI", package: "openai", env_var: "OPENAI_API_KEY", installed: true },
     { key: "anthropic", label: "Anthropic", package: "anthropic", env_var: "ANTHROPIC_API_KEY", installed: false },
   ],
+  // order matters: the lookup is a prefix match, so the session detail comes before the list
+  "GET /api/code/sessions/cs_demo": {
+    session: {
+      id: "cs_demo", title: "demo", root: "/tmp/smoke", status: "open", open: true,
+      task_id: "tk_demo", created_at: "2026-10-28T10:00:00Z", updated_at: "2026-10-28T10:00:00Z",
+      closed_at: null, note: null, metadata: {},
+    },
+    changes: [
+      { id: "cc_1", path: "hello.py", action: "modify", added: 1, removed: 1, diff: "--- a/hello.py",
+        artifact_id: "ar_1", created_at: "2026-10-28T10:01:00Z" },
+    ],
+    runs: [
+      { id: "cr_1", command: "echo hi", status: "passed", exit_code: 0, duration_ms: 12,
+        check_name: null, created_at: "2026-10-28T10:02:00Z" },
+    ],
+    stats: { changes: 1, added: 1, removed: 1, runs: 1, failed: 0 },
+    task: null,
+  },
+  "GET /api/code/sessions": {
+    sessions: [
+      {
+        id: "cs_demo", title: "demo", root: "/tmp/smoke", status: "open", open: true,
+        task_id: "tk_demo", created_at: "2026-10-28T10:00:00Z",
+        stats: { changes: 1, added: 1, removed: 1, runs: 1, failed: 0 },
+      },
+    ],
+    roots: ["/tmp/smoke"],
+    stats: { sessions: 1, open: 1, changes: 1, runs: 1, failed_runs: 0 },
+  },
   "GET /api/conversations": [],
   "GET /api/tasks": [],
   "GET /api/tools": [],
@@ -71,6 +100,11 @@ const routes = {
   "GET /api/research": [],
   "GET /api/learning/goals": [],
   "GET /api/search?q=": { results: [] },
+  "POST /api/code/sessions": {
+    id: "cs_new", title: "smoke", root: "/tmp/smoke", status: "open", open: true,
+    task_id: "tk_new", created_at: "2026-10-28T10:00:00Z",
+    stats: { changes: 0, added: 0, removed: 0, runs: 0, failed: 0 },
+  },
   "POST /api/models": {
     id: "mdl_gemini", name: "flash", provider: "google", runtime: "gemini",
     ready: false, ready_reason: "runtime not ready: GEMINI_API_KEY is not set",
@@ -120,7 +154,8 @@ function assert(condition, message) {
 }
 
 // the shell
-assert(doc.querySelectorAll(".tab").length === 10, "expected ten mode tabs");
+assert(doc.querySelectorAll(".tab").length === 11, "expected eleven mode tabs");
+assert(doc.getElementById("view-code"), "the coding view is missing");
 assert(doc.getElementById("view-chat"), "chat view is missing");
 
 // every refresh button answers a click without throwing
@@ -156,6 +191,28 @@ await tick();
 assert(calls.includes("POST /api/models"), `the form never posted: ${JSON.stringify(calls.slice(-6))}`);
 assert(doc.getElementById("models-credential").value === "", "the reference field must be cleared after use");
 
+// code: the panel lists sessions, opens one, and shows the ledger it read from the server
+doc.querySelector('[data-view="code"]').click();
+await tick();
+await tick();
+assert(doc.querySelectorAll("#code-sessions .list-item").length === 1, "the session list did not render");
+doc.querySelector("#code-sessions .list-item").click();
+await tick();
+await tick();
+assert(calls.includes("GET /api/code/sessions/cs_demo"), `the session was never opened: ${JSON.stringify(calls.slice(-4))}`);
+assert(doc.getElementById("code-file"), "the editor did not render");
+assert(doc.getElementById("code-command"), "the runner did not render");
+const ledger = doc.getElementById("code-detail").textContent;
+assert(ledger.includes("hello.py"), "the edit is not shown");
+assert(ledger.includes("echo hi"), "the recorded command is not shown");
+
+doc.getElementById("code-root").value = "/tmp/smoke";
+doc.getElementById("code-title").value = "smoke";
+doc.getElementById("code-open-form").dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
+await tick();
+await tick();
+assert(calls.includes("POST /api/code/sessions"), `the open form never posted: ${JSON.stringify(calls.slice(-4))}`);
+
 // no inline style attributes were produced, and no inline handlers leaked into the markup
 assert(!/style="/.test(doc.body.innerHTML), "inline style attribute produced");
 assert(!/onclick="/.test(doc.body.innerHTML), "inline handler produced");
@@ -167,4 +224,4 @@ if (problems.length) {
   for (const problem of problems) console.error(" - " + problem);
   process.exit(1);
 }
-console.log("smoke ok: 10 tabs, 4 gate rows, form posts, no page errors");
+console.log("smoke ok: 11 tabs, 4 gate rows, code panel renders a session, forms post, no page errors");

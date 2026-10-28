@@ -1080,3 +1080,38 @@ progress.bar::-moz-progress-bar { background: var(--accent); border-radius: 999p
 .modal-card p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.55; }
 .modal-card .field { margin-top: 14px; }
 .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+/* ── code: a small editor and a console, not an IDE ─────────────────────── */
+.code-editor {
+  width: 100%;
+  min-height: 180px;
+  margin: 10px 0;
+  padding: 12px 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  tab-size: 2;
+  color: var(--text-2);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  resize: vertical;
+}
+.code-editor:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.code-output {
+  margin: 10px 0 0;
+  padding: 12px 14px;
+  max-height: 46vh;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-2);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.code-output .mono { display: block; white-space: pre-wrap; }
+.warn-text { color: var(--warn); }
