@@ -13,3 +13,4 @@ $ bash -c
   done
   tail -40 "$RUNNER_TEMP/llama.log"; exit 1
 
+up after 2s

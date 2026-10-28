@@ -1,0 +1,11 @@
+{
+  "text": "A tunnel is a narrow, narrow passageway that connects two or more points, typically through an underground or undersea tunnel.",
+  "usage": {
+    "completion_tokens": 26,
+    "prompt_tokens": 40,
+    "total_tokens": 66,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  }
+}
