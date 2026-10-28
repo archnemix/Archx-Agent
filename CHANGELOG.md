@@ -28,6 +28,25 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 - `tests/test_gemini_m21.py` (56 tests: request shape, credential handling, answer parsing,
   streaming, the failure taxonomy, the consent gate, the GUI ladder).
 
+### Added (SDKs)
+- **A second way to reach a vendor: its own SDK.** `runtime=sdk` drives `openai`, `anthropic`,
+  `google-genai` or `mistralai` through `adapters/sdk_transport.py`, translating each client's
+  objects into the same `ChatResult`. Clients are built with `max_retries=0` (retrying is the
+  router's decision) and their parameters are feature-detected, because vendors move them
+  (`anthropic` 2.x dropped `temperature`; OpenAI added `max_completion_tokens`).
+- `models sdks` lists which clients are importable and which variable each expects;
+  `models add-sdk --name --sdk --model [--base-url] [--credential-ref]` registers one, refusing
+  a literal key with exit 2. The `sdk` runtime is in `NETWORK_RUNTIMES`, so the four consent
+  rungs apply to it.
+- API `GET /api/sdks`; the Models panel's transport picker lists installed clients (missing ones
+  are labelled, not hidden) and each model card names the SDK it uses.
+- `.github/workflows/local-model-tunnel.yml` serves SmolLM-135M Q4_K_M with llama.cpp on a
+  runner, proves a completion, exposes it over a Cloudflare quick tunnel and publishes the URL
+  as `tunnel-url.txt`; `scripts/remote_model.sh` then runs every SDK against that URL and
+  registers it in Archx.
+- `scripts/acceptance_sdk.sh` (46 self-checking assertions over a real socket) and
+  `tests/test_sdk_m22.py` (40 tests, all four clients against one local server).
+
 ### Changed
 - **Every network-capable runtime is gated by one allow-list.** `Workspace.NETWORK_RUNTIMES`
   replaces the per-runtime check in `assert_remote_allowed`, so a new adapter cannot become a

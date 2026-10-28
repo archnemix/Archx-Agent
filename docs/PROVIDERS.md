@@ -187,6 +187,75 @@ draws one row per rung and offers the button that climbs it
 `POST /api/providers/{id}/privacy`, `POST /api/providers/{id}/consent`). A rung that cannot be
 climbed yet stays visible with the reason instead of disappearing.
 
+## The official SDKs (a second way to reach the same vendors)
+
+Archx speaks two wire protocols itself (`openai-http`, `gemini`). That keeps the dependency
+list empty, but it also means "we parse this vendor's response correctly" is only ever checked
+against our own reading of the docs. So there is a second path, `runtime=sdk`, which drives the
+**vendor's own client**:
+
+| `sdk` | distribution | what the client wants | key variable |
+|-------|--------------|-----------------------|--------------|
+| `openai` | `openai` | `base_url` (append `/v1` yourself) | `OPENAI_API_KEY` |
+| `anthropic` | `anthropic` | `base_url` | `ANTHROPIC_API_KEY` |
+| `google` | `google-genai` | `http_options.base_url` | `GEMINI_API_KEY` |
+| `mistral` | `mistralai` | `server_url` (module `mistralai.client`) | `MISTRAL_API_KEY` |
+
+```bash
+archx-agent models sdks                       # which clients are importable here, and each one's variable
+archx-agent models add-sdk --name oai --sdk openai --model gpt-4o-mini
+archx-agent models probe oai --capability chat
+archx-agent chat --message "hello" --model oai
+```
+
+`--credential-ref` defaults to that vendor's own variable, as a `secret://` reference; a
+literal key is refused with exit 2, exactly as for Gemini. The SDKs are **optional**: if one is
+missing, `models sdks` says so, `models probe` refuses with the `pip install` line, and the
+tests for that client skip instead of failing.
+
+Three decisions are baked into `adapters/sdk_transport.py`:
+
+* **no hidden retries.** Every client is constructed with `max_retries=0`. Retrying is the
+  router's job - it knows which errors are retryable and records the fallback - and an SDK that
+  silently retries twice turns one refused call into three.
+* **parameters are feature-detected, not assumed.** Vendors move them: `anthropic` 2.x dropped
+  `temperature` from `messages.create`, and OpenAI grew `max_completion_tokens` beside
+  `max_tokens`. Passing an unsupported keyword is a `TypeError` instead of a request, so the
+  transport asks the client what it accepts and sends exactly one token-budget name.
+* **one taxonomy.** `401/403` → `AuthDeniedError`, `404` → `ModelNotFoundError`, `429` with
+  quota/billing wording → `QuotaExhaustedError` (else `RateLimitedError`), `5xx` →
+  `ProviderOutageError`, connection errors → `NetworkFailureError`, an empty reply →
+  `MalformedOutputError`. Clients disagree about where the status lives (`status_code`
+  attribute, `401 None.` at the start of a Google message, `Status 401` inside a Mistral
+  sentence), so the classifier reads both the class name and the text.
+
+An SDK model is gated exactly like the raw ones: `sdk` is in `Workspace.NETWORK_RUNTIMES`, so
+the four rungs (`model.local_only`, registered provider, privacy confirmed, consent) apply
+before anything is sent.
+
+## Running a real model on a CI runner and pointing the SDKs at it
+
+`.github/workflows/local-model-tunnel.yml` serves **SmolLM-135M in Q4_K_M** (~100 MB, 4-bit)
+with llama.cpp on a GitHub runner, proves a completion, and exposes it through a Cloudflare
+quick tunnel; the URL lands in `tunnel-url.txt` (an artifact and the job summary).
+
+```bash
+gh workflow run local-model-tunnel.yml -f keep_alive_minutes=10
+gh run download --name tunnel-url          # tunnel-url.txt + model-proof.json
+./scripts/remote_model.sh                  # reads tunnel-url.txt, tries every SDK
+./scripts/remote_model.sh <url> --sdk openai --sdk mistral
+```
+
+`remote_model.sh` runs each installed client against that one endpoint and then registers the
+same endpoint in Archx (`models add-sdk` + `models probe`) so the app, not just the SDK, has to
+work. It exits `0` if at least one client completed a turn and `3` if none did, so CI can tell
+"the endpoint is wrong" from "the script broke".
+
+Two honest caveats: a quick tunnel is **unauthenticated and public** for as long as it runs, so
+treat the model as exposed; and the runner has no GPU, so the 135M model answers at a few
+tokens per second - which is fine, because the question is "did a token come out", not "is it
+good".
+
 ## Adding a provider
 
 1. `providers add <name> --template <slug>` (or `--base-url` for anything custom);

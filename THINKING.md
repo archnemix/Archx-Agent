@@ -843,6 +843,36 @@ merely that the key is absent, so a future "fix" that strips the message fails t
 "credentials are references, never literals" lives in one place. Duplicated registration code
 is how a GUI quietly becomes the one surface that stores a key.
 
+## Official SDKs (a second opinion on our own HTTP)
+
+**D141. The vendor's client is a test, not a dependency.**
+We already build these requests by hand. Adding four SDKs as the *primary* path would make the
+dependency list heavy and let a vendor's release change our behaviour silently. Adding them as
+an alternate path does the thing the hand-written client cannot: it makes somebody else's code
+agree with ours about the wire format. So `runtime=sdk` exists, the SDKs are optional, and a
+missing client is reported with its `pip install` line rather than assumed present.
+
+**D142. No SDK is allowed to retry.**
+Every client is constructed with `max_retries=0`. Retrying belongs to the router: it knows
+which failures are retryable, it records `model.failed` and the fallback, and it can tell the
+user which model answered. An SDK that retries twice behind our back turns one refused call
+into three requests, three charges and one misleading trace.
+
+**D143. Ask the client what it accepts; never assume a version.**
+`anthropic` 2.x removed `temperature` from `messages.create`; OpenAI added
+`max_completion_tokens` next to `max_tokens`. Both bit this integration during development, and
+both fail as a `TypeError` that never reaches the network - which looks like "the provider is
+down". The transport inspects the call signature and sends what the installed client takes,
+choosing exactly one token-budget name. The same idea governs the error classifier: clients put
+the HTTP status in an attribute, at the start of a message, or inside a sentence, so it reads
+both.
+
+**D144. A served model on CI is worth more than a mock, and both cost nothing to label.**
+The workflow serves a 135M model in Q4_K_M: it is small enough to download, load and answer on
+two CPU cores, and its answers are nonsense - which is the point. The artifact carries the
+model's own words and its token counts, so "a token came out" is a fact rather than a claim,
+and nobody mistakes the output for quality.
+
 ## Storage and config
 
 **D31. Unknown config keys are errors.**

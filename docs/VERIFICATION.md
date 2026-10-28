@@ -3664,3 +3664,71 @@ and then closes the TLS handshake (`SSLZeroReturnError`), and does the same for
 misconfiguration. A real key could therefore not complete a live call, and no document in this
 repository claims one was made. What is proven is the client's half of the protocol, byte for
 byte, against a server that speaks it - plus every gate, error path and redaction around it.
+
+## SDK acceptance transcript
+
+The vendor clients, driven over a real socket against one local server that speaks three
+protocols (OpenAI-compatible, Anthropic messages, Gemini `generateContent`). No vendor host is
+contacted.
+
+```text
+$ ./scripts/acceptance_sdk.sh
+### every official client Archx knows about
+[ok]   the catalogue lists openai = 1
+[ok]   the catalogue lists anthropic = 1
+[ok]   the catalogue lists google = 1
+[ok]   the catalogue lists mistral = 1
+[ok]   each row says where its key comes from = 1
+### each SDK is registered through the CLI, with a reference and never a key
+[ok]   add-sdk openai exits 0 = 0
+[ok]   openai is registered as runtime=sdk = 1
+[ok]   openai's key is a reference = 1
+[ok]   openai's output does not contain its key = 0
+   … the same four checks for anthropic, google and mistral …
+[ok]   a literal key is refused = 2
+[ok]   an unknown SDK is refused = 2
+### each SDK is actually driven, over a real socket
+[ok]   openai probe passed = 1
+[ok]   anthropic probe passed = 1
+[ok]   google probe passed = 1
+[ok]   mistral probe passed = 1
+[ok]   openai probe did not substitute a test double = 0
+### a chat turn through the SDK becomes an ordinary task
+[ok]   chat exits 0 = 0
+[ok]   it is not labelled simulated = 0
+[ok]   the task records tokens from usage = True
+### the four consent rungs apply to SDK clients too
+[ok]   rung 1: local_only refuses it = 1
+[ok]   rung 2: an unregistered endpoint is refused = 1
+[ok]   rung 3: unknown privacy terms are refused = 1
+[ok]   rung 4: missing consent is refused = 1
+### nothing kept the key
+[ok]   no file under the home holds any key = 0
+[ok]   the database does not contain a key = 0
+[ok]   the trace does not contain one = 0
+
+SDK acceptance: 46 checks passed
+```
+
+```text
+$ .venv/bin/python -m pytest tests/test_sdk_m22.py -o addopts="" -q
+40 passed in 22.24s
+```
+
+### The local-model tunnel workflow
+
+Written and checked as far as this sandbox allows:
+
+```text
+$ python -c "import yaml; d=yaml.safe_load(open('.github/workflows/local-model-tunnel.yml')); print(len(d['jobs']['serve']['steps']))"
+11
+
+$ gh api 'repos/ggml-org/llama.cpp/releases?per_page=10' --jq '.[].assets[].browser_download_url' \
+    | grep -E '/llama-b[0-9]+-bin-ubuntu-x64\.tar\.gz$' | head -1
+https://github.com/ggml-org/llama.cpp/releases/download/b11951/llama-b11951-bin-ubuntu-x64.tar.gz
+```
+
+It has **not been run**: this session's credential is a GitHub App installation token without
+Actions permission (`GET /actions/workflows` → `total_count: 0`; a dispatch → `403 Resource not
+accessible by integration`). Run it with `gh workflow run local-model-tunnel.yml`; the artifact
+is `tunnel-url` and contains `tunnel-url.txt` plus `model-proof.json`.
