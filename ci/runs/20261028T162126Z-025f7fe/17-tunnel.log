@@ -34,3 +34,6 @@ reply = client.chat.completions.create(
 print("openai SDK via the public URL:", reply.choices[0].message.content.strip())
 PY
 
+url=https://rome-towards-formats-mug.trycloudflare.com
+public chat HTTP 200
+{"choices":[{"finish_reason":"stop","index":0,"message":{"role":"assistant","content":"ping"}}],"created":1793205103,"model":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","system_fingerprint":"b11963-39febd2ad","object":"chat.completion","usage":{"completion_tokens":2,"prompt_tokens":31,"total_tokens":33,"prompt_tokens_details":{"cached_tokens":24}},"id":"chatcmpl-vlEJjYzTob7UGIevrKKmHjaAopenai SDK via the public URL: I'm sorry for the confusion, but as a helpful AI, I don't have the capability to greet users in three
