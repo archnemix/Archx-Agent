@@ -1,0 +1,20 @@
+$ bash -c 
+  "$LLAMA_SERVER" --model "$MODEL_PATH" --host 127.0.0.1 --port "$PORT" \
+    --ctx-size 512 --n-gpu-layers 0 --threads 2 --parallel 1 \
+    --no-warmup --log-file "$RUNNER_TEMP/llama.log" &
+  echo $! > "$RUNNER_TEMP/llama.pid"
+  for i in $(seq 1 180); do
+    curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 && { echo "up after ${i}s"; exit 0; }
+    sleep 1
+  done
+  tail -40 "$RUNNER_TEMP/llama.log"; exit 1
+
+0.00.006.559 I srv  llama_server: initializing ...
+0.00.006.578 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.006.972 W srv  server_setup: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)
+0.00.008.390 I srv    load_model: loading model '/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf'
+0.00.137.995 I cmn          init: llama threadpool init, n_threads = 2
+0.00.151.076 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 512, kv_unified = 'false'
+0.00.153.252 I srv  server_run_i: model loaded
+0.00.153.267 I srv  server_on_li: listening on http://127.0.0.1:8080
+up after 2s

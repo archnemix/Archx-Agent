@@ -1,0 +1,13 @@
+$ archx-agent models sdks
+openai     OpenAI           installed  openai         key from OPENAI_API_KEY
+anthropic  Anthropic        installed  anthropic      key from ANTHROPIC_API_KEY
+google     Google Gemini    installed  google-genai   key from GEMINI_API_KEY
+mistral    Mistral          installed  mistralai      key from MISTRAL_API_KEY
+groq       Groq             MISSING    groq           key from GROQ_API_KEY
+           the Groq SDK is not installed (groq: ModuleNotFoundError); install it with `pip install groq`
+together   Together         MISSING    together       key from TOGETHER_API_KEY
+           the Together SDK is not installed (together: ModuleNotFoundError); install it with `pip install together`
+cohere     Cohere           MISSING    cohere         key from COHERE_API_KEY
+           the Cohere SDK is not installed (cohere: ModuleNotFoundError); install it with `pip install cohere`
+ollama     Ollama           MISSING    ollama         key from OLLAMA_API_KEY
+           the Ollama SDK is not installed (ollama: ModuleNotFoundError); install it with `pip install ollama`

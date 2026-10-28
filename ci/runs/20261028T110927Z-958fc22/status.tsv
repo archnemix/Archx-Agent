@@ -2,3 +2,7 @@
 
 step	status	seconds
 install	FAIL(1)	16
+pytest	ok	228
+sdks	ok	2
+llama-cpp	ok	2
+model-download	ok	2
