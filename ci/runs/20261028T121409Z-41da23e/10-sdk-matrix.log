@@ -151,3 +151,7 @@ $ archx-agent models add-sdk --name remote-ollama --sdk ollama --model local --b
   note: capabilities are claims until measured with `archx-agent models probe`
   (remote: the four consent rungs apply before chat will send anything)
   probe:
+    chat: failed  (ModelNotFoundError: model not found: {'message': 'File Not Found', 'type': 'not_found_error', 'code': 404} (status code: 404))
+      latency 197.6 ms
+      state now unsupported (probe failed)
+      this drove the runtime; the result is recorded and the router will use it
