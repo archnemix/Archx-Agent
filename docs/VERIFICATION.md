@@ -3781,6 +3781,7 @@ run #2  1a084f3                    never started a job: "concurrency is already 
 run #3  20261028T113602Z-51d2787   all 10 steps ok; pytest 1251 passed on the runner
 run #4  20261028T115458Z-5e67bd9   all 10 steps ok, and the SDK matrix is clean
 run #5  20261028T121409Z-41da23e   all 10 steps ok; 1281 tests on the runner, streaming included
+run #6  20261028T122917Z-20bd680   all 10 steps ok; 1282 tests on the runner (the local count)
 
 $ gh api repos/archnemix/Archx-Agent/actions/runs --jq '.workflow_runs[] | {n:.run_number,conclusion}'
 {"n":4,"conclusion":"success"}  {"n":3,"conclusion":"success"}

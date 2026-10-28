@@ -78,17 +78,17 @@ edit .ci/trigger -> push -> .github/workflows/model-matrix.yml (18 steps)
 
 | # | Item | Why it is still open | Size |
 |---|------|----------------------|------|
-| ~~1~~ | ~~**Run the CI workflow once**~~ | **Done.** Four runs; #3 and #4 are green end to end. Evidence in `docs/ci/`, full folder on `ci-logs`. | closed |
+| ~~1~~ | ~~**Run the CI workflow once**~~ | **Done.** Six runs; #3-#6 are green end to end, #6 with the same 1282 tests as this sandbox. Evidence in `docs/ci/`, full folder on `ci-logs`. | closed |
 | 2 | **A live call to a vendor's cloud API** | No vendor key is usable from here, and egress is restricted. What *is* proven now: real clients against a real model served on a runner, including a real Ollama daemon. What is not: reaching `api.openai.com`, `api.cohere.com`, and so on. | needs keys |
 | ~~3~~ | ~~**Ollama through a real daemon**~~ | **Done.** `docker run ollama/ollama`, `ollama pull smollm2:135m`, client streamed 32 chunks, and the app probed it keyless (`state now verified`). | closed |
 | ~~4~~ | ~~`models probe --capability tools`~~ | **Done.** The runtime offers a tool, parses the call, and the probe distinguishes a call from a prose reply. | closed |
 | ~~5~~ | ~~**Streaming into the browser**~~ | **Done.** `POST /api/chat/stream` writes SSE for the same recorded turn; the page paints each chunk and swaps in the stored text at the end. | closed |
 | ~~6~~ | ~~**Templates for other OpenAI-compatible vendors**~~ | **Done, without inventing terms.** `--template openai-compatible` requires a base URL and records the privacy block as "unknown - not transcribed", so the consent ladder does the work. Per-vendor terms still need a human. | closed |
-| 7 | **M31 Coding workspace** | The next milestone in `PROGRESS.md`: editing, running and testing code under the permission centre, diffs as artifacts, reproducible tasks. | large |
+| 7 | **M31 Coding workspace** | The next milestone in `PROGRESS.md`: editing, running and testing code under the permission centre, diffs as artifacts, reproducible tasks. Not started: it is a milestone, not a fix, and half of it would be worse than none. | large |
 | 8 | **Cohere against the real service** | It has no keyless mode at all, so its only proof is a live call (#2) or the `/v2/chat` stub already used. | blocked on #2 |
 
-Nothing in this list is "implemented but untested" except item 1's runner steps, which are called
-out as unexecuted everywhere they appear.
+What is left is two things: a live call to a vendor's cloud API (needs keys this environment does
+not have) and M31, the next milestone. Nothing in between is "implemented but untested".
 
 ---
 
@@ -134,7 +134,8 @@ path of all seven HTTP clients (`TestPaths`) and that each default base plus tha
 vendor's public URL (`TestDefaults`); the keyless-local / key-required-remote split; the four
 consent rungs applying to SDK models.
 
-**Verified on GitHub, by running it:** four workflow runs, the last two green — a real
+**Verified on GitHub, by running it:** six workflow runs, the last four green (including one that
+ran the exact 1282-test suite recorded above) — a real
 SmolLM2-135M Q4_K_M served on a CPU runner, four vendor clients answering and streaming against
 it, a real Ollama daemon docker-pulled and driven by both its own client and by Archx, and a
 Cloudflare quick tunnel with the OpenAI SDK through the public URL (`docs/ci/`).
