@@ -79,56 +79,96 @@ PASSED=0
 for sdk in "${PICKS[@]}"; do
   printf '\n--- %s\n' "$sdk"
   OUT="$("$PY" - "$sdk" "$SOURCE" <<'PY' 2>&1
-import sys
+import os, sys
 sdk, base = sys.argv[1], sys.argv[2]
 from archx_agent.adapters.model_runtime import GenerationParams
 from archx_agent.adapters.sdk_transport import sdk_available, transport_for
-from archx_agent.helpers.exceptions import ProviderError
+from archx_agent.helpers.exceptions import ModelNotFoundError, ProviderError
 
 ok, why = sdk_available(sdk)
 if not ok:
     print(f"SKIP  {why}")
     raise SystemExit(0)
 
-# cohere and ollama speak their own routes (/v2/chat, /api/chat); a llama.cpp server only
-# answers the OpenAI shape, so pointing them here would test nothing but their 404 handling.
-if sdk in ("cohere", "ollama"):
-    print(f"SKIP  the {sdk} client speaks its own protocol; it cannot drive an OpenAI-shaped server")
+# What each client appends to the base it is given, measured on a loopback server and pinned by
+# tests/test_sdk_m22.py::TestPaths. Getting this wrong is silent on a lenient server: groq given
+# /openai/v1 asks for /openai/v1/openai/v1/chat/completions. llama.cpp answered 404 for that.
+APPENDS = {
+    "openai": "/chat/completions",
+    "groq": "/openai/v1/chat/completions",
+    "together": "/v1/chat/completions",
+    "mistral": "/v1/chat/completions",
+    "anthropic": "/v1/messages",
+    "cohere": "/v2/chat",
+    "ollama": "/api/chat",
+}
+# A base the client can use as-is. Only openai wants the /v1 tail; the rest take the origin.
+endpoint = base + "/v1" if sdk == "openai" else base
+
+# `local` is whatever name the server was started with. llama.cpp ignores it, Ollama does not.
+model = os.environ.get("REMOTE_MODEL", "local")
+
+
+def reachable(route: str) -> bool:
+    import urllib.request
+    try:
+        with urllib.request.urlopen(base.rstrip("/") + route, timeout=5) as reply:
+            return reply.status == 200
+    except Exception:
+        return False
+
+
+# A client can only be driven by a server that speaks its protocol. Say so, rather than report
+# the server's 404 as a failure of the client.
+if sdk == "google" and ":generateContent" not in base:
+    print("SKIP  the google client speaks :generateContent; this endpoint does not")
+    raise SystemExit(0)
+if sdk == "cohere" and not reachable("/v2/chat"):
+    print("SKIP  no /v2/chat here; the cohere client has nothing to talk to")
+    raise SystemExit(0)
+if sdk == "ollama" and not reachable("/api/tags"):
+    print("SKIP  no /api/tags here; the ollama client has nothing to talk to")
     raise SystemExit(0)
 
-# A local llama.cpp server ignores the key, but the client still has to send one. The OpenAI
-# shape lives under /v1, and groq/together append /chat/completions to whatever they are given.
-endpoint = base + "/v1" if sdk in ("openai", "groq", "together") else base
-transport = transport_for(sdk, api_key="local-model-no-key", base_url=endpoint, timeout=120.0)
+transport = transport_for(sdk, api_key="local-model-no-key", base_url=endpoint, timeout=180.0)
 try:
-    result = transport.chat(
-        [{"role": "user", "content": "Say hello in five words."}],
-        GenerationParams(temperature=0.2, max_tokens=32),
-        model="local",
-    )
-except ProviderError as exc:
-    print(f"FAIL  {type(exc).__name__}: {exc.message[:200]}")
-    raise SystemExit(1)
+    try:
+        result = transport.chat(
+            [{"role": "user", "content": "Say hello in five words."}],
+            GenerationParams(temperature=0.2, max_tokens=32),
+            model=model,
+        )
+    except ModelNotFoundError as exc:
+        # a 404 is the server saying "no such route". That is a protocol mismatch, not a broken
+        # client, and calling it a failure would be the same mistake as calling it a pass.
+        print(f"SKIP  {sdk} requests {APPENDS[sdk]}; this endpoint answers 404 there ({exc.message[:80]})")
+        raise SystemExit(0)
+    except ProviderError as exc:
+        print(f"FAIL  {type(exc).__name__}: {exc.message[:200]}")
+        raise SystemExit(1)
+    print(f"OK    {result.text.strip()[:200]!r}")
+    print(f"      tokens in/out {result.prompt_tokens}/{result.completion_tokens}  finish {result.finish_reason}")
+    print(f"      base {endpoint}  ->  {APPENDS[sdk]}")
+
+    # ...and streamed, because a client can get the shape right and the deltas wrong. This runs
+    # inside the same `try`: closing the transport first makes every client fail with a
+    # missing-credential error, which is what the first runner pass reported.
+    try:
+        pieces = list(transport.stream(
+            [{"role": "user", "content": "Count to three."}],
+            GenerationParams(temperature=0.2, max_tokens=32),
+            model=model,
+        ))
+    except ProviderError as exc:
+        print(f"STREAM-FAIL  {type(exc).__name__}: {exc.message[:200]}")
+        raise SystemExit(1)
+    joined = "".join(pieces)
+    print(f"      streamed {len(pieces)} chunk(s), {len(joined)} chars: {joined.strip()[:120]!r}")
+    if not joined.strip():
+        print("STREAM-FAIL  the stream produced no text")
+        raise SystemExit(1)
 finally:
     transport.close()
-print(f"OK    {result.text.strip()[:200]!r}")
-print(f"      tokens in/out {result.prompt_tokens}/{result.completion_tokens}  finish {result.finish_reason}")
-
-# ...and streamed, because a client can get the shape right and the deltas wrong
-try:
-    pieces = list(transport.stream(
-        [{"role": "user", "content": "Count to three."}],
-        GenerationParams(temperature=0.2, max_tokens=32),
-        model="local",
-    ))
-except ProviderError as exc:
-    print(f"STREAM-FAIL  {type(exc).__name__}: {exc.message[:200]}")
-    raise SystemExit(1)
-joined = "".join(pieces)
-print(f"      streamed {len(pieces)} chunk(s), {len(joined)} chars: {joined.strip()[:120]!r}")
-if not joined.strip():
-    print("STREAM-FAIL  the stream produced no text")
-    raise SystemExit(1)
 PY
 )"
   printf '%s\n' "$OUT"

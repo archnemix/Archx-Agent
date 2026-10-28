@@ -261,7 +261,17 @@ jobs:
             done
             docker exec ollama ollama pull smollm2:135m || exit 1
             curl -sS http://127.0.0.1:11434/api/tags
-            ./scripts/remote_model.sh http://127.0.0.1:11434 --sdk ollama | tee -a "$LOGDIR/console.log"
+            # the ollama client against a real daemon; smollm2 is the name the daemon knows
+            REMOTE_MODEL=smollm2:135m ./scripts/remote_model.sh http://127.0.0.1:11434 --sdk ollama \
+              | tee -a "$LOGDIR/console.log"
+            # and through Archx itself: a keyless local daemon is the one case where a model
+            # is ready with no credential, so this also proves that rule on a real daemon.
+            export ARCHX_PATHS_HOME="$RUNNER_TEMP/archx-ollama"
+            archx-agent init >/dev/null
+            archx-agent models add-sdk --name ollama-local --sdk ollama \
+              --model smollm2:135m --base-url http://127.0.0.1:11434
+            archx-agent models probe ollama-local --capability chat
+            archx-agent chat --stream --message "Name one colour." --model ollama-local
           '
 
       - name: a public URL through Cloudflare

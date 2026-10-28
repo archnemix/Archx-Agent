@@ -76,6 +76,23 @@ class _State:
         cls.seen = []
 
 
+def _known_path(path: str) -> bool:
+    """The routes these protocols really use, and nothing else."""
+    bare = path.split("?")[0].rstrip("/")
+    if bare.endswith("/chat/completions"):
+        # exactly one prefix per client: groq owns /openai/v1, the rest own /v1
+        return bare.endswith("/v1/chat/completions") and "/v1/v1/" not in bare and "/v1/openai/" not in bare
+    return (
+        bare.endswith("/messages")
+        or bare.endswith("/v2/chat")
+        or bare.endswith("/api/chat")
+        or bare.endswith("/api/tags")
+        or "generatecontent" in bare.lower()  # :generateContent vs :streamGenerateContent
+        or bare.endswith("/models")
+        or bare.endswith("/openai/v1/chat/completions")
+    )
+
+
 class _Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -178,6 +195,12 @@ class _Handler(BaseHTTPRequestHandler):
         })
         if _State.mode == "error":
             return self._send(_State.status, _State.body)
+        # The stub is strict on purpose. An earlier version answered any path, which let a wrong
+        # base URL pass: groq was given /openai/v1 and requested /openai/v1/openai/v1/..., and a
+        # permissive stub returned 200. A doubled path must fail here, as it did on a real server.
+        if not _known_path(self.path):
+            return self._send(404, {"error": {"message": "File Not Found", "type": "not_found_error",
+                                              "code": 404}})
         # the Gemini client POSTs to :streamGenerateContent; the others set stream=true and POST
         if "streamGenerateContent" in self.path or body.get("stream") is True:
             return self._stream(body)
@@ -243,6 +266,19 @@ def stub():
 
 PARAMS = GenerationParams(temperature=0.1, top_p=0.9, max_tokens=32)
 MESSAGES = [{"role": "system", "content": "be terse"}, {"role": "user", "content": "hello"}]
+
+
+# What each client appends to whatever base it is given. This is measured, not read: the paths
+# were taken off a loopback server (see tests/test_sdk_m22.py::TestPaths).
+UPSTREAM_PATH = {
+    "openai": "/chat/completions",
+    "groq": "/openai/v1/chat/completions",
+    "together": "/v1/chat/completions",
+    "mistral": "/v1/chat/completions",
+    "anthropic": "/v1/messages",
+    "cohere": "/v2/chat",
+    "ollama": "/api/chat",
+}
 
 
 def _transport(key: str, url: str, *, base: str | None = None):
@@ -632,26 +668,28 @@ class TestCli:
 
 class TestGroqAndTogether:
     @requires_groq
-    def test_groq_uses_its_own_package_on_the_openai_shape(self, stub):
-        transport = _transport("groq", stub, base=stub + "/openai/v1")
+    def test_groq_appends_its_own_openai_prefix(self, stub):
+        # the base is the origin; groq adds /openai/v1 itself (measured on a real server)
+        transport = _transport("groq", stub)
         try:
             result = transport.chat(MESSAGES, PARAMS, model="llama-3.1-8b-instant")
         finally:
             transport.close()
         assert result.text == "answer from openai"
         seen = _State.seen[-1]
-        assert seen["path"].endswith("/chat/completions")
+        assert seen["path"] == "/openai/v1/chat/completions", seen["path"]
         assert seen["headers"]["authorization"] == f"Bearer {KEY}"
         assert seen["body"]["model"] == "llama-3.1-8b-instant"
 
     @requires_together
-    def test_together_uses_its_own_package_too(self, stub):
-        transport = _transport("together", stub, base=stub + "/v1")
+    def test_together_appends_its_own_v1_prefix(self, stub):
+        transport = _transport("together", stub)
         try:
             result = transport.chat(MESSAGES, PARAMS, model="meta-llama/Llama-3-8b")
         finally:
             transport.close()
         assert result.text == "answer from openai"
+        assert _State.seen[-1]["path"] == "/v1/chat/completions"
         assert _State.seen[-1]["body"]["model"] == "meta-llama/Llama-3-8b"
 
 
@@ -735,15 +773,18 @@ class TestStreaming:
     @requires_openai
     def test_openai_deltas_are_joined(self, stub):
         assert self._collect("openai", stub, base=stub + "/v1") == "answer from openai"
+        assert _State.seen[-1]["path"] == "/v1/chat/completions"
         assert _State.seen[-1]["body"]["stream"] is True
 
     @requires_groq
     def test_groq_streams_the_same_shape(self, stub):
-        assert self._collect("groq", stub, base=stub + "/openai/v1") == "answer from openai"
+        assert self._collect("groq", stub) == "answer from openai"
+        assert _State.seen[-1]["path"] == "/openai/v1/chat/completions"
 
     @requires_together
     def test_together_streams_the_same_shape(self, stub):
-        assert self._collect("together", stub, base=stub + "/v1") == "answer from openai"
+        assert self._collect("together", stub) == "answer from openai"
+        assert _State.seen[-1]["path"] == "/v1/chat/completions"
 
     @requires_mistral
     def test_mistral_wraps_each_chunk_in_data(self, stub):
@@ -797,3 +838,30 @@ class TestStreaming:
                 list(runtime.stream(MESSAGES, PARAMS))
         finally:
             runtime.close()
+
+
+class TestPaths:
+    """What each client appends to the base it is given. Measured, not read from documentation.
+
+    This table is why `scripts/remote_model.sh` gives openai `/v1` and the others the bare origin:
+    getting it wrong produces `/v1/v1/chat/completions`, and a lenient stub will happily answer.
+    """
+
+    @pytest.mark.parametrize("key, base_suffix, expected", [
+        ("openai", "/v1", "/v1/chat/completions"),
+        ("groq", "", "/openai/v1/chat/completions"),
+        ("together", "", "/v1/chat/completions"),
+        ("mistral", "", "/v1/chat/completions"),
+        ("anthropic", "", "/v1/messages"),
+        ("cohere", "", "/v2/chat"),
+        ("ollama", "", "/api/chat"),
+    ])
+    def test_the_requested_path(self, stub, key, base_suffix, expected):
+        if not sdk_available(key)[0]:
+            pytest.skip(f"{key} SDK not installed")
+        transport = _transport(key, stub, base=stub + base_suffix)
+        try:
+            transport.chat(MESSAGES, PARAMS, model="stub-model")
+        finally:
+            transport.close()
+        assert _State.seen[-1]["path"] == expected

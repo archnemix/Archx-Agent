@@ -4,3 +4,5 @@ The trigger is a path filter, so it needs no Actions API permission - only a pus
 2026-10-28T11:25:37Z  rerun: serve is detached, the sdks extra carries all eight clients
 
 2026-10-28T11:34:32Z  rerun: duplicate concurrency key removed (the workflow file was invalid)
+
+2026-10-28T11:54:51Z  rerun: exact client paths (groq /openai/v1, together /v1), streaming after close fixed, ollama daemon probed through the app
