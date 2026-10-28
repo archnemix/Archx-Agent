@@ -1,0 +1,54 @@
+$ bash scripts/acceptance_m34.sh
+M34 acceptance on /tmp/archx-m34-1QxKpj
+
+### the schema keeps a measurement and a claim apart
+[ok]   media is a versioned migration = 1
+[ok]   assets, attempts and transcripts are tables = 3
+[ok]   an asset row can hold the name's claim and the mismatch = 2
+[ok]   a fresh home has measured nothing = 0
+
+### measuring needs the grant, and the refusal is a row
+[ok]   probe without fs.read exits 1 = 1
+[ok]   and names the approval to approve = 1
+[ok]   the refusal was recorded = 1
+[ok]   and nothing was measured = 0
+
+### a media fact is measured from the bytes
+[ok]   the png is a row = 1
+[ok]   its kind is image = image
+[ok]   its format came from the signature = png
+[ok]   its width came from the IHDR = 12
+[ok]   its height came from the IHDR = 8
+[ok]   the hash is a sha256 of the bytes = 64
+[ok]   the size matches the file on disk = 76
+[ok]   the honest name is not a mismatch = 1
+
+### a jpeg's size is in its frame header, not its name
+[ok]   the jpeg is 40 wide = 40
+[ok]   the jpeg is 30 high = 30
+[ok]   and it says jpeg, not jpg = jpeg
+
+### audio carries the sample format and the duration arithmetic
+[ok]   the wav is audio = audio
+[ok]   the rate is the one in the fmt chunk = 8000
+[ok]   the channels are the ones declared = 1
+[ok]   the bit depth is declared, not assumed = 16
+[ok]   800 frames at 8 kHz is 100 ms = 100
+[ok]   16000 frames at 16 kHz is 1000 ms = 1000
+
+### the name is a claim, and disagreement is a finding
+[ok]   a png named .jpg is stored as png = png
+[ok]   the name's claim is kept = jpg
+[ok]   the disagreement is a column = the name says 'jpg' but the bytes are png
+[ok]   stats counts it = 1
+[ok]   and the record still holds what the bytes said = 4
+
+### the same bytes are one asset, however they are named
+[ok]   the second probe says duplicate = True
+[ok]   and points at the same row = ma_0001m61vvk8d0000000363f6467e74d8288e
+
+### an unmeasurable file is refused with the bytes it began with
+[ok]   an unknown container exits 2 = 2
+[ok]   the reason includes the head = 1
+[ok]   and names what is measured = 1
+[ok]   nothing was stored for it = 0

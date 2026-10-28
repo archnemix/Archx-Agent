@@ -1,0 +1,112 @@
+$ bash scripts/acceptance_m33.sh
+M33 acceptance on /tmp/archx-m33-dEhtBU
+
+### the schema adopts the tables the earlier milestones reserved
+[ok]   play is a versioned migration = 1
+[ok]   games and game_moves exist = 2
+[ok]   simulations have their own table = 1
+[ok]   a fresh home has played nothing = 0
+
+### a game is a board the rules build
+[ok]   new game is a row = 1
+[ok]   new game is open = open
+[ok]   the default game comes from configuration = tictactoe
+[ok]   tic-tac-toe starts with nine legal moves = 9
+[ok]   and it is X to move = X
+
+### a legal move moves the board; the log says so
+[ok]   move accepted = 0
+[ok]   move is a row = 1
+[ok]   the row is legal = 1
+[ok]   the row carries a state hash = 16
+[ok]   the board holds the X in the centre = 1
+
+### a refused move is kept, and changes nothing
+[ok]   the refused move exits 2 = 2
+[ok]   it says the square is taken = square 5 is taken
+[ok]   it is written down as illegal = 0
+[ok]   with the reason = square 5 is taken
+[ok]   the refusal is numbered from the move count, not from the log = 2
+[ok]   the move count did not advance = 1
+[ok]   history counts the refusal = 1
+[ok]   history counts the acceptance = 1
+
+### a finished game is finished
+[ok]   the game is finished = finished
+[ok]   and it names the winner = X
+[ok]   a move after the end is refused = 2
+[ok]   and is not logged = 0
+
+### the engine may only choose from the legal moves
+[ok]   connect four starts with seven columns = 7
+$ archx-agent play engine gm_0001m61vvdfb00000000708d0263f56f1f1c
+[ok]   the engine move was accepted = True
+[ok]   it is in the log as a legal move = 1
+[ok]   playing it out finishes the game = finished
+[ok]   no engine move was ever refused = 0
+[ok]   the game ended inside the board = 15
+
+### the engine is checked against the rules, not against an opinion
+[ok]   60 games of engine play, no illegal move = 0
+[ok]   and plenty of moves were actually checked = 1
+
+### nim's strategy is the one it claims
+[ok]   after the engine's first move the heaps XOR to zero = 0
+
+### a game can be abandoned without losing its moves
+[ok]   resign sets the status = abandoned
+[ok]   and the winner it was told = O
+[ok]   the move is still readable = 1
+
+### an unknown game is refused with the list
+[ok]   unknown game exits 2 = 2
+[ok]   and names what is built in = 1
+
+### a simulation records the parameters and the hash
+[ok]   the simulation is a row = 1
+[ok]   it kept the seed = 3
+[ok]   it kept the steps = 6
+[ok]   its hash is a sha256 = 64
+[ok]   the series has one entry per step plus the start = 7
+[ok]   the same seed gives the same hash = c7a1c58f58a7ebc62d52ba40355b78c87430863de2bc0c43831b7a607f8243cd
+[ok]   replay reproduces it = 0
+
+### a doctored record fails its own replay
+[ok]   a hash that does not reproduce exits 1 = 1
+[ok]   and the page says which hash is different = 1
+[ok]   and it reproduces again once restored = 0
+
+### absurd simulation parameters are refused, not clipped
+[ok]   too many steps exits 2 = 2
+[ok]   a zero width exits 2 = 2
+[ok]   a density above one exits 2 = 2
+
+### the counts agree with the rows
+$ archx-agent play stats
+games       4 (1 open, 2 finished)
+moves       23 (1 refused by the rules)
+sims        2
+built in    connect4, nim, tictactoe  (default: tictactoe)
+[exit 0]
+[ok]   games = 4
+[ok]   moves = 23
+[ok]   refusals = 1
+[ok]   simulations = 2
+
+### the page is a client of the same service
+[ok]   the page lists the games = 4
+[ok]   a game started in the page is a row = 1
+[ok]   a move from the page is accepted = True
+[ok]   a refused move is a 200 with the reason, not an error = 200
+[ok]   and the refusal is in the log the CLI reads = 1
+[ok]   a simulation run in the page reproduces = True
+[ok]   an unknown game is a 400 over HTTP = 400
+[ok]   an unauthenticated call is refused = 401
+[ok]   the stats endpoint agrees with the rows = 3
+
+### the record survives a restart
+[ok]   the finished game is still finished = finished
+[ok]   the refused moves are still refused = 1
+[ok]   the simulation still reproduces = 0
+
+M33 acceptance: 69 checks passed, 0 failed
