@@ -22,6 +22,8 @@ happened, and that the rules were asked rather than assumed.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 from archx_agent.application import games as games_module
@@ -47,11 +49,8 @@ class PlayService:
         return self.ws.play
 
     def rules(self, game_type: str):
-        try:
-            return games_module.rules_for(game_type)
-        except KeyError as exc:
-            known = ", ".join(sorted(games_module.GAMES))
-            raise ValidationError(f"unknown game: {game_type} (known: {known})") from exc
+        """The rules for a name. `rules_for` refuses an unknown game by listing the ones it has."""
+        return games_module.rules_for(game_type)
 
     def _game(self, game_id: str) -> Game:
         return self.manager.get_game(game_id)
@@ -267,9 +266,6 @@ class PlayService:
 
 def _hash_state(state: dict[str, Any]) -> str:
     """A hash of the position, so a replay can compare a move and not only the final answer."""
-    import hashlib
-    import json
-
     payload = json.dumps(state, sort_keys=True, default=str)
     return hashlib.sha256(payload.encode()).hexdigest()[:16]
 

@@ -1,9 +1,9 @@
 {
-  "text": "A tunnel is a deep, narrow passageway through solid rock, typically found in extreme environments, such as deep crevices or inaccessible formations.",
+  "text": "A tunnel is a narrow, underground passageway through which you can move.",
   "usage": {
-    "completion_tokens": 28,
+    "completion_tokens": 16,
     "prompt_tokens": 40,
-    "total_tokens": 68,
+    "total_tokens": 56,
     "prompt_tokens_details": {
       "cached_tokens": 0
     }

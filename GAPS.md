@@ -21,10 +21,12 @@ This file records what is **not** true yet. If a feature is not listed as verifi
 
 ## Not built yet
 
-Milestones M33-M40 are not implemented: play mode, voice/multimodal, dataset preparation,
-training, remote compute, Blender/3D, automations and release hardening. M17-M32 are implemented
-and verified (see [PROGRESS.md](PROGRESS.md)). The database schema already reserves tables for them
-(versions 5-8) so they can be added without renumbering.
+Milestones M34-M40 are not implemented: voice/multimodal, dataset preparation, training, remote
+compute, Blender/3D, automations and release hardening. M17-M33 are implemented and verified (see
+[PROGRESS.md](PROGRESS.md)); M33 (Play Mode) is deliberately small - three board games and one
+simulation - and does not claim the "sandboxed tinkering" its milestone name suggests beyond those.
+The database schema already reserves tables for the rest (versions 5-8) so they can be added
+without renumbering.
 
 ## Per-mode limits
 
