@@ -106,6 +106,12 @@ about 3.13 and about llama.cpp).
   provider is refused until confirmed + consented; a remote model is refused while
   `local_only` is true.
 
+## Where the remaining work is listed
+
+`docs/reports/STATUS.md` is the itemised list of everything still open (the unrun CI workflow, a
+live vendor call, the tool-calling probe, streaming into the browser, dedicated templates for the
+OpenAI-compatible vendors, M31), with the reason each one is open and what would close it.
+
 ## Next steps (in order)
 
 1. M31: Coding workspace - editing, running and testing code under the permission centre,
