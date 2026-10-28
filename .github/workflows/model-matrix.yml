@@ -43,6 +43,14 @@ env:
   MODEL_FILE: SmolLM2-135M-Instruct-Q4_K_M.gguf
   PORT: "8080"
 
+# A push to .ci/trigger starts a run. The first run of this workflow hung for nine minutes on
+# the serve step (the backgrounded server held the step's pipe open, so the log never closed).
+# `cancel-in-progress` means the next push kills that run instead of leaving a runner blocked
+# for the 50-minute job limit.
+concurrency:
+  group: model-matrix
+  cancel-in-progress: true
+
 jobs:
   matrix:
     runs-on: ubuntu-24.04
@@ -79,7 +87,9 @@ jobs:
           log="$LOGDIR/$(printf '%02d' "$(wc -l < "$LOGDIR/status.tsv")")-$name.log"
           started=$(date +%s)
           echo "=== $name ===============================================" >> "$LOGDIR/console.log"
-          { echo "\$ $*"; "$@" 2>&1; } | tee -a "$log" "$LOGDIR/console.log"
+          # a cap per step: without it a hung command waits for the 50-minute job limit, and the
+          # log folder stops updating, which looks identical to a slow step.
+          { echo "\$ $*"; timeout "${STEP_TIMEOUT:-900}" "$@" 2>&1; } | tee -a "$log" "$LOGDIR/console.log"
           code=${PIPESTATUS[0]}
           took=$(( $(date +%s) - started ))
           printf '%s\t%s\t%s\n' "$name" "$([ "$code" -eq 0 ] && echo ok || echo "FAIL($code)")" "$took" >> "$LOGDIR/status.tsv"
@@ -121,6 +131,8 @@ jobs:
             tail -c 120000 "$f" > "ci/runs/$RUN_ID/$(basename "$f")"
           done
           cp "$LOGDIR/status.tsv" "ci/runs/$RUN_ID/status.tsv" 2>/dev/null
+          # a heartbeat each cycle: a stale timestamp is how a stuck run looks from outside
+          date -u +%FT%TZ > "ci/runs/$RUN_ID/heartbeat.txt"
           git add -A ci/runs >/dev/null 2>&1
           git commit -q -m "ci: ${RUN_ID} ${1:-update}" >/dev/null 2>&1 || exit 0
           git push -q origin "$LOG_BRANCH" >/dev/null 2>&1 || exit 0
@@ -134,7 +146,22 @@ jobs:
       # ------------------------------------------------------------------ checks
       - name: install
         run: |
-          run.sh install bash -c 'python -m pip install -e ".[dev,sdks]" && python -c "import archx_agent, openai, anthropic, google.genai, mistralai, groq, together, cohere, ollama; print(\"all eight clients import\")"'
+          run.sh install bash -c '
+            python -m pip install -e ".[dev,sdks]" || exit 1
+            # name the one that is missing instead of a bare ModuleNotFoundError
+            python - <<PY
+          import importlib
+          missing = []
+          for name in ("archx_agent", "openai", "anthropic", "google.genai", "mistralai",
+                       "groq", "together", "cohere", "ollama"):
+              try:
+                  importlib.import_module(name)
+              except Exception as exc:
+                  missing.append(f"{name}: {type(exc).__name__}")
+          print("all eight clients import" if not missing else "MISSING " + ", ".join(missing))
+          raise SystemExit(1 if missing else 0)
+          PY
+          '
 
       - name: unit tests
         run: run.sh pytest python -m pytest -o addopts="" -q
@@ -188,9 +215,13 @@ jobs:
       - name: serve it
         run: |
           run.sh serve bash -c '
-            "$LLAMA_SERVER" --model "$MODEL_PATH" --host 127.0.0.1 --port "$PORT" \
+            # Detach *all three* descriptors. A backgrounded server that inherits the closing
+            # pipeline keeps the tee pipe open, so run.sh waits forever even after the check
+            # here is done - the first run of this workflow hung on exactly this line.
+            setsid "$LLAMA_SERVER" --model "$MODEL_PATH" --host 127.0.0.1 --port "$PORT" \
               --ctx-size 512 --n-gpu-layers 0 --threads 2 --parallel 1 \
-              --no-warmup --log-file "$RUNNER_TEMP/llama.log" &
+              --no-warmup --log-file "$RUNNER_TEMP/llama.log" \
+              > "$RUNNER_TEMP/llama.out" 2>&1 < /dev/null &
             echo $! > "$RUNNER_TEMP/llama.pid"
             for i in $(seq 1 180); do
               curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 && { echo "up after ${i}s"; exit 0; }
@@ -222,6 +253,9 @@ jobs:
           run.sh sdk-matrix ./scripts/remote_model.sh "http://127.0.0.1:${PORT}"
 
       - name: a real Ollama daemon (its own client needs its own protocol)
+        # an image pull plus a model pull is legitimately slow; the step cap is raised, not removed
+        env:
+          STEP_TIMEOUT: "1500"
         run: |
           run.sh ollama bash -c '
             set -u
@@ -236,6 +270,8 @@ jobs:
           '
 
       - name: a public URL through Cloudflare
+        env:
+          STEP_TIMEOUT: "900"
         run: |
           run.sh tunnel bash -c '
             set -u
