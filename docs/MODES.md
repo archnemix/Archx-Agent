@@ -39,7 +39,7 @@ there is no code.
 | M30 | **Learning Mode** | **partial** | goals, items, hints, schedules, sessions; no model grading, no media (see §3) |
 | M31 | **Coding workspace** | done | sessions on a directory, edits as diffs, a recorded runner, named checks (see §2) |
 | M32 | **Experimental Mode** | done | declared commands and parameters, real runs, a comparison that names what it could not rank (see §2.3) |
-| M33 | Play Mode | not built | games, simulations, sandboxed tinkering |
+| M33 | **Play Mode** | done | three small games the rules referee, and simulations that replay from their parameters (see §2.4) |
 | M34 | Voice and multimodal | not built | speech in/out, images, audio — no hardware here |
 | M35 | Dataset preparation | not built | collect, clean, split, version a corpus |
 | M36 | Training and model modification | not built | LoRA/fine-tune — no weights or GPU reachable here |
@@ -80,7 +80,6 @@ were asked to do, and no button pretending they exist. Nothing below has code to
 
 | # | Mode as asked | What it was asked to do | What exists to build it on |
 |---|---------------|-------------------------|----------------------------|
-| M33 | Play Mode | games, simulations and sandboxed tinkering | tools + permission centre (nothing may escape a grant) |
 | M34 | Voice and multimodal | speech in and out, images, audio | none in this build: no microphone, no weights, no GPU |
 | M35 | Dataset preparation | collect, clean, split and version a corpus | versions, artifacts, tool roots, search |
 | M36 | Training and model modification | LoRA / fine-tune a model | none here: no weights and no GPU are reachable |
@@ -143,6 +142,28 @@ What it does **not** do: no grid sweeps in the runner (`--set` is one run; a swe
 `experiment run`), no plotting (that is M41's job, and a chart drawn from these rows cannot
 disagree with the table), and no model asked to interpret a run.
 
+### 2.4 Play Mode, and why a game is worth having
+
+A game is the smallest honest test of agency there is: the rules are public, the state is small, and
+"did it play legally" is answerable without an opinion. Three games live in
+`application/games.py` as pure rules - tic-tac-toe, connect four and nim - and everything above
+them (the CLI, the page, the engine) is a caller.
+
+The rules are the only authority on legality. A mover proposes a string and `apply` answers with a
+new state or a reason; the built-in engine chooses from `legal_moves`, so it cannot produce an
+illegal move by construction rather than by review. A refused move is **written down** with
+`legal = 0` and the reason, and the board does not move - a log of only the successful moves cannot
+show you that the rules held, which is the whole reason to keep one.
+
+Simulations are the second half: Conway's life under a named rule (`B3/S23`), seeded from a number,
+with the population series and a sha256 of the final grid recorded. `play replay` recomputes from
+the parameters alone and says whether the hash still matches, so a record can be checked rather than
+believed. A doctored hash fails its own replay - that is a test, not a promise.
+
+What it does **not** claim: that the engine is strong (connect four is two plies; tic-tac-toe is
+perfect and draws against itself), that a model plays *well* (nothing here grades strategy), or that
+a simulation proves anything. `docs/PLAY.md` has the details and the tables.
+
 ## 3. What "done" does not mean (the honest gaps)
 
 ### 3.1 Research Mode is marked `partial`, not done
@@ -184,7 +205,7 @@ answers them; deleting stays a CLI act.
 
 ### 3.3 The GUI is a client, not a product surface for everything
 
-Twelve panels, all wired, nothing decorative. The shell is one page with a sidebar, a top bar
+Thirteen panels, all wired, nothing decorative. The shell is one page with a sidebar, a top bar
 carrying each mode's live tool chips, three themes and a chat transcript with markdown,
 copy buttons and confirmations for anything that cannot be undone. Workflow authoring, streaming tokens, files, a
 multi-user story and TLS are not there; they are listed in `GAPS.md` and `docs/GUI.md` rather
@@ -192,8 +213,9 @@ than implied by a greyed-out button.
 
 ## 4. Where this leaves the roadmap
 
-Built: M01–M32 (with the two honest `partial`s above), plus the Research completion model
-(§3.1). Next: **M33 Play Mode**, then M34 Voice. The Research gaps in §3.1
+Built: M01–M33 (with the two honest `partial`s above), plus the Research completion model
+(§3.1). Next: **M34 Voice and multimodal**, which this build cannot finish honestly: no microphone,
+no weights and no GPU are reachable here. The Research gaps in §3.1
 remain the most valuable repair, and they no longer have an excuse: the runner and the record
 they needed now exist in the coding workspace, which can be reused rather than invented.
 

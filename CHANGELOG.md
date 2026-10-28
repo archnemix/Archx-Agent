@@ -12,6 +12,30 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
   if the read is not allowed, records the diff as partial with the reason. (`docs/GUI.md` already
   promised one request; now the code does too.)
 
+### Added - M33, Play Mode
+- **The rules are the only authority.** `application/games.py` holds tic-tac-toe, connect four and
+  nim as pure rules: build a board, list the moves that are legal *there*, apply one, say whether
+  the game is over. Every mover - a person, the engine, a model - goes through the same `apply`
+  and gets either a position or a reason, so legality is decided in one place.
+- **A refused move is kept.** It is written to `game_moves` with `legal = 0` and the rules' own
+  reason, the board does not move and `move_count` does not advance. `play history` counts both,
+  and the page shows the refusals in the same table: a log of only the moves that worked cannot
+  show you that the rules held. Over HTTP a refusal is `200` with `legal: false`; the CLI exits 2.
+- **The engine cannot cheat by construction.** It chooses from `legal_moves(state)`, so an
+  illegal move is not a bug waiting to be found; perfect-play tic-tac-toe draws against itself,
+  nim leaves a zero XOR, and connect four looks two plies ahead - and `docs/PLAY.md` says two
+  plies is not strong rather than implying otherwise.
+- **A simulation is a record, not a picture.** `play sim` runs Conway's life under a fixed named
+  rule (`B3/S23`), storing the parameters, the population series, the final grid and its sha256;
+  `play replay` recomputes from the parameters alone. A doctored hash fails its own replay with
+  both hashes printed (exit 1). Parameters are refused rather than clipped, and wrapping is
+  refused by name because this build has no torus rule.
+- Schema **v23** adopts the `games`/`game_moves` tables reserved by v8 with `ALTER TABLE` - a
+  reserved table is not a free table, so it is extended rather than redefined under whoever has
+  rows in it - and adds `play_sims`.
+- The GUI grew a thirteenth panel: board as text, legal moves as buttons, engine move, and the
+  move log with its `why` column; simulations show their hash and replay it in place.
+
 ### Added - M32, Experimental Mode
 - **An experiment is a declaration.** `archx-agent experiment create NAME --command "python
   bench.py {n}" --param n=100 --metric-source stdout-json` records the command, its parameters

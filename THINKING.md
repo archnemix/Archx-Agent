@@ -979,3 +979,34 @@ nothing reads. The obvious name for M32's table was taken, and `CREATE TABLE IF 
 have silently no-opped against the old shape - which is exactly what happened on the first run
 ("table experiments has no column named name"). M32's tables are `experiment_specs`,
 `experiment_runs` and `experiment_metrics`: unused is not the same as free.
+
+**D158. Legality lives in one place, so the engine cannot cheat by construction.**
+A play mode is only worth having if "did it play legally" is a question with a mechanical answer.
+The rules are a pure module (`application/games.py`): `legal_moves(state)` and `apply(state, move)`
+are the only things that know what is allowed, and every mover - person, engine, model - goes
+through them. The engine chooses from `legal_moves`, so an illegal engine move is not a bug waiting
+to be found; it is unrepresentable. The alternative (a rules engine plus an engine that shares its
+assumptions) is the design where both are wrong in the same way and nobody notices.
+
+**D159. A refusal is data, and the log keeps it.**
+The first instinct is to treat an illegal move as a failed request. But a refused move is the most
+interesting row a play log can hold: it is the evidence that the rules were asked and answered. So
+it is written to `game_moves` with `legal = 0` and the rules' own reason, the board does not move,
+and `move_count` does not advance - the sequence number is not spent on it. Over HTTP a refusal is
+`200` with `legal: false` (a well-formed request, answered by a referee); a malformed field is
+`400`. The CLI exits 2 because a shell wants to branch on "nothing happened". A log of only the
+moves that worked cannot show you that the rules held.
+
+**D160. Extend the reserved table; do not redefine it.** (D157, applied)
+`games` and `game_moves` have existed since v8 and nothing wrote them. `CREATE TABLE IF NOT EXISTS`
+with a new shape would have no-opped silently on any home that already had them, so v23 uses
+`ALTER TABLE ... ADD COLUMN` for the new fields and leaves the old columns alone. The rule from
+D157 has a corollary: an unused table is not a free table *and* not a broken one - adopt it, and a
+home that has rows keeps them.
+
+**D161. A hash turns a record into a claim you can check.**
+A simulation stored as a picture proves that something was drawn. Storing the parameters, the
+population series and a sha256 of the final grid as text means `play replay` can recompute from the
+parameters alone and disagree: a doctored row prints both hashes and exits 1. Determinism is what
+makes the claim checkable, so the rule is fixed and named (`B3/S23`) rather than configurable - a
+simulation whose rule is a mystery produces a picture nobody can check.

@@ -131,6 +131,65 @@ const routes = {
     param_names: ["n"], metrics_source: { kind: "none" },
     created_at: "2026-10-28T10:00:00Z", updated_at: "2026-10-28T10:00:00Z", metadata: {},
   },
+  "GET /api/play/games/gm_demo/history": {
+    id: "gm_demo", game_type: "tictactoe", status: "open", winner: null,
+    moves: [
+      { id: 1, game_id: "gm_demo", seq: 1, player: "X", action: "1", legal: true, reason: null,
+        state_hash: "abc1234567890123", created_at: "2026-10-28T10:00:00Z" },
+      { id: 2, game_id: "gm_demo", seq: 1, player: "O", action: "1", legal: false,
+        reason: "square 1 is taken", state_hash: null, created_at: "2026-10-28T10:01:00Z" },
+    ],
+    legal: 1, refused_count: 1,
+  },
+  "GET /api/play/games/gm_demo": {
+    id: "gm_demo", game_type: "tictactoe", status: "open", open: true, turn: "O",
+    board: " X | 2 | 3\n---+---+---\n 4 | 5 | 6\n---+---+---\n 7 | 8 | 9",
+    legal_moves: ["2", "3", "4", "5", "6", "7", "8", "9"],
+    outcome: { over: false, winner: null, reason: "in progress" },
+    moves: [
+      { id: 1, game_id: "gm_demo", seq: 1, player: "X", action: "1", legal: true, reason: null,
+        state_hash: "abc1234567890123", created_at: "2026-10-28T10:00:00Z" },
+      { id: 2, game_id: "gm_demo", seq: 1, player: "O", action: "1", legal: false,
+        reason: "square 1 is taken", state_hash: null, created_at: "2026-10-28T10:01:00Z" },
+    ],
+    move_count: 1, winner: null, seed: null, created_at: "2026-10-28T10:00:00Z",
+  },
+  "GET /api/play/games": {
+    games: [
+      { id: "gm_demo", game_type: "tictactoe", status: "open", open: true, move_count: 1,
+        winner: null, seed: null, created_at: "2026-10-28T10:00:00Z" },
+    ],
+    stats: { games: 1, open: 1, finished: 0, moves: 2, refused_moves: 1, sims: 1 },
+    games_available: ["connect4", "nim", "tictactoe"],
+  },
+  "POST /api/play/games": {
+    id: "gm_new", game_type: "connect4", status: "open", open: true, turn: "R",
+    board: ". . . . . . .",
+    legal_moves: ["1", "2", "3", "4", "5", "6", "7"],
+    outcome: { over: false, winner: null, reason: "in progress" },
+    moves: [], move_count: 0, winner: null, seed: null, created_at: "2026-10-28T10:00:00Z",
+  },
+  "POST /api/play/sims": {
+    id: "sim_new", kind: "life", width: 8, height: 4, steps: 2, seed: 1, density: 0.3,
+    status: "completed", final_hash: "deadbeefdeadbeef", alive: 3, series: [4, 3, 3],
+    rows: ["........", "..##....", "..#.....", "........"], task_id: null,
+    created_at: "2026-10-28T10:00:00Z", completed_at: "2026-10-28T10:00:00Z", metadata: {},
+  },
+  "GET /api/play/sims/sim_demo": {
+    id: "sim_demo", kind: "life", width: 8, height: 4, steps: 2, seed: 1, density: 0.3,
+    status: "completed", final_hash: "deadbeefdeadbeef", alive: 3, series: [4, 3, 3],
+    rows: ["........", "..##....", "..#.....", "........"], task_id: null,
+    created_at: "2026-10-28T10:00:00Z", completed_at: "2026-10-28T10:00:00Z", metadata: {},
+  },
+  "GET /api/play/sims": {
+    sims: [
+      { id: "sim_demo", kind: "life", width: 8, height: 4, steps: 2, seed: 1, density: 0.3,
+        status: "completed", final_hash: "deadbeefdeadbeef", alive: 3, series: [4, 3, 3],
+        rows: [], task_id: null, created_at: "2026-10-28T10:00:00Z",
+        completed_at: "2026-10-28T10:00:00Z", metadata: {} },
+    ],
+    stats: { games: 1, open: 1, finished: 0, moves: 2, refused_moves: 1, sims: 1 },
+  },
   "GET /api/conversations": [],
   "GET /api/tasks": [],
   "GET /api/tools": [],
@@ -194,9 +253,10 @@ function assert(condition, message) {
 }
 
 // the shell
-assert(doc.querySelectorAll(".tab").length === 12, "expected twelve mode tabs");
+assert(doc.querySelectorAll(".tab").length === 13, "expected thirteen mode tabs");
 assert(doc.getElementById("view-code"), "the coding view is missing");
 assert(doc.getElementById("view-experiments"), "the experiments view is missing");
+assert(doc.getElementById("view-play"), "the play view is missing");
 assert(doc.getElementById("view-chat"), "chat view is missing");
 
 // every refresh button answers a click without throwing
@@ -277,6 +337,41 @@ await tick();
 await tick();
 assert(calls.includes("POST /api/experiments"), `the declare form never posted: ${JSON.stringify(calls.slice(-4))}`);
 
+// play: a game renders with its board and its log, a refused move keeps its reason, and a
+// simulation shows the hash it claims to have reproduced
+doc.querySelector('[data-view="play"]').click();
+await tick();
+await tick();
+assert(doc.querySelectorAll("#play-games .list-item").length === 1, "the game list did not render");
+assert(doc.querySelectorAll("#play-sims .list-item").length === 1, "the simulation list did not render");
+doc.querySelector("#play-games .list-item").click();
+await tick();
+await tick();
+assert(calls.includes("GET /api/play/games/gm_demo"), `the game was never opened: ${JSON.stringify(calls.slice(-4))}`);
+const playPanel = doc.getElementById("play-detail");
+assert(playPanel.textContent.includes("square 1 is taken"), "a refused move must keep its reason");
+assert(playPanel.querySelector(".board"), "the board did not render");
+assert(playPanel.textContent.includes("1 of 2 proposed move(s)"), "the refusal count is not shown");
+
+doc.getElementById("play-game-type").value = "connect4";
+doc.getElementById("play-new-form").dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
+await tick();
+await tick();
+assert(calls.includes("POST /api/play/games"), `the new-game form never posted: ${JSON.stringify(calls.slice(-4))}`);
+
+doc.querySelector("#play-sims .list-item").click();
+await tick();
+await tick();
+assert(calls.includes("GET /api/play/sims/sim_demo"), `the simulation was never opened: ${JSON.stringify(calls.slice(-4))}`);
+const simPanel = doc.getElementById("play-detail");
+assert(simPanel.textContent.includes("deadbeefdeadbeef"), "the simulation hash is not shown");
+
+doc.getElementById("play-sim-seed").value = "2";
+doc.getElementById("play-sim-form").dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
+await tick();
+await tick();
+assert(calls.includes("POST /api/play/sims"), `the simulation form never posted: ${JSON.stringify(calls.slice(-4))}`);
+
 // no inline style attributes were produced, and no inline handlers leaked into the markup
 assert(!/style="/.test(doc.body.innerHTML), "inline style attribute produced");
 assert(!/onclick="/.test(doc.body.innerHTML), "inline handler produced");
@@ -288,4 +383,4 @@ if (problems.length) {
   for (const problem of problems) console.error(" - " + problem);
   process.exit(1);
 }
-console.log("smoke ok: 12 tabs, 4 gate rows, code and experiment panels render, forms post, no page errors");
+console.log("smoke ok: 13 tabs, 4 gate rows, code, experiment and play panels render, forms post, no page errors");

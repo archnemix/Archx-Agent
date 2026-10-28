@@ -68,6 +68,7 @@ from archx_agent.managers.mcp import McpManager
 from archx_agent.managers.memory import MemoryManager
 from archx_agent.managers.models import ModelManager, ModelRecord
 from archx_agent.managers.permissions import PermissionManager
+from archx_agent.managers.play import PlayManager
 from archx_agent.managers.projects import ProjectManager
 from archx_agent.managers.providers import ProviderManager, is_loopback_url
 from archx_agent.managers.reproduction import ReproductionManager
@@ -109,6 +110,7 @@ class Workspace:
     learning: LearningManager | None = None
     coding: CodeManager | None = None
     experiments: ExperimentManager | None = None
+    play: PlayManager | None = None
     reproduction: ReproductionManager | None = None
     router: Any = None
     context: ContextManager | None = None
@@ -345,6 +347,7 @@ class Workspace:
             ws.warnings.append(f"could not restore dynamic tools: {exc}")
         ws.coding = CodeManager(store, coordinator, events=events)
         ws.experiments = ExperimentManager(store, coordinator, events=events)
+        ws.play = PlayManager(store, coordinator, events=events)
         ws.research = ResearchManager(
             store, coordinator, events=events, config=config
         )
@@ -440,6 +443,13 @@ class Workspace:
         from .experiments import ExperimentService
 
         return ExperimentService(self)
+
+    @property
+    def play_mode(self):
+        """Games and simulations (imported lazily to keep the composition root acyclic)."""
+        from .play import PlayService
+
+        return PlayService(self)
 
     @property
     def chat(self):

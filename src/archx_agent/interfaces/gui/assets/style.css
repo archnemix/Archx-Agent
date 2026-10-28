@@ -1115,3 +1115,19 @@ progress.bar::-moz-progress-bar { background: var(--accent); border-radius: 999p
 }
 .code-output .mono { display: block; white-space: pre-wrap; }
 .warn-text { color: var(--warn); }
+
+/* Play: the board is text, because the text is the record. A grid drawn with divs would look
+   nicer and be harder to compare with what the CLI printed. */
+.board {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--code-bg);
+  color: var(--text-2);
+  font-size: 12.5px;
+  line-height: 1.5;
+  overflow: auto;
+  white-space: pre;
+  max-height: 46vh;
+}

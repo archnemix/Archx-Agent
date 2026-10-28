@@ -181,6 +181,12 @@ jobs:
       - name: experimental mode acceptance
         run: run.sh experiment-acceptance bash scripts/acceptance_m32.sh
 
+      # Play Mode: games the rules referee and simulations that can be replayed. The engine is
+      # checked by asking the rules on sixty games, and a doctored hash is made to fail its own
+      # replay rather than be believed.
+      - name: play mode acceptance
+        run: run.sh play-acceptance bash scripts/acceptance_m33.sh
+
       - name: sdk catalogue
         run: run.sh sdks archx-agent models sdks
 

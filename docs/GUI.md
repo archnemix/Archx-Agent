@@ -85,6 +85,7 @@ HttpOnly session cookie, and never keeps the token itself.
 | **Learning** | goals and criteria, add an item, next-up with its `why`, one hint per click (409 before an attempt), answer and see the schedule, sessions, propose items, start a review | `LearningService` - the same path as `learning …` |
 | **Code** | a session list, an open form, a path field with read/save/delete, a textarea, a command box, the project's check button, the session patch and the runner's ledger | `CodingWorkspace` → `fs.read`/`fs.write`/`fs.delete`/`shell.run`, so every button is a grant or an approval |
 | **Experiments** | declare an experiment (name, command with `{params}`, parameters, metrics source), run it with per-parameter overrides, read the run table - whose metric column says *why* a run has no number - and the comparison with its notes | `ExperimentService` → `shell.run` + `fs.read`; every run is a task with an artifact, and the numbers are rows |
+| **Play** | start a game, play it (move box, legal moves as buttons, engine move, engine ×5, resign), read the board as text and the move log *with the refusals and their reasons*; run a simulation and replay its hash | `PlayService` - the same `move`/`engine_move`/`simulate`/`replay` calls the CLI makes |
 
 There are no placeholder controls. If a panel would need something this build does not have,
 the panel is not drawn: there is no "Settings" tab that pretends, no disabled "Train" button,
@@ -120,7 +121,7 @@ and remembers which you chose; under 760px it becomes a horizontal strip.
 | Group | Panels |
 |-------|--------|
 | **Modes** | Chat (composer, conversations, model chip), Research (question, where to look, seed URLs, report, sources, verification), Learning (goals, items, hints, schedule, sessions) |
-| **Work** | Search (one query, nine sources), Code (sessions, edits as diffs, a recorded runner, named checks), Experiments (declared commands, runs, the comparison and its notes), Tasks (timeline, artifacts, reproduction), Jobs (queue, pause/resume/cancel/retry, run one) |
+| **Work** | Search (one query, nine sources), Code (sessions, edits as diffs, a recorded runner, named checks), Experiments (declared commands, runs, the comparison and its notes), Play (games the rules referee, simulations you can replay), Tasks (timeline, artifacts, reproduction), Jobs (queue, pause/resume/cancel/retry, run one) |
 | **Control** | Access (approvals, grants, capabilities), Memory (add/list with the duplicate check), Models (why each one cannot run), Status (counts, schema, what is blocked) |
 
 The tool strip in the top bar is drawn from live data, so it cannot flatter: `model: none
@@ -288,6 +289,15 @@ The page uses only these; so can you.
 | GET | `/api/experiments/{id}/runs` | the run ledger |
 | POST | `/api/experiments/{id}/{close,reopen}` | close it (runs stay readable) or put it back |
 | DELETE | `/api/experiments/{id}` | delete it and its runs |
+| GET/POST | `/api/play/games` | games (with counts), and POST to start one; `?status=open\|finished\|abandoned` |
+| GET | `/api/play/games/{id}` | the board, whose turn it is, the legal moves, the recent log |
+| POST | `/api/play/games/{id}/move` | propose a move; always `200`, with `legal: false` and the reason when the rules refuse |
+| POST | `/api/play/games/{id}/{engine,auto,resign}` | one engine move, several plies, or abandon the game |
+| GET | `/api/play/games/{id}/history` | every move, including the refused ones, with the counts |
+| GET/POST | `/api/play/sims` | recorded simulations, and POST to run one |
+| GET | `/api/play/sims/{id}` | one simulation: parameters, series, final grid, hash |
+| POST | `/api/play/sims/{id}/replay` | recompute from the parameters and compare the hash |
+| GET | `/api/play/stats` | games, moves, refusals, simulations |
 
 ### The Code panel, and why it is not an IDE
 
@@ -321,6 +331,25 @@ permission centre, a task, an artifact, and rows. A refusal is `403 approval_req
 approval in the Access panel; a parameter that would not survive the shell is a `400 validation`
 and nothing starts. `compare` never hides a row: the card prints the notes, including the runs it
 could not rank and why.
+
+### The Play panel, and the log it refuses to tidy
+
+The panel is a game list, a start form (game and optional seed), a simulation form
+(width, height, steps, seed, density), a simulation list, and a detail pane: the board as text,
+chips for turn and move count, a move box with the legal moves as buttons, *engine move*,
+*engine ×5* and *resign*, then the move log with a `why` column. Selecting a simulation shows its
+parameters, its population series, its hash and the final grid, with a *replay and check the hash*
+button that prints either `reproduced: …` or `DIFFERENT: stored … but these parameters give …`.
+
+The board is text on purpose. A grid of styled cells would look better and be harder to compare
+with what `play show` printed in the terminal; when the record is the point, the rendering should
+not paraphrase it. The refused moves stay in the log table with `legal: no` and the reason,
+because a log of only the moves that worked is a log you cannot audit.
+
+Two refusals that are deliberately *not* errors: an illegal move comes back `200` with
+`legal: false`, and a replay that disagrees comes back `200` with `matches: false`. Both are
+answers to well-formed requests. A malformed field (`density: "lots"`) is a `400 validation`; an
+unknown game is a `400` that names the three that exist.
 
 ### The consent ladder in the page
 

@@ -87,9 +87,11 @@ edit .ci/trigger -> push -> .github/workflows/model-matrix.yml (18 steps, 14 of 
 | ~~7~~ | ~~**M31 Coding workspace**~~ | **Done.** Sessions on a directory inside the tool roots, every edit and command through the permission centre, diffs as artifacts, a recorded runner with replay, named checks, and an eleventh GUI panel. `docs/CODING.md`, `pytest tests/test_coding_m31.py` (66), `scripts/acceptance_m31.sh` (48). | closed |
 | 8 | **Cohere against the real service** | It has no keyless mode at all, so its only proof is a live call (#2) or the `/v2/chat` stub already used. | blocked on #2 |
 | ~~9~~ | ~~**M32 Experimental Mode**~~ | **Done.** Declared commands and parameters, metrics read only from the declared source, runs as rows with tasks and artifacts, and a comparison that names what it could not rank. `docs/EXPERIMENTS.md`, `pytest tests/test_experiments_m32.py` (66), `scripts/acceptance_m32.sh` (53). | closed |
+| ~~10~~ | ~~**M33 Play Mode**~~ | **Done.** Three games the rules referee, a refused move kept with its reason, an engine that can only choose from the legal moves, and simulations that replay from their parameters (a doctored hash fails its own check). `docs/PLAY.md`, `pytest tests/test_play_m33.py` (77), `scripts/acceptance_m33.sh` (69). | closed |
 
 What is left is one thing: a live call to a vendor's cloud API, which needs keys this environment
-does not have. M32 closed; M33 onward are the next milestones. Nothing in between is
+does not have. M33 closed; M34 onward are the next milestones - and M34 (voice, images, audio) is
+the first one this environment cannot finish honestly, so it will be scoped, not faked. Nothing in between is
 "implemented but untested".
 
 ---
@@ -98,7 +100,7 @@ does not have. M32 closed; M33 onward are the next milestones. Nothing in betwee
 
 ```text
 $ .venv/bin/python -m pytest tests/ -o addopts="" -q
-1516 passed, 2 warnings in 397.12s (0:06:37)
+1593 passed, 2 warnings in 408.06s (0:06:48)
 
 $ .venv/bin/python -m pytest tests/test_stress.py tests/test_edge_cases.py -o addopts="" -q
 91 passed in 44s            (three consecutive runs, same result)
@@ -125,7 +127,7 @@ $ ./scripts/acceptance_m32.sh
 M32 acceptance: 53 checks passed, 0 failed
 
 $ ARCHX_JSDOM_DIR=/tmp/domtest node scripts/gui_smoke.mjs
-smoke ok: 12 tabs, 4 gate rows, code and experiment panels render, forms post, no page errors
+smoke ok: 13 tabs, 4 gate rows, code, experiment and play panels render, forms post, no page errors
 ```
 
 ### 3.1 Seven bugs the new suites found
