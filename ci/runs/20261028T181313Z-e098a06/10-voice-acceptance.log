@@ -52,3 +52,82 @@ M34 acceptance on /tmp/archx-m34-1QxKpj
 [ok]   the reason includes the head = 1
 [ok]   and names what is measured = 1
 [ok]   nothing was stored for it = 0
+[ok]   an empty file exits 2 = 2
+
+### words are refused on the record, with every missing link named
+[ok]   asking for words exits 3 (not a break, not a success) = 3
+[ok]   the attempt is a row = 1
+[ok]   with the asset attached = ma_0001m61vvkpv000000003a6816df380bad28
+[ok]   three reasons, in the order found = 3
+[ok]   the first is the voice switch = True
+[ok]   the second is the missing model = True
+[ok]   the third is the missing adapter = True
+[ok]   nothing pretended to be a transcript = 0
+[ok]   stats says plainly it cannot hear = False
+
+### the reasons are computed, not printed
+[ok]   turning voice on removes exactly that reason = 2
+[ok]   and the switch is no longer mentioned = False
+[ok]   a model that is not registered is named = True
+
+### speech is refused the same way, with the length kept
+[ok]   asking for speech exits 3 = 3
+[ok]   the length asked for is recorded = 15
+[ok]   the attempt is a row with no asset = 1
+[ok]   nothing was written anywhere = 0
+
+### the one transcript this build can keep is one a person wrote
+[ok]   the source is human = human
+[ok]   the words are kept as typed = the words a person typed
+[ok]   the attempt that produced it is completed, not refused = 1
+[ok]   and says who produced it = human
+[ok]   words can come from a file, through fs.read = the words a person typed
+[ok]   and the file is recorded = words.txt
+[ok]   two transcripts for one recording = 2
+[ok]   empty words are refused = 2
+[ok]   a non-human source cannot be written even by hand = refused
+[ok]   so there are still two = 2
+
+### keeping the bytes is a decision, not a default
+[ok]   retaining without the setting exits 2 = 2
+[ok]   and says what to set = 1
+[ok]   with the setting on the bytes are copied = yes
+[ok]   under the file's own hash = 1
+[ok]   and the copy is byte-identical = same
+
+### the counts agree with the rows
+[ok]   assets = 6
+[ok]   audio = 3
+[ok]   transcripts = 2
+[ok]   refused attempts = 7
+$ archx-agent voice stats
+assets      6 (3 image, 3 audio, 1200 ms of audio)
+mislabelled 1 (the name disagrees with the bytes)
+transcripts 2 (all written by a person)
+attempts    9 (7 refused)
+voice       on; stt none, tts none
+can hear    no
+can speak   no
+[exit 0]
+
+### the page is a client of the same service
+[ok]   the page lists what was measured = 6
+[ok]   a probe in the page is the row the CLI reads = 1
+[ok]   a mislabelled file says so over HTTP = True
+[ok]   an unmeasurable file is a 400 = 400
+[ok]   asking for words is a 200 refusal, not an error = refused
+[ok]   and the refusal is in the same table the CLI reads = 4
+[ok]   a transcript typed in the page is a row = human
+[ok]   empty words are a 400 = 400
+[ok]   the stats endpoint says it cannot hear = False
+[ok]   the reasons travel with the stats = True
+[ok]   an unauthenticated call is refused = 401
+[ok]   an unknown asset is a 404 = 404
+
+### the record survives a restart
+[ok]   the measurement is still there = 12
+[ok]   the mismatch is still a mismatch = True
+[ok]   the words are still attributed = human
+[ok]   and it still cannot hear = False
+
+M34 acceptance: 88 checks passed, 0 failed

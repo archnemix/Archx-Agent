@@ -1,0 +1,11 @@
+{
+  "text": "A tunnel is a narrow, often winding passageway through a mountain or underground landscape, typically used for tunnel construction, exploration, or exploration, and often used for scientific research.",
+  "usage": {
+    "completion_tokens": 36,
+    "prompt_tokens": 40,
+    "total_tokens": 76,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  }
+}

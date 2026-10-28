@@ -8,3 +8,11 @@ integration	ok	13
 coding-acceptance	ok	9
 experiment-acceptance	ok	6
 play-acceptance	ok	8
+voice-acceptance	ok	7
+dataset-acceptance	ok	8
+sdks	ok	2
+llama-cpp	ok	1
+model-download	ok	2
+serve	ok	1
+completion	ok	0
+sdk-matrix	ok	9
