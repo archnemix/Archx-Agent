@@ -1,0 +1,11 @@
+{
+  "text": "A tunnel is a narrow, winding passageway through a solid surface, often used for transportation or tunnels.",
+  "usage": {
+    "completion_tokens": 22,
+    "prompt_tokens": 40,
+    "total_tokens": 62,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  }
+}
