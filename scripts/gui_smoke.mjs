@@ -62,10 +62,6 @@ const routes = {
     { key: "openai", label: "OpenAI", package: "openai", env_var: "OPENAI_API_KEY", installed: true },
     { key: "anthropic", label: "Anthropic", package: "anthropic", env_var: "ANTHROPIC_API_KEY", installed: false },
   ],
-  "GET /api/sdks": [
-    { key: "openai", label: "OpenAI", package: "openai", env_var: "OPENAI_API_KEY", installed: true },
-    { key: "anthropic", label: "Anthropic", package: "anthropic", env_var: "ANTHROPIC_API_KEY", installed: false },
-  ],
   "GET /api/conversations": [],
   "GET /api/tasks": [],
   "GET /api/tools": [],

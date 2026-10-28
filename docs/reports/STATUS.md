@@ -96,10 +96,13 @@ not have) and M31, the next milestone. Nothing in between is "implemented but un
 
 ```text
 $ .venv/bin/python -m pytest tests/ -o addopts="" -q
-1251 passed, 1 warning in 289.42s (0:04:49)
+1384 passed, 2 warnings in 367.01s (0:06:07)
 
-$ .venv/bin/python -m pytest tests/test_sdk_m22.py -o addopts="" -q
-61 passed, 1 warning in 37.1s
+$ .venv/bin/python -m pytest tests/test_stress.py tests/test_edge_cases.py -o addopts="" -q
+91 passed in 44s            (three consecutive runs, same result)
+
+$ .venv/bin/python -m pytest tests/test_integration.py -o addopts="" -q
+11 passed in 15.88s
 
 $ .venv/bin/python -m pytest tests/test_sdk_m22.py -o addopts="" -q -k Streaming
 11 passed, 50 deselected in 8.62s
@@ -111,8 +114,31 @@ $ ./scripts/acceptance_gemini.sh
 Gemini acceptance: 60 checks passed
 
 $ ./scripts/acceptance_m29.sh
-M29 acceptance: 55 checks passed
+M29 acceptance: 60 checks passed
+
+$ ARCHX_JSDOM_DIR=/tmp/domtest node scripts/gui_smoke.mjs
+smoke ok: 10 tabs, 4 gate rows, form posts, no page errors
 ```
+
+### 3.1 Seven bugs the new suites found
+
+The stress, edge-case and integration suites were written against the GUI's actual behaviour
+rather than its intended behaviour, and they found seven defects that the existing 1282 tests
+all passed over. Every one is fixed and has a regression test:
+
+1. `str(request.field(...))` on a non-string `message` stored `"123"`, `"{}"` or `"[1, 2]"` as
+   the user's turn and sent it to the model.
+2. A non-string `model_id` or `conversation_id` reached SQLite as a bind parameter and produced
+   `500 ProgrammingError`.
+3. Every `ProviderError` mapped to `500`, so a missing model, a refused key, a rate limit and
+   an outage were all "the server broke". `ModelNotFoundError` inherits `ProviderError`, which
+   is why the specific cases were invisible.
+4. `/api/health` answered `POST`, `PUT` and `DELETE` with a payload, without a token.
+5. `PATCH` — and any verb without a `do_*` method — got the stdlib's HTML `501`, the only
+   non-JSON response in the app.
+6. A 4000-character asset name produced `500 missing_assets`; it is `404`.
+7. Refusing an oversize body closed the socket while the client was still uploading, so the
+   client saw a connection reset instead of the `413`.
 
 Three bugs the CI rehearsal found, which is why it exists: `run.sh` ended with `return` outside a
 function (every step would have aborted), the publisher reused a fixed `/tmp/publish` across jobs,
@@ -128,8 +154,8 @@ key rule that ignored the loopback exception; and the five new provider template
 
 ## 4. Verified vs not verified
 
-**Verified by observation:** the 1258-test suite; 86 SDK acceptance checks over real sockets; 60
-Gemini checks; 55 M29 checks; every streaming parser against a loopback server; the exact request
+**Verified by observation:** the 1384-test suite; 86 SDK acceptance checks over real sockets; 60
+Gemini checks; 60 M29 checks; the jsdom smoke of the shipped page; every streaming parser against a loopback server; the exact request
 path of all seven HTTP clients (`TestPaths`) and that each default base plus that path equals the
 vendor's public URL (`TestDefaults`); the keyless-local / key-required-remote split; the four
 consent rungs applying to SDK models.

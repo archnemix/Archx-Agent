@@ -135,10 +135,15 @@ class TestTheStream:
         assert b"event:" not in rest
 
     def test_it_refuses_a_write_with_no_credential_of_any_kind(self, gui):
-        """A cookie-less request with no CSRF header and no token is not a browser's request."""
+        """A cookie-less request with no CSRF header and no token is not a browser's request.
+
+        It is refused as unauthenticated (`401`) rather than as a CSRF failure: with no cookie
+        there is no session to be riding, and telling the caller to add a header would send
+        them to fix the wrong thing.
+        """
         api, server = gui
         head, rest = _post(server, "/api/chat/stream", {"message": "hi"}, token=None, csrf=False)
-        assert "403" in head.splitlines()[0]
+        assert "401" in head.splitlines()[0]
         assert b"event: chunk" not in rest
 
     def test_a_refused_turn_ends_with_an_error_frame_not_a_hang(self, gui):

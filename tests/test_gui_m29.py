@@ -168,9 +168,11 @@ class TestRoutes:
                 .replace("(?P<conversation_id>[^/]+)", "conv_x")
             )
             status, payload = call(api, route.method, path, token=None, body={})
-            # A write without the CSRF header is refused before authentication is even
-            # considered; either refusal is a refusal.
-            assert status in {401, 403}, (route.pattern.pattern, status, payload)
+            # Every refusal is a refusal, but which one depends on the route: a write with no
+            # cookie and no token is now `401` (there is nothing to forge), a write that does
+            # present a cookie without the header is `403 csrf`, and this sweep itself is
+            # dozens of bad-token attempts, so the limiter may answer `429` part way through.
+            assert status in {401, 403, 429}, (route.pattern.pattern, status, payload)
             assert payload["ok"] is False
 
     def test_health_is_public_and_says_nothing_private(self, api):
@@ -364,8 +366,11 @@ class TestChat:
         assert ws.tasks.list(limit=10) == []
 
     def test_a_missing_model_is_refused_with_an_explanation(self, api):
+        """No model means nothing to send to. That is a 404, not a server fault: the
+        caller can fix it by registering one, so it must never read as "we broke"."""
         status, error = failed(api, "POST", "/api/chat", body={"message": "hello"})
-        assert status == 500 or status == 400
+        assert status == 404
+        assert error["code"] == "model_not_found"
         assert error["message"]
 
     def test_an_unknown_conversation_is_a_404(self, api):

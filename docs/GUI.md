@@ -181,7 +181,10 @@ attempts are rate-limited (20/minute by default) with `429`.
 on another origin cannot set a custom header without a CORS preflight, and this server
 answers no preflights (`OPTIONS` → 405) and sends no `Access-Control-Allow-Origin` ever.
 Token-header callers (curl, the acceptance script) are exempt because a browser cannot be
-tricked into adding that header for them.
+tricked into adding that header for them. A request that presents no cookie at all is also
+exempt: it has no session to be riding, so the CSRF check does not apply and authentication
+answers that request with `401 unauthorized`. The distinction matters because the two errors
+send a caller to different places — one is "identify yourself", the other is "add a header".
 
 **Content.** `Content-Security-Policy: default-src 'self'; script-src 'self'; style-src
 'self'; img-src 'self' data:; connect-src 'self'; form-action 'none'; base-uri 'none';
@@ -194,10 +197,54 @@ header carries the app version and not the interpreter.
 so `../server.py`, `%2e%2e%2f` and a dotfile are all 404. Nothing else on disk is reachable:
 the GUI has no "open this file" endpoint.
 
-**Bodies and errors.** A request body over `gui.max_body_bytes` is refused with `413` before
-it is read into the app. Every failure becomes JSON (`{"ok": false, "error": {…}}`) with a
-status that means something; an unexpected exception is reported as its type and message,
-never as a traceback.
+**Bodies and errors.** A request body over `gui.max_body_bytes` is refused with `413`. The
+client is mid-upload when the refusal happens, so the server drains a bounded amount of the
+body before answering; closing the socket immediately makes the caller see a connection reset
+instead of the status, which is indistinguishable from the server crashing. Every failure
+becomes JSON (`{"ok": false, "error": {…}}`) with a status that means something; an unexpected
+exception is reported as its type and message, never as a traceback.
+
+### Status codes are about whose problem it is
+
+The server's job is to be honest about failure. A missing model, a refused key and a vendor
+outage are not the same event, and a caller that has to treat all of them as `500` cannot
+tell "my input is wrong" from "retry later" from "the server is broken". The mapping, most
+specific first:
+
+| status | code | when |
+|--------|------|------|
+| 400 | `validation` | a required field is missing, or a value has the wrong type |
+| 402 | `quota_exhausted` | the account is out of credit |
+| 403 | `consent_required`, `privacy_unknown`, `approval_required`, `auth_denied`, `permission_denied` | the caller may not, or has not yet agreed to, do this |
+| 404 | `not_found`, `model_not_found`, `tool_not_found` | the thing does not exist |
+| 405 | `method_not_allowed` | the path exists and that verb does not |
+| 409 | `conflict`, `model_unavailable` | the state is not ready for this, and waiting or fixing it will change that |
+| 413 | `context_overflow` | the input does not fit the model's window |
+| 422 | `unsupported_capability` | the model cannot do this at all |
+| 429 | `rate_limited` | slow down, this is temporary |
+| 502 | `network_failure` | we could not reach the provider |
+| 503 | `provider_outage`, `storage_busy` | they are down, or we are momentarily |
+| 504 | `tool_timeout` | it took too long |
+| 500 | `internal` | genuinely our fault |
+
+Two consequences worth stating plainly:
+
+**The value never gets coerced.** A `message` that arrives as `123`, `{}` or `[]` is a `400`,
+not the string `"123"` or a Python dict repr stored as the user's turn. The same holds for
+every id field: an identifier that is not a string does not fall through to a database
+`ProgrammingError`.
+
+**The server answers JSON for every verb.** `BaseHTTPRequestHandler` returns an HTML `501`
+page for any verb it has no `do_*` method for, which would be the only non-JSON response the
+GUI can produce and would leak the stdlib's markup to the page. `PATCH`, `TRACE` and a
+misspelled verb all get `405` with the usual error envelope.
+
+`GET /api/health` is read-only and public: it answers `GET` and `HEAD` (no body) with
+version, uptime and request count, and every other verb with a JSON `405`. It never needed a
+token — that is the point of a health check — but it used to accept `POST`, `PUT` and
+`DELETE` and answer `200` to each, which made it a misleading thing to probe. The verb check
+run before the CSRF check, because there is no write here to protect: `curl -X POST` on the
+health path should be told the path does not take that verb, not that a header is missing.
 
 ## The API
 

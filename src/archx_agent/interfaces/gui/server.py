@@ -43,9 +43,26 @@ from archx_agent.application.researcher import ResearchBlocked
 from archx_agent.helpers.exceptions import (
     ApprovalRequiredError,
     ArchxError,
+    AuthDeniedError,
     ConflictError,
+    ConsentRequiredError,
+    ContextOverflowError,
+    DuplicateError,
+    LocalRuntimeFailureError,
+    MalformedOutputError,
+    ModelNotFoundError,
+    ModelUnavailableError,
+    NetworkFailureError,
     NotFoundError,
     PermissionDeniedError,
+    PrivacyUnknownError,
+    ProviderOutageError,
+    QuotaExhaustedError,
+    RateLimitedError,
+    StorageBusyError,
+    ToolNotFoundError,
+    ToolTimeoutError,
+    UnsupportedCapabilityError,
     ValidationError,
 )
 from archx_agent.helpers.jsonio import json_text
@@ -92,12 +109,36 @@ class ApiError(Exception):
         self.data = data
 
 
+#: Most specific first: the first matching class wins, so `DuplicateError` must appear before
+#: `ConflictError` and `ToolNotFoundError` before the generic provider mapping.
+#:
+#: The provider rows matter more than they look. `ModelNotFoundError`, `AuthDeniedError` and the
+#: rest inherit from `ProviderError`, not `NotFoundError`, so before this every one of them
+#: became a 500 - a missing model was reported as the GUI's own internal failure. A missing model
+#: is a 404, a refused key a 403, a spent quota a 402, an outage a 503.
 _STATUS_FOR_ERROR: tuple[tuple[type, int, str], ...] = (
     (ValidationError, 400, "validation"),
+    (ModelNotFoundError, 404, "model_not_found"),
+    (ToolNotFoundError, 404, "tool_not_found"),
     (NotFoundError, 404, "not_found"),
+    (DuplicateError, 409, "conflict"),
     (ConflictError, 409, "conflict"),
+    (ConsentRequiredError, 403, "consent_required"),
+    (PrivacyUnknownError, 403, "privacy_unknown"),
     (ApprovalRequiredError, 403, "approval_required"),
+    (AuthDeniedError, 403, "auth_denied"),
     (PermissionDeniedError, 403, "permission_denied"),
+    (QuotaExhaustedError, 402, "quota_exhausted"),
+    (RateLimitedError, 429, "rate_limited"),
+    (ProviderOutageError, 503, "provider_outage"),
+    (NetworkFailureError, 502, "network_failure"),
+    (ModelUnavailableError, 409, "model_unavailable"),
+    (UnsupportedCapabilityError, 422, "unsupported_capability"),
+    (LocalRuntimeFailureError, 503, "runtime_failure"),
+    (MalformedOutputError, 502, "malformed_output"),
+    (ContextOverflowError, 413, "context_overflow"),
+    (StorageBusyError, 503, "storage_busy"),
+    (ToolTimeoutError, 504, "tool_timeout"),
 )
 
 
@@ -160,6 +201,32 @@ class Request:
         if required and (value is None or (isinstance(value, str) and not value.strip())):
             raise ApiError(400, "validation", f"{name} is required")
         return value
+
+    def text(self, name: str, *, required: bool = False, default: str | None = None) -> str | None:
+        """A string field, and only a string.
+
+        ``str(request.field(...))`` accepts anything: a dict became its Python repr, which then
+        reached a model and the database as if a user had typed it. A client sending the wrong
+        type is a 400, not a coercion.
+        """
+        value = self.field(name, required=required, default=default)
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            raise ApiError(400, "validation", f"{name} must be a string")
+        value = value.strip()
+        if required and not value:
+            raise ApiError(400, "validation", f"{name} is required")
+        return value
+
+    def identifier(self, name: str) -> str | None:
+        """An id field: a string or nothing. Ids are never numbers, lists or objects."""
+        value = self.field(name)
+        if value is None or value == "":
+            return None
+        if not isinstance(value, str):
+            raise ApiError(400, "validation", f"{name} must be a string")
+        return value.strip() or None
 
 
 @dataclass
@@ -312,10 +379,18 @@ class GuiApi:
         try:
             if request.method == "OPTIONS":
                 raise ApiError(405, "no_cors", "this server does not answer CORS preflights")
+            if request.path == "/api/health":
+                # The one endpoint that answers without a token, so a monitor can ask if the
+                # process is alive. It reports nothing but liveness, and it answers GET only -
+                # a DELETE that returns a health payload is a routing accident, not a feature.
+                # Refused before the CSRF check: there is no write here to protect, so the
+                # honest answer is "this path does not take that verb", not "you forgot a
+                # header". `HEAD` arrives as GET (the body is suppressed on the way out).
+                if request.method != "GET":
+                    raise ApiError(405, "method_not_allowed", "health answers GET")
+                return Response(payload={"ok": True, "data": self.health()})
             if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
                 self._require_csrf(request)
-            if request.path == "/api/health":
-                return Response(payload={"ok": True, "data": self.health()})
             if request.path == "/api/session" and request.method == "POST":
                 token = str(request.payload().get("token", ""))
                 return self.open_session(token)
@@ -356,6 +431,16 @@ class GuiApi:
         # A caller presenting the token itself (curl, the acceptance script) is not a
         # browser and cannot be tricked into a cross-site request by a page it visits.
         if request.headers.get("x-archx-token") or request.headers.get("authorization"):
+            return
+        # A request carrying no credential at all cannot be riding a session cookie, so CSRF
+        # is the wrong refusal: there is nothing to forge yet. Fall through and let
+        # authentication answer "you have not identified yourself", which is what happened.
+        cookie = SimpleCookie()
+        try:
+            cookie.load(request.headers.get("cookie", ""))
+        except Exception:  # noqa: BLE001 - a malformed cookie is simply not a credential
+            cookie = SimpleCookie()
+        if cookie.get(COOKIE_NAME) is None:
             return
         raise ApiError(
             403,
@@ -425,11 +510,11 @@ class GuiApi:
     # -- chat -----------------------------------------------------------
     @route("POST", "/api/chat", "One chat turn, recorded as a task exactly like the CLI's.")
     def post_chat(self, request: Request, match: re.Match[str]) -> dict[str, Any]:
-        message = str(request.field("message", required=True)).strip()
+        message = request.text("message", required=True) or ""
         if len(message) > 8000:
             raise ApiError(400, "validation", "a message must be at most 8000 characters")
-        conversation_id = request.payload().get("conversation_id") or None
-        model_id = request.payload().get("model_id") or None
+        conversation_id = request.identifier("conversation_id")
+        model_id = request.identifier("model_id")
         reply = self.ws.chat.send(message, conversation_id=conversation_id, model_id=model_id)
         payload = reply.to_dict()
         payload["simulated"] = bool(reply.simulated)
@@ -437,11 +522,11 @@ class GuiApi:
 
     @route("POST", "/api/chat/stream", "The same chat turn, streamed as server-sent events.")
     def post_chat_stream(self, request: Request, match: re.Match[str]) -> SSEStream:
-        message = str(request.field("message", required=True)).strip()
+        message = request.text("message", required=True) or ""
         if len(message) > 8000:
             raise ApiError(400, "validation", "a message must be at most 8000 characters")
-        conversation_id = request.payload().get("conversation_id") or None
-        model_id = request.payload().get("model_id") or None
+        conversation_id = request.identifier("conversation_id")
+        model_id = request.identifier("model_id")
         return SSEStream(self._chat_frames(message, conversation_id, model_id))
 
     def _chat_frames(self, message: str, conversation_id: str | None, model_id: str | None) -> Iterable[str]:
@@ -764,9 +849,9 @@ class GuiApi:
 
     @route("POST", "/api/memory", "Store a memory (the same validation as `memory add`).")
     def post_memory(self, request: Request, match: re.Match[str]) -> dict[str, Any]:
-        kind = str(request.field("kind", default="permanent"))
-        title = str(request.field("title", required=True)).strip()
-        content = str(request.field("content", required=True)).strip()
+        kind = request.text("kind", default="permanent") or "permanent"
+        title = request.text("title", required=True) or ""
+        content = request.text("content", required=True) or ""
         # ``permanent`` only accepts preference/fact/instruction/constraint; the other
         # kinds accept the wider set. An empty field means "the default for this kind".
         default_category = "fact" if kind == "permanent" else "note"
@@ -904,7 +989,7 @@ class GuiApi:
 
     @route("POST", "/api/research", "Run a research question now, in this process.")
     def post_research(self, request: Request, match: re.Match[str]) -> dict[str, Any]:
-        question = str(request.field("question", required=True)).strip()
+        question = request.text("question", required=True) or ""
         mode = request.payload().get("mode") or None
         urls = request.payload().get("urls") or []
         if isinstance(urls, str):
@@ -988,7 +1073,7 @@ class GuiApi:
     @route("POST", "/api/learning/goals", "Create a learning goal.")
     def post_learning_goal(self, request: Request, match: re.Match[str]) -> dict[str, Any]:
         goal = self.ws.learning.create_goal(
-            str(request.field("title", required=True)),
+            request.text("title", required=True) or "",
             objective=request.payload().get("objective") or None,
             topic=request.payload().get("topic") or None,
             level=str(request.payload().get("level") or "beginner"),
@@ -1025,7 +1110,7 @@ class GuiApi:
             hints = [line for line in hints.splitlines() if line.strip()]
         item = self.ws.learning.add_item(
             goal.id,
-            str(request.field("prompt", required=True)),
+            request.text("prompt", required=True) or "",
             expected=(str(payload.get("expected") or "").strip() or None),
             hints=[str(hint) for hint in hints],
             explanation=(str(payload.get("explanation") or "").strip() or None),
@@ -1044,7 +1129,7 @@ class GuiApi:
     @route("POST", "/api/learning/goals/{goal_id}/answer", "Answer an item: grade, schedule, explanation.")
     def post_learning_answer(self, request: Request, match: re.Match[str]) -> dict[str, Any]:
         goal = self.ws.learning.require_goal(unquote(match.group("goal_id")))
-        item_id = str(request.field("item_id", required=True))
+        item_id = request.text("item_id", required=True) or ""
         item = self.ws.learning.require_item(item_id)
         if item.goal_id != goal.id:
             raise ApiError(400, "validation", f"item {item.id} does not belong to goal {goal.id}")
@@ -1081,11 +1166,16 @@ class GuiApi:
     def asset(self, name: str) -> Response:
         """Serve one file from ``assets/`` by exact name - never by path."""
         safe = Path(name).name
-        if safe != name or safe.startswith("."):
+        # 255 is the limit most filesystems impose; beyond it the open fails, and a failed open
+        # for a name the client chose is a 404, not a server fault.
+        if safe != name or safe.startswith(".") or not safe or len(safe.encode("utf-8", "replace")) > 255:
             raise ApiError(404, "not_found", "no such asset")
         path = ASSETS / safe
-        if not path.is_file():
-            raise ApiError(404, "not_found", "no such asset")
+        try:
+            if not path.is_file():
+                raise ApiError(404, "not_found", "no such asset")
+        except OSError as exc:
+            raise ApiError(404, "not_found", "no such asset") from exc
         return Response(
             body=path.read_bytes(),
             content_type=_CONTENT_TYPES.get(path.suffix, "application/octet-stream"),
@@ -1137,6 +1227,23 @@ class GuiHandler(BaseHTTPRequestHandler):
         self._send(Response(status=405, payload={"ok": False, "error": {
             "code": "no_cors", "message": "this server does not answer CORS preflights"}}))
 
+    def __getattr__(self, name: str):
+        """Answer every other HTTP verb ourselves.
+
+        `BaseHTTPRequestHandler` replies 501 with an HTML error page for a verb it has no
+        ``do_`` method for, which makes this server the only part of the app that answers in
+        HTML and leaks the stdlib's wording. `PATCH` did exactly that. Every verb now reaches
+        the router, which knows which routes exist and which methods they accept.
+        """
+        if name.startswith("do_") and len(name) > 3:
+            method = name[3:]
+
+            def handle_verb() -> None:
+                self._handle(method)
+
+            return handle_verb
+        raise AttributeError(name)
+
     # -- one request ----------------------------------------------------
     def _handle(self, method: str) -> None:
         try:
@@ -1146,6 +1253,11 @@ class GuiHandler(BaseHTTPRequestHandler):
         if length > self.api.max_body_bytes:
             self._send(Response(status=413, payload={"ok": False, "error": {
                 "code": "too_large", "message": f"a body must be at most {self.api.max_body_bytes} bytes"}}))
+            # Refusing before reading leaves the client mid-upload. Closing then makes the kernel
+            # answer with a reset, and the client sees "connection reset" instead of the refusal
+            # it was given. Draining a bounded amount lets the response be read. The bound is the
+            # body limit, so this cannot be used to make the server chew on a huge upload.
+            self._drain_body(min(length, self.api.max_body_bytes))
             return
         raw = self.rfile.read(length) if length else b""
         body: Any = None
@@ -1179,6 +1291,22 @@ class GuiHandler(BaseHTTPRequestHandler):
         else:
             response = self.api.dispatch(request)
         self._send(response, head=method == "HEAD")
+
+    def _drain_body(self, limit: int) -> None:
+        """Read and discard up to ``limit`` bytes that are already in flight, then close."""
+        try:
+            self.connection.settimeout(1.0)
+        except OSError:  # pragma: no cover - a socket that cannot be tuned is not fatal
+            return
+        remaining = limit
+        while remaining > 0:
+            try:
+                chunk = self.rfile.read(min(65536, remaining))
+            except (OSError, ValueError):
+                return
+            if not chunk:
+                return
+            remaining -= len(chunk)
 
     def _send(self, response: Response | SSEStream, *, head: bool = False) -> None:
         if isinstance(response, SSEStream):

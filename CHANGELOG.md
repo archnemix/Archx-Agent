@@ -5,7 +5,36 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 
 ## [Unreleased]
 
+### Fixed
+- **The GUI answered a client's mistake as a server fault.** A `model_id` that was not a string
+  reached SQLite and came back as `500 ProgrammingError`; a model that does not exist came back
+  as `500` because `ModelNotFoundError` inherits `ProviderError` and the map stopped at the base
+  class; a `message` that arrived as a number or an object was `str()`-coerced and stored as the
+  user's turn. All three are the caller's to fix and are now `400`/`404` with a code that says
+  which. The status table is ordered specific-first and every 5xx is now genuinely unexpected.
+- **`PATCH` and any misspelled verb got the stdlib's HTML `501` page**, the only response in
+  this app not shaped like its own JSON. Every verb now reaches the router.
+- **`GET /api/health` answered `POST`, `PUT` and `DELETE`** — with a payload and without a token
+  — so probing it proved nothing. It is `GET`/`HEAD` only, checked before the CSRF gate.
+- **A body over the limit got a connection reset instead of the `413`**, because the server
+  refused and closed while the client was still uploading. It now drains a bounded amount of
+  the in-flight body first, so the refusal can be read.
+- **An unauthenticated write said `csrf`**, which pointed at a header when the actual problem
+  was that nobody had identified themselves. No cookie, no CSRF check: `401 unauthorized`.
+- **A 4000-character asset name returned `500 missing_assets`.** Names over 255 bytes and any
+  `OSError` while reading one are now `404`, which is what an unreachable file is.
+
 ### Added
+- Three suites that test the seams rather than the units: `tests/test_stress.py` (13 — eight
+  concurrent writers, twenty concurrent chats, ten parallel streams, a deliberately slow
+  provider, fd and thread counts), `tests/test_edge_cases.py` (78 — field types, message
+  boundaries at exactly 8000/8001, RTL/CJK/NUL/astral text, malformed JSON, every verb, a
+  15-row provider-fault status table) and `tests/test_integration.py` (11 — one turn seen by the
+  CLI, the GUI and SQLite; a real subprocess; the OpenAI SDK through the whole stack). They
+  found every bug in the list above.
+- CI runs those three as their own steps (`stress and the hostile client`, `end to end across
+  the cli, the gui and sqlite`) so their timings are visible on the runner instead of hidden
+  inside a 400-second "unit tests" row.
 - An `openai-compatible` provider template for third-party endpoints (Z.ai, DeepSeek, a gateway)
   whose wire is OpenAI's but whose terms nobody here can source: `--base-url` is required, the
   privacy block says "unknown - not transcribed", and all four consent rungs still apply.

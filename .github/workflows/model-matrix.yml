@@ -161,6 +161,16 @@ jobs:
       - name: unit tests
         run: run.sh pytest python -m pytest -o addopts="" -q
 
+      # The three suites below are the ones that need something the others do not: raw sockets
+      # and threads (stress), a hostile client (edge cases), and a real subprocess doing a real
+      # round trip (integration). They are separate steps so their timings are legible on the
+      # runner; a 400-second "unit tests" row hides a suite that took half of it.
+      - name: stress and the hostile client
+        run: run.sh stress-edge python -m pytest tests/test_stress.py tests/test_edge_cases.py -o addopts="" -q
+
+      - name: end to end across the cli, the gui and sqlite
+        run: run.sh integration python -m pytest tests/test_integration.py -o addopts="" -q
+
       - name: sdk catalogue
         run: run.sh sdks archx-agent models sdks
 
