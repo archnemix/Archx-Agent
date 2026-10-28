@@ -1,0 +1,11 @@
+{
+  "text": "A tunnel is a narrow, usually underground, passageway through a land that is being excavated or excavated using explosives.",
+  "usage": {
+    "completion_tokens": 24,
+    "prompt_tokens": 40,
+    "total_tokens": 64,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  }
+}
