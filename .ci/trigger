@@ -1,12 +1,1 @@
-Change this file and push it to run .github/workflows/model-matrix.yml.
-The trigger is a path filter, so it needs no Actions API permission - only a push.
-
-2026-10-28T11:25:37Z  rerun: serve is detached, the sdks extra carries all eight clients
-
-2026-10-28T11:34:32Z  rerun: duplicate concurrency key removed (the workflow file was invalid)
-
-2026-10-28T11:54:51Z  rerun: exact client paths (groq /openai/v1, together /v1), streaming after close fixed, ollama daemon probed through the app
-
-2026-10-28T12:14:00Z  rerun: streaming into the page, and the tools probe
-
-2026-10-28T12:29:07Z  rerun: the openai-compatible template
+2026-10-28T13:50:21Z
