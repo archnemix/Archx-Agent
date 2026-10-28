@@ -58,13 +58,22 @@ steps="$(awk -F'\t' '$2 ~ /^(ok|FAIL)/ {n++} END {print n+0}' "$run/status.tsv")
 started="$(awk -F'\t' '$1=="started"{print $2}' "$run/meta.tsv" 2>/dev/null || true)"
 commit="$(awk -F'\t' '$1=="commit"{print $2}' "$run/meta.tsv" 2>/dev/null || true)"
 
+# the acceptance scripts are their own evidence: a count out of their log, not a claim
+code_line="$(grep -Eo 'M31 acceptance: [0-9]+ checks passed' "$run"/0*-coding-acceptance.log 2>/dev/null \
+  | tail -1 | grep -Eo '[0-9]+ checks passed' || true)"
+
 # -- history -------------------------------------------------------------------------------
 touch "$OUT/RUNS.tsv"
-if ! grep -q "^$ID" "$OUT/RUNS.tsv" 2>/dev/null; then
-  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-    "$ID" "${commit:0:7}" "$steps" "$failed" "$pytest_line" "$se_line $it_line" "${started:--}" \
-    >> "$OUT/RUNS.tsv"
+others="${se_line} ${it_line}"
+[ -n "$code_line" ] && others="$others · ${code_line}"
+# rewrite rather than append, so re-running this for the same id updates its row
+if grep -q "^$ID" "$OUT/RUNS.tsv" 2>/dev/null; then
+  grep -v "^$ID" "$OUT/RUNS.tsv" > "$OUT/RUNS.tsv.tmp" || true
+  mv "$OUT/RUNS.tsv.tmp" "$OUT/RUNS.tsv"
 fi
+printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+  "$ID" "${commit:0:7}" "$steps" "$failed" "$pytest_line" "$others" "${started:--}" \
+  >> "$OUT/RUNS.tsv"
 
 # -- README --------------------------------------------------------------------------------
 {
@@ -99,11 +108,12 @@ git fetch origin ci-logs && git show FETCH_HEAD:ci/runs/<id>/console.log
 HEAD2
 
   printf '## Status, run `%s`\n\n```text\n' "$ID"
-  printf '%-14s %-8s %s\n' step status seconds
-  awk -F'\t' '$2 ~ /^(ok|FAIL)/ {printf "%-12s %-8s %s\n", $1, $2, $3}' "$run/status.tsv"
+  printf '%-18s %-8s %s\n' step status seconds
+  awk -F'\t' '$2 ~ /^(ok|FAIL)/ {printf "%-18s %-8s %s\n", $1, $2, $3}' "$run/status.tsv"
   printf '```\n'
 
-  if [ -f "$run/11-completion.log" ]; then
+  # the step number moves as steps are added, so look for the completion log by name
+  if ls "$run"/*-completion.log >/dev/null 2>&1; then
     printf '\n## A real model, on a CPU runner\n\n`docs/ci/model-proof.json`:\n\n```json\n'
     cat "$OUT/model-proof.json"
     printf '```\n'
@@ -140,4 +150,5 @@ HEAD2
 } > "$OUT/README.md"
 
 printf 'wrote docs/ci/ from %s: %s step(s), %s failed\n' "$ID" "$steps" "$failed"
-printf '  pytest      %s\n  stress/edge %s\n  integration %s\n' "$pytest_line" "$se_line" "$it_line"
+printf '  pytest      %s\n  stress/edge %s\n  integration %s\n  coding      %s\n' \
+  "$pytest_line" "$se_line" "$it_line" "${code_line:--}"

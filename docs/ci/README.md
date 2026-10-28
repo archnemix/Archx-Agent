@@ -13,6 +13,7 @@ the `ci-logs` branch. The numbers below are lifted out of those logs; nothing he
 | `20261028T121409Z-41da23e` | `41da23e` | 10 | 0 | 1281 passed | - |
 | `20261028T122917Z-20bd680` | `20bd680` | 10 | 0 | 1282 passed, 2 warnings in 331.41s | - |
 | `20261028T135031Z-f506b82` | `f506b82` | 12 | 0 | 1384 passed, 2 warnings in 372.08s | 91 passed in 45.64s 11 passed in 16.89s |
+| `20261028T144642Z-fc1f92f` | `fc1f92f` | 13 | 0 | 1448 passed, 2 warnings in 347.96s | 91 passed in 44.13s 11 passed in 14.33s · 48 checks passed |
 
 Runs #1 and #2 are the interesting failures: #1 hung on the `serve` step for nine minutes (a
 backgrounded server held the step's pipe open), and #2 never started a job at all because GitHub
@@ -26,22 +27,23 @@ accepted.
 git fetch origin ci-logs && git show FETCH_HEAD:ci/runs/<id>/console.log
 ```
 
-## Status, run `20261028T135031Z-f506b82`
+## Status, run `20261028T144642Z-fc1f92f`
 
 ```text
-step           status   seconds
-install      ok       24
-pytest       ok       374
-stress-edge  ok       46
-integration  ok       18
-sdks         ok       2
-llama-cpp    ok       2
-model-download ok       1
-serve        ok       1
-completion   ok       0
-sdk-matrix   ok       15
-ollama       ok       84
-tunnel       ok       12
+step               status   seconds
+install            ok       21
+pytest             ok       350
+stress-edge        ok       44
+integration        ok       15
+coding-acceptance  ok       12
+sdks               ok       2
+llama-cpp          ok       2
+model-download     ok       2
+serve              ok       1
+completion         ok       0
+sdk-matrix         ok       13
+ollama             ok       61
+tunnel             ok       8
 ```
 
 ## A real model, on a CPU runner
@@ -50,11 +52,11 @@ tunnel       ok       12
 
 ```json
 {
-  "text": "A tunnel is a narrow, usually underground, passageway through a land that is being excavated or excavated using explosives.",
+  "text": "A tunnel is a narrow and deep passageway through which a great distance of space can be traversed.",
   "usage": {
-    "completion_tokens": 24,
+    "completion_tokens": 21,
     "prompt_tokens": 40,
-    "total_tokens": 64,
+    "total_tokens": 61,
     "prompt_tokens_details": {
       "cached_tokens": 0
     }
@@ -67,16 +69,16 @@ tunnel       ok       12
 ### the same endpoint through each official SDK
 
 --- openai
-OK    'Hello, welcome to my little corner of the internet!'
+OK    'Hello, welcome to my little corner of the internet.'
       tokens in/out 36/12  finish stop
       base http://127.0.0.1:8080/v1  ->  /chat/completions
-      streamed 6 chunk(s), 22 chars: "I'm counting to three."
+      streamed 4 chunk(s), 15 chars: 'Count to three.'
 
 --- anthropic
-OK    'Hello!'
-      tokens in/out 12/3  finish stop
+OK    "Hello, I'm a helpful AI assistant designed to assist users with various queries and activities, with five-word responses included."
+      tokens in/out 12/26  finish stop
       base http://127.0.0.1:8080  ->  /v1/messages
-      streamed 4 chunk(s), 15 chars: 'Count to three.'
+      streamed 18 chunk(s), 72 chars: "The countdown to three is winding down, and I'm ready to begin it again."
 
 --- google
 SKIP  the google client speaks :generateContent; this endpoint does not
@@ -85,7 +87,7 @@ SKIP  the google client speaks :generateContent; this endpoint does not
 OK    'Hello, welcome to my little corner of the internet.'
       tokens in/out 36/12  finish stop
       base http://127.0.0.1:8080  ->  /v1/chat/completions
-      streamed 4 chunk(s), 15 chars: 'Count to three.'
+      streamed 6 chunk(s), 22 chars: "I'm counting to three."
 
 --- groq
 SKIP  groq requests /openai/v1/chat/completions; this endpoint answers 404 there (model not found: Error code: 404 - {'error': {'message': 'File Not Found', 'type)
@@ -94,7 +96,7 @@ SKIP  groq requests /openai/v1/chat/completions; this endpoint answers 404 there
 OK    'Hello, welcome to my little corner of the internet!'
       tokens in/out 36/12  finish stop
       base http://127.0.0.1:8080  ->  /v1/chat/completions
-      streamed 4 chunk(s), 15 chars: 'Count to three.'
+      streamed 6 chunk(s), 22 chars: "I'm counting to three."
 
 --- cohere
 SKIP  no /v2/chat here; the cohere client has nothing to talk to
@@ -112,10 +114,10 @@ SKIP  no /api/tags here; the ollama client has nothing to talk to
 ### the same endpoint through each official SDK
 
 --- ollama
-OK    'Hello, welcome to our chat about the latest developments in the world of technology.'
-      tokens in/out 36/17  finish stop
+OK    'Hello, welcome to our virtual coffee shop.'
+      tokens in/out 36/10  finish stop
       base http://127.0.0.1:11434  ->  /api/chat
-      streamed 6 chunk(s), 22 chars: "I'm counting to three."
+      streamed 2 chunk(s), 6 chars: 'Three.'
 
 ### summary
 1 SDK(s) completed a turn, 0 failed
@@ -127,21 +129,22 @@ OK    'Hello, welcome to our chat about the latest developments in the world of 
 print("openai SDK via the public URL:", reply.choices[0].message.content.strip())
 PY
 
-url=https://photography-ion-cloudy-promotions.trycloudflare.com
+url=https://pet-apparel-skill-vacancies.trycloudflare.com
 public chat HTTP 200
-{"choices":[{"finish_reason":"length","index":0,"message":{"role":"assistant","content":"Sure thing! Here are a few tips to help you stay productive:\n\n1"}}],"created":1793196014,"model":"/home/runne
+{"choices":[{"finish_reason":"length","index":0,"message":{"role":"assistant","content":"What an excellent question. I'm glad to help! It's an excellent question"}}],"created":1793199338,"model":"/hom
 ```
 
 ## How long each step took
 
-* install: 24 s
-* pytest: 374 s
-* stress-edge: 46 s
-* integration: 18 s
+* install: 21 s
+* pytest: 350 s
+* stress-edge: 44 s
+* integration: 15 s
+* coding-acceptance: 12 s
 * sdks: 2 s
 * llama-cpp: 2 s
-* model-download: 1 s
+* model-download: 2 s
 * serve: 1 s
-* sdk-matrix: 15 s
-* ollama: 84 s
-* tunnel: 12 s
+* sdk-matrix: 13 s
+* ollama: 61 s
+* tunnel: 8 s

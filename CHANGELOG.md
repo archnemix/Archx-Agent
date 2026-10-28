@@ -64,6 +64,8 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
   lifted out of the logs instead of retyped after reading them.
 - **Run #8 (12 steps, all ok)** on the runner: 1384 tests in 372 s, 91 stress/edge in 46 s and
   11 integration in 17 s - the same three counts as this sandbox. `docs/ci/`.
+- **Run #10 (13 steps, all ok)**: 1448 tests in 348 s, the M31 acceptance 48/48 over a real
+  socket on the runner, plus the SDK matrix, a real Ollama daemon and a public URL.
 - An `openai-compatible` provider template for third-party endpoints (Z.ai, DeepSeek, a gateway)
   whose wire is OpenAI's but whose terms nobody here can source: `--base-url` is required, the
   privacy block says "unknown - not transcribed", and all four consent rungs still apply.
