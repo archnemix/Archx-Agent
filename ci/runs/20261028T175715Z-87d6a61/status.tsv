@@ -5,3 +5,7 @@ install	ok	26
 pytest	ok	417
 stress-edge	ok	46
 integration	ok	18
+coding-acceptance	ok	15
+experiment-acceptance	ok	10
+play-acceptance	ok	13
+voice-acceptance	ok	12
