@@ -176,6 +176,11 @@ jobs:
       - name: coding workspace acceptance
         run: run.sh coding-acceptance bash scripts/acceptance_m31.sh
 
+      # Experimental Mode: declared commands and parameters, real runs, a comparison that names
+      # the runs it could not rank. The metrics are read from the declared source or not at all.
+      - name: experimental mode acceptance
+        run: run.sh experiment-acceptance bash scripts/acceptance_m32.sh
+
       - name: sdk catalogue
         run: run.sh sdks archx-agent models sdks
 

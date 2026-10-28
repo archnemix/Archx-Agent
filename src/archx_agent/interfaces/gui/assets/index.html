@@ -46,6 +46,10 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 8-4 4 4 4M15 8l4 4-4 4"/></svg>
         <span>Code</span>
       </button>
+      <button class="tab" data-view="experiments" type="button" title="Experiments">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6.5L5.5 18a2 2 0 0 0 1.8 3h9.4a2 2 0 0 0 1.8-3L14 9.5V3"/><path d="M7.5 15h9"/></svg>
+        <span>Experiments</span>
+      </button>
       <button class="tab" data-view="tasks" type="button" title="Tasks">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1.6 1.6L8.4 4.8M4 12l1.6 1.6L8.4 10.8M4 18l1.6 1.6L8.4 16.8"/></svg>
         <span>Tasks</span>
@@ -300,6 +304,59 @@
             <div class="detail">
               <div id="code-detail" class="stack">
                 <p class="dim small">Pick a session, or open one. A write needs <code>fs.write</code> and a command needs <code>shell.run</code>: without a grant the page offers you the approval, and nothing happens until you decide.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ───────────── experiments ───────────── -->
+      <section class="page" id="view-experiments" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Experiments</h1>
+            <p>Run a declared command with declared parameters, keep the numbers, and compare the runs. A metric is only shown if the experiment said where it comes from.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="experiments-refresh" class="icon-btn" type="button" title="Reload experiments" aria-label="Reload experiments">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body flush">
+          <div class="split">
+            <aside class="picker">
+              <ul id="experiments-list" class="list"></ul>
+              <form id="experiment-create-form" class="card">
+                <div class="card-head"><h3>Declare an experiment</h3><p class="hint">A command with <code>{placeholder}</code> parameters, and where the numbers come from.</p></div>
+                <label class="field">Name
+                  <input id="experiment-name" type="text" placeholder="sorting">
+                </label>
+                <label class="field">Command
+                  <input id="experiment-command" type="text" placeholder="python bench.py {n}">
+                </label>
+                <label class="field">Parameters
+                  <input id="experiment-params" type="text" placeholder="n=100, seed=1">
+                </label>
+                <label class="field">Metrics
+                  <select id="experiment-metrics" class="sel">
+                    <option value="none">none (keep the run, read no numbers)</option>
+                    <option value="stdout-json">last line of stdout, as JSON</option>
+                    <option value="file">a JSON file the run writes</option>
+                  </select>
+                </label>
+                <label class="field">Metrics file
+                  <input id="experiment-metrics-path" type="text" placeholder="metrics.json">
+                </label>
+                <div class="row between">
+                  <button type="submit" class="btn primary">Declare</button>
+                  <span id="experiment-create-status" class="hint"></span>
+                </div>
+              </form>
+            </aside>
+            <div class="detail">
+              <div id="experiment-detail" class="stack">
+                <p class="dim small">Pick an experiment, or declare one. A run needs <code>shell.run</code>, and a metrics file needs <code>fs.read</code>: without a grant the page offers you the approval, and nothing happens until you decide.</p>
               </div>
             </div>
           </div>

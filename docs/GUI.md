@@ -83,6 +83,8 @@ HttpOnly session cookie, and never keeps the token itself.
 | **Memory** | add and list memories (with the duplicate check) | `MemoryManager` |
 | **Models** | the catalogue and *why* each model can or cannot run here, a *Connect Gemini* form (the key is a `secret://` reference, never typed in), `test chat` per model, and the **consent ladder** | `ModelManager` + `runtime_availability` + `Workspace.assert_remote_allowed` |
 | **Learning** | goals and criteria, add an item, next-up with its `why`, one hint per click (409 before an attempt), answer and see the schedule, sessions, propose items, start a review | `LearningService` - the same path as `learning …` |
+| **Code** | a session list, an open form, a path field with read/save/delete, a textarea, a command box, the project's check button, the session patch and the runner's ledger | `CodingWorkspace` → `fs.read`/`fs.write`/`fs.delete`/`shell.run`, so every button is a grant or an approval |
+| **Experiments** | declare an experiment (name, command with `{params}`, parameters, metrics source), run it with per-parameter overrides, read the run table - whose metric column says *why* a run has no number - and the comparison with its notes | `ExperimentService` → `shell.run` + `fs.read`; every run is a task with an artifact, and the numbers are rows |
 
 There are no placeholder controls. If a panel would need something this build does not have,
 the panel is not drawn: there is no "Settings" tab that pretends, no disabled "Train" button,
@@ -118,7 +120,7 @@ and remembers which you chose; under 760px it becomes a horizontal strip.
 | Group | Panels |
 |-------|--------|
 | **Modes** | Chat (composer, conversations, model chip), Research (question, where to look, seed URLs, report, sources, verification), Learning (goals, items, hints, schedule, sessions) |
-| **Work** | Search (one query, nine sources), Tasks (timeline, artifacts, reproduction), Jobs (queue, pause/resume/cancel/retry, run one) |
+| **Work** | Search (one query, nine sources), Code (sessions, edits as diffs, a recorded runner, named checks), Experiments (declared commands, runs, the comparison and its notes), Tasks (timeline, artifacts, reproduction), Jobs (queue, pause/resume/cancel/retry, run one) |
 | **Control** | Access (approvals, grants, capabilities), Memory (add/list with the duplicate check), Models (why each one cannot run), Status (counts, schema, what is blocked) |
 
 The tool strip in the top bar is drawn from live data, so it cannot flatter: `model: none
@@ -279,6 +281,13 @@ The page uses only these; so can you.
 | GET | `/api/code/sessions/{id}/file?path=…`, `/tree?path=…`, `/checks`, `/diff` | read a file, list a directory, the project's declared checks, the session's whole patch |
 | POST | `/api/code/sessions/{id}/{read,write,delete,run,test,close}` | the same four tools the CLI uses; `run` needs `shell.run`, `write` needs `fs.write` |
 | POST | `/api/code/runs/{id}/rerun` | replay a recorded command |
+| GET/POST | `/api/experiments` | experiments (each with its run counts), the tool roots, and POST to declare one |
+| GET | `/api/experiments/{id}` | one experiment: its runs, its metric names, its counts |
+| POST | `/api/experiments/{id}/run` | run it once with optional `params` and a `timeout` |
+| GET | `/api/experiments/{id}/compare?metric=…&minimise=1` | the ranking, the best run, and the notes that name what could not be ranked |
+| GET | `/api/experiments/{id}/runs` | the run ledger |
+| POST | `/api/experiments/{id}/{close,reopen}` | close it (runs stay readable) or put it back |
+| DELETE | `/api/experiments/{id}` | delete it and its runs |
 
 ### The Code panel, and why it is not an IDE
 
@@ -298,6 +307,20 @@ The results are shown, not hidden: the ledger under the editor is the same `code
 `code runs` prints, and a failed command is an ordinary answer (HTTP 200, `status: failed`,
 exit code in the row) because the request to run it succeeded. A refusal is a `403`; a bad field
 is a `400`; a closed session is a `400` that says so.
+
+### The Experiments panel, and the column that matters
+
+The panel is a list, a declare form (name, command with `{placeholders}`, parameters as
+`n=100, seed=1`, metrics source and path), a run card with one field per declared parameter, a
+run table and a compare card. The run table's last column is the point of the panel: it shows the
+metrics the experiment declared, or *not read: …* with the reason. There is no zero, because
+there was no number.
+
+A run from the page is the same `experiment run` the CLI makes: a `shell.run` call under the
+permission centre, a task, an artifact, and rows. A refusal is `403 approval_required` with the
+approval in the Access panel; a parameter that would not survive the shell is a `400 validation`
+and nothing starts. `compare` never hides a row: the card prints the notes, including the runs it
+could not rank and why.
 
 ### The consent ladder in the page
 

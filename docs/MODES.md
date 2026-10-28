@@ -38,7 +38,7 @@ there is no code.
 | M29 | GUI core workflows | done | this interface; a client of the same managers |
 | M30 | **Learning Mode** | **partial** | goals, items, hints, schedules, sessions; no model grading, no media (see §3) |
 | M31 | **Coding workspace** | done | sessions on a directory, edits as diffs, a recorded runner, named checks (see §2) |
-| M32 | Experimental Mode | not built | run experiments, compare runs, keep the record |
+| M32 | **Experimental Mode** | done | declared commands and parameters, real runs, a comparison that names what it could not rank (see §2.3) |
 | M33 | Play Mode | not built | games, simulations, sandboxed tinkering |
 | M34 | Voice and multimodal | not built | speech in/out, images, audio — no hardware here |
 | M35 | Dataset preparation | not built | collect, clean, split, version a corpus |
@@ -66,7 +66,8 @@ are the application calls; "status" is what works today.
 | Models | which models can run here | catalogue with the reason each cannot, **Connect Gemini** (name, model id, key *reference*), `test chat` per model, and the four-rung consent ladder with the button that climbs each rung | `ModelManager` + `runtime_availability` + `Workspace.assert_remote_allowed` + `GeminiChatRuntime` | works |
 | Status | what this home is | counts, schema, blocked items and the exact next command | `workspace.info()` | works |
 | **Code** | edit, run and test a directory | session list + open form, file path, read/save/delete, command box, "run the test check", diff, the ledger of every run, close | `CodingWorkspace` → `fs.read`/`fs.write`/`fs.delete`/`shell.run` through `ToolManager`, so every action is a grant or an approval; edits land as diffs on the session's task | **works** — see §2.2 |
-| Experimental / Play / Voice | **planned** | — | — | **not built**; no button pretends otherwise |
+| **Experiments** | run a declared command, keep the numbers, compare runs | experiment list + declare form (name, command, `{params}`, metrics source), run card with per-parameter overrides and a timeout, run table with the metric column that says *why* a run has none, compare card, close/reopen | `ExperimentService` → `shell.run` + `fs.read` through `ToolManager`; every run is a task with its log as an artifact, and metrics are rows | **works** — see §2.3 |
+| Play / Voice | **planned** | — | — | **not built**; no button pretends otherwise |
 
 The header of every mode shows the tools *that mode* has, from live data — `net.fetch:
 not granted` in Research, `model: none usable` in Chat, `grading: exact or self` in
@@ -79,7 +80,6 @@ were asked to do, and no button pretending they exist. Nothing below has code to
 
 | # | Mode as asked | What it was asked to do | What exists to build it on |
 |---|---------------|-------------------------|----------------------------|
-| M32 | Experimental Mode | run experiments, keep the parameters and results, compare runs | jobs, tasks, artifacts, versions, research sources, and now the M31 runner |
 | M33 | Play Mode | games, simulations and sandboxed tinkering | tools + permission centre (nothing may escape a grant) |
 | M34 | Voice and multimodal | speech in and out, images, audio | none in this build: no microphone, no weights, no GPU |
 | M35 | Dataset preparation | collect, clean, split and version a corpus | versions, artifacts, tool roots, search |
@@ -115,6 +115,33 @@ session across many commands, so the process exiting is not the work ending.
 What it does **not** do: no multi-file refactoring, no language server, no automatic fixing, no
 watching for changes. The checks are whatever the project declares in `archx.checks.json` - the
 app runs them and records them; it does not decide what "tested" means for your project.
+
+### 2.3 The Experiments workspace, and the one rule under it
+
+An experiment is a declaration - a command, its parameters, and where the numbers come from -
+and a run is a row that says what actually happened. The rule that shapes the whole mode is:
+
+**a metric is a metric only if the experiment said where it comes from.**
+
+So the metrics source is declared when the experiment is created (`none`, the last line of stdout
+as JSON, or a JSON file the run writes), and the runner reads *only* that. When the source is
+missing, malformed, or not numeric, the run is stored with a sentence saying so and **no** metric
+rows; `experiment compare` then lists those runs by id with the reason instead of dropping them.
+A table that treats "no answer" as zero is the failure this mode is built to make impossible.
+
+The parameters get the same treatment. A substituted value has to be a single shell-safe token,
+and an undeclared placeholder - or a declared parameter the command never uses - is refused by
+name *before* anything runs. Nothing is quoted behind your back, because quoting a value changes
+the command you meant.
+
+Everything else follows the pattern the Coding workspace set: each run goes through `shell.run`
+under the permission centre (no grant is exit 4 with the approval id, and the refusal is recorded
+as a run), each run is a task with its output kept as an artifact, and the numbers live in
+`experiment_metrics` so "which run was best" is a query and not a re-parse.
+
+What it does **not** do: no grid sweeps in the runner (`--set` is one run; a sweep is a loop over
+`experiment run`), no plotting (that is M41's job, and a chart drawn from these rows cannot
+disagree with the table), and no model asked to interpret a run.
 
 ## 3. What "done" does not mean (the honest gaps)
 
@@ -157,7 +184,7 @@ answers them; deleting stays a CLI act.
 
 ### 3.3 The GUI is a client, not a product surface for everything
 
-Eleven panels, all wired, nothing decorative. The shell is one page with a sidebar, a top bar
+Twelve panels, all wired, nothing decorative. The shell is one page with a sidebar, a top bar
 carrying each mode's live tool chips, three themes and a chat transcript with markdown,
 copy buttons and confirmations for anything that cannot be undone. Workflow authoring, streaming tokens, files, a
 multi-user story and TLS are not there; they are listed in `GAPS.md` and `docs/GUI.md` rather
@@ -165,8 +192,8 @@ than implied by a greyed-out button.
 
 ## 4. Where this leaves the roadmap
 
-Built: M01–M31 (with the two honest `partial`s above), plus the Research completion model
-(§3.1). Next: **M32 Experimental Mode**, then M33 Play, M34 Voice. The Research gaps in §3.1
+Built: M01–M32 (with the two honest `partial`s above), plus the Research completion model
+(§3.1). Next: **M33 Play Mode**, then M34 Voice. The Research gaps in §3.1
 remain the most valuable repair, and they no longer have an excuse: the runner and the record
 they needed now exist in the coding workspace, which can be reused rather than invented.
 

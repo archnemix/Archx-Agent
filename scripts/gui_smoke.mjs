@@ -91,6 +91,46 @@ const routes = {
     roots: ["/tmp/smoke"],
     stats: { sessions: 1, open: 1, changes: 1, runs: 1, failed_runs: 0 },
   },
+  "GET /api/experiments/xp_demo": {
+    experiment: {
+      id: "xp_demo", name: "sorting", hypothesis: "bigger n sorts more", command: "python bench.py {n}",
+      root: "/tmp/smoke", status: "open", open: true, params: [{ name: "n", default: 100, description: "" }],
+      param_names: ["n"], metrics_source: { kind: "stdout-json" },
+      created_at: "2026-10-28T10:00:00Z", updated_at: "2026-10-28T10:00:00Z", metadata: {},
+    },
+    runs: [
+      { id: "xr_1", experiment_id: "xp_demo", command: "python bench.py 100", status: "passed",
+        params: { n: "100" }, exit_code: 0, duration_ms: 20, metrics: { sorted: 10000 },
+        metrics_error: null, task_id: "tk_x", tool_run_id: null, artifact_id: null, seed: null,
+        note: null, created_at: "2026-10-28T10:02:00Z" },
+      { id: "xr_2", experiment_id: "xp_demo", command: "python bench.py 200", status: "failed",
+        params: { n: "200" }, exit_code: 1, duration_ms: 30, metrics: {},
+        metrics_error: "the last line of stdout is not valid JSON", task_id: "tk_x",
+        tool_run_id: null, artifact_id: null, seed: null, note: null,
+        created_at: "2026-10-28T10:03:00Z" },
+    ],
+    metric_names: ["sorted"],
+    stats: { runs: 2, by_status: { passed: 1, failed: 1 }, with_metrics: 1, without_metrics: 1 },
+  },
+  "GET /api/experiments": {
+    experiments: [
+      {
+        id: "xp_demo", name: "sorting", hypothesis: "bigger n sorts more", command: "python bench.py {n}",
+        root: "/tmp/smoke", status: "open", open: true, params: [{ name: "n", default: 100, description: "" }],
+        param_names: ["n"], metrics_source: { kind: "stdout-json" },
+        created_at: "2026-10-28T10:00:00Z", updated_at: "2026-10-28T10:00:00Z", metadata: {},
+        stats: { runs: 2, failed: 1 },
+      },
+    ],
+    roots: ["/tmp/smoke"],
+    stats: { experiments: 1, open: 1, runs: 2, failed_runs: 1, metrics: 1 },
+  },
+  "POST /api/experiments": {
+    id: "xp_new", name: "smoke", hypothesis: null, command: "python bench.py {n}", root: "/tmp/smoke",
+    status: "open", open: true, params: [{ name: "n", default: 100, description: "" }],
+    param_names: ["n"], metrics_source: { kind: "none" },
+    created_at: "2026-10-28T10:00:00Z", updated_at: "2026-10-28T10:00:00Z", metadata: {},
+  },
   "GET /api/conversations": [],
   "GET /api/tasks": [],
   "GET /api/tools": [],
@@ -154,8 +194,9 @@ function assert(condition, message) {
 }
 
 // the shell
-assert(doc.querySelectorAll(".tab").length === 11, "expected eleven mode tabs");
+assert(doc.querySelectorAll(".tab").length === 12, "expected twelve mode tabs");
 assert(doc.getElementById("view-code"), "the coding view is missing");
+assert(doc.getElementById("view-experiments"), "the experiments view is missing");
 assert(doc.getElementById("view-chat"), "chat view is missing");
 
 // every refresh button answers a click without throwing
@@ -213,6 +254,29 @@ await tick();
 await tick();
 assert(calls.includes("POST /api/code/sessions"), `the open form never posted: ${JSON.stringify(calls.slice(-4))}`);
 
+// experiments: the panel lists them, opens one, and shows what it could not read
+doc.querySelector('[data-view="experiments"]').click();
+await tick();
+await tick();
+assert(doc.querySelectorAll("#experiments-list .list-item").length === 1, "the experiment list did not render");
+doc.querySelector("#experiments-list .list-item").click();
+await tick();
+await tick();
+assert(calls.includes("GET /api/experiments/xp_demo"), `the experiment was never opened: ${JSON.stringify(calls.slice(-4))}`);
+const expPanel = doc.getElementById("experiment-detail").textContent;
+assert(expPanel.includes("python bench.py {n}"), "the command is not shown");
+assert(expPanel.includes("sorted=10000"), "the metric is not shown");
+assert(expPanel.includes("not read:"), "a run without metrics must say why, not show zeroes");
+assert(doc.getElementById("experiment-name"), "the declare form did not render");
+
+doc.getElementById("experiment-name").value = "smoke";
+doc.getElementById("experiment-command").value = "python bench.py {n}";
+doc.getElementById("experiment-params").value = "n=100";
+doc.getElementById("experiment-create-form").dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
+await tick();
+await tick();
+assert(calls.includes("POST /api/experiments"), `the declare form never posted: ${JSON.stringify(calls.slice(-4))}`);
+
 // no inline style attributes were produced, and no inline handlers leaked into the markup
 assert(!/style="/.test(doc.body.innerHTML), "inline style attribute produced");
 assert(!/onclick="/.test(doc.body.innerHTML), "inline handler produced");
@@ -224,4 +288,4 @@ if (problems.length) {
   for (const problem of problems) console.error(" - " + problem);
   process.exit(1);
 }
-console.log("smoke ok: 11 tabs, 4 gate rows, code panel renders a session, forms post, no page errors");
+console.log("smoke ok: 12 tabs, 4 gate rows, code and experiment panels render, forms post, no page errors");

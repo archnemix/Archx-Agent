@@ -145,10 +145,13 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 | Simple Mode: plain-language intents with a stated reason, honest refusals and printed next steps | verified (M27) |
 | Researcher Mode: validated plans, real sources, checked citations, coverage and limitations | verified (M28) |
 | Local GUI: token-authenticated, CSRF-protected, every panel wired to the real services | verified (M29) |
+| Learning Mode: goals with criteria, hint ladder, SM-2-lite schedule, exact/self grading | verified (M30) |
+| Coding workspace: sessions on a directory, edits as diffs, a recorded runner, named checks | verified (M31) |
+| Experimental Mode: declared commands and parameters, metrics only from the declared source, honest comparison | verified (M32) |
 | `net.fetch` as a capability: http(s) only, private addresses refused, redirects re-checked | verified (M28) |
 | Provider runtime boundary: llama.cpp in-process, OpenAI-compatible HTTP, tested error classification | verified for HTTP; llama.cpp needs the optional dependency and a model file |
 | CLI | verified end-to-end |
-| Learning, coding, play modes, media, datasets, training, remote compute, Blender, automations | **not built yet** (M30–M40, see PLAN.md) |
+| Play mode, voice and media, datasets, training, remote compute, Blender, automations | **not built yet** (M33–M40, see PLAN.md) |
 
 ## Design principles (enforced, not aspirational)
 

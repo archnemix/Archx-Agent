@@ -84,11 +84,12 @@ edit .ci/trigger -> push -> .github/workflows/model-matrix.yml (18 steps)
 | ~~4~~ | ~~`models probe --capability tools`~~ | **Done.** The runtime offers a tool, parses the call, and the probe distinguishes a call from a prose reply. | closed |
 | ~~5~~ | ~~**Streaming into the browser**~~ | **Done.** `POST /api/chat/stream` writes SSE for the same recorded turn; the page paints each chunk and swaps in the stored text at the end. | closed |
 | ~~6~~ | ~~**Templates for other OpenAI-compatible vendors**~~ | **Done, without inventing terms.** `--template openai-compatible` requires a base URL and records the privacy block as "unknown - not transcribed", so the consent ladder does the work. Per-vendor terms still need a human. | closed |
-| ~~7~~ | ~~**M31 Coding workspace**~~ | **Done.** Sessions on a directory inside the tool roots, every edit and command through the permission centre, diffs as artifacts, a recorded runner with replay, named checks, and an eleventh GUI panel. `docs/CODING.md`, `pytest tests/test_coding_m31.py` (64), `scripts/acceptance_m31.sh` (48). | closed |
+| ~~7~~ | ~~**M31 Coding workspace**~~ | **Done.** Sessions on a directory inside the tool roots, every edit and command through the permission centre, diffs as artifacts, a recorded runner with replay, named checks, and an eleventh GUI panel. `docs/CODING.md`, `pytest tests/test_coding_m31.py` (66), `scripts/acceptance_m31.sh` (48). | closed |
 | 8 | **Cohere against the real service** | It has no keyless mode at all, so its only proof is a live call (#2) or the `/v2/chat` stub already used. | blocked on #2 |
+| ~~9~~ | ~~**M32 Experimental Mode**~~ | **Done.** Declared commands and parameters, metrics read only from the declared source, runs as rows with tasks and artifacts, and a comparison that names what it could not rank. `docs/EXPERIMENTS.md`, `pytest tests/test_experiments_m32.py` (65), `scripts/acceptance_m32.sh` (53). | closed |
 
 What is left is one thing: a live call to a vendor's cloud API, which needs keys this environment
-does not have. M31 closed; M32 onward are the next milestones. Nothing in between is
+does not have. M32 closed; M33 onward are the next milestones. Nothing in between is
 "implemented but untested".
 
 ---

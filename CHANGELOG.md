@@ -5,6 +5,43 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 
 ## [Unreleased]
 
+### Fixed
+- **One save is one approval request.** `code write` reads the previous content to build a diff;
+  when `fs.read` was not granted that read created a *second* pending approval for a file the
+  user had only asked to write. It now asks the permission centre without opening a request and,
+  if the read is not allowed, records the diff as partial with the reason. (`docs/GUI.md` already
+  promised one request; now the code does too.)
+
+### Added - M32, Experimental Mode
+- **An experiment is a declaration.** `archx-agent experiment create NAME --command "python
+  bench.py {n}" --param n=100 --metric-source stdout-json` records the command, its parameters
+  and where the numbers come from, in `experiment_specs` (schema v22). A placeholder with no
+  declared parameter, a declared parameter the command never uses, and a metrics file that
+  escapes the experiment's directory are all refused by name before anything runs.
+- **A metric is a metric only if the experiment said where it comes from.** The runner reads the
+  declared source - the last non-empty line of stdout as JSON, or a JSON file the run writes,
+  through `fs.read` like everything else - and nothing else. A source that is missing,
+  malformed, or not numeric leaves the run with a `metrics_error` sentence and **no** metric
+  rows, and `experiment compare` lists those runs by id with the reason instead of dropping
+  them. No zero, no silent average.
+- **Every run is a run.** The parameters actually used, the resolved command, the exit code, the
+  duration, the output as an `experiment-log` artifact, a `experiment` task marked *manual* with
+  the numbers on its timeline, and `passed`/`failed`/`timeout`/`refused`/`error` as distinct
+  states. A command that exits non-zero is data, not an exception; a refusal (no `shell.run`
+  grant) is exit 4 with the approval id and a `refused` row.
+- **Comparison names what it cannot compare.** `experiment compare --metric quality [--minimise]`
+  picks the best run, and the notes list the runs with no value for that metric, the runs that
+  did not pass, and any run whose parameters do not match its neighbours.
+- **A substituted parameter must be one shell-safe token.** `--set 'n=5; rm -rf /'` is refused
+  before anything starts, rather than quoted into something the user did not ask for.
+- Metrics are rows in `experiment_metrics`, so the ranking is a query; `close`/`reopen` keep the
+  history and `delete --yes` takes the runs with it.
+- The GUI grew a twelfth panel (declare, run with overrides, the run table with the column that
+  says *why* a run has no number, and the comparison with its notes); `scripts/gui_smoke.mjs`
+  exercises it.
+- `pytest tests/test_experiments_m32.py` (65), `scripts/acceptance_m32.sh` (53 checks over a real
+  socket), a CI step, `docs/EXPERIMENTS.md`.
+
 ### Added - M31, the coding workspace
 - **A session is a directory, a task and a record.** `archx-agent code open` binds a directory
   inside the tool roots and gives it a `coding` task marked *manual* (a session is used across
@@ -26,7 +63,7 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 - The GUI grew an eleventh panel: session list, open form, path field, read/save/delete, a
   textarea, a command box, the check button, the diff and the ledger. It makes exactly the calls
   the CLI makes, and `scripts/gui_smoke.mjs` (jsdom) exercises it.
-- `pytest tests/test_coding_m31.py` (64), `scripts/acceptance_m31.sh` (48 checks over a real
+- `pytest tests/test_coding_m31.py` (66), `scripts/acceptance_m31.sh` (48 checks over a real
   socket), `docs/CODING.md`.
 
 ### Fixed

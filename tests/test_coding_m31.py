@@ -188,6 +188,24 @@ class TestNothingHappensWithoutAGrant:
 # editing
 # --------------------------------------------------------------------------
 class TestEditing:
+    def test_a_write_without_a_read_grant_asks_for_one_approval_not_two(self, ws, project):
+        """The diff is worth having, but not at the price of a second approval request."""
+        session = ws.code.open()
+        with pytest.raises(ApprovalRequiredError):
+            ws.code.write(session.id, "hello.py", "print('hi')\n")
+        asked = {row.capability for row in ws.permissions.pending()}
+        assert asked == {"fs.write"}, asked
+        assert (project / "hello.py").read_text().startswith("def greet")
+
+    def test_a_write_allowed_without_a_read_says_the_diff_is_partial(self, ws, project):
+        session = ws.code.open()
+        ws.permissions.grant("fs.write", subject="*", duration="persistent", confirm=True)
+        change = ws.code.write(session.id, "hello.py", "print('hi')\n")
+        assert change.action == "modify"
+        assert "fs.read is not granted" in change.diff
+        assert not ws.permissions.pending()
+        assert (project / "hello.py").read_text() == "print('hi')\n"
+
     def test_a_new_file_is_a_create_with_a_patch(self, granted):
         ws, sid = granted
         change = ws.code.write(sid, "new.py", "print('hello')\n")

@@ -112,7 +112,7 @@ would be wrong to bolt on later.
 
 ## Where the evidence is
 
-* `pytest tests/test_coding_m31.py` — 64 tests: the schema, opening and refusing to open, the
+* `pytest tests/test_coding_m31.py` — 66 tests: the schema, opening and refusing to open, the
   permission behaviour (including the once-grant and the single-approval edit), edits and their
   diffs, deletes, the runner's statuses, named checks and manifest strictness, replay, the
   record, and the GUI as a client of the same service.

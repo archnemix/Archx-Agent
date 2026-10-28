@@ -33,8 +33,8 @@ acceptance not fully demonstrated · **not started**
 | **M29** | **GUI core workflows** | **done** | `tests/test_gui_m29.py` (85), `docs/GUI.md`, `scripts/acceptance_m29.sh` (54 checks over a real socket) |
 | **M30** | **Learning Mode** | **done · scoped** | `tests/test_learning_m30.py` (121), `docs/LEARNING.md`, `scripts/acceptance_m30.sh` (90 checks). Scope: exact/self grading, no model marking; no media items (`docs/MODES.md` §3.2) |
 
-| **M31** | **Coding workspace** | **done** | `tests/test_coding_m31.py` (64), `docs/CODING.md`, `scripts/acceptance_m31.sh` (48 checks over a real socket). Scope: a session is a directory inside the tool roots, every read/write/run is a tool call, edits are diffs on the session task, and the runner records every command |
-| M32 | Experimental Mode | not started | - |
+| **M31** | **Coding workspace** | **done** | `tests/test_coding_m31.py` (66), `docs/CODING.md`, `scripts/acceptance_m31.sh` (48 checks over a real socket). Scope: a session is a directory inside the tool roots, every read/write/run is a tool call, edits are diffs on the session task, and the runner records every command |
+| **M32** | **Experimental Mode** | **done** | `tests/test_experiments_m32.py` (65), `docs/EXPERIMENTS.md`, `scripts/acceptance_m32.sh` (53 checks over a real socket). Scope: an experiment is a declared command, parameters and metrics source; a metric is read only from that source or not at all, and a comparison names what it could not rank |
 | M33 | Play Mode | not started | - |
 | M34 | Voice and multimodal foundation | not started | - |
 | M35 | Dataset preparation | not started | - |

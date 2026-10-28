@@ -61,11 +61,14 @@ commit="$(awk -F'\t' '$1=="commit"{print $2}' "$run/meta.tsv" 2>/dev/null || tru
 # the acceptance scripts are their own evidence: a count out of their log, not a claim
 code_line="$(grep -Eo 'M31 acceptance: [0-9]+ checks passed' "$run"/0*-coding-acceptance.log 2>/dev/null \
   | tail -1 | grep -Eo '[0-9]+ checks passed' || true)"
+exp_line="$(grep -Eo 'M32 acceptance: [0-9]+ checks passed' "$run"/0*-experiment-acceptance.log 2>/dev/null \
+  | tail -1 | grep -Eo '[0-9]+ checks passed' || true)"
 
 # -- history -------------------------------------------------------------------------------
 touch "$OUT/RUNS.tsv"
 others="${se_line} ${it_line}"
 [ -n "$code_line" ] && others="$others · ${code_line}"
+[ -n "$exp_line" ] && others="$others · ${exp_line}"
 # rewrite rather than append, so re-running this for the same id updates its row
 if grep -q "^$ID" "$OUT/RUNS.tsv" 2>/dev/null; then
   grep -v "^$ID" "$OUT/RUNS.tsv" > "$OUT/RUNS.tsv.tmp" || true
@@ -150,5 +153,5 @@ HEAD2
 } > "$OUT/README.md"
 
 printf 'wrote docs/ci/ from %s: %s step(s), %s failed\n' "$ID" "$steps" "$failed"
-printf '  pytest      %s\n  stress/edge %s\n  integration %s\n  coding      %s\n' \
-  "$pytest_line" "$se_line" "$it_line" "${code_line:--}"
+printf '  pytest      %s\n  stress/edge %s\n  integration %s\n  coding      %s\n  experiments %s\n' \
+  "$pytest_line" "$se_line" "$it_line" "${code_line:--}" "${exp_line:--}"

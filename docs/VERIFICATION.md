@@ -3465,6 +3465,106 @@ $ .venv/bin/python -m pytest -q
 
 ---
 
+## M32 acceptance transcript
+
+This is a real run of `scripts/acceptance_m32.sh` in this environment, copied from its output:
+the commands that produced them; the run ends with `M32 acceptance: 53 checks passed, 0 failed`.
+
+```text
+M32 acceptance on /tmp/archx-m32-transcript
+
+### an experiment is a declaration, and a bad one is refused
+experiment: ex_0001m61gwwkf00000000534a585643173ce3
+[ok]   the declaration is a row = 1
+[ok]   it is open = open
+[ok]   the metrics source is stored as declared = {"kind": "stdout-json"}
+$ archx-agent experiment create broken --command "python bench.py {depth}"
+[ok]   an undeclared placeholder is refused = 2
+[ok]   and it is named = 1
+$ archx-agent experiment create unused --command "echo hi" --param unused=1
+[ok]   a parameter the command never uses is refused = 2
+$ archx-agent experiment create nometrics --command "echo hi" --metric-source vibes
+[ok]   an invented metrics source is refused = 2
+[ok]   no refused declaration was stored = 1
+
+### a run without a grant is recorded as refused, and runs nothing
+$ archx-agent experiment run ex_0001m61gwwkf00000000534a585643173ce3
+[ok]   an ungranted run exits 4 = 4
+[ok]   the refusal names the approval to approve = yes
+[ok]   the refusal is a row, not an absence = refused
+[ok]   and it says why there are no numbers = the command was refused before it ran
+
+### with shell.run granted, the run is real
+run: xr_0001m61gwy5r000000014f4f984b92ad33b4
+[ok]   the run passed = passed
+[ok]   the parameters it actually used are kept = {"n": "5"}
+[ok]   the resolved command is kept = python bench.py 5
+[ok]   the metrics are rows = 2
+[ok]   the size metric is the number the command printed = 5.0
+[ok]   the run belongs to a task = 1
+[ok]   and the task completed = completed
+[ok]   the output is an artifact = 1
+[ok]   the task timeline carries the metric = 1
+
+### two more runs, so there is something to compare
+$ archx-agent experiment compare ex_0001m61gwwkf00000000534a585643173ce3 --metric quality
+sizes: quality (highest wins, 4 run(s))
+  best  xr_0001m61gwyvv0000000244ffbb8b0e64df5f  quality=4  n=40
+  xr_0001m61gwxfg000000000a6123f9dfd0a8d0  refused  exit None
+  note: xr_0001m61gwxfg000000000a6123f9dfd0a8d0 is not ranked: the command was refused before it ran
+  note: 3 of 4 run(s) have a value for quality
+  note: 1 run(s) did not pass; their metrics are shown but a failed run is not a result
+[ok]   the best run is the highest quality = 4.0
+[ok]   minimise flips the ranking = 0.5
+[ok]   an unknown metric is refused with the known ones listed = 1
+[ok]   the runs are all in the ledger = 4
+
+### metrics are read from the declared source, or not at all
+[ok]   stdout that is not JSON leaves no metric = 0
+[ok]   and the run says why, in words = 1
+[ok]   a run with no metrics is still a run = passed
+$ archx-agent experiment create failed --command "python broken.py"
+[ok]   a failing command exits 1 = 1
+[ok]   and is recorded as failed with its exit code = failed:3
+$ archx-agent experiment create filed --command "python tofile.py" --metric-source file --metric-file metrics.json
+[ok]   a metrics file is read from the run's own directory = 0.91
+[ok]   a missing metrics file is named, not zeroed = 1
+
+### a parameter has to survive the shell it is substituted into
+$ archx-agent experiment run ex_0001m61gwwkf00000000534a585643173ce3 --set "n=5; rm -rf /"
+[ok]   an unsafe value is refused before it runs = 2
+[ok]   and nothing was added to the ledger = 4
+[ok]   the refusal explains the rule = 1
+[ok]   an unknown parameter is refused = 2
+
+### the record stays readable, and closing is not deleting
+[ok]   the experiment is closed = closed
+[ok]   a closed experiment cannot run = 2
+[ok]   its four runs are still there = 4
+[ok]   show still works on a closed experiment = 0
+[ok]   reopening is allowed = open
+
+### the GUI is a client of the same rows
+[ok]   the page lists the experiments = 5
+[ok]   the page shows a run's metrics = 4
+[ok]   the page compares on a named metric = 4.0
+[ok]   a bad parameter is a 400 over HTTP = 400
+[ok]   an unauthenticated call is refused = 401
+
+### deleting takes the runs and the numbers with it
+[ok]   delete without --yes is refused = 2
+[ok]   delete with --yes removes the experiment = 0
+[ok]   and its runs = 0
+[ok]   and its metrics = 0
+
+### the record survives a restart
+[ok]   listing still works = 0
+[ok]   the metrics are still queryable after reopening the home = 4.0
+[ok]   stats agree with the rows = 7
+
+M32 acceptance: 53 checks passed, 0 failed
+```
+
 ## M31 acceptance transcript
 
 Installed console script, a fresh home (schema v21), a real project directory, and - from the
