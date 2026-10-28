@@ -141,6 +141,35 @@ check "the reply is labelled simulated" "$(printf '%s' "$CHAT" | jq_ "d['data'][
 check "the turn recorded a task of type chat" "$(printf '%s' "$CHAT" | jq_ "d['data']['task']['type']")" "chat"
 check "the task is in the task list the CLI shows" "$("$CLI" --json tasks list --limit 5 | jq_ "any(t['id'] == '$(printf '%s' "$CHAT" | jq_ "d['data']['task']['id']")' for t in d)")" "True"
 
+say "the same turn can be watched as it arrives"
+STREAM="$(curl -s -N -X POST -H "X-Archx-Token: $TOKEN" -H "Content-Type: application/json" \
+  -d '{"message":"stream this one"}' "$BASE/api/chat/stream")"
+check "the stream is server-sent events" \
+  "$(curl -s -o /dev/null -w '%{content_type}' -X POST -H "X-Archx-Token: $TOKEN" \
+      -H "Content-Type: application/json" -d '{"message":"type check"}' "$BASE/api/chat/stream")" \
+  "text/event-stream; charset=utf-8"
+check "it sends more than one chunk, then a done frame" \
+  "$([ "$(printf '%s' "$STREAM" | grep -c '^event: chunk')" -gt 1 ] && echo yes || echo no)" "yes"
+check "and exactly one done frame" "$(printf '%s' "$STREAM" | grep -c '^event: done')" "1"
+check "the text the page paints adds up to the stored reply" \
+  "$(printf '%s' "$STREAM" | "$PY" -c "
+import json, sys
+chunks, done, event = [], None, None
+for line in sys.stdin:
+    if line.startswith('event: '):
+        event = line[7:].strip()
+    elif line.startswith('data: '):
+        payload = json.loads(line[6:])
+        if event == 'chunk':
+            chunks.append(payload['text'])
+        elif event == 'done':
+            done = payload
+print(1 if done and ''.join(chunks) == done['text'] else 0)
+")" "1"
+check "a stream needs a credential, and says so" \
+  "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Content-Type: application/json" \
+      -d '{"message":"no token"}' "$BASE/api/chat/stream")" "403"
+
 say "a memory stored in the GUI is a real memory"
 MEM="$(post_json "$BASE/api/memory" '{"kind":"permanent","title":"GUI note","content":"the GUI writes through the same manager","category":"fact"}')"
 check "the memory was stored" "$(printf '%s' "$MEM" | jq_ "d['data']['id'].startswith('mem_')")" "True"

@@ -475,20 +475,38 @@ class ModelRouter:
 
         started = time.perf_counter()
         try:
-            result = runtime.chat(messages, params)
+            if capability == "tools":
+                # The tool has to *be offered* for the reply to mean anything: a model that is
+                # never given a tool cannot demonstrate calling one.
+                caller = getattr(runtime, "chat_with_tools", None)
+                if caller is None:
+                    raise ValidationError(
+                        f"the {model.runtime} runtime has no tool-calling path, so tool use "
+                        "cannot be probed (evidence is not invented)"
+                    )
+                result = caller(messages, params)
+            else:
+                result = runtime.chat(messages, params)
             latency = (time.perf_counter() - started) * 1000.0
             text = (result.text or "").strip()
-            if not text:
-                raise ValidationError("the runtime returned an empty reply")
             raw = getattr(result, "raw", {}) or {}
             tool_calls = raw.get("tool_calls") or []
-            if capability == "tools" and not tool_calls:
-                raise ValidationError(
-                    "the runtime answered but did not return a tool call; tool use is not proven"
-                )
+            if capability == "tools":
+                if not tool_calls:
+                    raise ValidationError(
+                        "the runtime answered but did not return a tool call; tool use is not proven"
+                    )
+                name = tool_calls[0].get("name") or "a tool"
+                text = f"called {name} with {tool_calls[0].get('arguments') or '{}'}"
+            elif not text:
+                raise ValidationError("the runtime returned an empty reply")
             if capability == "json":
                 _require_json(text)
-            outcome, detail = "passed", f"{len(text)} chars, finish_reason={result.finish_reason}"
+            if capability == "tools":
+                detail = f"{text}, finish_reason={result.finish_reason}"
+            else:
+                detail = f"{len(text)} chars, finish_reason={result.finish_reason}"
+            outcome = "passed"
             payload = {"capability": capability, "outcome": outcome, "detail": detail}
         except Exception as exc:  # noqa: BLE001 - any failure is a measurement
             latency = (time.perf_counter() - started) * 1000.0

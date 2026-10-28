@@ -176,6 +176,19 @@ class Response:
         return json.dumps(self.payload, default=str).encode("utf-8")
 
 
+@dataclass
+class SSEStream:
+    """A response with no length: frames are written as they are produced.
+
+    Server-sent events, because a chat reply arrives over time and the browser has to see each
+    piece as it comes. No ``Content-Length`` means the connection is closed to end the stream,
+    so the handler must also send ``Connection: close``.
+    """
+
+    frames: Iterable[str]
+    content_type: str = "text/event-stream; charset=utf-8"
+
+
 # --------------------------------------------------------------------------
 # the API
 # --------------------------------------------------------------------------
@@ -293,7 +306,7 @@ class GuiApi:
         raise ApiError(401, "unauthorized", "this GUI needs its access token")
 
     # -- dispatch -------------------------------------------------------
-    def dispatch(self, request: Request) -> Response:
+    def dispatch(self, request: Request) -> Response | SSEStream:
         with self._lock:
             self.requests += 1
         try:
@@ -314,8 +327,10 @@ class GuiApi:
                 if match is None:
                     continue
                 result = definition.handler(self, request, match)
-                if isinstance(result, (Response, bytes, str)):
-                    return result if isinstance(result, Response) else Response(payload=result)
+                if isinstance(result, (Response, SSEStream)):
+                    return result
+                if isinstance(result, (bytes, str)):
+                    return Response(payload=result)
                 return Response(payload={"ok": True, "data": result})
             raise ApiError(404, "no_route", f"no route for {request.method} {request.path}")
         except ApiError as exc:
@@ -419,6 +434,55 @@ class GuiApi:
         payload = reply.to_dict()
         payload["simulated"] = bool(reply.simulated)
         return payload
+
+    @route("POST", "/api/chat/stream", "The same chat turn, streamed as server-sent events.")
+    def post_chat_stream(self, request: Request, match: re.Match[str]) -> SSEStream:
+        message = str(request.field("message", required=True)).strip()
+        if len(message) > 8000:
+            raise ApiError(400, "validation", "a message must be at most 8000 characters")
+        conversation_id = request.payload().get("conversation_id") or None
+        model_id = request.payload().get("model_id") or None
+        return SSEStream(self._chat_frames(message, conversation_id, model_id))
+
+    def _chat_frames(self, message: str, conversation_id: str | None, model_id: str | None) -> Iterable[str]:
+        """Run the turn on a worker thread and yield what it produces.
+
+        The chat service already accepts a callback per chunk (the CLI's `--stream` uses it), so
+        this is plumbing rather than a second implementation: the same task is created, the same
+        messages are stored, and the last frame carries the recorded reply.
+        """
+        import queue
+
+        frames: queue.Queue[tuple[str, Any] | None] = queue.Queue()
+
+        def emit(piece: str) -> None:
+            frames.put(("chunk", {"text": piece}))
+
+        def work() -> None:
+            try:
+                reply = self.ws.chat.send(
+                    message,
+                    conversation_id=conversation_id,
+                    model_id=model_id,
+                    stream_callback=emit,
+                )
+                payload = reply.to_dict()
+                payload["simulated"] = bool(reply.simulated)
+                frames.put(("done", payload))
+            except ArchxError as exc:
+                frames.put(("error", {"code": getattr(exc, "code", "error"), "message": exc.message}))
+            except Exception as exc:  # noqa: BLE001 - a stream must always end with something
+                frames.put(("error", {"code": "internal", "message": str(exc)[:400]}))
+            finally:
+                frames.put(None)
+
+        threading.Thread(target=work, name="chat-stream", daemon=True).start()
+        while True:
+            item = frames.get()
+            if item is None:
+                return
+            event, payload = item
+            yield f"event: {event}\ndata: {json.dumps(payload, default=str)}\n\n"
 
     @route("GET", "/api/conversations/{conversation_id}/messages", "The messages of one conversation.")
     def get_messages(self, request: Request, match: re.Match[str]) -> dict[str, Any]:
@@ -1116,7 +1180,9 @@ class GuiHandler(BaseHTTPRequestHandler):
             response = self.api.dispatch(request)
         self._send(response, head=method == "HEAD")
 
-    def _send(self, response: Response, *, head: bool = False) -> None:
+    def _send(self, response: Response | SSEStream, *, head: bool = False) -> None:
+        if isinstance(response, SSEStream):
+            return self._send_stream(response, head=head)
         body = response.encode()
         self.send_response(response.status)
         self.send_header("Content-Type", response.content_type)
@@ -1131,6 +1197,26 @@ class GuiHandler(BaseHTTPRequestHandler):
                 self.wfile.write(body)
             except (BrokenPipeError, ConnectionResetError):  # pragma: no cover - client vanished
                 pass
+
+
+    def _send_stream(self, stream: SSEStream, *, head: bool = False) -> None:
+        self.close_connection = True
+        self.send_response(200)
+        self.send_header("Content-Type", stream.content_type)
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Accel-Buffering", "no")  # a proxy must not hold the frames back
+        self.send_header("Connection", "close")
+        for key, value in _SECURITY_HEADERS.items():
+            self.send_header(key, value)
+        self.end_headers()
+        if head:
+            return
+        try:
+            for frame in stream.frames:
+                self.wfile.write(frame.encode("utf-8"))
+                self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError):  # pragma: no cover - the page was closed
+            pass
 
 
 class GuiServer:

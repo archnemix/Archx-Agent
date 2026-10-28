@@ -6,6 +6,17 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 ## [Unreleased]
 
 ### Added
+- **The chat reply streams into the page.** `POST /api/chat/stream` writes server-sent events
+  (`chunk` … `done`, or `error`) for the same turn the non-streaming route records; the page reads
+  the body with `fetch`/`getReader`, paints each piece as it arrives, and replaces it with the
+  recorded text at the end. No `Content-Length`, `Connection: close`, and a fallback to the
+  whole-reply endpoint when the browser cannot stream.
+- **`models probe --capability tools` can actually pass now.** Tool calling was offered and never
+  measured, because nothing ever offered a tool. `HttpChatRuntime.chat_with_tools` and
+  `SdkTransport.chat_with_tools` (OpenAI shape, plus Anthropic's flat schema) send the tool and
+  parse the call; a prose reply, a missing path, or a client with no implementation each fail in
+  their own words rather than being counted as success.
+- `scripts/acceptance_m29.sh` grew to 60 checks (the stream, its frames, and its credential).
 - **The CI workflow runs, and its output lives in the repository.** Editing `.ci/trigger` starts
   `model-matrix.yml`; every step writes `$LOGDIR/NN-<name>.log` and a `status.tsv` row, and a
   background publisher pushes the folder to the `ci-logs` branch every 45 s. `scripts/ci_logs.sh

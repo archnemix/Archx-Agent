@@ -16,6 +16,44 @@ That is the whole design argument. A "friendly" second implementation is how pro
 with two truths about what happened, and how a convenience screen becomes a way around the
 approval centre.
 
+## The reply arrives while it is being written
+
+`POST /api/chat` returns a finished reply; that is right for a script and wrong for a person
+watching a 135M model think. `POST /api/chat/stream` runs **the same turn** - same task record,
+same stored messages - and writes each piece as server-sent events:
+
+```text
+event: chunk
+data: {"text": "[SIMULATED] "}
+
+event: chunk
+data: {"text": "I received 3 words. "}
+
+event: done
+data: {"conversation_id": "conv_...", "task": {...}, "text": "...", "completion_tokens": 9, ...}
+```
+
+Three decisions worth naming:
+
+* **no `Content-Length`.** A length means the handler buffers every frame until the end, which
+  is the opposite of streaming. The connection is closed to end the stream, so `Connection:
+  close` goes with it.
+* **the same service, not a second implementation.** `ChatService.send` already takes a
+  `stream_callback` (the CLI's `--stream` uses it); the route puts a worker thread behind a queue
+  and yields what it produces.
+* **a failure still ends the stream**, with an `error` frame - a refused or broken turn must not
+  leave the page waiting forever.
+
+The page reads the body with `fetch` + `getReader` rather than `EventSource`, because
+`EventSource` cannot POST. When the reply is done, the streamed text is replaced by the recorded
+one, so what is on screen is what is in the database. If the browser cannot stream, the page falls
+back to the whole-reply endpoint instead of failing.
+
+Verified: `tests/test_gui_stream.py` (8 tests over a real socket: the content type, that chunks
+arrive separately and before the `done`, that the turn is recorded like any other, that it needs a
+credential, and that a refused turn ends with an `error` frame) and five checks in
+`scripts/acceptance_m29.sh`.
+
 ## Starting it
 
 The first thing it prints is the access token:

@@ -373,6 +373,25 @@ Two more caveats. A quick tunnel is **unauthenticated and public** while it live
 model as exposed for those minutes. And the runner has no GPU: a 135M model answers at a few
 tokens a second, which is enough for "did a token come out", not for "is it good".
 
+## Tool calling, which was claimed and never measured
+
+`models probe --capability tools` existed, was offered in the CLI, and could never pass: nothing
+ever *offered* the model a tool, so there was never a tool call to inspect. A capability that
+cannot fail proves nothing, so it now has a real path:
+
+* `HttpChatRuntime.chat_with_tools` sends `tools` + `tool_choice: auto` in the OpenAI shape and
+  parses `choices[0].message.tool_calls` into `raw["tool_calls"]` as `{id, name, arguments}`.
+* `SdkTransport.chat_with_tools` does the same for the OpenAI-shaped clients and speaks
+  Anthropic's flat `{name, description, input_schema}` shape for its own. A client whose tool
+  calling is not implemented raises, naming itself - it does not pretend.
+* the probe calls that path, and fails with `the model answered without calling the tool` when a
+  reply arrives as prose: being offered a tool is not the same as calling one.
+* a runtime with no such path (the scripted double, for instance) records a failed probe that says
+  `has no tool-calling path, so tool use cannot be probed (evidence is not invented)`.
+
+`tests/test_tool_probe.py` covers all four outcomes, including the CLI
+(`models probe stub-model --capability tools` → `tools: passed`, `state now verified`).
+
 ## Adding a provider
 
 1. `providers add <name> --template <slug>` (or `--base-url` for anything custom);

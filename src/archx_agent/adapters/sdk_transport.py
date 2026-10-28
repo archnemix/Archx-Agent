@@ -360,6 +360,124 @@ class SdkTransport:
         except BaseException as exc:  # noqa: BLE001 - every vendor failure becomes one of ours
             raise self._fail(exc) from exc
 
+    def chat_with_tools(
+        self,
+        messages: Sequence[dict[str, str]],
+        params: GenerationParams,
+        *,
+        model: str,
+        tools: list[dict[str, Any]] | None = None,
+    ) -> ChatResult:
+        """One turn with a tool offered, parsed into ``raw["tool_calls"]``.
+
+        Only the clients whose tool calling is implemented here accept this; anything else says
+        so instead of pretending, because a probe that cannot fail proves nothing.
+        """
+        if self.key in ("openai", "mistral", "groq", "together"):
+            return self._tools_openai_shaped(messages, params, model, tools)
+        if self.key == "anthropic":
+            return self._tools_anthropic(messages, params, model, tools)
+        raise ProviderError(
+            f"tool calling is not implemented for the {self.spec.label} client; "
+            "the probe will not claim it",
+            provider=self.key,
+        )
+
+    def _tools_openai_shaped(self, messages, params, model, tools) -> ChatResult:
+        if self.key == "mistral":
+            client = self._mistral_client()
+            call = client.chat.complete
+        elif self.key in ("groq", "together"):
+            client = self._openai_compatible_client()
+            call = client.chat.completions.create
+        else:
+            client = self._openai()
+            call = client.chat.completions.create
+        candidates: dict[str, Any] = {
+            "model": model,
+            "messages": list(messages),
+            "temperature": params.temperature,
+            "tools": tools or _OPENAI_PROBE_TOOL,
+            "tool_choice": "auto",
+        }
+        budget = "max_completion_tokens" if _accepts(call, "max_completion_tokens") else "max_tokens"
+        candidates[budget] = params.max_tokens
+        result = call(**_supported(call, candidates))
+        choice = (result.choices or [None])[0]
+        if choice is None:
+            raise MalformedOutputError("the provider returned no choices", provider=self.key)
+        message = getattr(choice, "message", None)
+        calls = getattr(message, "tool_calls", None) or []
+        if not calls:
+            raise MalformedOutputError(
+                "the model answered without calling the tool; tool use is not proven", provider=self.key
+            )
+        serialised = [
+            {
+                "id": getattr(c, "id", None),
+                "name": getattr(getattr(c, "function", None), "name", None),
+                "arguments": getattr(getattr(c, "function", None), "arguments", None),
+            }
+            for c in calls
+        ]
+        usage = getattr(result, "usage", None)
+        return ChatResult(
+            text="",
+            model_id=getattr(result, "model", None) or model,
+            prompt_tokens=int(getattr(usage, "prompt_tokens", 0) or 0),
+            completion_tokens=int(getattr(usage, "completion_tokens", 0) or 0),
+            finish_reason=_finish(getattr(choice, "finish_reason", None)),
+            raw={"sdk": self.key, "tool_calls": serialised},
+        )
+
+    def _tools_anthropic(self, messages, params, model, tools) -> ChatResult:
+        client = self._anthropic_client()
+        system_parts = [m["content"] for m in messages if m.get("role") == "system"]
+        turns = [
+            {"role": "assistant" if m.get("role") == "assistant" else "user", "content": m.get("content", "")}
+            for m in messages
+            if m.get("role") != "system"
+        ] or [{"role": "user", "content": "".join(system_parts) or "hello"}]
+        # Anthropic's tool shape is flat: name, description, input_schema
+        offered = tools or [
+            {
+                "name": "record_value",
+                "description": "Record one integer value.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {"value": {"type": "integer"}},
+                    "required": ["value"],
+                },
+            }
+        ]
+        candidates: dict[str, Any] = {
+            "model": model,
+            "max_tokens": max(int(params.max_tokens), 1),
+            "messages": turns,
+            "system": "\n".join(system_parts) or None,
+            "tools": offered,
+        }
+        result = client.messages.create(**_supported(client.messages.create, candidates))
+        calls = [
+            {"id": getattr(block, "id", None), "name": getattr(block, "name", None),
+             "arguments": getattr(block, "input", None)}
+            for block in (getattr(result, "content", None) or [])
+            if getattr(block, "type", "") == "tool_use"
+        ]
+        if not calls:
+            raise MalformedOutputError(
+                "the model answered without calling the tool; tool use is not proven", provider=self.key
+            )
+        usage = getattr(result, "usage", None)
+        return ChatResult(
+            text="",
+            model_id=getattr(result, "model", None) or model,
+            prompt_tokens=int(getattr(usage, "input_tokens", 0) or 0),
+            completion_tokens=int(getattr(usage, "output_tokens", 0) or 0),
+            finish_reason=_finish(getattr(result, "stop_reason", None)),
+            raw={"sdk": self.key, "tool_calls": calls},
+        )
+
     def _stream_openai_shaped(self, messages, params, model) -> Iterator[str]:
         if self.key == "mistral":
             client = self._mistral_client()
@@ -792,6 +910,20 @@ class SdkTransport:
             finish_reason=finish,
             raw={"sdk": self.key, "total_tokens": getattr(usage, "total_token_count", None)},
         )
+
+
+#: Offered when a caller does not supply its own tools. Small on purpose: the probe asks
+#: whether the model calls *a* tool, not whether it is good at it.
+_OPENAI_PROBE_TOOL = [
+    {
+        "type": "function",
+        "function": {
+            "name": "record_value",
+            "description": "Record one integer value.",
+            "parameters": {"type": "object", "properties": {"value": {"type": "integer"}}, "required": ["value"]},
+        },
+    }
+]
 
 
 def _accepts(callable_obj: Any, name: str) -> bool:

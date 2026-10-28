@@ -34,6 +34,16 @@ class H(BaseHTTPRequestHandler):
         p = self.path.split("?")[0]
         if p != "/v1/chat/completions":
             return self._404()
+        if body.get("tools"):
+            # a tool was offered: call it, so `models probe --capability tools` has something real
+            return self._json(200, {
+                "id": "x", "object": "chat.completion", "created": 1, "model": "local",
+                "choices": [{"index": 0, "finish_reason": "tool_calls", "message": {
+                    "role": "assistant", "content": None,
+                    "tool_calls": [{"id": "call_1", "type": "function",
+                                    "function": {"name": "record_value", "arguments": "{\"value\": 1}"}}]}}],
+                "usage": {"prompt_tokens": 11, "completion_tokens": 5},
+            })
         if body.get("stream"):
             frames = [{"id": "c", "object": "chat.completion.chunk", "model": "local",
                        "choices": [{"index": 0, "delta": {"content": "Hello "}, "finish_reason": None}]},

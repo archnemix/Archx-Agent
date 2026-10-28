@@ -211,6 +211,82 @@ class HttpChatRuntime(BaseRuntime):
             raw={"id": data.get("id")},
         )
 
+    #: The OpenAI tool shape, which the probe uses. Declared here rather than in the router
+    #: because the *runtime* knows its vendor's format; a caller should not have to.
+    PROBE_TOOL = {
+        "type": "function",
+        "function": {
+            "name": "record_value",
+            "description": "Record one integer value.",
+            "parameters": {
+                "type": "object",
+                "properties": {"value": {"type": "integer"}},
+                "required": ["value"],
+            },
+        },
+    }
+
+    def chat_with_tools(
+        self,
+        messages: Sequence[dict[str, str]],
+        params: GenerationParams,
+        *,
+        tools: list[dict[str, Any]] | None = None,
+    ) -> ChatResult:
+        """One turn with a tool offered, parsed into ``raw["tool_calls"]``.
+
+        Separate from :meth:`chat` on purpose: a model that answers *without* calling the tool
+        has not demonstrated tool use, and the probe must be able to see the difference.
+        """
+        if not self.loaded:
+            raise ProviderError("no model loaded; call load() first", provider=self.provider)
+        body: dict[str, Any] = {
+            "model": self.spec.model if self.spec else None,
+            "messages": [{"role": m["role"], "content": m["content"]} for m in messages],
+            "temperature": params.temperature,
+            "tools": tools or [self.PROBE_TOOL],
+            "tool_choice": "auto",
+            "stream": False,
+        }
+        started = time.perf_counter()
+        data = self._request("POST", self._chat_path(), body)
+        latency = round((time.perf_counter() - started) * 1000, 2)
+        choices = data.get("choices") if isinstance(data, dict) else None
+        if not choices:
+            raise MalformedOutputError(f"response has no choices: {str(data)[:200]}", provider=self.provider)
+        message = choices[0].get("message") or {}
+        calls = message.get("tool_calls") or []
+        if not calls:
+            text = (message.get("content") or "").strip()
+            raise MalformedOutputError(
+                "the model answered without calling the tool "
+                f"(reply: {text[:120]!r}); tool use is not proven",
+                provider=self.provider,
+            )
+        text = message.get("content") or ""
+        usage = data.get("usage") or {}
+        return ChatResult(
+            text=text if isinstance(text, str) else "",
+            model_id=str(data.get("model") or (self.spec.model if self.spec else "")),
+            prompt_tokens=int(usage.get("prompt_tokens") or 0),
+            completion_tokens=int(usage.get("completion_tokens") or 0),
+            finish_reason=str(choices[0].get("finish_reason") or "tool_calls"),
+            latency_ms=latency,
+            # one shape everywhere: {"id", "name", "arguments"} - the OpenAI wire form nests the
+            # name under "function", and the router should not have to know that
+            raw={
+                "id": data.get("id"),
+                "tool_calls": [
+                    {
+                        "id": call.get("id"),
+                        "name": (call.get("function") or {}).get("name"),
+                        "arguments": (call.get("function") or {}).get("arguments"),
+                    }
+                    for call in calls
+                ],
+            },
+        )
+
     def stream(self, messages: Sequence[dict[str, str]], params: GenerationParams) -> Iterator[str]:
         """Server-sent events. Falls back to a single chunk if streaming is off."""
         if not self.loaded:

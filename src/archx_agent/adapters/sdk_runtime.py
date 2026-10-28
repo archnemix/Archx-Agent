@@ -17,7 +17,7 @@ resolved by the workspace *at construction*, registered with the redactor, and w
 from __future__ import annotations
 
 import urllib.parse
-from typing import Iterator, Sequence
+from typing import Any, Iterator, Sequence
 
 from archx_agent.adapters.model_runtime import (
     BaseRuntime,
@@ -83,6 +83,21 @@ class SdkChatRuntime(BaseRuntime):
             raise AuthDeniedError(why, provider=self.sdk)
         model = self.spec.model or self.spec.id
         return self._transport.chat(messages, params, model=model)
+
+    def chat_with_tools(
+        self,
+        messages: Sequence[dict[str, str]],
+        params: GenerationParams,
+        *,
+        tools: list[dict[str, Any]] | None = None,
+    ) -> ChatResult:
+        if self.spec is None:
+            raise ProviderError("no model loaded")
+        ok, why = self.available()
+        if not ok:
+            raise AuthDeniedError(why, provider=self.sdk)
+        model = self.spec.model or self.spec.id
+        return self._transport.chat_with_tools(messages, params, model=model, tools=tools)
 
     def stream(self, messages: Sequence[dict[str, str]], params: GenerationParams) -> Iterator[str]:
         # Each client streams its own way; `SdkTransport.stream` holds one parser per style and

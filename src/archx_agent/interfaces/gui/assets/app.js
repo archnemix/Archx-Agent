@@ -481,6 +481,61 @@
   }
 
   // ------------------------------------------------------------------- fetch
+  /* A chat reply arrives over time, so the page asks for it as server-sent events and paints
+   * each piece as it lands. `EventSource` cannot POST, so this reads the body of a fetch
+   * response directly. Resolves to the recorded reply (the `done` frame), or null when the
+   * runtime cannot stream - in which case the caller uses the ordinary endpoint. */
+  async function chatStream(message, conversationId, onChunk) {
+    const headers = { "X-Archx-Request": "gui", "Content-Type": "application/json" };
+    if (state.token) headers["X-Archx-Token"] = state.token;
+    const response = await fetch("/api/chat/stream", {
+      method: "POST",
+      headers,
+      credentials: "same-origin",
+      body: JSON.stringify({ message, conversation_id: conversationId }),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      const error = new Error((data && data.error && data.error.message) || "HTTP " + response.status);
+      error.status = response.status;
+      error.code = data && data.error && data.error.code;
+      throw error;
+    }
+    if (!response.body || typeof response.body.getReader !== "function") return null;
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let final = null;
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let cut = buffer.indexOf("\n\n");
+      while (cut >= 0) {
+        const frame = buffer.slice(0, cut);
+        buffer = buffer.slice(cut + 2);
+        let event = "message";
+        let data = "";
+        for (const line of frame.split("\n")) {
+          if (line.startsWith("event: ")) event = line.slice(7);
+          else if (line.startsWith("data: ")) data += line.slice(6);
+        }
+        if (data) {
+          const payload = JSON.parse(data);
+          if (event === "chunk") onChunk(payload.text || "");
+          else if (event === "done") final = payload;
+          else if (event === "error") {
+            const error = new Error(payload.message || "the turn failed");
+            error.code = payload.code;
+            throw error;
+          }
+        }
+        cut = buffer.indexOf("\n\n");
+      }
+    }
+    return final;
+  }
+
   async function api(method, path, body) {
     const headers = { "X-Archx-Request": "gui" };
     if (state.token) headers["X-Archx-Token"] = state.token;
@@ -913,8 +968,32 @@
     button.disabled = true;
     setConn("busy", "thinking");
     const pending = thinkingRow();
+    // the reply is painted as it arrives; `node` is created on the first chunk
+    let node = null;
+    let streamed = "";
+    const paint = (piece) => {
+      streamed += piece;
+      if (!node) {
+        pending.remove();
+        node = addMessage("assistant", streamed, "streaming…");
+      } else {
+        clear(node.content);
+        node.content.append(...renderMarkdown(streamed));
+        scrollDown(log(), false);
+      }
+    };
     try {
-      const reply = await api("POST", "/api/chat", { message, conversation_id: state.conversationId });
+      let reply = null;
+      try {
+        reply = await chatStream(message, state.conversationId, paint);
+      } catch (streamError) {
+        // the SSE write can fail on an older client; the turn still exists, so fall back
+        if (!node) throw streamError;
+        reply = null;
+      }
+      if (!reply) {
+        reply = await api("POST", "/api/chat", { message, conversation_id: state.conversationId });
+      }
       state.conversationId = reply.conversation_id;
       pending.remove();
       const model = reply.model && (reply.model.name || reply.model.model_id);
@@ -925,7 +1004,17 @@
         Math.round(reply.latency_ms) + " ms",
         reply.task ? "task " + shortId(reply.task.id) : null,
       ].filter(Boolean).join(" · ");
-      addMessage("assistant", reply.text, meta);
+      if (node) {
+        // replace the streamed copy with the recorded reply, so the page shows what was stored
+        clear(node.content);
+        node.content.append(...renderMarkdown(reply.text));
+        const head = node.row.querySelector(".msg-head");
+        const stampNode = head && head.querySelector(".msg-meta");
+        if (stampNode) stampNode.textContent = meta;
+        else if (head) head.append(el("span", { class: "msg-meta", text: meta }));
+      } else {
+        addMessage("assistant", reply.text, meta);
+      }
       for (const warning of reply.warnings || []) {
         warnings.append(el("div", { class: "callout warn", text: "warning: " + warning }));
       }

@@ -81,8 +81,8 @@ edit .ci/trigger -> push -> .github/workflows/model-matrix.yml (18 steps)
 | ~~1~~ | ~~**Run the CI workflow once**~~ | **Done.** Four runs; #3 and #4 are green end to end. Evidence in `docs/ci/`, full folder on `ci-logs`. | closed |
 | 2 | **A live call to a vendor's cloud API** | No vendor key is usable from here, and egress is restricted. What *is* proven now: real clients against a real model served on a runner, including a real Ollama daemon. What is not: reaching `api.openai.com`, `api.cohere.com`, and so on. | needs keys |
 | ~~3~~ | ~~**Ollama through a real daemon**~~ | **Done.** `docker run ollama/ollama`, `ollama pull smollm2:135m`, client streamed 32 chunks, and the app probed it keyless (`state now verified`). | closed |
-| 4 | `models probe --capability tools` | The CLI accepts the value but no probe inspects a returned tool call, so the capability can be claimed and never verified. Needs one probe + a stub with a tool-call response. | ~1 day |
-| 5 | **Streaming into the browser** | The GUI posts a chat turn and renders the finished reply; there is no SSE endpoint or `EventSource` in the page. The runtimes can stream; the page does not consume it. | ~1–2 days |
+| ~~4~~ | ~~`models probe --capability tools`~~ | **Done.** The runtime offers a tool, parses the call, and the probe distinguishes a call from a prose reply. | closed |
+| ~~5~~ | ~~**Streaming into the browser**~~ | **Done.** `POST /api/chat/stream` writes SSE for the same recorded turn; the page paints each chunk and swaps in the stored text at the end. | closed |
 | 6 | **Dedicated templates for other OpenAI-compatible vendors** (Z.ai, DeepSeek, …) | They work today via `add-sdk --sdk openai --base-url …`; a template needs privacy terms I can source rather than invent. | small, needs a source |
 | 7 | **M31 Coding workspace** | The next milestone in `PROGRESS.md`: editing, running and testing code under the permission centre, diffs as artifacts, reproducible tasks. | large |
 | 8 | **Cohere against the real service** | It has no keyless mode at all, so its only proof is a live call (#2) or the `/v2/chat` stub already used. | blocked on #2 |

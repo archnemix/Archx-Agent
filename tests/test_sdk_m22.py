@@ -66,6 +66,7 @@ class _State:
     body: dict = {}
     attempts = 0
     empty_reply = False
+    ignore_tools = False
     seen: list[dict] = []
 
     @classmethod
@@ -73,6 +74,7 @@ class _State:
         cls.mode, cls.status, cls.body = "ok", 500, {}
         cls.attempts = 0
         cls.empty_reply = False
+        cls.ignore_tools = False
         cls.seen = []
 
 
@@ -204,6 +206,23 @@ class _Handler(BaseHTTPRequestHandler):
         # the Gemini client POSTs to :streamGenerateContent; the others set stream=true and POST
         if "streamGenerateContent" in self.path or body.get("stream") is True:
             return self._stream(body)
+        if body.get("tools"):
+            # a tool was offered: answer by calling it, unless the test asked for a plain reply
+            if _State.ignore_tools:
+                return self._send(200, {
+                    "id": "chatcmpl_stub", "object": "chat.completion", "created": 1, "model": "openai-stub",
+                    "choices": [{"index": 0, "message": {"role": "assistant", "content": "I will not call it."},
+                                 "finish_reason": "stop"}],
+                    "usage": {"prompt_tokens": 7, "completion_tokens": 2},
+                })
+            return self._send(200, {
+                "id": "chatcmpl_stub", "object": "chat.completion", "created": 1, "model": "openai-stub",
+                "choices": [{"index": 0, "finish_reason": "tool_calls", "message": {
+                    "role": "assistant", "content": None,
+                    "tool_calls": [{"id": "call_1", "type": "function",
+                                    "function": {"name": "record_value", "arguments": "{\"value\": 1}"}}]}}],
+                "usage": {"prompt_tokens": 11, "completion_tokens": 5},
+            })
         if _State.empty_reply:
             return self._send(200, {
                 "id": "x", "object": "chat.completion", "created": 1, "model": "m",
@@ -891,3 +910,53 @@ class TestDefaults:
         base = SDKS[key].default_base_url or "http://127.0.0.1:11434"
         path = UPSTREAM_PATH[key]
         assert base.rstrip("/") + path == expected
+
+
+class TestToolProbe:
+    """`models probe --capability tools` had no way to pass: nothing ever offered a tool."""
+
+    @requires_openai
+    def test_the_openai_client_returns_its_tool_call(self, stub):
+        transport = _transport("openai", stub, base=stub + "/v1")
+        try:
+            result = transport.chat_with_tools(MESSAGES, PARAMS, model="stub-model")
+        finally:
+            transport.close()
+        calls = result.raw["tool_calls"]
+        assert calls[0]["name"] == "record_value"
+        assert _State.seen[-1]["body"]["tools"]
+        assert _State.seen[-1]["body"]["tool_choice"] == "auto"
+
+    @requires_anthropic
+    def test_anthropic_speaks_its_flat_tool_shape(self, stub):
+        transport = _transport("anthropic", stub)
+        try:
+            with pytest.raises(Exception):
+                # the stub answers text for /v1/messages, so no tool call means a refusal
+                transport.chat_with_tools(MESSAGES, PARAMS, model="stub-model")
+        finally:
+            transport.close()
+        offered = _State.seen[-1]["body"]["tools"][0]
+        assert set(offered) == {"name", "description", "input_schema"}
+
+    def test_a_client_without_a_tool_path_refuses_instead_of_guessing(self, stub):
+        if not sdk_available("cohere")[0]:
+            pytest.skip("cohere SDK not installed")
+        transport = _transport("cohere", stub)
+        try:
+            with pytest.raises(Exception) as caught:
+                transport.chat_with_tools(MESSAGES, PARAMS, model="stub-model")
+        finally:
+            transport.close()
+        assert "not implemented" in str(caught.value)
+
+    @requires_openai
+    def test_a_model_that_ignores_the_tool_is_not_counted_as_passing(self, stub):
+        _State.ignore_tools = True
+        transport = _transport("openai", stub, base=stub + "/v1")
+        try:
+            with pytest.raises(Exception) as caught:
+                transport.chat_with_tools(MESSAGES, PARAMS, model="stub-model")
+        finally:
+            transport.close()
+        assert "without calling the tool" in str(caught.value)
