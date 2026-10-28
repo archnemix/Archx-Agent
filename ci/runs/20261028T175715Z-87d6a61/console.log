@@ -292,4 +292,51 @@ tests/test_sdk_m22.py::TestPaths::test_the_requested_path[cohere--/v2/chat]
 1660 passed, 2 warnings in 414.89s (0:06:54)
 === stress-edge ===============================================
 $ python -m pytest tests/test_stress.py tests/test_edge_cases.py -o addopts= -q
-..................................
+........................................................................ [ 79%]
+...................                                                      [100%]
+91 passed in 45.98s
+=== integration ===============================================
+$ python -m pytest tests/test_integration.py -o addopts= -q
+...........                                                              [100%]
+11 passed in 17.72s
+=== coding-acceptance ===============================================
+$ bash scripts/acceptance_m31.sh
+M31 acceptance on /tmp/archx-m31-47vqo7
+
+### a session is a directory, a task and a row
+$ archx-agent code list
+cs_0001m61v13p7000000001088257ff744c5ae  open    second session  /tmp/archx-m31-47vqo7/project
+cs_0001m61v13e200000000693b39e0aa1367b7  open    fix the greeting  /tmp/archx-m31-47vqo7/project
+[ok]   the session is a database row = 1
+[ok]   the session binds the directory = /tmp/archx-m31-47vqo7/project
+[ok]   the session owns a coding task = coding
+[ok]   the schema grew, it did not reuse a table = code_changes
+
+### nothing happens without a grant
+[ok]   a write without fs.write exits 4 = 4
+[ok]   the file is untouched = 4579e386b95ec1ff0f24c9bedca59bf7efb6c657
+[ok]   the refusal names the approval = 2
+[ok]   the refusal created a pending request = True
+[ok]   the refused edit did not become a change row = 0
+error: fs.write: fs.write is not granted for 'fs.write'; approval ap_0001m61v149900000000105c9aa803090453 is pending (archx-agent approvals approve ap_0001m61v149900000000105c9aa803090453)
+approve it with: archx-agent approvals approve ap_0001m61v149900000000105c9aa803090453
+
+### approving is what makes it possible, and the write then lands
+$ archx-agent code write cs_0001m61v13e200000000693b39e0aa1367b7 hello.py --file /tmp/archx-m31-47vqo7/new_hello.py
+modify hello.py  +1/-1
+  diff     ar_0001m61v162800000000e0ee372e3e75d23b
+[exit 0]
+[ok]   the file really changed = 1
+[ok]   the change is a row with a diff = modify
+[ok]   the diff mentions the old and the new line = 2
+[ok]   the edit is attached to the task as an artifact = True
+
+### the runner records every command
+$ archx-agent code run cs_0001m61v13e200000000693b39e0aa1367b7 "python3 try_it.py"
+hello archx
+[run passed: exit 0 in 13 ms]
+[output saved as ar_0001m61v16vt000000029eebb85c1cf0f406]
+[ok]   the command passed = passed
+[ok]   the exit code is recorded = 0
+[ok]   the argv that ran is recorded, not just the string = ['python3', 'try_it.py']
+[ok]   a failing command exits 1 = 1

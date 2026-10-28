@@ -3,3 +3,5 @@
 step	status	seconds
 install	ok	26
 pytest	ok	417
+stress-edge	ok	46
+integration	ok	18
