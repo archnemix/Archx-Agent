@@ -952,3 +952,30 @@ time, registered with the redactor, and never written to config, traces, logs or
 A schema upgrade is irreversible in the general case. The backup is best-effort: failing
 to back up warns loudly but does not block the upgrade, because blocking would make the
 app unusable when the backup directory is read-only.
+
+**D154. A metric is only a metric if the experiment said where it comes from.**
+The easiest way to make an experiment tool lie is to read whatever looks like a number. So an
+experiment declares its source (`none`, the last line of stdout as JSON, or a file the run writes)
+and the runner reads only that. A missing, malformed or non-numeric source leaves the run with a
+`metrics_error` sentence and **no** metric rows, and the comparison lists those runs by id with the
+reason instead of ranking them at zero. "No answer" and "zero" are different results, and a
+results table that conflates them is worse than no table.
+
+**D155. Never quote a value the user did not quote.**
+A parameter substituted into a command is a shell word, so a value that is not one shell-safe token
+is refused *by name* before anything runs. Adding quotes would make an unsafe value safe-looking
+and silently change the command the user wrote; refusing it keeps the command exactly what they
+said, or refuses to run it.
+
+**D156. Ask the permission centre, do not test the code path.**
+`code write` needs the old content to build a diff, but reading a file is `fs.read` and the user
+may only have granted the write. The first version let the read raise, which minted a second
+pending approval for a file the user never asked to read. The fix is a probe with
+`request_approval_on_denial=False`: one save, one approval, and a diff that says it is partial.
+
+**D157. A table someone might have rows in is not a table to repurpose.**
+The v13 schema has an `experiments` table (a manual log with `baseline`/`target`/`criteria`) that
+nothing reads. The obvious name for M32's table was taken, and `CREATE TABLE IF NOT EXISTS` would
+have silently no-opped against the old shape - which is exactly what happened on the first run
+("table experiments has no column named name"). M32's tables are `experiment_specs`,
+`experiment_runs` and `experiment_metrics`: unused is not the same as free.

@@ -1,9 +1,9 @@
 {
-  "text": "A tunnel is a narrow, underground passageway that runs beneath the surface of the earth.",
+  "text": "A tunnel is a deep, narrow passageway through solid rock, typically found in extreme environments, such as deep crevices or inaccessible formations.",
   "usage": {
-    "completion_tokens": 19,
+    "completion_tokens": 28,
     "prompt_tokens": 40,
-    "total_tokens": 59,
+    "total_tokens": 68,
     "prompt_tokens_details": {
       "cached_tokens": 0
     }

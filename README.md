@@ -176,6 +176,8 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 * [docs/GUI.md](docs/GUI.md) - the local web GUI, its layout, themes, security model and every endpoint
 * [docs/LEARNING.md](docs/LEARNING.md) - goals, items, hint ladders, grading and the schedule
 * [docs/RESEARCH.md](docs/RESEARCH.md) - research runs, evidence rules, citations, `net.fetch` limits
+* [docs/CODING.md](docs/CODING.md) - coding sessions, edits as diffs, the recorded runner, named checks
+* [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) - declared commands and parameters, honest metrics, comparison
 * [docs/SIMPLE_MODE.md](docs/SIMPLE_MODE.md) - unified search, its ranking, and every Simple Mode intent
 * [docs/AGENTS.md](docs/AGENTS.md) - workflow definitions, step kinds, approval gates and budgets
 * [docs/SCHEDULER.md](docs/SCHEDULER.md) - durable jobs, deadlines, concurrency, pause/resume, crash recovery

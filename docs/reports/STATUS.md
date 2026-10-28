@@ -98,7 +98,7 @@ does not have. M32 closed; M33 onward are the next milestones. Nothing in betwee
 
 ```text
 $ .venv/bin/python -m pytest tests/ -o addopts="" -q
-1515 passed, 2 warnings in 401.74s (0:06:41)
+1516 passed, 2 warnings in 397.12s (0:06:37)
 
 $ .venv/bin/python -m pytest tests/test_stress.py tests/test_edge_cases.py -o addopts="" -q
 91 passed in 44s            (three consecutive runs, same result)
