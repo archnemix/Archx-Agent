@@ -29,6 +29,9 @@ permissions:
   contents: write      # to push the logs branch
   actions: read
 
+# One run at a time, newest wins. The first run of this workflow hung on the serve step for nine
+# minutes (a backgrounded server held the step's pipe open), which is exactly the case a cancel
+# is for: the next push should free the runner, not queue behind it.
 concurrency:
   group: model-matrix
   cancel-in-progress: true
@@ -42,14 +45,6 @@ env:
   MODEL_REPO: bartowski/SmolLM2-135M-Instruct-GGUF
   MODEL_FILE: SmolLM2-135M-Instruct-Q4_K_M.gguf
   PORT: "8080"
-
-# A push to .ci/trigger starts a run. The first run of this workflow hung for nine minutes on
-# the serve step (the backgrounded server held the step's pipe open, so the log never closed).
-# `cancel-in-progress` means the next push kills that run instead of leaving a runner blocked
-# for the 50-minute job limit.
-concurrency:
-  group: model-matrix
-  cancel-in-progress: true
 
 jobs:
   matrix:
