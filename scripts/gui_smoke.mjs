@@ -190,6 +190,41 @@ const routes = {
     ],
     stats: { games: 1, open: 1, finished: 0, moves: 2, refused_moves: 1, sims: 1 },
   },
+  "GET /api/voice/assets/ma_demo": {
+    id: "ma_demo", kind: "image", format: "png", path: "pixel.png",
+    sha256: "aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb8888",
+    bytes: 76, width: 12, height: 8, duration_ms: null, sample_rate: null, channels: null,
+    bits_per_sample: null, name_claim: "jpg", name_mismatch: "the name says 'jpg' but the bytes are png",
+    facts: { details: { bit_depth: 8 }, notes: [], hash_scope: "whole file" },
+    task_id: null, created_at: "2026-10-28T10:00:00Z", metadata: {},
+    transcripts: [],
+    attempts: [
+      { id: "va_1", asset_id: "ma_demo", action: "probe", status: "completed", reason: null,
+        engine: "fs.probe", chars: null, task_id: null, created_at: "2026-10-28T10:00:00Z",
+        metadata: {} },
+    ],
+    described: "png image, 12x8, 76 bytes",
+  },
+  "GET /api/voice/assets": {
+    assets: [
+      { id: "ma_demo", kind: "image", format: "png", path: "pixel.png",
+        sha256: "aaaa1111", bytes: 76, width: 12, height: 8, duration_ms: null, sample_rate: null,
+        channels: null, bits_per_sample: null, name_claim: "jpg",
+        name_mismatch: "the name says 'jpg' but the bytes are png", facts: {}, task_id: null,
+        created_at: "2026-10-28T10:00:00Z", metadata: {} },
+    ],
+    roots: ["/tmp/smoke"],
+    stats: { assets: 1, images: 1, audio: 0, audio_ms: 0, mislabelled: 1, transcripts: 0,
+             attempts: 1, refused: 0, can_transcribe: false, can_speak: false },
+  },
+  "POST /api/voice/probe": {
+    id: "ma_new", kind: "audio", format: "wav", path: "tone.wav",
+    sha256: "beef", bytes: 1644, width: null, height: null, duration_ms: 100, sample_rate: 8000,
+    channels: 1, bits_per_sample: 16, name_claim: "wav", name_mismatch: null,
+    facts: { details: {}, notes: [], hash_scope: "whole file" }, task_id: null,
+    created_at: "2026-10-28T10:00:00Z", metadata: {}, transcripts: [], attempts: [],
+    described: "wav audio, 100 ms, 8000 Hz 1 ch 16-bit, 1644 bytes",
+  },
   "GET /api/conversations": [],
   "GET /api/tasks": [],
   "GET /api/tools": [],
@@ -253,10 +288,11 @@ function assert(condition, message) {
 }
 
 // the shell
-assert(doc.querySelectorAll(".tab").length === 13, "expected thirteen mode tabs");
+assert(doc.querySelectorAll(".tab").length === 14, "expected fourteen mode tabs");
 assert(doc.getElementById("view-code"), "the coding view is missing");
 assert(doc.getElementById("view-experiments"), "the experiments view is missing");
 assert(doc.getElementById("view-play"), "the play view is missing");
+assert(doc.getElementById("view-voice"), "the voice view is missing");
 assert(doc.getElementById("view-chat"), "chat view is missing");
 
 // every refresh button answers a click without throwing
@@ -372,6 +408,27 @@ await tick();
 await tick();
 assert(calls.includes("POST /api/play/sims"), `the simulation form never posted: ${JSON.stringify(calls.slice(-4))}`);
 
+// voice: the measurement and the disagreement with the file name are both on screen
+doc.querySelector('[data-view="voice"]').click();
+await tick();
+await tick();
+assert(doc.querySelectorAll("#voice-assets .list-item").length === 1, "the media list did not render");
+assert(doc.getElementById("voice-stats").textContent.includes("1 measured"), "the stats line did not render");
+doc.querySelector("#voice-assets .list-item").click();
+await tick();
+await tick();
+assert(calls.includes("GET /api/voice/assets/ma_demo"), `the asset was never opened: ${JSON.stringify(calls.slice(-4))}`);
+const voicePanel = doc.getElementById("voice-detail").textContent;
+assert(voicePanel.includes("png image, 12x8, 76 bytes"), "the measurement is not shown");
+assert(voicePanel.includes("the name disagrees with the bytes"), "a mislabelled file must say so");
+assert(voicePanel.includes("Words a person wrote"), "the human-transcript form is missing");
+
+doc.getElementById("voice-path").value = "tone.wav";
+doc.getElementById("voice-probe-form").dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
+await tick();
+await tick();
+assert(calls.includes("POST /api/voice/probe"), `the probe form never posted: ${JSON.stringify(calls.slice(-4))}`);
+
 // no inline style attributes were produced, and no inline handlers leaked into the markup
 assert(!/style="/.test(doc.body.innerHTML), "inline style attribute produced");
 assert(!/onclick="/.test(doc.body.innerHTML), "inline handler produced");
@@ -383,4 +440,4 @@ if (problems.length) {
   for (const problem of problems) console.error(" - " + problem);
   process.exit(1);
 }
-console.log("smoke ok: 13 tabs, 4 gate rows, code, experiment and play panels render, forms post, no page errors");
+console.log("smoke ok: 14 tabs, 4 gate rows, code, experiment, play and voice panels render, forms post, no page errors");

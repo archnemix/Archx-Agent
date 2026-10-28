@@ -65,6 +65,7 @@ from archx_agent.managers.extensions import ExtensionManager
 from archx_agent.managers.jobs import JobManager
 from archx_agent.managers.learning import LearningManager
 from archx_agent.managers.mcp import McpManager
+from archx_agent.managers.media import MediaManager
 from archx_agent.managers.memory import MemoryManager
 from archx_agent.managers.models import ModelManager, ModelRecord
 from archx_agent.managers.permissions import PermissionManager
@@ -111,6 +112,7 @@ class Workspace:
     coding: CodeManager | None = None
     experiments: ExperimentManager | None = None
     play: PlayManager | None = None
+    media: MediaManager | None = None
     reproduction: ReproductionManager | None = None
     router: Any = None
     context: ContextManager | None = None
@@ -348,6 +350,7 @@ class Workspace:
         ws.coding = CodeManager(store, coordinator, events=events)
         ws.experiments = ExperimentManager(store, coordinator, events=events)
         ws.play = PlayManager(store, coordinator, events=events)
+        ws.media = MediaManager(store, coordinator, events=events)
         ws.research = ResearchManager(
             store, coordinator, events=events, config=config
         )
@@ -443,6 +446,13 @@ class Workspace:
         from .experiments import ExperimentService
 
         return ExperimentService(self)
+
+    @property
+    def voice(self):
+        """The voice and media service (imported lazily to keep the composition root acyclic)."""
+        from .voice import VoiceService
+
+        return VoiceService(self)
 
     @property
     def play_mode(self):

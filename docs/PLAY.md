@@ -127,5 +127,5 @@ redefined under anyone.
   sequence not spent, resign, auto stopping at the end), and the GUI returning the same rows.
 * `scripts/acceptance_m33.sh` - 69 checks over the CLI and a real GUI socket, including a doctored
   hash failing its own replay.
-* `scripts/gui_smoke.mjs` - the Play panel renders in jsdom: 13 tabs, a refused move keeps its
+* `scripts/gui_smoke.mjs` - the Play panel renders in jsdom: the Play panel renders among the tabs (13 then, 14 since M34), a refused move keeps its
   reason, a simulation shows its hash.

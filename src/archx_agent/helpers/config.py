@@ -230,6 +230,11 @@ SPEC: dict[str, tuple[type, Any, Validator, str]] = {
     "voice.background_listening": (bool, False, _bool, "Allow wake-word listening (opt-in)."),
     "voice.wake_word": (str, "archx", _str, "Wake word."),
     "voice.retain_audio": (bool, False, _bool, "Persist raw audio."),
+    # A speech model is named, never assumed: there is no bundled one, and a mode that pretends
+    # to hear is worse than one that says what it would need.
+    "voice.stt_model": (str, "", _str, "Model used for speech-to-text (empty: none is configured)."),
+    "voice.tts_model": (str, "", _str, "Model used for text-to-speech (empty: none is configured)."),
+    "voice.max_probe_bytes": (int, 4096, _range(16, 65536, integer=True), "Header bytes read when probing media."),
     # ---- automations
     "automations.enabled": (bool, True, _bool, "Enable scheduled tasks."),
     "automations.notify_channel": (str, "trace", _one_of("trace", "file", "webhook"), "Where run notifications go."),

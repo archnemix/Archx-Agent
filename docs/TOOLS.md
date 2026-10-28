@@ -22,7 +22,7 @@ origin.
 
 | capability | risk | effect | what it allows |
 |------------|------|--------|----------------|
-| `fs.read` | low | reads | read and list files inside the tool roots |
+| `fs.read` | low | reads | read and list files inside the tool roots, and measure their bytes |
 | `fs.write` | medium | writes | create or modify files inside the tool roots |
 | `fs.delete` | high | deletes | delete files inside the tool roots |
 | `shell.run` | high | executes | run a local process |
@@ -41,6 +41,7 @@ remote server.
 | tool | capability | risk | dry run | inputs |
 |------|-----------|------|---------|--------|
 | `fs.read` | `fs.read` | low | no | `path`, `start_line`, `max_lines` |
+| `fs.probe` | `fs.read` | low | no | `path`, `bytes` |
 | `fs.list` | `fs.read` | low | no | `path`, `limit` |
 | `fs.write` | `fs.write` | medium | yes | `path`, `content`, `create_parents`, `append` |
 | `fs.delete` | `fs.delete` | high | yes | `path` |
@@ -68,6 +69,27 @@ tools run fs.write --arg path=notes.md --arg content=hi
 
 Step 5 happens before step 6 on purpose: a crash or an exception mid-operation must not
 hand back a fresh single-use grant.
+
+## `fs.probe` and why it is not `fs.read`
+
+`fs.read` returns text. A binary file is refused rather than mojibaked into the transcript, and it
+stays refused - the point of a second door is not to loosen the first one. `fs.probe` is that
+second door: same capability (`fs.read`), same roots, same permission centre, but it returns bytes
+and facts about them instead of a decoded body.
+
+```bash
+$ archx-agent tools run fs.probe --arg path=photos/holiday.jpg
+format jpeg
+bytes 48213
+sha256 3f0c…  (whole file)
+head ff d8 ff e0 00 10 4a 46 49 46
+```
+
+`bytes` caps how much is read (default 4096, bounded by `voice.max_probe_bytes`); a hash over a
+head is labelled as one (`sha256_scope: head`) because a prefix hash is a different, weaker claim
+than a whole-file hash and the row should not need a footnote. The measurement itself is
+`application/media.py`'s job - the tool does not decide what a file is, it hands the mode the bytes
+and gets out of the way; that keeps the same parser behind the CLI, the GUI and any future adapter.
 
 ## Durations and scope
 

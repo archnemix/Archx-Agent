@@ -89,10 +89,13 @@ edit .ci/trigger -> push -> .github/workflows/model-matrix.yml (18 steps, 14 of 
 | ~~9~~ | ~~**M32 Experimental Mode**~~ | **Done.** Declared commands and parameters, metrics read only from the declared source, runs as rows with tasks and artifacts, and a comparison that names what it could not rank. `docs/EXPERIMENTS.md`, `pytest tests/test_experiments_m32.py` (66), `scripts/acceptance_m32.sh` (53). | closed |
 | ~~10~~ | ~~**M33 Play Mode**~~ | **Done.** Three games the rules referee, a refused move kept with its reason, an engine that can only choose from the legal moves, and simulations that replay from their parameters (a doctored hash fails its own check). `docs/PLAY.md`, `pytest tests/test_play_m33.py` (77), `scripts/acceptance_m33.sh` (69). | closed |
 
-What is left is one thing: a live call to a vendor's cloud API, which needs keys this environment
-does not have. M33 closed; M34 onward are the next milestones - and M34 (voice, images, audio) is
-the first one this environment cannot finish honestly, so it will be scoped, not faked. Nothing in between is
-"implemented but untested".
+| ~~11~~ | ~~**M34 Voice and media**~~ | **Done, scoped.** A file is measured from its own bytes (PNG, JPEG, GIF, WAV parsed by hand), the name is a claim kept beside the measurement, unsupported containers are refused with their leading bytes, and asking it to hear or speak is a recorded refusal that names every missing link. Marked `partial`: no microphone, no speech weights and no GPU exist here, so recognition and synthesis are **not implemented in any form**. `docs/VOICE.md`, `pytest tests/test_voice_m34.py` (67), `scripts/acceptance_m34.sh` (88). | closed |
+| 12 | **Speech recognition or synthesis** | Needs weights and an adapter that no machine here can run; building one would be a claim this repository could not verify. `M36` (training) inherits the same problem. | blocked on hardware |
+
+What is left is one thing that a live network could close: a call to a vendor's cloud API, which
+needs keys this environment does not have - and one thing no network here can close: speech in or
+out. M34 closed as far as this machine allows; M35 (dataset preparation) is next because it needs
+nothing this machine lacks. Nothing in between is "implemented but untested".
 
 ---
 
@@ -127,7 +130,7 @@ $ ./scripts/acceptance_m32.sh
 M32 acceptance: 53 checks passed, 0 failed
 
 $ ARCHX_JSDOM_DIR=/tmp/domtest node scripts/gui_smoke.mjs
-smoke ok: 13 tabs, 4 gate rows, code, experiment and play panels render, forms post, no page errors
+smoke ok: 14 tabs, 4 gate rows, code, experiment, play and voice panels render, forms post, no page errors
 ```
 
 ### 3.1 Seven bugs the new suites found

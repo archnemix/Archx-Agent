@@ -40,7 +40,7 @@ there is no code.
 | M31 | **Coding workspace** | done | sessions on a directory, edits as diffs, a recorded runner, named checks (see §2) |
 | M32 | **Experimental Mode** | done | declared commands and parameters, real runs, a comparison that names what it could not rank (see §2.3) |
 | M33 | **Play Mode** | done | three small games the rules referee, and simulations that replay from their parameters (see §2.4) |
-| M34 | Voice and multimodal | not built | speech in/out, images, audio — no hardware here |
+| M34 | **Voice and media** | **partial** | media measured from its own bytes, transcripts with provenance, speech refused by name - no microphone and no speech model exist here (see §3.4) |
 | M35 | Dataset preparation | not built | collect, clean, split, version a corpus |
 | M36 | Training and model modification | not built | LoRA/fine-tune — no weights or GPU reachable here |
 | M37 | Remote compute | not built | hand work to another machine, portably |
@@ -80,7 +80,6 @@ were asked to do, and no button pretending they exist. Nothing below has code to
 
 | # | Mode as asked | What it was asked to do | What exists to build it on |
 |---|---------------|-------------------------|----------------------------|
-| M34 | Voice and multimodal | speech in and out, images, audio | none in this build: no microphone, no weights, no GPU |
 | M35 | Dataset preparation | collect, clean, split and version a corpus | versions, artifacts, tool roots, search |
 | M36 | Training and model modification | LoRA / fine-tune a model | none here: no weights and no GPU are reachable |
 | M37 | Remote compute | hand work to another machine portably | HTTP runtime, jobs, providers, consent records |
@@ -164,6 +163,26 @@ What it does **not** claim: that the engine is strong (connect four is two plies
 perfect and draws against itself), that a model plays *well* (nothing here grades strategy), or that
 a simulation proves anything. `docs/PLAY.md` has the details and the tables.
 
+### 2.5 Voice and media, and what a machine without ears can still do
+
+Three things are true on any machine, and they are what this mode builds: what a file *is* can be
+measured from its own bytes; who wrote a transcript can be recorded; and what cannot be heard can
+be said out loud. So `voice probe` parses PNG, JPEG, GIF and WAV headers by hand, keeps the file
+name as a *claim* beside the measurement (a `.jpg` that is really a PNG is stored as a PNG and
+counted as mislabelled), and refuses anything it cannot measure with the bytes it began with.
+
+Asking it to hear or speak walks a chain - the switch, the model setting, the registry, the model's
+claim, the runtime's readiness - and reports *every* missing link, in order, then writes the
+attempt to `voice_attempts`. The chain is computed from the workspace, so the reason changes when
+the workspace does. The last link is always the same: no adapter in this build can transcribe or
+synthesise, and a registered model is not enough.
+
+The only transcript it can store is one a person typed, and that is a `CHECK (source IN ('human'))`
+in the schema rather than a rule the service happens to enforce.
+
+What it does **not** claim: that it can recognise speech, synthesise it, caption an image or read
+text out of one. `docs/VOICE.md` has the tables, the formats and the refusals.
+
 ## 3. What "done" does not mean (the honest gaps)
 
 ### 3.1 Research Mode is marked `partial`, not done
@@ -205,17 +224,24 @@ answers them; deleting stays a CLI act.
 
 ### 3.3 The GUI is a client, not a product surface for everything
 
-Thirteen panels, all wired, nothing decorative. The shell is one page with a sidebar, a top bar
+Fourteen panels, all wired, nothing decorative. The shell is one page with a sidebar, a top bar
 carrying each mode's live tool chips, three themes and a chat transcript with markdown,
 copy buttons and confirmations for anything that cannot be undone. Workflow authoring, streaming tokens, files, a
 multi-user story and TLS are not there; they are listed in `GAPS.md` and `docs/GUI.md` rather
 than implied by a greyed-out button.
 
+### 3.4 Voice is marked `partial`, not done
+
+The milestone name is "voice and multimodal foundation", and the foundation is what exists:
+measurement, provenance, and a refusal that names the missing piece. Speech recognition, speech
+synthesis, video and OCR are not implemented in any form - not stubbed, not simulated, not
+"coming soon". This machine has no microphone and no speech weights, and building an adapter for
+weights nobody can run would be a claim this repository could not verify.
+
 ## 4. Where this leaves the roadmap
 
-Built: M01–M33 (with the two honest `partial`s above), plus the Research completion model
-(§3.1). Next: **M34 Voice and multimodal**, which this build cannot finish honestly: no microphone,
-no weights and no GPU are reachable here. The Research gaps in §3.1
+Built: M01–M34 (with the three honest `partial`s above), plus the Research completion model
+(§3.1). Next: **M35 Dataset preparation**, which needs no hardware this machine lacks. The Research gaps in §3.1
 remain the most valuable repair, and they no longer have an excuse: the runner and the record
 they needed now exist in the coding workspace, which can be reused rather than invented.
 

@@ -86,6 +86,7 @@ HttpOnly session cookie, and never keeps the token itself.
 | **Code** | a session list, an open form, a path field with read/save/delete, a textarea, a command box, the project's check button, the session patch and the runner's ledger | `CodingWorkspace` → `fs.read`/`fs.write`/`fs.delete`/`shell.run`, so every button is a grant or an approval |
 | **Experiments** | declare an experiment (name, command with `{params}`, parameters, metrics source), run it with per-parameter overrides, read the run table - whose metric column says *why* a run has no number - and the comparison with its notes | `ExperimentService` → `shell.run` + `fs.read`; every run is a task with an artifact, and the numbers are rows |
 | **Play** | start a game, play it (move box, legal moves as buttons, engine move, engine ×5, resign), read the board as text and the move log *with the refusals and their reasons*; run a simulation and replay its hash | `PlayService` - the same `move`/`engine_move`/`simulate`/`replay` calls the CLI makes |
+| **Voice** | measure a file (probe), read what the bytes say *and* what the name claimed, ask for words or speech and read the refusal with every missing link named, record the words you typed, and read the attempts table - refusals included | `VoiceService` - the same `probe`/`transcribe`/`say`/`add_transcript` calls the CLI makes; a missing `fs.read` grant is the same 403 and the same approval id |
 
 There are no placeholder controls. If a panel would need something this build does not have,
 the panel is not drawn: there is no "Settings" tab that pretends, no disabled "Train" button,
@@ -331,6 +332,19 @@ permission centre, a task, an artifact, and rows. A refusal is `403 approval_req
 approval in the Access panel; a parameter that would not survive the shell is a `400 validation`
 and nothing starts. `compare` never hides a row: the card prints the notes, including the runs it
 could not rank and why.
+
+### The Voice panel, and the column the name cannot touch
+
+The panel is a probe box, an asset table, a facts card, a refusal card and an attempts table. The
+facts card puts **what the bytes say** beside **what the name claimed**: a PNG saved as `holiday.jpg`
+reads `png image, 12x8` with `the name says 'jpg' but the bytes are png` underneath, and the table
+marks the row. Nothing offers to "fix" it by renaming the file - the disagreement is the finding.
+
+Asking for a transcript is a button that returns a refusal, not a disabled button: the card lists
+every missing link in order with the command that removes it, and the attempt appears in the table
+below with `refused` and the reason. The form under it records words **you** typed, and the row
+says `human` because the schema allows nothing else. The panel never shows a spinner for work that
+cannot start.
 
 ### The Play panel, and the log it refuses to tidy
 

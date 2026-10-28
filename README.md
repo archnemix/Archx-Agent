@@ -149,10 +149,11 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 | Coding workspace: sessions on a directory, edits as diffs, a recorded runner, named checks | verified (M31) |
 | Experimental Mode: declared commands and parameters, metrics only from the declared source, honest comparison | verified (M32) |
 | Play Mode: three games the rules referee, a log that keeps the refusals, simulations that replay from their parameters | verified (M33) |
+| Voice and media: measured from the bytes (PNG/JPEG/GIF/WAV), transcripts that name their author, refusals that name the missing link | verified, scoped (M34 - no speech model exists here) |
 | `net.fetch` as a capability: http(s) only, private addresses refused, redirects re-checked | verified (M28) |
 | Provider runtime boundary: llama.cpp in-process, OpenAI-compatible HTTP, tested error classification | verified for HTTP; llama.cpp needs the optional dependency and a model file |
 | CLI | verified end-to-end |
-| Voice and media, datasets, training, remote compute, Blender, automations | **not built yet** (M34–M40, see PLAN.md) |
+| Datasets, training, remote compute, Blender, automations | **not built yet** (M35–M40, see PLAN.md) |
 
 ## Design principles (enforced, not aspirational)
 
@@ -180,6 +181,7 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 * [docs/CODING.md](docs/CODING.md) - coding sessions, edits as diffs, the recorded runner, named checks
 * [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) - declared commands and parameters, honest metrics, comparison
 * [docs/PLAY.md](docs/PLAY.md) - the rules as the only authority, refused moves kept, simulations that replay
+* [docs/VOICE.md](docs/VOICE.md) - media measured from the bytes, transcripts that name their author, speech refused by name
 * [docs/SIMPLE_MODE.md](docs/SIMPLE_MODE.md) - unified search, its ranking, and every Simple Mode intent
 * [docs/AGENTS.md](docs/AGENTS.md) - workflow definitions, step kinds, approval gates and budgets
 * [docs/SCHEDULER.md](docs/SCHEDULER.md) - durable jobs, deadlines, concurrency, pause/resume, crash recovery

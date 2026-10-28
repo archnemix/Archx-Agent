@@ -187,6 +187,13 @@ jobs:
       - name: play mode acceptance
         run: run.sh play-acceptance bash scripts/acceptance_m33.sh
 
+      # Voice and media: the containers are generated on the runner one byte at a time, so the
+      # widths, sample rates and durations are read back from headers this run wrote. The refusal
+      # chain is checked by flipping the switch and counting the reasons; a transcript claiming a
+      # source other than a person is refused by the database itself.
+      - name: voice and media acceptance
+        run: run.sh voice-acceptance bash scripts/acceptance_m34.sh
+
       - name: sdk catalogue
         run: run.sh sdks archx-agent models sdks
 

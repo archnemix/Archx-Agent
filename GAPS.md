@@ -16,15 +16,17 @@ This file records what is **not** true yet. If a feature is not listed as verifi
    (`pypi.org` is reachable, `github.com` release downloads are not). The suite is run on
    3.11 only. Compatibility with 3.13 is *expected* (no version-specific code paths;
    `from __future__ import annotations` everywhere) but **not verified**.
-3. **No microphone, camera, audio or GPU hardware** is available, so voice/media
-   milestones cannot be verified in this environment when they are built.
+3. **No microphone, camera, audio playback or GPU hardware** is available. M34 was therefore built
+   as what a machine without ears can still do honestly - measurement, provenance and refusal -
+   and is marked `partial` rather than done (`docs/MODES.md` §3.4).
 
 ## Not built yet
 
-Milestones M34-M40 are not implemented: voice/multimodal, dataset preparation, training, remote
-compute, Blender/3D, automations and release hardening. M17-M33 are implemented and verified (see
-[PROGRESS.md](PROGRESS.md)); M33 (Play Mode) is deliberately small - three board games and one
-simulation - and does not claim the "sandboxed tinkering" its milestone name suggests beyond those.
+Milestones M35-M40 are not implemented: dataset preparation, training, remote compute, Blender/3D,
+automations and release hardening. M17-M34 are implemented and verified (see
+[PROGRESS.md](PROGRESS.md)); M33 (Play Mode) and M34 (Voice and media) are deliberately small -
+three board games and one simulation; four container formats, three tables and a refusal chain - and
+neither claims the "sandboxed tinkering" or "voice in and out" its milestone name suggests.
 The database schema already reserves tables for the rest (versions 5-8) so they can be added
 without renumbering.
 
@@ -40,7 +42,11 @@ items**. Both are marked `partial` in PLAN.md rather than `done`.
   comparison against the expected answer the learner wrote, or by the learner's own 1-5
   rating; both are recorded (`graded_by = exact` / `self`). There is no rubric marking, no
   partial credit and no model judgement, so "how well did I explain it" is not measured - only
-  "did it match". Media items, generated exercises and multiple choice are not built (M34).
+  "did it match". Media items, generated exercises and multiple choice are not built.
+* **Voice cannot hear or speak.** `voice transcribe` and `voice say` are refusals with a computed
+  reason chain, recorded as rows; the only transcript the schema accepts is one a person typed.
+  Media support is measurement only: PNG, JPEG, GIF, WAV and text. WebP, TIFF, FLAC, MP3, MP4,
+  video, OCR, captioning, transcoding and thumbnails are all absent, not stubbed.
 * **Learning sessions have no clock.** A session records start, end and counts, but no
   per-item duration, and the day boundary for "today's practice session" is the ISO date
   string of the stored timestamps, not a local timezone.

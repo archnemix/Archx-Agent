@@ -104,6 +104,19 @@ BUILTIN_SPECS: tuple[ToolSpec, ...] = (
         side_effects="reads a directory",
     ),
     ToolSpec(
+        name="fs.probe",
+        summary="measure a file's bytes - size, hash and container header - without reading it as text",
+        capability="fs.read",
+        risk="low",
+        inputs={
+            "path": "file path inside a tool root",
+            "head_bytes": "how many leading bytes to return (default 4096, at most 65536)",
+        },
+        required=("path",),
+        types={"path": "str", "head_bytes": "int"},
+        side_effects="reads the first bytes of a file and hashes it",
+    ),
+    ToolSpec(
         name="fs.write",
         summary="create or modify a text file inside the tool roots",
         capability="fs.write",
@@ -754,6 +767,11 @@ class ToolManager(BaseManager):
             )
         if spec.name == "fs.list":
             return runtime.list_dir(args.get("path") or ".", limit=int(args.get("limit") or 500))
+        if spec.name == "fs.probe":
+            return runtime.probe_file(
+                args["path"],
+                head_bytes=int(args["head_bytes"]) if args.get("head_bytes") else 4096,
+            )
         if spec.name == "fs.write":
             return runtime.write_text(
                 args["path"],

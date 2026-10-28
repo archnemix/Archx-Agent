@@ -1010,3 +1010,50 @@ population series and a sha256 of the final grid as text means `play replay` can
 parameters alone and disagree: a doctored row prints both hashes and exits 1. Determinism is what
 makes the claim checkable, so the rule is fixed and named (`B3/S23`) rather than configurable - a
 simulation whose rule is a mystery produces a picture nobody can check.
+
+**D162. A fact about a file must come from the file, and the name is a claim kept beside it.**
+A media mode has one cheap way to look right: trust the extension. `holiday.jpg` becomes "a JPEG,
+presumably 4000×3000", the row fills in, and every downstream answer inherits a guess. So the
+parser reads containers (`IHDR`, the JPEG segment chain to the start-of-frame, the GIF logical
+screen descriptor, the WAV `fmt `/`data` chunks) and the name is stored as `name_claim` with the
+disagreement in `name_mismatch` - a selectable, countable column, not a log line. A PNG called
+`liar.jpg` is stored as `png`, with the mismatch, and `voice stats` counts it. Neither fact
+overwrites the other: what the bytes say is what the file *is*; what the name says is what someone
+*believed*, and the distance between them is the interesting part.
+
+Corollary: a file that disagrees with itself keeps both numbers. A WAV whose header claims more
+data than the file contains is recorded at its real size with a note in `facts.notes`. Rounding the
+lie away would make the record tidier and less true.
+
+**D163. Parse four formats by hand instead of depending on a library that knows two hundred.**
+PIL, ffmpeg and `file` are each a large native dependency, and a media pipeline that only works
+where they are installed is one that fails on exactly the machine that needs it. Thirty lines per
+container also means the parser can be *tested by construction*: `tests/test_voice_m34.py` builds
+each fixture byte by byte, so a format bug is a failed assertion rather than a downloaded sample.
+The cost is honest and written down (`docs/VOICE.md` §8): WebP, TIFF, FLAC, MP3 and MP4 are refused
+with their leading bytes rather than guessed at.
+
+**D164. A refusal is a first-class result, recorded like a success, and it names the last link as
+well as the first.** M33 established that a refused move belongs in the log (D159). Voice extends
+it: the reason chain is *computed* from the workspace - the switch, the model setting, the
+registry, the model's claim, the runtime's readiness, the adapter - and every missing link is
+reported in order, not just the first. Reporting only the first would be a support loop ("turn it
+on" → "name a model" → "register it" → "there is no adapter anyway"); reporting all of them is one
+honest answer. Exit 3 (degraded) exists exactly so a script can tell "cannot" from "broke" (1) and
+"typed it wrong" (2), and over HTTP the refusal is `200` with `status: refused` because a
+well-formed question was answered.
+
+**D165. The schema enforces what the service promises, when the promise is about honesty.**
+`voice_transcripts.source` is `CHECK (source IN ('human'))`. The service already refused anything
+else; the CHECK is there because a rule only one writer keeps is a rule the next writer skips, and
+because the day an adapter arrives it should have to write a migration with a reason rather than
+discover the column already permitted a value nobody could produce. This is the same instinct as
+D160 read backwards: reserved tables are adopted, reserved *values* are not.
+
+**D166. When the hardware cannot do the milestone, build the boundary and say so in the roadmap.**
+M34 is called "voice and multimodal". This machine has no microphone, no speech weights and no GPU,
+so the milestone is marked `partial` in `PLAN.md` and `docs/MODES.md` §3.4 while the parts that are
+true here are finished and tested: measurement, provenance, refusal. The alternative - an adapter
+that shells out to an absent binary and returns a canned string - would pass a test and teach a
+reader something false. The next milestone (M35, dataset preparation) was chosen partly because it
+needs nothing this machine lacks.

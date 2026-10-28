@@ -54,6 +54,11 @@
       sub: "games the rules referee and simulations you can replay · a refused move is kept, with its reason",
       tools: ["rules", "engine", "replay"],
     },
+    voice: {
+      title: "Voice",
+      sub: "what a file is, measured from its bytes · a transcript says who wrote it · what cannot be heard is said out loud",
+      tools: ["fs.read", "measure", "transcripts"],
+    },
     experiments: {
       title: "Experiments",
       sub: "declared commands, declared parameters, and a comparison that says what it could not rank",
@@ -1893,6 +1898,151 @@
       document.getElementById("experiment-command").value = "";
       document.getElementById("experiment-params").value = "";
       await openExperiment(experiment.id);
+    } catch (error) {
+      report(status, error);
+    }
+  });
+
+  // ------------------------------------------------------------------- voice
+  // Three honest things on one page: measurements taken from the bytes, transcripts that name their
+  // author, and a refusal that lists every missing link instead of a spinner that never resolves.
+  function kindChip(kind) {
+    return toolChip(kind, kind === "image" ? "pixels" : kind === "audio" ? "samples" : "text");
+  }
+
+  async function loadVoice() {
+    state.voice = state.voice || {};
+    const data = await api("GET", "/api/voice/assets");
+    const stats = clear(document.getElementById("voice-stats"));
+    const summary = data.stats || {};
+    stats.append(el("p", { class: "small", text: summary.assets + " measured · " + (summary.transcripts || 0) + " transcript(s) · " + (summary.refused || 0) + " refused attempt(s)" }));
+    stats.append(el("p", { class: "small dim", text: summary.can_transcribe ? "speech-to-text: ready" : "speech-to-text: not available (ask the panel why)" }));
+
+    const list = clear(document.getElementById("voice-assets"));
+    if (!data.assets.length) list.append(el("li", { class: "dim small", text: "nothing measured yet" }));
+    for (const asset of data.assets) {
+      const size = asset.width ? asset.width + "×" + asset.height : asset.duration_ms !== null && asset.duration_ms !== undefined ? asset.duration_ms + " ms" : "";
+      const button = el("button", { type: "button", class: "list-item" + (state.voice.id === asset.id ? " active" : "") }, [
+        el("span", { class: "t", text: asset.format + (size ? " · " + size : "") }),
+        el("span", { class: "s", text: asset.kind + " · " + asset.path + (asset.name_mismatch ? " · mislabelled" : "") }),
+      ]);
+      button.addEventListener("click", () => openAsset(asset.id).catch((error) => report(document.getElementById("voice-detail"), error)));
+      list.append(el("li", {}, [button]));
+    }
+    return data;
+  }
+
+  async function openAsset(assetId) {
+    const panel = clear(document.getElementById("voice-detail"));
+    state.voice = state.voice || {};
+    state.voice.id = assetId;
+    const asset = await api("GET", "/api/voice/assets/" + assetId);
+
+    panel.append(el("div", { class: "row between" }, [
+      el("h2", { text: asset.format + " · " + shortId(asset.id) }),
+      statusBadge(asset.kind),
+    ]));
+    panel.append(el("p", { class: "small", text: asset.described }));
+    panel.append(el("p", { class: "small dim", text: asset.path + " · sha256 " + String(asset.sha256).slice(0, 24) + "…" }));
+
+    if (asset.name_mismatch) {
+      // The name disagreed with the bytes. Both are kept, and the disagreement is the headline.
+      panel.append(el("p", { class: "small", text: "the name disagrees with the bytes: " + asset.name_mismatch }));
+    }
+    for (const note of (asset.facts && asset.facts.notes) || []) {
+      panel.append(el("p", { class: "small dim", text: "note: " + note }));
+    }
+
+    const chips = el("div", { class: "row" }, [kindChip(asset.kind), toolChip("bytes", String(asset.bytes))]);
+    if (asset.width) chips.append(toolChip("size", asset.width + "×" + asset.height));
+    if (asset.duration_ms !== null && asset.duration_ms !== undefined) chips.append(toolChip("duration", asset.duration_ms + " ms"));
+    if (asset.sample_rate) chips.append(toolChip("rate", asset.sample_rate + " Hz"));
+    panel.append(chips);
+
+    if (asset.audio) {
+      const outcome = el("div", { class: "stack" });
+      const transcribe = el("button", { type: "button", class: "btn", text: "Ask for words" });
+      transcribe.addEventListener("click", async () => {
+        try {
+          const result = await api("POST", "/api/voice/assets/" + assetId + "/transcribe", {});
+          clear(outcome);
+          outcome.append(el("p", { class: "small", text: "refused (attempt " + shortId(result.attempt_id) + "):" }));
+          for (const reason of result.reasons || []) outcome.append(el("p", { class: "small dim", text: "· " + reason }));
+          if (result.fix) outcome.append(el("p", { class: "small", text: result.fix }));
+          await openAsset(assetId);
+        } catch (error) {
+          report(outcome, error);
+        }
+      });
+      panel.append(el("div", { class: "row" }, [transcribe]));
+      panel.append(outcome);
+    }
+
+    const words = el("form", { class: "card" });
+    words.append(el("div", { class: "card-head" }, [
+      el("h3", { text: "Words a person wrote" }),
+      el("p", { class: "hint", text: "This build cannot recognise speech. What it can keep is a transcript you type, recorded as yours." }),
+    ]));
+    const text = el("textarea", { rows: "3", placeholder: "what the recording says" });
+    const status = el("span", { class: "hint" });
+    const save = el("button", { type: "submit", class: "btn primary", text: "Record as mine" });
+    words.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      status.textContent = "";
+      try {
+        await api("POST", "/api/voice/assets/" + assetId + "/transcripts", { text: text.value });
+        text.value = "";
+        await openAsset(assetId);
+      } catch (error) {
+        report(status, error);
+      }
+    });
+    words.append(el("label", { class: "field" }, ["Transcript", text]), el("div", { class: "row between" }, [save, status]));
+    panel.append(words);
+
+    panel.append(table(["source", "chars", "words"], (asset.transcripts || []).map((row) => [
+      statusBadge(row.source), text(row.chars), row.text.slice(0, 80),
+    ]), "no words recorded"));
+
+    if ((asset.attempts || []).length) {
+      panel.append(table(["when", "action", "status", "why"], asset.attempts.map((attempt) => [
+        attempt.created_at, attempt.action, statusBadge(attempt.status), (attempt.reason || "–").slice(0, 90),
+      ])));
+    }
+    await loadVoice();
+  }
+
+  loaders.voice = async () => {
+    await loadVoice();
+    if (state.voice && state.voice.id) await openAsset(state.voice.id);
+  };
+
+  document.getElementById("voice-refresh").addEventListener("click", () => {
+    loaders.voice().catch((error) => report(document.getElementById("voice-detail"), error));
+  });
+
+  document.getElementById("voice-probe-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const status = document.getElementById("voice-probe-status");
+    status.textContent = "";
+    try {
+      const asset = await api("POST", "/api/voice/probe", { path: document.getElementById("voice-path").value.trim() });
+      document.getElementById("voice-path").value = "";
+      await openAsset(asset.id);
+    } catch (error) {
+      report(status, error);
+    }
+  });
+
+  document.getElementById("voice-say-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const status = document.getElementById("voice-say-status");
+    status.textContent = "";
+    const words = document.getElementById("voice-say-text").value.trim();
+    if (!words) return;
+    try {
+      const result = await api("POST", "/api/voice/say", { text: words });
+      status.textContent = "refused: " + (result.reasons || []).length + " reason(s), recorded as " + shortId(result.attempt_id);
     } catch (error) {
       report(status, error);
     }

@@ -38,6 +38,10 @@
       </button>
 
       <div class="side-label">Work</div>
+      <button class="tab" data-view="voice" type="button" title="Voice">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        <span>Voice</span>
+      </button>
       <button class="tab" data-view="search" type="button" title="Search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m19 19-4-4"/></svg>
         <span>Search</span>
@@ -249,6 +253,54 @@
             <div class="detail">
               <div id="learning-detail" class="stack">
                 <p class="dim small">Pick a goal, or create one. A goal is a record: its items, attempts and sessions are rows the CLI reads too.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ───────────── voice ───────────── -->
+      <section class="page" id="view-voice" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Voice and media</h1>
+            <p>What a file <em>is</em>, measured from its own bytes. The name is kept as a claim, and a <code>.png</code> that is really a JPEG is recorded as both. This build has no speech model, so asking it to hear or speak is refused with every reason named.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="voice-refresh" class="icon-btn" type="button" title="Reload media" aria-label="Reload media">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body flush">
+          <div class="split">
+            <aside class="picker">
+              <div id="voice-stats" class="stats"></div>
+              <ul id="voice-assets" class="list"></ul>
+              <form id="voice-probe-form" class="card">
+                <div class="card-head"><h3>Measure a file</h3><p class="hint">A path inside the tool roots. Reads the header and hashes the bytes; needs <code>fs.read</code>.</p></div>
+                <label class="field">Path
+                  <input id="voice-path" type="text" placeholder="photos/holiday.jpg">
+                </label>
+                <div class="row between">
+                  <button type="submit" class="btn primary">Measure</button>
+                  <span id="voice-probe-status" class="hint"></span>
+                </div>
+              </form>
+              <form id="voice-say-form" class="card">
+                <div class="card-head"><h3>Say something</h3><p class="hint">Asks for speech. This build answers with the reasons it cannot, and records the attempt.</p></div>
+                <label class="field">Text
+                  <input id="voice-say-text" type="text" placeholder="read this aloud">
+                </label>
+                <div class="row between">
+                  <button type="submit" class="btn">Ask</button>
+                  <span id="voice-say-status" class="hint"></span>
+                </div>
+              </form>
+            </aside>
+            <div class="detail">
+              <div id="voice-detail" class="stack">
+                <p class="dim small">Pick a file, or measure one. The numbers here are read from the file's bytes; a transcript says who wrote it.</p>
               </div>
             </div>
           </div>

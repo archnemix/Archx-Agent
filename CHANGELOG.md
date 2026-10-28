@@ -12,6 +12,31 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
   if the read is not allowed, records the diff as partial with the reason. (`docs/GUI.md` already
   promised one request; now the code does too.)
 
+### Added - M34, Voice and media
+- **A media fact is a fact only if it was read from the file.** `application/media.py` parses PNG,
+  JPEG, GIF and WAV headers by hand and reports what the container declared; anything else is
+  refused with the bytes it began with. No PIL, no ffmpeg, no `file` binary: a header parse is
+  thirty lines per format, and a media pipeline that needs a 60 MB wheel will not run where it is
+  needed.
+- **The file name is a claim, kept beside the measurement.** A PNG named `.jpg` is stored as a PNG,
+  with `name_mismatch` set and counted in `voice stats`. A WAV whose header claims more data than
+  the file has keeps both numbers. Nothing is adopted from the extension and nothing is rejected
+  because of it.
+- **The same bytes are one asset.** The sha256 decides; a repeated probe returns the existing row
+  with `duplicate: true`, and `--force` stores a second one.
+- **Retaining the bytes is a decision.** `--retain` refuses before copying anything until
+  `voice.retain_audio` is on; then the copy lands under the file's own hash.
+- **Asking it to hear or speak is refused on the record, with every missing link named.** The chain
+  is computed - the switch, the model setting, the registry, the model's claim, the runtime, the
+  adapter - so the reasons change when the workspace does, and the attempt is a row in
+  `voice_attempts` (CLI exit 3; HTTP 200 with `status: refused`, because nothing broke).
+- **The only transcript this build can store is one a person typed**, enforced by
+  `CHECK (source IN ('human'))` in the schema rather than by the service alone.
+- New tool `fs.probe` (capability `fs.read`, low risk): reads a head as bytes and hashes the file;
+  `fs.read` still refuses to decode a binary file as text.
+- The GUI grew a fourteenth panel: measurement, the disagreement with the name, the refusal with
+  its reasons, and a form to record the words you wrote.
+
 ### Added - M33, Play Mode
 - **The rules are the only authority.** `application/games.py` holds tic-tac-toe, connect four and
   nim as pure rules: build a board, list the moves that are legal *there*, apply one, say whether

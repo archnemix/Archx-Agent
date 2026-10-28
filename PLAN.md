@@ -36,7 +36,7 @@ acceptance not fully demonstrated · **not started**
 | **M31** | **Coding workspace** | **done** | `tests/test_coding_m31.py` (66), `docs/CODING.md`, `scripts/acceptance_m31.sh` (48 checks over a real socket). Scope: a session is a directory inside the tool roots, every read/write/run is a tool call, edits are diffs on the session task, and the runner records every command |
 | **M32** | **Experimental Mode** | **done** | `tests/test_experiments_m32.py` (66), `docs/EXPERIMENTS.md`, `scripts/acceptance_m32.sh` (53 checks over a real socket). Scope: an experiment is a declared command, parameters and metrics source; a metric is read only from that source or not at all, and a comparison names what it could not rank |
 | **M33** | **Play Mode** | **done** | `tests/test_play_m33.py` (77), `docs/PLAY.md`, `scripts/acceptance_m33.sh` (69 checks: the migration adopting the reserved tables, a refused move kept, sixty engine games checked against the rules, a doctored hash failing its own replay, and the page starting a game the CLI reads) |
-| M34 | Voice and multimodal foundation | not started | - |
+| **M34** | **Voice and multimodal foundation** | **done · scoped** | `tests/test_voice_m34.py` (67), `docs/VOICE.md`, `scripts/acceptance_m34.sh` (88 checks incl. containers built byte by byte and a CHECK constraint tested directly). Scope: measurement, provenance and honest refusal - **no speech recognition or synthesis exists here**, and `voice transcribe`/`voice say` say so on the record (`docs/MODES.md` §3.4) |
 | M35 | Dataset preparation | not started | - |
 | M36 | Training and model modification | not started | - |
 | M37 | Remote compute and portability | not started | - |
