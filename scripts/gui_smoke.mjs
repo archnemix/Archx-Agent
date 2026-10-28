@@ -225,6 +225,48 @@ const routes = {
     created_at: "2026-10-28T10:00:00Z", metadata: {}, transcripts: [], attempts: [],
     described: "wav audio, 100 ms, 8000 Hz 1 ch 16-bit, 1644 bytes",
   },
+  // the mock matches routes by prefix, so the specific paths are listed before the collection
+  "GET /api/datasets/ds_demo/records?limit=100": {
+    dataset_id: "ds_demo",
+    records: [
+      { id: "dr_1", dataset_id: "ds_demo", seq: 0, path: "corpus/a.txt",
+        sha256: "aaaa", bytes: 33, kind: "text", chars: 33, lines: 2, split: "train",
+        status: "kept", reason: null, label: null, created_at: "2026-10-28T10:00:00Z",
+        metadata: {} },
+      { id: "dr_2", dataset_id: "ds_demo", seq: 1, path: "corpus/copy_a.txt",
+        sha256: "aaaa", bytes: 33, kind: "text", chars: 33, lines: 2, split: null,
+        status: "dropped",
+        reason: "the same content is already in the dataset from an earlier path: corpus/a.txt",
+        label: null, created_at: "2026-10-28T10:00:00Z", metadata: {} },
+    ],
+  },
+  "GET /api/datasets/ds_demo": {
+    id: "ds_demo", name: "corpus", source: '["corpus"]', status: "split", revision: null,
+    license: "CC-BY-4.0", format: "jsonl", record_count: 3, dropped_count: 2, path: null,
+    checksum: "bbccf9613487622568379a498326ca7a323b14dc0d5f2ee9a7908c51642f49a9",
+    seed: "m35", splits: { by_split: { train: 2, val: 1 } }, task_id: null,
+    created_at: "2026-10-28T10:00:00Z", updated_at: "2026-10-28T10:00:00Z", metadata: {},
+    counts: { kept: 3, dropped: 2, by_split: { train: 2, val: 1 } },
+    sources: ["corpus"], license_note: "declared by the user: CC-BY-4.0",
+    transforms: [
+      { id: 1, dataset_id: "ds_demo", seq: 1, kind: "scan", config: {}, records_in: 0,
+        records_out: 5, report: {}, output_path: null, input_checksum: null,
+        output_checksum: null, created_at: "2026-10-28T10:00:00Z" },
+      { id: 2, dataset_id: "ds_demo", seq: 2, kind: "clean", config: {}, records_in: 5,
+        records_out: 3, report: {}, output_path: null, input_checksum: null,
+        output_checksum: null, created_at: "2026-10-28T10:01:00Z" },
+    ],
+  },
+  "GET /api/datasets": {
+    datasets: [
+      { id: "ds_demo", name: "corpus", source: '["corpus"]', status: "split", revision: null,
+        license: "CC-BY-4.0", format: "jsonl", record_count: 3, dropped_count: 2, path: null,
+        checksum: null, seed: "m35", splits: {}, task_id: null,
+        created_at: "2026-10-28T10:00:00Z", updated_at: "2026-10-28T10:00:00Z", metadata: {} },
+    ],
+    roots: ["/tmp/smoke"],
+    stats: { datasets: 1, records: 5, kept: 3, dropped: 2, bytes_kept: 120, by_status: { split: 1 } },
+  },
   "GET /api/conversations": [],
   "GET /api/tasks": [],
   "GET /api/tools": [],
@@ -288,11 +330,12 @@ function assert(condition, message) {
 }
 
 // the shell
-assert(doc.querySelectorAll(".tab").length === 14, "expected fourteen mode tabs");
+assert(doc.querySelectorAll(".tab").length === 15, "expected fifteen mode tabs");
 assert(doc.getElementById("view-code"), "the coding view is missing");
 assert(doc.getElementById("view-experiments"), "the experiments view is missing");
 assert(doc.getElementById("view-play"), "the play view is missing");
 assert(doc.getElementById("view-voice"), "the voice view is missing");
+assert(doc.getElementById("view-data"), "the datasets view is missing");
 assert(doc.getElementById("view-chat"), "chat view is missing");
 
 // every refresh button answers a click without throwing
@@ -429,6 +472,30 @@ await tick();
 await tick();
 assert(calls.includes("POST /api/voice/probe"), `the probe form never posted: ${JSON.stringify(calls.slice(-4))}`);
 
+// data: the kept record, and the dropped one with the rule that dropped it, are both on screen
+doc.querySelector('[data-view="data"]').click();
+await tick();
+await tick();
+assert(doc.querySelectorAll("#data-list .list-item").length === 1, "the dataset list did not render");
+assert(doc.getElementById("data-stats").textContent.includes("1 dataset"), "the dataset stats did not render");
+doc.querySelector("#data-list .list-item").click();
+await tick();
+await tick();
+await tick();
+assert(calls.includes("GET /api/datasets/ds_demo"), `the dataset was never opened: ${JSON.stringify(calls.slice(-4))}`);
+const dataPanel = doc.getElementById("data-detail").textContent;
+assert(dataPanel.includes("3 kept, 2 dropped"), "the counts are not shown");
+assert(dataPanel.includes("declared by the user: CC-BY-4.0"), "the license provenance is not shown");
+assert(dataPanel.includes("corpus/copy_a.txt"), "a dropped record must stay visible");
+assert(dataPanel.includes("already in the dataset from an earlier path"), "the drop reason must be shown");
+
+doc.getElementById("data-name").value = "second";
+doc.getElementById("data-sources").value = "notes/";
+doc.getElementById("data-create-form").dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
+await tick();
+await tick();
+assert(calls.includes("POST /api/datasets"), `the create form never posted: ${JSON.stringify(calls.slice(-4))}`);
+
 // no inline style attributes were produced, and no inline handlers leaked into the markup
 assert(!/style="/.test(doc.body.innerHTML), "inline style attribute produced");
 assert(!/onclick="/.test(doc.body.innerHTML), "inline handler produced");
@@ -440,4 +507,4 @@ if (problems.length) {
   for (const problem of problems) console.error(" - " + problem);
   process.exit(1);
 }
-console.log("smoke ok: 14 tabs, 4 gate rows, code, experiment, play and voice panels render, forms post, no page errors");
+console.log("smoke ok: 15 tabs, 4 gate rows, code, experiment, play, voice and dataset panels render, forms post, no page errors");

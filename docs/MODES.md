@@ -41,7 +41,7 @@ there is no code.
 | M32 | **Experimental Mode** | done | declared commands and parameters, real runs, a comparison that names what it could not rank (see §2.3) |
 | M33 | **Play Mode** | done | three small games the rules referee, and simulations that replay from their parameters (see §2.4) |
 | M34 | **Voice and media** | **partial** | media measured from its own bytes, transcripts with provenance, speech refused by name - no microphone and no speech model exist here (see §3.4) |
-| M35 | Dataset preparation | not built | collect, clean, split, version a corpus |
+| M35 | **Dataset preparation** | **partial** | candidates kept and dropped with reasons, splits that do not move, a manifest that can fail; text corpora only - no training, no tokenisation, no upload (see §2.6) |
 | M36 | Training and model modification | not built | LoRA/fine-tune — no weights or GPU reachable here |
 | M37 | Remote compute | not built | hand work to another machine, portably |
 | M38 | Blender and 3D workflows | not built | scene scripting through the tool layer |
@@ -183,6 +183,22 @@ in the schema rather than a rule the service happens to enforce.
 What it does **not** claim: that it can recognise speech, synthesise it, caption an image or read
 text out of one. `docs/VOICE.md` has the tables, the formats and the refusals.
 
+### 2.6 Datasets, and the four claims a corpus has to keep
+
+A prepared corpus is the first artifact here whose *contents* are the product, so the mode is built
+around four claims that a tidy-looking pipeline can quietly lose. Every candidate is a row, kept or
+dropped, and a dropped one keeps the rule and the reason - "why is this file not in my dataset" is
+answered by the record, not by a log. Splits follow from each record's own hash rather than its
+position, so equal bytes cannot straddle `train` and `test` and adding a file tomorrow does not move
+yesterday's rows. The leak the hash cannot see - one document resaved with different whitespace or
+case - is caught by a normalised hash and refused with the crossing pair named. And the manifest is
+a claim that can fail: `dataset verify` re-reads the files, prints stored versus recomputed and
+names what changed.
+
+What it does not claim: that it trains anything, tokenises anything, or sends the corpus anywhere.
+The license is recorded per dataset and an unstated one is written as `unknown`; `--require-license`
+refuses rather than inventing permission.
+
 ## 3. What "done" does not mean (the honest gaps)
 
 ### 3.1 Research Mode is marked `partial`, not done
@@ -224,7 +240,7 @@ answers them; deleting stays a CLI act.
 
 ### 3.3 The GUI is a client, not a product surface for everything
 
-Fourteen panels, all wired, nothing decorative. The shell is one page with a sidebar, a top bar
+Fifteen panels, all wired, nothing decorative. The shell is one page with a sidebar, a top bar
 carrying each mode's live tool chips, three themes and a chat transcript with markdown,
 copy buttons and confirmations for anything that cannot be undone. Workflow authoring, streaming tokens, files, a
 multi-user story and TLS are not there; they are listed in `GAPS.md` and `docs/GUI.md` rather
@@ -240,8 +256,10 @@ weights nobody can run would be a claim this repository could not verify.
 
 ## 4. Where this leaves the roadmap
 
-Built: M01–M34 (with the three honest `partial`s above), plus the Research completion model
-(§3.1). Next: **M35 Dataset preparation**, which needs no hardware this machine lacks. The Research gaps in §3.1
+Built: M01–M35 (with the four honest `partial`s above), plus the Research completion model
+(§3.1). Next: **M36 Training and model modification**, which is the second milestone this machine
+cannot finish honestly - no weights and no GPU are reachable here - so it will be scoped the way M34
+was. The Research gaps in §3.1
 remain the most valuable repair, and they no longer have an excuse: the runner and the record
 they needed now exist in the coding workspace, which can be reused rather than invented.
 

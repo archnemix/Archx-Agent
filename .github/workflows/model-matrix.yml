@@ -194,6 +194,12 @@ jobs:
       - name: voice and media acceptance
         run: run.sh voice-acceptance bash scripts/acceptance_m34.sh
 
+      # Dataset preparation: the corpus is written on the runner, so the hashes are arithmetic on
+      # content the run chose. A resaved document is refused across splits, a manifest is broken by
+      # an edit and by a delete, and the page drives the same pipeline over HTTP.
+      - name: dataset acceptance
+        run: run.sh dataset-acceptance bash scripts/acceptance_m35.sh
+
       - name: sdk catalogue
         run: run.sh sdks archx-agent models sdks
 

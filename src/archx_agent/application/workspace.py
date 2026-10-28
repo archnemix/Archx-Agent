@@ -63,6 +63,7 @@ from archx_agent.managers.embeddings import EmbeddingManager
 from archx_agent.managers.conversation import ConversationManager
 from archx_agent.managers.extensions import ExtensionManager
 from archx_agent.managers.jobs import JobManager
+from archx_agent.managers.datasets import DatasetManager
 from archx_agent.managers.learning import LearningManager
 from archx_agent.managers.mcp import McpManager
 from archx_agent.managers.media import MediaManager
@@ -113,6 +114,7 @@ class Workspace:
     experiments: ExperimentManager | None = None
     play: PlayManager | None = None
     media: MediaManager | None = None
+    datasets: DatasetManager | None = None
     reproduction: ReproductionManager | None = None
     router: Any = None
     context: ContextManager | None = None
@@ -351,6 +353,7 @@ class Workspace:
         ws.experiments = ExperimentManager(store, coordinator, events=events)
         ws.play = PlayManager(store, coordinator, events=events)
         ws.media = MediaManager(store, coordinator, events=events)
+        ws.datasets = DatasetManager(store, coordinator, events=events)
         ws.research = ResearchManager(
             store, coordinator, events=events, config=config
         )
@@ -453,6 +456,13 @@ class Workspace:
         from .voice import VoiceService
 
         return VoiceService(self)
+
+    @property
+    def data(self):
+        """The dataset service (imported lazily to keep the composition root acyclic)."""
+        from .datasets import DatasetService
+
+        return DatasetService(self)
 
     @property
     def play_mode(self):

@@ -12,6 +12,29 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
   if the read is not allowed, records the diff as partial with the reason. (`docs/GUI.md` already
   promised one request; now the code does too.)
 
+### Added - M35, Dataset preparation
+- **Every candidate is a row.** A file removed by a cleaning rule keeps `status = 'dropped'`, the
+  rule that removed it and the reason; `dataset explain` answers "why is this not in my dataset"
+  from the record, and the CLI and the page both show the dropped rows.
+- **Scanning goes through the tool layer**, one `fs.list` per directory (so every level is a
+  permission check), with a depth bound and a refusal on a truncated listing rather than a scan
+  with invisible holes. A text suffix hiding binary bytes is recorded as binary: the refusal *is*
+  the reason.
+- **Splits follow from the record.** `bucket = hash(seed + ':' + sha256)` means equal bytes cannot
+  straddle splits and adding a file does not move the existing rows. A resaved document - same text,
+  different whitespace or case - is caught by a normalised hash recorded at scan time, refused with
+  the crossing pair named, and closed by `dataset clean --normalize`.
+- **The manifest is a claim that can fail.** `build` writes the JSONL export through `fs.write` and
+  records a sha256 over the manifest's sorted lines; `verify` re-reads the files, prints stored
+  versus recomputed and names each changed or missing record. The CLI exits 3 - nothing broke, the
+  corpus moved.
+- **The license is recorded, never inferred.** Unstated is `unknown`; `--require-license` refuses
+  instead of inventing one.
+- Schema v25 adopts v8's reserved `datasets`/`dataset_transforms` with `ALTER TABLE` and adds
+  `dataset_records`, one row per candidate, plus a step ledger (`scan`, `clean`, `split`, `build`).
+- The GUI grew a fifteenth panel: create, scan, clean, split, build, verify, and the record table
+  with the dropped rows and their reasons.
+
 ### Added - M34, Voice and media
 - **A media fact is a fact only if it was read from the file.** `application/media.py` parses PNG,
   JPEG, GIF and WAV headers by hand and reports what the container declared; anything else is

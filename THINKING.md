@@ -1057,3 +1057,45 @@ true here are finished and tested: measurement, provenance, refusal. The alterna
 that shells out to an absent binary and returns a canned string - would pass a test and teach a
 reader something false. The next milestone (M35, dataset preparation) was chosen partly because it
 needs nothing this machine lacks.
+
+**D167. A corpus pipeline's first duty is to the files it did *not* keep.**
+Every cleaning pipeline is easy to write as a filter. The problem with a filter is that the
+removed item leaves no trace, so the first question anyone asks of a prepared dataset - "why is
+this file not in it?" - has no answer except a re-run with print statements. So `dataset_records`
+holds one row per **candidate**, and a removed row keeps `status='dropped'`, the rule in
+`metadata`, and a sentence in `reason` including the numbers it compared (`5 < 10`) or the path that
+already held the content. The ledger (`dataset_transforms`) records what each step took in and gave
+back. The cost is a bigger table; the benefit is that the pipeline can be audited without being
+re-run, which is the only kind of audit that works a week later.
+
+**D168. Split by content, not by position - and then check the thing the hash cannot see.**
+A positional shuffle is the standard shortcut and it hides two problems: every record moves when
+the corpus changes, and two copies of one document can land in different splits. Bucketing on
+`hash(seed + ':' + sha256)` fixes both - the assignment is a pure function of the record and the
+seed, so equal bytes cannot straddle splits *by construction*.
+
+That leaves exactly one leak, which the first version of this milestone got wrong: a document saved
+with different whitespace or case has different bytes, hence a different bucket, hence a real leak
+across `train` and `test`. The fix is a second hash, of the normalised text, computed at scan time
+and stored on the record; `dataset split` refuses a crossing group and names the pair, and
+`clean --normalize` dedupes on the same key. A test drives nine seeds and asserts that every seed
+either refuses the split or keeps the copies together - the invariant, not one lucky case.
+
+**D169. A `CHECK` is better than a promise when the promise is about honesty.** (D165, applied)
+`dataset_records.status` allows `kept`/`dropped`; the split column allows the three split names or
+NULL. The service already refuses anything else, but the schema says it too, so a future writer -
+including a migration - has to mean it.
+
+**D170. An unstated license is `unknown`, and the tool refuses to publish on it.**
+The temptation with a corpus is to infer permission from where it came from: a path called
+`public/`, a dataset downloaded from a friendly URL, a colleague's folder. Every one of those is a
+guess with legal consequences, so `license` defaults to the string `unknown` and the record says
+"nothing here infers permission from a path". `--require-license` is the strict mode: it refuses to
+clean an unknown-licensed dataset rather than producing one that looks ready to publish.
+
+**D171. When a route cannot exist, do not register a shadowed one.**
+`/api/datasets/stats` would have been the natural sibling of `/api/voice/stats`, but the GUI router
+sorts route patterns and `(?P<dataset_id>…)` sorts before the literal `stats`, so the id route
+would swallow it and the stats route would never run - a route in the table that cannot be reached
+is worse than no route at all. The counts ride on the collection response instead, and the comment
+in the code says why.

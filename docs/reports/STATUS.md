@@ -90,12 +90,13 @@ edit .ci/trigger -> push -> .github/workflows/model-matrix.yml (18 steps, 14 of 
 | ~~10~~ | ~~**M33 Play Mode**~~ | **Done.** Three games the rules referee, a refused move kept with its reason, an engine that can only choose from the legal moves, and simulations that replay from their parameters (a doctored hash fails its own check). `docs/PLAY.md`, `pytest tests/test_play_m33.py` (77), `scripts/acceptance_m33.sh` (69). | closed |
 
 | ~~11~~ | ~~**M34 Voice and media**~~ | **Done, scoped.** A file is measured from its own bytes (PNG, JPEG, GIF, WAV parsed by hand), the name is a claim kept beside the measurement, unsupported containers are refused with their leading bytes, and asking it to hear or speak is a recorded refusal that names every missing link. Marked `partial`: no microphone, no speech weights and no GPU exist here, so recognition and synthesis are **not implemented in any form**. `docs/VOICE.md`, `pytest tests/test_voice_m34.py` (67), `scripts/acceptance_m34.sh` (88). | closed |
+| ~~13~~ | ~~**M35 Dataset preparation**~~ | **Done, scoped.** Candidates kept *and* dropped with their reasons, splits that follow from the record's hash (a resaved document is refused across splits), a manifest hash that `verify` can disagree with, and a license that is recorded rather than inferred. Text corpora only: no training, no tokenisation, no upload. `docs/DATASETS.md`, `pytest tests/test_datasets_m35.py` (60), `scripts/acceptance_m35.sh` (72). | closed |
 | 12 | **Speech recognition or synthesis** | Needs weights and an adapter that no machine here can run; building one would be a claim this repository could not verify. `M36` (training) inherits the same problem. | blocked on hardware |
 
 What is left is one thing that a live network could close: a call to a vendor's cloud API, which
 needs keys this environment does not have - and one thing no network here can close: speech in or
-out. M34 closed as far as this machine allows; M35 (dataset preparation) is next because it needs
-nothing this machine lacks. Nothing in between is "implemented but untested".
+out, and a training run. M35 closed completely (it needs nothing this machine lacks); M36 (training)
+is next and will be scoped the way M34 was. Nothing in between is "implemented but untested".
 
 ---
 

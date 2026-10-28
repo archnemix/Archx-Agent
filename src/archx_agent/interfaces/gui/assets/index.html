@@ -42,6 +42,10 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
         <span>Voice</span>
       </button>
+      <button class="tab" data-view="data" type="button" title="Data">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg>
+        <span>Data</span>
+      </button>
       <button class="tab" data-view="search" type="button" title="Search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m19 19-4-4"/></svg>
         <span>Search</span>
@@ -301,6 +305,51 @@
             <div class="detail">
               <div id="voice-detail" class="stack">
                 <p class="dim small">Pick a file, or measure one. The numbers here are read from the file's bytes; a transcript says who wrote it.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ───────────── data ───────────── -->
+      <section class="page" id="view-data" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Datasets</h1>
+            <p>Candidates measured, cleaning that keeps its reasons, splits that do not move, and a manifest you can re-check. A file removed by a rule stays on the record with the rule named.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="data-refresh" class="icon-btn" type="button" title="Reload datasets" aria-label="Reload datasets">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body flush">
+          <div class="split">
+            <aside class="picker">
+              <div id="data-stats" class="stats"></div>
+              <ul id="data-list" class="list"></ul>
+              <form id="data-create-form" class="card">
+                <div class="card-head"><h3>Create a dataset</h3><p class="hint">One source path per line, inside the tool roots. An unstated license is recorded as unknown.</p></div>
+                <label class="field">Name
+                  <input id="data-name" type="text" placeholder="corpus" required>
+                </label>
+                <label class="field">Sources
+                  <textarea id="data-sources" rows="3" placeholder="corpus/&#10;notes/"></textarea>
+                </label>
+                <label class="field">License
+                  <input id="data-license" type="text" placeholder="CC-BY-4.0 (leave empty if you do not know)">
+                </label>
+                <div class="row between">
+                  <button type="submit" class="btn primary">Create</button>
+                  <span id="data-create-status" class="hint"></span>
+                </div>
+              </form>
+            </aside>
+            <div class="detail">
+              <div id="data-detail" class="stack">
+                <p class="dim small">Pick a dataset, or create one. Every step is a row: what went in, what came out, and why.</p>
               </div>
             </div>
           </div>

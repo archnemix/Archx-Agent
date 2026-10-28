@@ -59,6 +59,11 @@
       sub: "what a file is, measured from its bytes · a transcript says who wrote it · what cannot be heard is said out loud",
       tools: ["fs.read", "measure", "transcripts"],
     },
+    data: {
+      title: "Data",
+      sub: "candidates measured, removals kept with their reason, splits that do not move · the manifest is a claim you can re-check",
+      tools: ["fs.read", "manifest", "splits"],
+    },
     experiments: {
       title: "Experiments",
       sub: "declared commands, declared parameters, and a comparison that says what it could not rank",
@@ -2043,6 +2048,142 @@
     try {
       const result = await api("POST", "/api/voice/say", { text: words });
       status.textContent = "refused: " + (result.reasons || []).length + " reason(s), recorded as " + shortId(result.attempt_id);
+    } catch (error) {
+      report(status, error);
+    }
+  });
+
+  // -------------------------------------------------------------------- data
+  // A dataset is four claims held together: what went in, what was removed and why, which split
+  // each record is in, and a hash over the manifest. The page shows all four - including the
+  // dropped records, because "why is this file not in my dataset" is the first question anyone asks.
+  async function loadDatasets() {
+    state.data = state.data || {};
+    const payload = await api("GET", "/api/datasets");
+    const stats = clear(document.getElementById("data-stats"));
+    const summary = payload.stats || {};
+    stats.append(el("p", { class: "small", text: (summary.datasets || 0) + " dataset(s) · " + (summary.records || 0) + " candidate(s) · " + (summary.kept || 0) + " kept" }));
+    stats.append(el("p", { class: "small dim", text: (summary.dropped || 0) + " dropped, each with its reason kept" }));
+
+    const list = clear(document.getElementById("data-list"));
+    if (!payload.datasets.length) list.append(el("li", { class: "dim small", text: "no datasets yet" }));
+    for (const dataset of payload.datasets) {
+      const button = el("button", { type: "button", class: "list-item" + (state.data.id === dataset.id ? " active" : "") }, [
+        el("span", { class: "t", text: dataset.name }),
+        el("span", { class: "s", text: dataset.status + " · " + (dataset.record_count ?? 0) + " kept · " + (dataset.dropped_count || 0) + " dropped" }),
+      ]);
+      button.addEventListener("click", () => openDataset(dataset.id).catch((error) => report(document.getElementById("data-detail"), error)));
+      list.append(el("li", {}, [button]));
+    }
+    return payload;
+  }
+
+  function datasetAction(panel, label, path, body, after, primary) {
+    const button = el("button", { type: "button", class: "btn" + (primary ? " primary" : ""), text: label });
+    const outcome = el("p", { class: "small dim" });
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      outcome.textContent = "";
+      try {
+        await api("POST", path, body || {});
+        if (after) await after();
+      } catch (error) {
+        report(outcome, error);
+      } finally {
+        button.disabled = false;
+      }
+    });
+    panel.append(button);
+    return { button, outcome };
+  }
+
+  async function openDataset(datasetId) {
+    const panel = clear(document.getElementById("data-detail"));
+    state.data = state.data || {};
+    state.data.id = datasetId;
+    const dataset = await api("GET", "/api/datasets/" + datasetId);
+    const counts = dataset.counts || {};
+
+    panel.append(el("div", { class: "row between" }, [
+      el("h2", { text: dataset.name + " · " + shortId(dataset.id) }),
+      statusBadge(dataset.status),
+    ]));
+    panel.append(el("p", { class: "small", text: (counts.kept || 0) + " kept, " + (counts.dropped || 0) + " dropped · license " + dataset.license }));
+    panel.append(el("p", { class: "small dim", text: dataset.license_note }));
+
+    const chips = el("div", { class: "row" }, [
+      toolChip("sources", String((dataset.sources || []).length)),
+      toolChip("seed", dataset.seed || "–"),
+    ]);
+    for (const [split, count] of Object.entries(counts.by_split || {})) chips.append(toolChip(split, String(count)));
+    if (dataset.checksum) chips.append(toolChip("manifest", String(dataset.checksum).slice(0, 12) + "…"));
+    panel.append(chips);
+
+    const actions = el("div", { class: "row" });
+    const refresh = async () => { await openDataset(datasetId); };
+    const scan = datasetAction(actions, "Scan", "/api/datasets/" + datasetId + "/scan", {}, refresh, !counts.kept && !counts.dropped);
+    const clean = datasetAction(actions, "Clean", "/api/datasets/" + datasetId + "/clean", { dedupe: true, normalize: true }, refresh);
+    const split = datasetAction(actions, "Split", "/api/datasets/" + datasetId + "/split", { seed: dataset.seed || "0" }, refresh);
+    const build = datasetAction(actions, "Build", "/api/datasets/" + datasetId + "/build", {}, refresh);
+    panel.append(actions);
+    panel.append(el("p", { class: "hint", text: "Scan measures every candidate (needs fs.read). Clean removes copies and short files, and keeps the reason. Split follows from each record's own hash, so it does not move. Build writes the JSONL export and records the manifest hash." }));
+
+    const verify = el("div", { class: "stack" });
+    const verifyButton = el("button", { type: "button", class: "btn", text: "Verify against the files" });
+    verifyButton.addEventListener("click", async () => {
+      clear(verify);
+      try {
+        const result = await api("GET", "/api/datasets/" + datasetId + "/verify");
+        verify.append(el("p", { class: "small", text: result.agrees ? "the files still produce the recorded manifest" : "the dataset no longer matches its manifest: " + result.note }));
+        verify.append(el("p", { class: "small dim", text: "stored " + (result.stored_checksum || "(none)").slice(0, 24) + "…" }));
+        verify.append(el("p", { class: "small dim", text: "recomputed " + String(result.recomputed_checksum).slice(0, 24) + "…" }));
+        for (const difference of result.differences || []) {
+          verify.append(el("p", { class: "small", text: difference.kind + ": " + difference.path }));
+        }
+      } catch (error) {
+        report(verify, error);
+      }
+    });
+    panel.append(el("div", { class: "row" }, [verifyButton]));
+    panel.append(verify);
+
+    if ((dataset.transforms || []).length) {
+      panel.append(table(["step", "records in", "records out", "when"], dataset.transforms.map((step) => [
+        step.kind, text(step.records_in), text(step.records_out), step.created_at,
+      ])));
+    }
+
+    const records = await api("GET", "/api/datasets/" + datasetId + "/records?limit=100");
+    panel.append(table(["status", "split", "path", "chars", "why"], (records.records || []).map((record) => [
+      statusBadge(record.status), record.split || "–", record.path,
+      text(record.chars), record.reason || "–",
+    ]), "no candidates yet - scan the dataset"));
+  }
+
+  loaders.data = async () => {
+    await loadDatasets();
+    if (state.data && state.data.id) await openDataset(state.data.id);
+  };
+
+  document.getElementById("data-refresh").addEventListener("click", () => {
+    loaders.data().catch((error) => report(document.getElementById("data-detail"), error));
+  });
+
+  document.getElementById("data-create-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const status = document.getElementById("data-create-status");
+    status.textContent = "";
+    const name = document.getElementById("data-name").value.trim();
+    const sources = document.getElementById("data-sources").value.split("\n").map((line) => line.trim()).filter(Boolean);
+    if (!name || !sources.length) { status.textContent = "a name and at least one source"; return; }
+    try {
+      const dataset = await api("POST", "/api/datasets", {
+        name, sources, license: document.getElementById("data-license").value.trim() || null,
+      });
+      document.getElementById("data-name").value = "";
+      document.getElementById("data-sources").value = "";
+      document.getElementById("data-license").value = "";
+      await openDataset(dataset.id);
     } catch (error) {
       report(status, error);
     }

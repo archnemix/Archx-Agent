@@ -17,6 +17,7 @@ the `ci-logs` branch. The numbers below are lifted out of those logs; nothing he
 | `20261028T152139Z-b0ab8ce` | `b0ab8ce` | 14 | 0 | 1515 passed, 2 warnings in 309.61s | 91 passed in 43.51s 11 passed in 12.17s · 48 checks passed · 53 checks passed |
 | `20261028T153716Z-b62f938` | `b62f938` | 14 | 0 | 1516 passed, 2 warnings in 313.42s | 91 passed in 42.54s 11 passed in 13.29s · 48 checks passed · 53 checks passed |
 | `20261028T162126Z-025f7fe` | `025f7fe` | 15 | 0 | 1593 passed, 2 warnings in 386.63s | 91 passed in 47.11s 11 passed in 15.42s · 48 checks passed · 53 checks passed · 69 checks passed |
+| `20261028T175715Z-87d6a61` | `87d6a61` | 16 | 0 | 1660 passed, 2 warnings in 414.89s | 91 passed in 45.98s 11 passed in 17.72s · 48 checks passed · 53 checks passed · 69 checks passed |
 
 Runs #1 and #2 are the interesting failures: #1 hung on the `serve` step for nine minutes (a
 backgrounded server held the step's pipe open), and #2 never started a job at all because GitHub
@@ -35,24 +36,25 @@ failure. Each milestone's green run is the one listed here.
 git fetch origin ci-logs && git show FETCH_HEAD:ci/runs/<id>/console.log
 ```
 
-## Status, run `20261028T162126Z-025f7fe`
+## Status, run `20261028T175715Z-87d6a61`
 
 ```text
 step                   status   seconds
-install                ok       25
-pytest                 ok       388
-stress-edge            ok       48
-integration            ok       16
-coding-acceptance      ok       12
-experiment-acceptance  ok       9
-play-acceptance        ok       10
+install                ok       26
+pytest                 ok       417
+stress-edge            ok       46
+integration            ok       18
+coding-acceptance      ok       15
+experiment-acceptance  ok       10
+play-acceptance        ok       13
+voice-acceptance       ok       12
 sdks                   ok       3
-llama-cpp              ok       2
-model-download         ok       2
+llama-cpp              ok       3
+model-download         ok       3
 serve                  ok       1
 completion             ok       0
-sdk-matrix             ok       13
-ollama                 ok       74
+sdk-matrix             ok       16
+ollama                 ok       45
 tunnel                 ok       10
 ```
 
@@ -62,11 +64,11 @@ tunnel                 ok       10
 
 ```json
 {
-  "text": "A tunnel is a narrow, underground passageway through which you can move.",
+  "text": "A tunnel is a tunnelway or passageway through which a train moves, often using a track or cable to create a sealed or partially sealed tunnel.",
   "usage": {
-    "completion_tokens": 16,
+    "completion_tokens": 31,
     "prompt_tokens": 40,
-    "total_tokens": 56,
+    "total_tokens": 71,
     "prompt_tokens_details": {
       "cached_tokens": 0
     }
@@ -79,16 +81,16 @@ tunnel                 ok       10
 ### the same endpoint through each official SDK
 
 --- openai
-OK    'Hello, welcome to my little corner of the internet.'
+OK    'Hello, welcome to my little corner of the internet!'
       tokens in/out 36/12  finish stop
       base http://127.0.0.1:8080/v1  ->  /chat/completions
-      streamed 4 chunk(s), 15 chars: 'Count to three.'
+      streamed 2 chunk(s), 6 chars: 'Three.'
 
 --- anthropic
-OK    'Hello, welcome to my humble abode of conversation!'
-      tokens in/out 12/11  finish stop
+OK    "Hello, it's been a pleasure to meet you."
+      tokens in/out 12/12  finish stop
       base http://127.0.0.1:8080  ->  /v1/messages
-      streamed 6 chunk(s), 23 chars: 'I am counting to three.'
+      streamed 5 chunk(s), 17 chars: "I'll count three."
 
 --- google
 SKIP  the google client speaks :generateContent; this endpoint does not
@@ -97,16 +99,16 @@ SKIP  the google client speaks :generateContent; this endpoint does not
 OK    'Hello, welcome to my little corner of the internet.'
       tokens in/out 36/12  finish stop
       base http://127.0.0.1:8080  ->  /v1/chat/completions
-      streamed 6 chunk(s), 22 chars: "I'm counting to three."
+      streamed 4 chunk(s), 15 chars: 'Count to three.'
 
 --- groq
 SKIP  groq requests /openai/v1/chat/completions; this endpoint answers 404 there (model not found: Error code: 404 - {'error': {'message': 'File Not Found', 'type)
 
 --- together
-OK    'Hello, welcome to our chat about the latest developments in the field of renewable energy.'
-      tokens in/out 36/18  finish stop
+OK    'Hello, welcome to my little corner of the internet!'
+      tokens in/out 36/12  finish stop
       base http://127.0.0.1:8080  ->  /v1/chat/completions
-      streamed 6 chunk(s), 22 chars: "I'm counting to three."
+      streamed 4 chunk(s), 15 chars: 'Count to three.'
 
 --- cohere
 SKIP  no /v2/chat here; the cohere client has nothing to talk to
@@ -124,8 +126,8 @@ SKIP  no /api/tags here; the ollama client has nothing to talk to
 ### the same endpoint through each official SDK
 
 --- ollama
-OK    'Hello, welcome to our chat about the latest news and trends in the tech industry.'
-      tokens in/out 36/18  finish stop
+OK    'Hello, welcome to our chat about the latest trends in technology.'
+      tokens in/out 36/14  finish stop
       base http://127.0.0.1:11434  ->  /api/chat
       streamed 2 chunk(s), 6 chars: 'Three.'
 
@@ -137,24 +139,25 @@ OK    'Hello, welcome to our chat about the latest news and trends in the tech i
 
 ```text
 
-url=https://rome-towards-formats-mug.trycloudflare.com
+url=https://shopzilla-fair-pond-alter.trycloudflare.com
 public chat HTTP 200
-{"choices":[{"finish_reason":"stop","index":0,"message":{"role":"assistant","content":"ping"}}],"created":1793205103,"model":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","system_fingerprint"
+{"choices":[{"finish_reason":"length","index":0,"message":{"role":"assistant","content":"ping:\nping:\nping:\nping:\nping:\nping"}}],"created":1793210877,"model":"/home/runner/model/SmolLM2-135M-Instr
 ```
 
 ## How long each step took
 
-* install: 25 s
-* pytest: 388 s
-* stress-edge: 48 s
-* integration: 16 s
-* coding-acceptance: 12 s
-* experiment-acceptance: 9 s
-* play-acceptance: 10 s
+* install: 26 s
+* pytest: 417 s
+* stress-edge: 46 s
+* integration: 18 s
+* coding-acceptance: 15 s
+* experiment-acceptance: 10 s
+* play-acceptance: 13 s
+* voice-acceptance: 12 s
 * sdks: 3 s
-* llama-cpp: 2 s
-* model-download: 2 s
+* llama-cpp: 3 s
+* model-download: 3 s
 * serve: 1 s
-* sdk-matrix: 13 s
-* ollama: 74 s
+* sdk-matrix: 16 s
+* ollama: 45 s
 * tunnel: 10 s

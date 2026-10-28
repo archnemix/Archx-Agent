@@ -87,6 +87,7 @@ HttpOnly session cookie, and never keeps the token itself.
 | **Experiments** | declare an experiment (name, command with `{params}`, parameters, metrics source), run it with per-parameter overrides, read the run table - whose metric column says *why* a run has no number - and the comparison with its notes | `ExperimentService` → `shell.run` + `fs.read`; every run is a task with an artifact, and the numbers are rows |
 | **Play** | start a game, play it (move box, legal moves as buttons, engine move, engine ×5, resign), read the board as text and the move log *with the refusals and their reasons*; run a simulation and replay its hash | `PlayService` - the same `move`/`engine_move`/`simulate`/`replay` calls the CLI makes |
 | **Voice** | measure a file (probe), read what the bytes say *and* what the name claimed, ask for words or speech and read the refusal with every missing link named, record the words you typed, and read the attempts table - refusals included | `VoiceService` - the same `probe`/`transcribe`/`say`/`add_transcript` calls the CLI makes; a missing `fs.read` grant is the same 403 and the same approval id |
+| **Data** | create a dataset over source paths, scan, clean, split, build and verify, and read the record table *including the dropped rows with the rule that dropped them* | `DatasetService` - the same `scan`/`clean`/`split`/`build`/`verify` calls the CLI makes, with the same refusals (a leak across splits, a manifest that moved) |
 
 There are no placeholder controls. If a panel would need something this build does not have,
 the panel is not drawn: there is no "Settings" tab that pretends, no disabled "Train" button,
@@ -332,6 +333,18 @@ permission centre, a task, an artifact, and rows. A refusal is `403 approval_req
 approval in the Access panel; a parameter that would not survive the shell is a `400 validation`
 and nothing starts. `compare` never hides a row: the card prints the notes, including the runs it
 could not rank and why.
+
+### The Data panel, and the rows that are not in the dataset
+
+The panel is a dataset list, a create form, a row of steps (Scan, Clean, Split, Build), a verify
+card and the record table. The table shows **every candidate**, kept and dropped, with the drop
+reason in the last column: a page that only listed what survived would make the cleaning rules
+invisible, and the first question anyone asks of a new corpus is "why is this file not in it".
+
+`Verify` prints the stored hash, the recomputed one, and one line per difference - the same
+disagreement the CLI exits 3 on, shown as data because the request was answered. Nothing in the
+panel offers to "fix" a difference: rebuilding records a new manifest, and the old one stops being
+current the moment the files move.
 
 ### The Voice panel, and the column the name cannot touch
 
