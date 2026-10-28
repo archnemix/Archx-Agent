@@ -911,6 +911,34 @@ function (every step would have aborted the runner), a fixed `/tmp/publish` shar
 and a verdict that counted the `status.tsv` header as a failure. Local rehearsal is cheap;
 a wrong workflow at 2 a.m. is not.
 
+**D150. A stub that answers everything validates nothing.**
+The SDK clients append their own prefixes: groq `/openai/v1/chat/completions`, together and
+mistral `/v1/chat/completions`, openai only `/chat/completions`. A loopback stub that routed by
+suffix answered 200 for `/v1/openai/v1/chat/completions`, so the wrong base passed every local
+test and failed on a real server with a 404. The stub now refuses unknown routes, `TestPaths`
+asserts the exact path per client, and `TestDefaults` asserts `base + path == the vendor's public
+URL`. A test double must be at least as strict as the thing it stands in for, or it is a
+compatibility layer between us and our own mistakes.
+
+**D151. A 404 from the wrong protocol is a skip, not a failure.**
+Cohere's `/v2/chat`, Google's `:generateContent` and Groq's `/openai/v1` prefix cannot be served
+by llama.cpp, so those clients cannot drive it. Reporting FAIL would blame the client for the
+server's shape; reporting OK would be a lie. `remote_model.sh` prints SKIP with the path it asked
+for, keeps every other error a FAIL, and hides nothing: the composed base and path are printed on
+every line.
+
+**D152. Valid YAML is not a valid workflow.**
+Run #2 was created, failed in the same second, and never started a job: `'concurrency' is already
+defined` at line 50. PyYAML accepts a duplicate key silently (last one wins), so every local check
+passed. A duplicate-key loader now runs over the workflow before a push, and when the logs endpoint
+404s (it does when no job ever started) the annotation is read from the run page instead.
+
+**D153. Never close a transport before the stream it owns.**
+`remote_model.sh` closed the transport in the `finally` of the chat call and then streamed, so
+every streaming line on the runner read "Missing credentials" or "Connection error" - a client
+error that looked like an auth problem. The stream now runs inside the same live `try`. The
+general rule: a `finally` belongs at the end of everything the resource is for.
+
 **D31. Unknown config keys are errors.**
 A typo silently doing nothing is a support burden and a security risk (e.g. a permission
 setting that never applies). The error names the file, the key and the expected form.

@@ -1,0 +1,13 @@
+# run 20261028T115458Z-5e67bd9
+
+step	status	seconds
+install	ok	19
+pytest	ok	258
+sdks	ok	2
+llama-cpp	ok	1
+model-download	ok	2
+serve	ok	1
+completion	ok	0
+sdk-matrix	ok	11
+ollama	ok	62
+tunnel	ok	7

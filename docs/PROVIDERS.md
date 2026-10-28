@@ -200,8 +200,8 @@ against our own reading of the docs. So there is a second path, `runtime=sdk`, w
 | `anthropic` | `anthropic` | Messages | `base_url` | `ANTHROPIC_API_KEY` | yes |
 | `google` | `google-genai` | generateContent | `http_options.base_url` | `GEMINI_API_KEY` | yes |
 | `mistral` | `mistralai` | OpenAI-ish | `server_url` (module `mistralai.client`) | `MISTRAL_API_KEY` | yes |
-| `groq` | `groq` | OpenAI | `base_url` **including** `/openai/v1` | `GROQ_API_KEY` | yes |
-| `together` | `together` | OpenAI | `base_url` **including** `/v1` | `TOGETHER_API_KEY` | yes |
+| `groq` | `groq` | OpenAI | `base_url` = **origin**; the client adds `/openai/v1` | `GROQ_API_KEY` | yes |
+| `together` | `together` | OpenAI | `base_url` = **origin**; the client adds `/v1` | `TOGETHER_API_KEY` | yes |
 | `cohere` | `cohere` | `POST /v2/chat` | `base_url` (v2 client, `ClientV2`) | `COHERE_API_KEY` | yes |
 | `ollama` | `ollama` | `POST /api/chat` | `host` (**not** `base_url`) | `OLLAMA_API_KEY` | **no**, when it is local |
 
@@ -218,12 +218,26 @@ downstream reads it instead of guessing:
 * `Workspace.runtime_availability` reports a loopback keyless model as
   `ready: a local Ollama needs no key (no data leaves this machine)` instead of demanding a
   `secret://` reference; a remote one still gets the `no API key reference` message.
-* groq and together append `/chat/completions` to whatever base they are given, so a bare
-  origin produces `<origin>/v1/v1/chat/completions`. Their catalogue entries therefore carry the
-  full `/openai/v1` and `/v1` base; this was found by pointing the clients at a loopback server
-  and reading the path they actually requested (`POST /openai/v1/chat/completions` for Groq,
-  `POST /v1/chat/completions` for Together, `POST /v2/chat` for Cohere, `POST /api/chat` for
-  Ollama).
+* **each client appends its own prefix to whatever base it is given, and they disagree.** That
+  table is measured, not read: each client was pointed at a loopback server and the requested
+  path was recorded.
+
+  | `sdk` | appends | so the default base is |
+  |-------|---------|------------------------|
+  | `openai` | `/chat/completions` | `https://api.openai.com/v1` |
+  | `anthropic` | `/v1/messages` | `https://api.anthropic.com` |
+  | `groq` | `/openai/v1/chat/completions` | `https://api.groq.com` |
+  | `together` | `/v1/chat/completions` | `https://api.together.xyz` |
+  | `mistral` | `/v1/chat/completions` | `https://api.mistral.ai` |
+  | `cohere` | `/v2/chat` | `https://api.cohere.com` |
+  | `ollama` | `/api/chat` | the daemon's host |
+
+  Getting this wrong is *silent* against a permissive server: groq given `…/v1` asks for
+  `/v1/openai/v1/chat/completions`, which a routing-by-suffix stub answers 200 and llama.cpp
+  answers 404. Three things now pin it: the stub in `tests/test_sdk_m22.py` refuses unknown
+  routes, `TestPaths` asserts the exact path per client, and `TestDefaults` asserts
+  `default_base_url + that path == the vendor's public URL`. The runner is what found the bug
+  first (run #3), which is the argument for running something real.
 
 ```bash
 archx-agent models sdks                       # which clients are importable here, and each one's variable
@@ -323,16 +337,37 @@ The publisher pushes to `ci-logs`, a **separate branch**, so the main branch's h
 polluted by one commit per run; per-file size is capped at 120 KB, and `RUN_ID` is
 `<UTC timestamp>-<sha7>`, so runs sort lexicographically and never collide.
 
-**Honest status:** this design is implemented and its two scripts were extracted from the
-workflow and exercised locally against a scratch bare repository — `run.sh` recorded
-`ok`/`FAIL(7)` rows correctly, `publish.sh` pushed six files to the `ci-logs` branch, and
-`scripts/ci_logs.sh` read them back and exited 1 because one step had failed. What has **not**
-been exercised is GitHub actually running the workflow: the trigger, the runner, the llama.cpp
-download, the Ollama container and the tunnel are written, parsed and dry-run, but no run has
-executed. Three bugs were found by that local rehearsal rather than in CI — `run.sh` ended with
-`return` outside a function (so every step would have aborted the script), the publisher reused
-a fixed `/tmp/publish` across jobs, and the verdict counted the `status.tsv` header row as a
-failure. That is the argument for rehearsing.
+**Status: it runs.** Four runs so far, and the last two are green end to end — a real
+SmolLM2-135M on a runner, four vendor clients answering *and streaming* against it, a real
+Ollama daemon, a Cloudflare tunnel with the OpenAI SDK on the far side of it. The evidence is
+kept in `docs/ci/` (status table, model answer, url) and the full folder is on the `ci-logs`
+branch.
+
+What running it actually taught, in the order it taught it:
+
+1. **The first run hung for nine minutes** on the `serve` step: a backgrounded server inherited
+   the step's stdout, so the `tee` pipeline never saw EOF and the step never finished. The
+   server now starts under `setsid` with all three descriptors detached.
+2. **The second run never started a job.** GitHub rejected the file —
+   `Line 50, Col 1: 'concurrency' is already defined` — while every YAML reader in this
+   repository accepted it. A duplicate-key check now runs over the workflow before it is pushed.
+3. **`install` failed while every other step passed**: the `sdks` extra still listed four
+   clients, so the four new ones were `MISSING` and 15 tests skipped. The runner's own
+   `models sdks` output is what made it obvious.
+4. **Every streaming call failed**, because `remote_model.sh` closed the transport before
+   streaming. That is a one-line ordering bug that no unit test had noticed, since the unit
+   tests call the transport directly.
+5. **The base URLs were wrong** (see the table above): the stub was too permissive to catch it.
+
+The local rehearsal before that first run had already caught three bugs (`return` outside a
+function, a shared `/tmp/publish`, the verdict counting a header). Five more needed a real
+runner. Both were worth doing.
+
+One correction to an earlier claim in this document: the Actions API is **partly** readable by
+this token. `GET /repos/{owner}/{repo}/actions/workflows` returns `total_count: 0` and a
+dispatch is `403`, but `GET .../actions/runs` works and is how the runs above were confirmed. The
+file-trigger plus `ci-logs` design is still what makes the run *monitorable*, and it needs no
+token at all.
 
 Two more caveats. A quick tunnel is **unauthenticated and public** while it lives, so treat the
 model as exposed for those minutes. And the runner has no GPU: a 135M model answers at a few

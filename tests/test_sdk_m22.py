@@ -865,3 +865,29 @@ class TestPaths:
         finally:
             transport.close()
         assert _State.seen[-1]["path"] == expected
+
+
+class TestDefaults:
+    """Each default base plus what the client appends must equal the vendor's real URL.
+
+    No network: this is arithmetic over two things that are each individually verifiable - the
+    documented endpoint, and the path the client actually requested from a loopback server. It
+    catches the class of bug the runner found: a base that only works because a stub was lenient.
+    """
+
+    PUBLIC = {
+        "openai": "https://api.openai.com/v1/chat/completions",
+        "anthropic": "https://api.anthropic.com/v1/messages",
+        "groq": "https://api.groq.com/openai/v1/chat/completions",
+        "together": "https://api.together.xyz/v1/chat/completions",
+        "mistral": "https://api.mistral.ai/v1/chat/completions",
+        "cohere": "https://api.cohere.com/v2/chat",
+        "ollama": "http://127.0.0.1:11434/api/chat",
+    }
+
+    @pytest.mark.parametrize("key", sorted(PUBLIC))
+    def test_the_default_base_lands_on_the_documented_url(self, key):
+        expected = self.PUBLIC[key]
+        base = SDKS[key].default_base_url or "http://127.0.0.1:11434"
+        path = UPSTREAM_PATH[key]
+        assert base.rstrip("/") + path == expected

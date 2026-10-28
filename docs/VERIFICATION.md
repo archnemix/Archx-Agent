@@ -3770,69 +3770,92 @@ ollama    OK  'answer via the ollama client'         tokens=21/6  finish=stop  P
 That transcript is also what corrected the catalogue: Groq and Together append
 `/chat/completions` to their `base_url`, so the entries carry `/openai/v1` and `/v1`.
 
-### The CI workflow, rehearsed on a scratch remote
+### The CI workflow, run four times on GitHub
 
-The workflow cannot be dispatched with this token, so its two helper scripts were extracted from
-the YAML verbatim and run against a bare repository standing in for `origin`:
+The workflow is triggered by editing `.ci/trigger` and pushing, and its output is read from the
+`ci-logs` branch. It has now actually run; `docs/ci/` keeps the parts worth reading.
 
 ```text
-$ python - <<'PY'   # extract run.sh and publish.sh from the workflow, point the remote at /tmp/ci_sim3/origin
-$ LOGDIR=/tmp/ci_sim3/logs RUN_ID=20260103T000000Z-aaa1111 ./run.sh passes bash -c 'echo fine'
-$ ./run.sh broke bash -c 'echo nope; exit 7'
-[passes] exit 0 in 0s
-[broke] exit 7 in 0s
-$ ./run.sh after bash -c 'echo still going'      # the job keeps going after a failure
-[after] exit 0 in 0s
-$ awk -F'\t' '$2 ~ /^(ok|FAIL)/ && $2 != "ok" {n++} END {print n+0}' status.tsv
-1
+run #1  20261028T110927Z-958fc22   hung on `serve` (backgrounded server held the step's pipe)
+run #2  1a084f3                    never started a job: "concurrency is already defined" (line 50)
+run #3  20261028T113602Z-51d2787   all 10 steps ok; pytest 1251 passed on the runner
+run #4  20261028T115458Z-5e67bd9   all 10 steps ok, and the SDK matrix is clean
 
-$ ./publish.sh final            # -> branch `ci-logs`
-$ git ls-tree -r --name-only ci-logs
-ci/runs/20260103T000000Z-aaa1111/03-passes.log
-ci/runs/20260103T000000Z-aaa1111/04-broke.log
-ci/runs/20260103T000000Z-aaa1111/05-after.log
-ci/runs/20260103T000000Z-aaa1111/console.log
-ci/runs/20260103T000000Z-aaa1111/meta.tsv
-ci/runs/20260103T000000Z-aaa1111/status.tsv
+$ gh api repos/archnemix/Archx-Agent/actions/runs --jq '.workflow_runs[] | {n:.run_number,conclusion}'
+{"n":4,"conclusion":"success"}  {"n":3,"conclusion":"success"}
+{"n":2,"conclusion":"failure"}  {"n":1,"conclusion":"cancelled"}
 
-$ CI_LOG_REMOTE=/tmp/ci_sim3/origin bash scripts/ci_logs.sh --tail 6
-=== run 20260103T000000Z-aaa1111 ===
+$ ./scripts/ci_logs.sh --run 20261028T115458Z-5e67bd9
+run     20261028T115458Z-5e67bd9
+commit  5e67bd90bc8409c29fd73b5290e78bc95b4bd8a7
+started 2026-10-28T11:54:58Z
+finished 2026-10-28T12:01:06Z
+failed  0
+
 step                               status     seconds
-passes                             ok         0
-broke                              FAIL(7)    0
-after                              ok         0
-
-1 step(s) failed
-... exit status 1                      # a failed step is a failed read, not a silent pass
+install                            ok         19
+pytest                             ok         258
+sdks                               ok         2
+llama-cpp                          ok         1
+model-download                     ok         2
+serve                              ok         1
+completion                         ok         0
+sdk-matrix                         ok         11
+ollama                             ok         62
+tunnel                             ok         7
 ```
 
-Three bugs came out of that rehearsal and were fixed, all of which would have cost a full CI
-cycle to discover: `run.sh` ended with `return` outside a function, so every step would have
-aborted; the publisher reused a fixed `/tmp/publish` across jobs; the verdict counted the
-`status.tsv` header row as a failure.
-
-### The local-model workflow
-
-Written and checked as far as this sandbox allows — YAML parses, 18 steps, `permissions:
-contents: write`, and the llama.cpp asset name is real:
+`pytest` on the runner: **1251 passed** in 290 s — the same number as this sandbox, which is the
+point of running the suite there. The model answered (`docs/ci/model-proof.json`):
 
 ```text
-$ python -c "import yaml; d=yaml.safe_load(open('.github/workflows/model-matrix.yml')); print(len(d['jobs']['matrix']['steps']))"
-18
-
-$ gh api 'repos/ggml-org/llama.cpp/releases?per_page=10' --jq '.[].assets[].browser_download_url' \
-    | grep -E '/llama-b[0-9]+-bin-ubuntu-x64\.tar\.gz$' | head -1
-https://github.com/ggml-org/llama.cpp/releases/download/b11951/llama-b11951-bin-ubuntu-x64.tar.gz
+text: A tunnel is a sealed, underground passageway that connects two points, often through a
+      physical barrier or artificial entrance.
+usage: {'completion_tokens': 24, 'prompt_tokens': 40, 'total_tokens': 64}
 ```
 
-It is triggered by a push that changes `.ci/trigger`, because this session's credential is a
-GitHub App installation token without Actions permission (`GET /actions/workflows` →
-`total_count: 0`; a dispatch → `403 Resource not accessible by integration`). **It has not been
-run**: the runner, the llama.cpp download, the Ollama container and the Cloudflare tunnel are
-written, not observed. Read a run with `./scripts/ci_logs.sh`, or
-`git fetch origin ci-logs && git show FETCH_HEAD:ci/runs/<id>/status.tsv`.
+Every client against that endpoint (`scripts/remote_model.sh`, llama.cpp on 127.0.0.1:8080):
 
-What is *not* proven by any of the above, stated plainly: Cohere's and Ollama's clients have
-never talked to their real vendors from here — the loopback server speaks their documented
-protocol, which proves Archx's half. The runner step that pulls a real Ollama image and a real
-135M model is the first place that gap can close, and until it runs, nobody should call it closed.
+```text
+--- openai     OK  'Hello, welcome to my little corner of the internet!'  36/12  streamed 6 chunk(s)
+--- anthropic  OK  '"Hi! Hello! Hello again!"'                            12/9   streamed 6 chunk(s)
+--- google     SKIP  the google client speaks :generateContent; this endpoint does not
+--- mistral    OK  'Hello, welcome to my little corner of the internet.'  36/12  streamed 6 chunk(s)
+--- groq       SKIP  requests /openai/v1/chat/completions; 404 there
+--- together   OK  'Hello!'                                               36/3   streamed 4 chunk(s)
+--- cohere     SKIP  no /v2/chat here; the cohere client has nothing to talk to
+--- ollama     SKIP  no /api/tags here; the ollama client has nothing to talk to
+4 SDK(s) completed a turn, 0 failed
+```
+
+A real Ollama daemon in Docker, `ollama pull smollm2:135m` (270 MB), then the client and then
+the app:
+
+```text
+--- ollama
+OK    "Hello, I'm a helpful AI assistant named SmolLM, trained by Hugging Face"   36/19
+      base http://127.0.0.1:11434  ->  /api/chat
+      streamed 32 chunk(s), 84 chars
+
+$ archx-agent models add-sdk --name ollama-local --sdk ollama --model smollm2:135m \
+    --base-url http://127.0.0.1:11434
+  runtime  ready - ready: a local Ollama needs no key (no data leaves this machine)
+$ archx-agent models probe ollama-local --capability chat
+chat: passed  (40 chars, finish_reason=stop)   state now verified (probe passed)
+$ archx-agent chat --stream --message "Name one colour." --model ollama-local
+I'm afraid I'm not an AI, but I can tell you that one of the most common colours is blue.
+```
+
+And a public URL through cloudflared:
+
+```text
+url=https://somebody-guided-exclude-rca.trycloudflare.com
+public chat HTTP 200
+openai SDK via the public URL: Hi, hello.
+```
+
+Five defects were found by running it (see `docs/PROVIDERS.md`): the pipe-holding server, the
+invalid workflow file, the `sdks` extra missing four clients, streaming after `transport.close()`,
+and the per-client base URLs. The last two were invisible to a stub that answered any path; that
+stub is now strict.
+

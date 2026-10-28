@@ -32,8 +32,8 @@ Eight clients, one contract:
 | anthropic | `Anthropic(api_key, base_url)` | `max_tokens` | top-level `system` | required |
 | google | `genai.Client(api_key, http_options.base_url)` | `max_output_tokens` | `system_instruction` | required |
 | mistral | `Mistral(api_key, server_url)` | `max_tokens` | in `messages` | required |
-| groq | `Groq(api_key, base_url)` | `max_completion_tokens` | in `messages` | required |
-| together | `Together(api_key, base_url)` | `max_tokens` | in `messages` | required |
+| groq | `Groq(api_key, base_url)` — base is the **origin**, the client adds `/openai/v1` | `max_completion_tokens` | in `messages` | required |
+| together | `Together(api_key, base_url)` — base is the **origin**, the client adds `/v1` | `max_tokens` | in `messages` | required |
 | cohere | `ClientV2(api_key, base_url)` | `max_tokens` | a `system` message | required |
 | ollama | `Client(host=…)` | `options.num_predict` | a `system` message | **optional, loopback only** |
 
@@ -96,60 +96,60 @@ cohere    OK  'answer via the cohere client'         tokens=13/5  finish=stop  P
 ollama    OK  'answer via the ollama client'         tokens=21/6  finish=stop  POST /api/chat
 ```
 
-## 5. The runner path: triggered by a file, monitored over git, **still not executed**
+## 5. The runner path: it runs, and it found five bugs
 
-The Actions API is closed to this session's credential - `GET /repos/.../actions/workflows` →
-`total_count: 0`, a dispatch → `403 Resource not accessible by integration` - so the workflow is
-not started that way. Editing `.ci/trigger` and pushing starts it; a branch carries the logs back.
+The Actions API will not let this token *dispatch* a workflow, so the workflow is started by
+editing `.ci/trigger`, and its output is read from the `ci-logs` branch. Four runs so far:
 
+```text
+#1  hung on `serve`   - a backgrounded server held the step's pipe open, so the step never ended
+#2  no job at all     - GitHub: "concurrency is already defined" (line 50). Valid YAML, invalid workflow.
+#3  all steps ok      - 1251 passed on the runner, model served, 135M model answered
+#4  all steps ok      - SDK matrix clean: 4 clients answered AND streamed
 ```
-edit .ci/trigger -> push -> model-matrix.yml (18 steps)
-                              -> $LOGDIR/NN-<name>.log per step + status.tsv + console.log
-                              -> background publisher pushes ci/runs/<id>/ to branch `ci-logs` every 45 s
-./scripts/ci_logs.sh  <-------- read it back with plain git
+
+Run #4, the newest, in full:
+
+```text
+install ok · pytest ok (258 s) · sdks ok · llama-cpp ok · model-download ok · serve ok
+completion ok · sdk-matrix ok · ollama ok · tunnel ok          0 failed
 ```
 
-`model-matrix.yml`:
-- downloads `bartowski/SmolLM2-135M-Instruct-GGUF` → `SmolLM2-135M-Instruct-Q4_K_M.gguf`
-  (~100 MB, 4-bit, 135M params - the "small model, 4-bit or smaller" that was asked for);
-- installs llama.cpp from the newest CPU release asset, with a **build-from-source fallback**
-  because release assets move (`releases/latest` currently points at a tag with no binary asset
-  at all - checked against the live API);
-- serves it CPU-only on `127.0.0.1:8080`, proves generation with a real `POST
-  /v1/chat/completions`, and keeps that reply plus its token counts as `model-proof.json`;
-- runs `scripts/remote_model.sh` so every installed client is aimed at that one endpoint, then
-  registers the same endpoint in Archx and probes it there;
-- runs a **real Ollama daemon** (`docker run ollama/ollama`, `ollama pull smollm2:135m`) so the
-  two clients that speak their own protocol - `ollama` via `/api/chat`, and Cohere's `/v2/chat`
-  shape - get a live server rather than a 404 from an OpenAI-shaped one;
-- opens a Cloudflare quick tunnel, and drives the OpenAI SDK through the public URL;
-- ends with a `verdict` step that fails the job if any `status.tsv` row is not `ok`.
+A real SmolLM2-135M Q4_K_M answered on a CPU runner:
 
-`run.sh` never fails the job itself - it records `ok` or `FAIL(n)` and continues - so one run
-reports every broken step instead of only the first.
-
-**Rehearsed, not run.** The two helper scripts were extracted from the YAML verbatim and pointed
-at a scratch bare repository: `run.sh` recorded `ok`/`FAIL(7)`/`ok` for three steps and kept going
-after the failure; `publish.sh` pushed six files to a `ci-logs` branch; `scripts/ci_logs.sh` read
-them back, printed the table and exited 1 because a step had failed. That rehearsal found three
-bugs that would each have burned a full CI cycle:
-
-1. `run.sh` ended with `return` outside a function, which would have aborted every step;
-2. the publisher reused a fixed `/tmp/publish`, so a reused runner could inherit another run's
-   clone;
-3. the verdict counted the `status.tsv` **header row** as a failure, so every run would have
-   failed regardless of the checks.
-
-What has still not happened: GitHub running the thing. No tunnel URL exists, no 135M model has
-answered on a runner, no Ollama container has started. Hugging Face and `*.trycloudflare.com` are
-outside this sandbox's egress allowlist, so those steps could not be rehearsed locally either. To
-watch a real run:
-
-```bash
-date -u +%FT%TZ >> .ci/trigger && git commit -am "ci: run" && git push
-./scripts/ci_logs.sh --wait 120
-./scripts/ci_logs.sh --tail 40
+```text
+text: A tunnel is a sealed, underground passageway that connects two points, often through a
+      physical barrier or artificial entrance.
 ```
+
+Four clients completed a turn *and streamed* against it (OpenAI, Anthropic, Mistral, Together);
+Groq, Cohere and Ollama skipped with the reason, because they cannot drive a llama.cpp server.
+Then a **real Ollama daemon** (`docker run ollama/ollama`, `ollama pull smollm2:135m`) took the
+Ollama client through 32 streamed chunks, and Archx itself through the keyless local path:
+
+```text
+runtime  ready - ready: a local Ollama needs no key (no data leaves this machine)
+chat: passed  (40 chars, finish_reason=stop)   state now verified (probe passed)
+```
+
+And a Cloudflare tunnel, with the OpenAI SDK on the far side of the public URL:
+
+```text
+url=https://somebody-guided-exclude-rca.trycloudflare.com
+public chat HTTP 200 · openai SDK via the public URL: Hi, hello.
+```
+
+The five defects it found are in `docs/PROVIDERS.md`; the two that matter most are:
+
+* **`transport.close()` before streaming.** Every streaming call failed on the runner with a
+  missing credential, because `remote_model.sh` closed the transport in a `finally` first.
+* **Wrong bases per client, hidden by a lenient stub.** groq appends `/openai/v1`, so giving it
+  `…/v1` yields `/v1/openai/v1/chat/completions`. The stub answered 200; llama.cpp answered 404.
+  The stub now refuses unknown routes, `TestPaths` pins every client's path, and `TestDefaults`
+  asserts `default_base_url + path == the vendor's public URL`.
+
+Evidence kept in the repository: `docs/ci/` (status table, model answer, tunnel url, and every
+client's output).
 
 ## 6. Still not done
 

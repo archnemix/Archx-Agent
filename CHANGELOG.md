@@ -6,6 +6,22 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 ## [Unreleased]
 
 ### Added
+- **The CI workflow runs, and its output lives in the repository.** Editing `.ci/trigger` starts
+  `model-matrix.yml`; every step writes `$LOGDIR/NN-<name>.log` and a `status.tsv` row, and a
+  background publisher pushes the folder to the `ci-logs` branch every 45 s. `scripts/ci_logs.sh
+  --list|--run|--tail|--wait` reads it back over git with no Actions token. Run #4 is green:
+  install, pytest (1251 passed on the runner), llama.cpp + SmolLM2-135M served, a real completion,
+  four vendor clients answering *and streaming*, a real Ollama daemon, and a Cloudflare tunnel with
+  the OpenAI SDK on the public URL.
+- `docs/ci/` keeps that run's artefacts (status table, model answer, tunnel url, per-client output).
+- **Exact-path contract for the SDK clients.** `tests/test_sdk_m22.py::TestPaths` pins the path each
+  client requests and `TestDefaults` asserts `default_base_url + path` equals the vendor's public
+  URL. The groq and together defaults were wrong (they append `/openai/v1` and `/v1` themselves) and
+  are now the bare origin.
+- `scripts/strict_openai_stub.py`: a stand-in for llama-server that 404s unknown routes, so
+  `remote_model.sh` can be rehearsed locally without hiding a wrong base URL.
+- `scripts/remote_model.sh` streams after the chat call inside the same live transport, reports the
+  base and the path it composed, and distinguishes SKIP (protocol mismatch, 404) from FAIL.
 - **Four more official SDKs, and one of them needs no key.** `groq`, `together`, `cohere` and
   `ollama` join `openai`/`anthropic`/`google`/`mistral`, so `models sdks` lists eight clients.
   `SdkSpec.key_required` records that Ollama's local daemon must *not* be given a credential:

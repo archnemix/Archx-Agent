@@ -78,9 +78,9 @@ edit .ci/trigger -> push -> .github/workflows/model-matrix.yml (18 steps)
 
 | # | Item | Why it is still open | Size |
 |---|------|----------------------|------|
-| 1 | **Run the CI workflow once** | The Actions API is closed to this token (`total_count: 0`; dispatch → `403 Resource not accessible by integration`). The push trigger needs someone with normal repo access to push `.ci/trigger` once. | minutes, not code |
-| 2 | **A live call to any vendor** | No vendor key is usable from here and egress is restricted to a few hosts; every client was proven against loopback servers instead. | needs keys + network |
-| 3 | **Ollama through a real daemon** | The runner step exists; nothing in this sandbox can run a daemon with weights (HF is blocked). | covered by #1 |
+| ~~1~~ | ~~**Run the CI workflow once**~~ | **Done.** Four runs; #3 and #4 are green end to end. Evidence in `docs/ci/`, full folder on `ci-logs`. | closed |
+| 2 | **A live call to a vendor's cloud API** | No vendor key is usable from here, and egress is restricted. What *is* proven now: real clients against a real model served on a runner, including a real Ollama daemon. What is not: reaching `api.openai.com`, `api.cohere.com`, and so on. | needs keys |
+| ~~3~~ | ~~**Ollama through a real daemon**~~ | **Done.** `docker run ollama/ollama`, `ollama pull smollm2:135m`, client streamed 32 chunks, and the app probed it keyless (`state now verified`). | closed |
 | 4 | `models probe --capability tools` | The CLI accepts the value but no probe inspects a returned tool call, so the capability can be claimed and never verified. Needs one probe + a stub with a tool-call response. | ~1 day |
 | 5 | **Streaming into the browser** | The GUI posts a chat turn and renders the finished reply; there is no SSE endpoint or `EventSource` in the page. The runtimes can stream; the page does not consume it. | ~1–2 days |
 | 6 | **Dedicated templates for other OpenAI-compatible vendors** (Z.ai, DeepSeek, …) | They work today via `add-sdk --sdk openai --base-url …`; a template needs privacy terms I can source rather than invent. | small, needs a source |
@@ -128,13 +128,17 @@ key rule that ignored the loopback exception; and the five new provider template
 
 ## 4. Verified vs not verified
 
-**Verified by observation:** the 1251-test suite; 86 SDK acceptance checks over real sockets; 60
-Gemini checks; 55 M29 checks; every streaming parser against a loopback server; the eight clients'
-request shapes (paths recorded off the wire); the keyless-local / key-required-remote split; the
-four consent rungs still applying to SDK models; the CI helper scripts run against a scratch bare
-repository, publishing and reading back a real `ci-logs` branch.
+**Verified by observation:** the 1258-test suite; 86 SDK acceptance checks over real sockets; 60
+Gemini checks; 55 M29 checks; every streaming parser against a loopback server; the exact request
+path of all seven HTTP clients (`TestPaths`) and that each default base plus that path equals the
+vendor's public URL (`TestDefaults`); the keyless-local / key-required-remote split; the four
+consent rungs applying to SDK models.
 
-**Not verified, and not claimed:** that GitHub has actually run `model-matrix.yml`; that a real
-135M model answered on a runner; that any vendor's live service behaves as its documentation says;
-that the Cloudflare tunnel step works. The workflow is syntax-checked, its scripts are rehearsed,
-and that is the whole of its evidence.
+**Verified on GitHub, by running it:** four workflow runs, the last two green — a real
+SmolLM2-135M Q4_K_M served on a CPU runner, four vendor clients answering and streaming against
+it, a real Ollama daemon docker-pulled and driven by both its own client and by Archx, and a
+Cloudflare quick tunnel with the OpenAI SDK through the public URL (`docs/ci/`).
+
+**Not verified, and not claimed:** any vendor's live cloud service (no keys, restricted egress).
+The loopback servers and the runner's local models prove the client side of every protocol; they
+cannot prove what `api.openai.com` does today.

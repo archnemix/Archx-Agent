@@ -121,7 +121,7 @@ SDKS: dict[str, SdkSpec] = {
         import_name="groq",
         provider_template="groq",
         env_var="GROQ_API_KEY",
-        default_base_url="https://api.groq.com/openai/v1",
+        default_base_url="https://api.groq.com",  # the client appends /openai/v1 itself
         api_style="openai",
         streaming=True,
     ),
@@ -132,7 +132,7 @@ SDKS: dict[str, SdkSpec] = {
         import_name="together",
         provider_template="together",
         env_var="TOGETHER_API_KEY",
-        default_base_url="https://api.together.xyz/v1",
+        default_base_url="https://api.together.xyz",  # the client appends /v1 itself
         api_style="openai",
         streaming=True,
     ),

@@ -1,0 +1,11 @@
+{
+  "text": "A tunnel is a sealed, underground passageway that connects two points, often through a physical barrier or artificial entrance.",
+  "usage": {
+    "completion_tokens": 24,
+    "prompt_tokens": 40,
+    "total_tokens": 64,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  }
+}
