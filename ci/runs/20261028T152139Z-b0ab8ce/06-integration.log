@@ -1,0 +1,3 @@
+$ python -m pytest tests/test_integration.py -o addopts= -q
+...........                                                              [100%]
+11 passed in 12.17s

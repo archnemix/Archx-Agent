@@ -290,4 +290,455 @@ tests/test_sdk_m22.py::TestPaths::test_the_requested_path[cohere--/v2/chat]
 1515 passed, 2 warnings in 309.61s (0:05:09)
 === stress-edge ===============================================
 $ python -m pytest tests/test_stress.py tests/test_edge_cases.py -o addopts= -q
-..................................................................
+........................................................................ [ 79%]
+...................                                                      [100%]
+91 passed in 43.51s
+=== integration ===============================================
+$ python -m pytest tests/test_integration.py -o addopts= -q
+...........                                                              [100%]
+11 passed in 12.17s
+=== coding-acceptance ===============================================
+$ bash scripts/acceptance_m31.sh
+M31 acceptance on /tmp/archx-m31-Hm1HKm
+
+### a session is a directory, a task and a row
+$ archx-agent code list
+cs_0001m61j0h1z00000004376a48b5e7c8617e  open    second session  /tmp/archx-m31-Hm1HKm/project
+cs_0001m61j0gx60000000321d9feadd68595fb  open    fix the greeting  /tmp/archx-m31-Hm1HKm/project
+[ok]   the session is a database row = 1
+[ok]   the session binds the directory = /tmp/archx-m31-Hm1HKm/project
+[ok]   the session owns a coding task = coding
+[ok]   the schema grew, it did not reuse a table = code_changes
+
+### nothing happens without a grant
+[ok]   a write without fs.write exits 4 = 4
+[ok]   the file is untouched = 4579e386b95ec1ff0f24c9bedca59bf7efb6c657
+[ok]   the refusal names the approval = 2
+[ok]   the refusal created a pending request = True
+[ok]   the refused edit did not become a change row = 0
+error: fs.write: fs.write is not granted for 'fs.write'; approval ap_0001m61j0hcz000000015d4b46ed021a03e1 is pending (archx-agent approvals approve ap_0001m61j0hcz000000015d4b46ed021a03e1)
+approve it with: archx-agent approvals approve ap_0001m61j0hcz000000015d4b46ed021a03e1
+
+### approving is what makes it possible, and the write then lands
+$ archx-agent code write cs_0001m61j0gx60000000321d9feadd68595fb hello.py --file /tmp/archx-m31-Hm1HKm/new_hello.py
+modify hello.py  +1/-1
+  diff     ar_0001m61j0jet0000000414d42ce4746e5db3
+[exit 0]
+[ok]   the file really changed = 1
+[ok]   the change is a row with a diff = modify
+[ok]   the diff mentions the old and the new line = 2
+[ok]   the edit is attached to the task as an artifact = True
+
+### the runner records every command
+$ archx-agent code run cs_0001m61j0gx60000000321d9feadd68595fb "python3 try_it.py"
+hello archx
+[run passed: exit 0 in 9 ms]
+[output saved as ar_0001m61j0jxd00000004c634978f72ff4cae]
+[ok]   the command passed = passed
+[ok]   the exit code is recorded = 0
+[ok]   the argv that ran is recorded, not just the string = ['python3', 'try_it.py']
+[ok]   a failing command exits 1 = 1
+[ok]   the failure is a failed row with its exit code = failed/1
+[ok]   the failure asked a question on the task = True
+[ok]   a timeout is a timeout, not a failure = timeout
+
+### a refusal is in the ledger too
+[ok]   a refused command is recorded as refused = refused
+
+### checks come from the project, and run as the project
+$ archx-agent code checks
+2 check(s) from archx.checks.json
+  test       /opt/hostedtoolcache/Python/3.11.17/x64/bin/python -m pytest -q test_hello.py  (120s)
+  compile    /opt/hostedtoolcache/Python/3.11.17/x64/bin/python -m compileall -q hello.py
+[ok]   two checks are declared = 2
+[ok]   the project's own test fails before the fix = 1
+[ok]   the failure is recorded under the check's name = test/failed
+$ archx-agent code test cs_0001m61j0gx60000000321d9feadd68595fb
+.                                                                        [100%]
+1 passed in 0.00s
+[check test passed: exit 0 in 162 ms]
+[output saved as ar_0001m61j0pah000000049cc5be03da65bcea]
+[exit 0]
+[ok]   the same check passes after the edit = passed
+[ok]   the unknown-check message lists the declared ones = 1
+
+### the session is a patch you can read
+$ archx-agent code diff cs_0001m61j0gx60000000321d9feadd68595fb
+--- a/hello.py
++++ b/hello.py
+@@ -1,2 +1,2 @@
+ def greet(name):
+-    return "hi " + name
++    return "hello " + name
+--- a/hello.py
++++ b/hello.py
+@@ -1,2 +1,2 @@
+ def greet(name):
+-    return "hello " + name
++    return "hi " + name
+
+[1 file(s), +2/-2]
+[ok]   the patch covers the files the session edited = ['hello.py']
+[ok]   the patch is attached as an artifact = True
+
+### a session is reproducible
+[ok]   the reproducer reads the coding task = True
+[ok]   its plan contains the command that ran = True
+[ok]   a recorded run can be replayed = cr_0001m61j0jxg00000000a08fdcb39cc3d55d
+
+### the page is a client of the same service
+[ok]   the page lists the CLI's sessions = 2
+[ok]   the page knows the tool roots it may open = /tmp/archx-m31-Hm1HKm/project
+[ok]   a session opened in the page is a CLI session = True
+[ok]   a read without fs.read is a 403 that names the tool = 403
+[ok]   the refusal is a code the page can branch on = approval_required
+[ok]   a write from the page is a file on disk = 200
+[ok]   the file the page wrote is really there = 1
+[ok]   the CLI sees the page's edit = made_in_the_page.py
+[ok]   a run from the page is in the same ledger = passed
+[ok]   and the CLI can read that run = from the page
+[ok]   a bad timeout is a 400, not a 500 = 400
+[ok]   closing a session in the page closes it for the CLI = 200
+[ok]   a closed session refuses later edits with a 400 = 400
+[ok]   the coding routes are in the route table = 14
+
+### a closed session keeps its record
+$ archx-agent code close cs_0001m61j0gx60000000321d9feadd68595fb --note shipped
+closed cs_0001m61j0gx60000000321d9feadd68595fb  fix the greeting
+  the edits and runs stay readable: archx-agent code show cs_0001m61j0gx60000000321d9feadd68595fb
+[exit 0]
+[ok]   the task is completed with the session = completed
+[ok]   the edits are still readable = True
+
+### stopping the server closes the port
+[ok]   the port is closed, not orphaned = 000
+
+### summary
+ok   | the session is a database row | 1
+ok   | the session binds the directory | /tmp/archx-m31-Hm1HKm/project
+ok   | the session owns a coding task | coding
+ok   | the schema grew, it did not reuse a table | code_changes
+ok   | a write without fs.write exits 4 | 4
+ok   | the file is untouched | 4579e386b95ec1ff0f24c9bedca59bf7efb6c657
+ok   | the refusal names the approval | 2
+ok   | the refusal created a pending request | True
+ok   | the refused edit did not become a change row | 0
+ok   | the file really changed | 1
+ok   | the change is a row with a diff | modify
+ok   | the diff mentions the old and the new line | 2
+ok   | the edit is attached to the task as an artifact | True
+ok   | the command passed | passed
+ok   | the exit code is recorded | 0
+ok   | the argv that ran is recorded, not just the string | ['python3', 'try_it.py']
+ok   | a failing command exits 1 | 1
+ok   | the failure is a failed row with its exit code | failed/1
+ok   | the failure asked a question on the task | True
+ok   | a timeout is a timeout, not a failure | timeout
+ok   | a refused command is recorded as refused | refused
+ok   | two checks are declared | 2
+ok   | the project's own test fails before the fix | 1
+ok   | the failure is recorded under the check's name | test/failed
+ok   | the same check passes after the edit | passed
+ok   | the unknown-check message lists the declared ones | 1
+ok   | the patch covers the files the session edited | ['hello.py']
+ok   | the patch is attached as an artifact | True
+ok   | the reproducer reads the coding task | True
+ok   | its plan contains the command that ran | True
+ok   | a recorded run can be replayed | cr_0001m61j0jxg00000000a08fdcb39cc3d55d
+ok   | the page lists the CLI's sessions | 2
+ok   | the page knows the tool roots it may open | /tmp/archx-m31-Hm1HKm/project
+ok   | a session opened in the page is a CLI session | True
+ok   | a read without fs.read is a 403 that names the tool | 403
+ok   | the refusal is a code the page can branch on | approval_required
+ok   | a write from the page is a file on disk | 200
+ok   | the file the page wrote is really there | 1
+ok   | the CLI sees the page's edit | made_in_the_page.py
+ok   | a run from the page is in the same ledger | passed
+ok   | and the CLI can read that run | from the page
+ok   | a bad timeout is a 400, not a 500 | 400
+ok   | closing a session in the page closes it for the CLI | 200
+ok   | a closed session refuses later edits with a 400 | 400
+ok   | the coding routes are in the route table | 14
+ok   | the task is completed with the session | completed
+ok   | the edits are still readable | True
+ok   | the port is closed, not orphaned | 000
+
+M31 acceptance: 48 checks passed
+=== experiment-acceptance ===============================================
+$ bash scripts/acceptance_m32.sh
+M32 acceptance on /tmp/archx-m32-1FmwKX
+
+### an experiment is a declaration, and a bad one is refused
+experiment: ex_0001m61j0t7q0000000062811d4bfefb55a8
+[ok]   the declaration is a row = 1
+[ok]   it is open = open
+[ok]   the metrics source is stored as declared = {"kind": "stdout-json"}
+$ archx-agent experiment create broken --command "python bench.py {depth}"
+[ok]   an undeclared placeholder is refused = 2
+[ok]   and it is named = 1
+$ archx-agent experiment create unused --command "echo hi" --param unused=1
+[ok]   a parameter the command never uses is refused = 2
+$ archx-agent experiment create nometrics --command "echo hi" --metric-source vibes
+[ok]   an invented metrics source is refused = 2
+[ok]   no refused declaration was stored = 1
+
+### a run without a grant is recorded as refused, and runs nothing
+$ archx-agent experiment run ex_0001m61j0t7q0000000062811d4bfefb55a8
+[ok]   an ungranted run exits 4 = 4
+[ok]   the refusal names the approval to approve = yes
+[ok]   the refusal is a row, not an absence = refused
+[ok]   and it says why there are no numbers = the command was refused before it ran
+
+### with shell.run granted, the run is real
+run: xr_0001m61j0v9y00000000804acf3d8cd65875
+[ok]   the run passed = passed
+[ok]   the parameters it actually used are kept = {"n": "5"}
+[ok]   the resolved command is kept = python bench.py 5
+[ok]   the metrics are rows = 2
+[ok]   the size metric is the number the command printed = 5.0
+[ok]   the run belongs to a task = 1
+[ok]   and the task completed = completed
+[ok]   the output is an artifact = 1
+[ok]   the task timeline carries the metric = 1
+
+### two more runs, so there is something to compare
+$ archx-agent experiment compare ex_0001m61j0t7q0000000062811d4bfefb55a8 --metric quality
+sizes: quality (highest wins, 4 run(s))
+  best  xr_0001m61j0vqz000000035f8edbc3e0690f1c  quality=4  n=40
+  xr_0001m61j0tv3000000008ee12b245eeb0753  refused  exit None
+  note: xr_0001m61j0tv3000000008ee12b245eeb0753 is not ranked: the command was refused before it ran
+  note: 3 of 4 run(s) have a value for quality
+  note: 1 run(s) did not pass; their metrics are shown but a failed run is not a result
+[ok]   the best run is the highest quality = 4.0
+[ok]   minimise flips the ranking = 0.5
+[ok]   an unknown metric is refused with the known ones listed = 1
+[ok]   the runs are all in the ledger = 4
+
+### metrics are read from the declared source, or not at all
+[ok]   stdout that is not JSON leaves no metric = 0
+[ok]   and the run says why, in words = 1
+[ok]   a run with no metrics is still a run = passed
+$ archx-agent experiment create failed --command "python broken.py"
+[ok]   a failing command exits 1 = 1
+[ok]   and is recorded as failed with its exit code = failed:3
+$ archx-agent experiment create filed --command "python tofile.py" --metric-source file --metric-file metrics.json
+[ok]   a metrics file is read from the run's own directory = 0.91
+[ok]   a missing metrics file is named, not zeroed = 1
+
+### a parameter has to survive the shell it is substituted into
+$ archx-agent experiment run ex_0001m61j0t7q0000000062811d4bfefb55a8 --set "n=5; rm -rf /"
+[ok]   an unsafe value is refused before it runs = 2
+[ok]   and nothing was added to the ledger = 4
+[ok]   the refusal explains the rule = 1
+[ok]   an unknown parameter is refused = 2
+
+### the record stays readable, and closing is not deleting
+[ok]   the experiment is closed = closed
+[ok]   a closed experiment cannot run = 2
+[ok]   its four runs are still there = 4
+[ok]   show still works on a closed experiment = 0
+[ok]   reopening is allowed = open
+
+### the GUI is a client of the same rows
+[ok]   the page lists the experiments = 5
+[ok]   the page shows a run's metrics = 4
+[ok]   the page compares on a named metric = 4.0
+[ok]   a bad parameter is a 400 over HTTP = 400
+[ok]   an unauthenticated call is refused = 401
+
+### deleting takes the runs and the numbers with it
+[ok]   delete without --yes is refused = 2
+[ok]   delete with --yes removes the experiment = 0
+[ok]   and its runs = 0
+[ok]   and its metrics = 0
+
+### the record survives a restart
+[ok]   listing still works = 0
+[ok]   the metrics are still queryable after reopening the home = 4.0
+[ok]   stats agree with the rows = 7
+
+M32 acceptance: 53 checks passed, 0 failed
+=== sdks ===============================================
+$ archx-agent models sdks
+openai     OpenAI           installed  openai         key from OPENAI_API_KEY
+anthropic  Anthropic        installed  anthropic      key from ANTHROPIC_API_KEY
+google     Google Gemini    installed  google-genai   key from GEMINI_API_KEY
+mistral    Mistral          installed  mistralai      key from MISTRAL_API_KEY
+groq       Groq             installed  groq           key from GROQ_API_KEY
+together   Together         installed  together       key from TOGETHER_API_KEY
+cohere     Cohere           installed  cohere         key from COHERE_API_KEY
+ollama     Ollama           installed  ollama         key from OLLAMA_API_KEY
+=== llama-cpp ===============================================
+$ bash -c 
+  set -u
+  mkdir -p "$HOME/llama"; server=""
+  for page in 1 2; do
+    asset="$(gh api "repos/ggml-org/llama.cpp/releases?per_page=10&page=$page" \
+      --jq ".[].assets[].browser_download_url" 2>/dev/null \
+      | grep -E "/llama-b[0-9]+-bin-ubuntu-x64\.tar\.gz$" | head -1 || true)"
+    [ -n "$asset" ] && break
+  done
+  if [ -n "${asset:-}" ]; then
+    echo "prebuilt: $asset"
+    curl -fsSL "$asset" -o /tmp/llama.tar.gz && tar -xzf /tmp/llama.tar.gz -C "$HOME/llama" || true
+    server="$(find "$HOME/llama" -name llama-server -type f | head -1)"
+  fi
+  if [ -z "$server" ]; then
+    echo "no prebuilt binary; building from source"
+    git clone --depth 1 https://github.com/ggml-org/llama.cpp /tmp/llama-src
+    cmake -S /tmp/llama-src -B /tmp/llama-src/build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF
+    cmake --build /tmp/llama-src/build --target llama-server -j "$(nproc)"
+    server=/tmp/llama-src/build/bin/llama-server
+  fi
+  [ -x "$server" ] || { echo "no llama-server binary"; exit 1; }
+  chmod +x "$server"; "$server" --version
+  echo "LLAMA_SERVER=$server" >> "$GITHUB_ENV"
+
+prebuilt: https://github.com/ggml-org/llama.cpp/releases/download/b11963/llama-b11963-bin-ubuntu-x64.tar.gz
+version: 0.8.0-dev (build 11963, commit 39febd2ad)
+built with GNU 11.4.0 for Linux x86_64
+=== model-download ===============================================
+$ bash -c 
+  mkdir -p "$HOME/model"
+  target="$HOME/model/$MODEL_FILE"
+  if [ ! -s "$target" ]; then
+    curl -fL --retry 3 -o "$target.part" \
+      "https://huggingface.co/$MODEL_REPO/resolve/main/$MODEL_FILE"
+    mv "$target.part" "$target"
+  fi
+  ls -lh "$target"
+  head -c 4 "$target" | grep -q GGUF || { echo "not a GGUF file"; exit 1; }
+  echo "MODEL_PATH=$target" >> "$GITHUB_ENV"
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  1118  100  1118    0     0  10326      0 --:--:-- --:--:-- --:--:-- 10256
+  4  100M    4 4988k    0     0  4972k      0  0:00:20  0:00:01  0:00:19 4972k100  100M  100  100M    0     0  58.5M      0  0:00:01  0:00:01 --:--:--  134M
+-rw-r--r-- 1 runner runner 101M Oct 28 15:28 /home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf
+=== serve ===============================================
+$ bash -c 
+  # Detach *all three* descriptors. A backgrounded server that inherits the closing
+  # pipeline keeps the tee pipe open, so run.sh waits forever even after the check
+  # here is done - the first run of this workflow hung on exactly this line.
+  setsid "$LLAMA_SERVER" --model "$MODEL_PATH" --host 127.0.0.1 --port "$PORT" \
+    --ctx-size 512 --n-gpu-layers 0 --threads 2 --parallel 1 \
+    --no-warmup --log-file "$RUNNER_TEMP/llama.log" \
+    > "$RUNNER_TEMP/llama.out" 2>&1 < /dev/null &
+  echo $! > "$RUNNER_TEMP/llama.pid"
+  for i in $(seq 1 180); do
+    curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 && { echo "up after ${i}s"; exit 0; }
+    sleep 1
+  done
+  tail -40 "$RUNNER_TEMP/llama.log"; exit 1
+
+up after 2s
+=== completion ===============================================
+$ bash -c 
+  curl -sS -H "Content-Type: application/json" --max-time 120 \
+    -d "{\"model\":\"local\",\"messages\":[{\"role\":\"user\",\"content\":\"In one short sentence, what is a tunnel?\"}],\"max_tokens\":48}" \
+    "http://127.0.0.1:$PORT/v1/chat/completions" > "$LOGDIR/completion.json"
+  python - <<PY
+import json, os, pathlib
+data = json.loads(pathlib.Path(os.environ["LOGDIR"], "completion.json").read_text())
+text = data["choices"][0]["message"]["content"].strip()
+usage = data.get("usage", {})
+print("text:", text)
+print("usage:", usage)
+assert text, "empty reply"
+pathlib.Path(os.environ["LOGDIR"], "model-proof.json").write_text(json.dumps({"text": text, "usage": usage}, indent=2))
+PY
+
+text: A tunnel is a narrow, underground passageway that runs beneath the surface of the earth.
+usage: {'completion_tokens': 19, 'prompt_tokens': 40, 'total_tokens': 59, 'prompt_tokens_details': {'cached_tokens': 0}}
+=== sdk-matrix ===============================================
+$ ./scripts/remote_model.sh http://127.0.0.1:8080
+### endpoint
+http://127.0.0.1:8080
+curl /health      -> 200
+curl /v1/models   -> 200
+the server says: {"models":[{"name":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","model":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","modified_at":"","size":"","digest":"","type":"model","description":"","tags":[""],"capabilities":["completion"],"parameters":"","details":{"parent_model":"","form
+
+### the same endpoint through each official SDK
+
+--- openai
+OK    'Hello, welcome to my little corner of the internet.'
+      tokens in/out 36/12  finish stop
+      base http://127.0.0.1:8080/v1  ->  /chat/completions
+      streamed 6 chunk(s), 22 chars: "I'm counting to three."
+
+--- anthropic
+OK    'Hello, welcome to my office.'
+      tokens in/out 12/8  finish stop
+      base http://127.0.0.1:8080  ->  /v1/messages
+      streamed 32 chunk(s), 150 chars: "I'm sorry for any confusion, but as a chatbot designed to assist with language translations and text re-writing, I don't"
+
+--- google
+SKIP  the google client speaks :generateContent; this endpoint does not
+
+--- mistral
+OK    'Hello!'
+      tokens in/out 36/3  finish stop
+      base http://127.0.0.1:8080  ->  /v1/chat/completions
+      streamed 6 chunk(s), 22 chars: "I'm counting to three."
+
+--- groq
+SKIP  groq requests /openai/v1/chat/completions; this endpoint answers 404 there (model not found: Error code: 404 - {'error': {'message': 'File Not Found', 'type)
+
+--- together
+OK    'Hello, welcome to my little corner of the internet.'
+      tokens in/out 36/12  finish stop
+      base http://127.0.0.1:8080  ->  /v1/chat/completions
+      streamed 4 chunk(s), 15 chars: 'Count to three.'
+
+--- cohere
+SKIP  no /v2/chat here; the cohere client has nothing to talk to
+
+--- ollama
+SKIP  no /api/tags here; the ollama client has nothing to talk to
+
+### summary
+4 SDK(s) completed a turn, 0 failed
+
+### and through Archx itself (the app, not just the SDK)
+home /tmp/archx-remote-zFx6hZ
+
+$ archx-agent models add-sdk --name remote-openai --sdk openai --model local --base-url http://127.0.0.1:8080
+  registered remote-openai (mdl_0001m61j1bdg0000000021eda1b57f4872cd) provider=openai runtime=sdk
+    sdk      openai (`openai`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/OPENAI_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/OPENAI_API_KEY could not be resolved: secret reference secret://env/OPENAI_API_KEY not found in environment (OPENAI_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/OPENAI_API_KEY not found in environment (OPENAI_API_KEY)
+
+$ archx-agent models add-sdk --name remote-anthropic --sdk anthropic --model local --base-url http://127.0.0.1:8080
+  registered remote-anthropic (mdl_0001m61j1bzv00000000a869f96fcb0a9131) provider=anthropic runtime=sdk
+    sdk      anthropic (`anthropic`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/ANTHROPIC_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/ANTHROPIC_API_KEY could not be resolved: secret reference secret://env/ANTHROPIC_API_KEY not found in environment (ANTHROPIC_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/ANTHROPIC_API_KEY not found in environment (ANTHROPIC_API_KEY)
+
+$ archx-agent models add-sdk --name remote-google --sdk google --model local --base-url http://127.0.0.1:8080
+  registered remote-google (mdl_0001m61j1cyj00000000689abceb99515f02) provider=google runtime=sdk
+    sdk      google-genai (`google.genai`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/GEMINI_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/GEMINI_API_KEY could not be resolved: secret reference secret://env/GEMINI_API_KEY not found in environment (GEMINI_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/GEMINI_API_KEY not found in environment (GEMINI_API_KEY)
+
+$ archx-agent models add-sdk --name remote-mistral --sdk mistral --model local --base-url http://127.0.0.1:8080

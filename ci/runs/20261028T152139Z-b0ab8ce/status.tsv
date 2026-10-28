@@ -3,3 +3,12 @@
 step	status	seconds
 install	ok	19
 pytest	ok	312
+stress-edge	ok	44
+integration	ok	12
+coding-acceptance	ok	10
+experiment-acceptance	ok	6
+sdks	ok	2
+llama-cpp	ok	1
+model-download	ok	2
+serve	ok	1
+completion	ok	0
