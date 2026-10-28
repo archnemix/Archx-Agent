@@ -101,6 +101,11 @@ backgrounded server held the step's pipe open), and #2 never started a job at al
 rejected the workflow file (`'concurrency' is already defined`) that every local YAML reader
 accepted.
 
+The rows missing from this table are the cancelled ones. Every push that touches the workflow or
+the trigger file starts a run, and the job's concurrency group cancels the older one, so a commit
+that changes both starts one run and cancels another - a cancelled run is the rule working, not a
+failure. Each milestone's green run is the one listed here.
+
 ```bash
 ./scripts/ci_logs.sh --list
 ./scripts/ci_logs.sh --run <id>
@@ -111,8 +116,8 @@ git fetch origin ci-logs && git show FETCH_HEAD:ci/runs/<id>/console.log
 HEAD2
 
   printf '## Status, run `%s`\n\n```text\n' "$ID"
-  printf '%-18s %-8s %s\n' step status seconds
-  awk -F'\t' '$2 ~ /^(ok|FAIL)/ {printf "%-18s %-8s %s\n", $1, $2, $3}' "$run/status.tsv"
+  printf '%-22s %-8s %s\n' step status seconds
+  awk -F'\t' '$2 ~ /^(ok|FAIL)/ {printf "%-22s %-8s %s\n", $1, $2, $3}' "$run/status.tsv"
   printf '```\n'
 
   # the step number moves as steps are added, so look for the completion log by name
@@ -142,7 +147,7 @@ HEAD2
     printf '\n## A public URL\n\n'
     if [ -n "$tunnel_log" ]; then
       # the last lines are the proof: the url, the HTTP status, and a vendor SDK's answer
-      printf '```text\n%s\n```\n' "$(tail -n 6 "$tunnel_log" | cut -c1-200)"
+      printf '```text\n%s\n```\n' "$(tail -n 4 "$tunnel_log" | cut -c1-200)"
     else
       printf '```text\n%s\n```\n' "$(cut -c1-200 "$OUT/tunnel-url.txt")"
     fi

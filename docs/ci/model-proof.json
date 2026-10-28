@@ -1,9 +1,9 @@
 {
-  "text": "A tunnel is a narrow and deep passageway through which a great distance of space can be traversed.",
+  "text": "A tunnel is a narrow, underground passageway that runs beneath the surface of the earth.",
   "usage": {
-    "completion_tokens": 21,
+    "completion_tokens": 19,
     "prompt_tokens": 40,
-    "total_tokens": 61,
+    "total_tokens": 59,
     "prompt_tokens_details": {
       "cached_tokens": 0
     }

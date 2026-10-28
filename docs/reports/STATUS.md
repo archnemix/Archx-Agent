@@ -57,7 +57,7 @@ through the CLI for all eight.
 ### 1.3 CI triggered by a file, monitored over git
 
 ```
-edit .ci/trigger -> push -> .github/workflows/model-matrix.yml (18 steps)
+edit .ci/trigger -> push -> .github/workflows/model-matrix.yml (18 steps, 14 of them recorded)
                               -> $LOGDIR/NN-<name>.log per step + status.tsv + console.log
                               -> publisher pushes ci/runs/<id>/ to branch `ci-logs` every 45 s
 ./scripts/ci_logs.sh  <--------  read it back with plain git
@@ -98,7 +98,7 @@ does not have. M32 closed; M33 onward are the next milestones. Nothing in betwee
 
 ```text
 $ .venv/bin/python -m pytest tests/ -o addopts="" -q
-1384 passed, 2 warnings in 367.01s (0:06:07)
+1515 passed, 2 warnings in 401.74s (0:06:41)
 
 $ .venv/bin/python -m pytest tests/test_stress.py tests/test_edge_cases.py -o addopts="" -q
 91 passed in 44s            (three consecutive runs, same result)
@@ -118,8 +118,14 @@ Gemini acceptance: 60 checks passed
 $ ./scripts/acceptance_m29.sh
 M29 acceptance: 60 checks passed
 
+$ ./scripts/acceptance_m31.sh
+M31 acceptance: 48 checks passed
+
+$ ./scripts/acceptance_m32.sh
+M32 acceptance: 53 checks passed, 0 failed
+
 $ ARCHX_JSDOM_DIR=/tmp/domtest node scripts/gui_smoke.mjs
-smoke ok: 10 tabs, 4 gate rows, form posts, no page errors
+smoke ok: 12 tabs, 4 gate rows, code and experiment panels render, forms post, no page errors
 ```
 
 ### 3.1 Seven bugs the new suites found
