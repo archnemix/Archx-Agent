@@ -273,4 +273,113 @@ $ python -m pytest -o addopts= -q
 ........................................................................ [ 73%]
 ........................................................................ [ 78%]
 ........................................................................ [ 84%]
-...............
+........................................................................ [ 89%]
+........................................................................ [ 95%]
+..........................................................               [100%]
+=============================== warnings summary ===============================
+tests/test_sdk_m22.py::TestCohere::test_the_v2_chat_shape_is_parsed
+tests/test_sdk_m22.py::TestPaths::test_the_requested_path[cohere--/v2/chat]
+  /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/cohere/core/unchecked_base_model.py:328: PydanticDeprecatedSince20: The `__fields__` attribute is deprecated, use the `model_fields` class property instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    if inner_type.__fields__[metadata.discriminant].default == objects_discriminant:
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1282 passed, 2 warnings in 331.41s (0:05:31)
+=== sdks ===============================================
+$ archx-agent models sdks
+openai     OpenAI           installed  openai         key from OPENAI_API_KEY
+anthropic  Anthropic        installed  anthropic      key from ANTHROPIC_API_KEY
+google     Google Gemini    installed  google-genai   key from GEMINI_API_KEY
+mistral    Mistral          installed  mistralai      key from MISTRAL_API_KEY
+groq       Groq             installed  groq           key from GROQ_API_KEY
+together   Together         installed  together       key from TOGETHER_API_KEY
+cohere     Cohere           installed  cohere         key from COHERE_API_KEY
+ollama     Ollama           installed  ollama         key from OLLAMA_API_KEY
+=== llama-cpp ===============================================
+$ bash -c 
+  set -u
+  mkdir -p "$HOME/llama"; server=""
+  for page in 1 2; do
+    asset="$(gh api "repos/ggml-org/llama.cpp/releases?per_page=10&page=$page" \
+      --jq ".[].assets[].browser_download_url" 2>/dev/null \
+      | grep -E "/llama-b[0-9]+-bin-ubuntu-x64\.tar\.gz$" | head -1 || true)"
+    [ -n "$asset" ] && break
+  done
+  if [ -n "${asset:-}" ]; then
+    echo "prebuilt: $asset"
+    curl -fsSL "$asset" -o /tmp/llama.tar.gz && tar -xzf /tmp/llama.tar.gz -C "$HOME/llama" || true
+    server="$(find "$HOME/llama" -name llama-server -type f | head -1)"
+  fi
+  if [ -z "$server" ]; then
+    echo "no prebuilt binary; building from source"
+    git clone --depth 1 https://github.com/ggml-org/llama.cpp /tmp/llama-src
+    cmake -S /tmp/llama-src -B /tmp/llama-src/build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF
+    cmake --build /tmp/llama-src/build --target llama-server -j "$(nproc)"
+    server=/tmp/llama-src/build/bin/llama-server
+  fi
+  [ -x "$server" ] || { echo "no llama-server binary"; exit 1; }
+  chmod +x "$server"; "$server" --version
+  echo "LLAMA_SERVER=$server" >> "$GITHUB_ENV"
+
+prebuilt: https://github.com/ggml-org/llama.cpp/releases/download/b11954/llama-b11954-bin-ubuntu-x64.tar.gz
+version: 0.7.0-dev (build 11954, commit f1a7dea99)
+built with GNU 11.4.0 for Linux x86_64
+=== model-download ===============================================
+$ bash -c 
+  mkdir -p "$HOME/model"
+  target="$HOME/model/$MODEL_FILE"
+  if [ ! -s "$target" ]; then
+    curl -fL --retry 3 -o "$target.part" \
+      "https://huggingface.co/$MODEL_REPO/resolve/main/$MODEL_FILE"
+    mv "$target.part" "$target"
+  fi
+  ls -lh "$target"
+  head -c 4 "$target" | grep -q GGUF || { echo "not a GGUF file"; exit 1; }
+  echo "MODEL_PATH=$target" >> "$GITHUB_ENV"
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  1118  100  1118    0     0   9890      0 --:--:-- --:--:-- --:--:--  9982
+  0  100M    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0 39  100M   39 40.1M    0     0  31.6M      0  0:00:03  0:00:01  0:00:02 41.5M100  100M  100  100M    0     0  60.3M      0  0:00:01  0:00:01 --:--:-- 73.8M
+-rw-r--r-- 1 runner runner 101M Oct 28 12:35 /home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf
+=== serve ===============================================
+$ bash -c 
+  # Detach *all three* descriptors. A backgrounded server that inherits the closing
+  # pipeline keeps the tee pipe open, so run.sh waits forever even after the check
+  # here is done - the first run of this workflow hung on exactly this line.
+  setsid "$LLAMA_SERVER" --model "$MODEL_PATH" --host 127.0.0.1 --port "$PORT" \
+    --ctx-size 512 --n-gpu-layers 0 --threads 2 --parallel 1 \
+    --no-warmup --log-file "$RUNNER_TEMP/llama.log" \
+    > "$RUNNER_TEMP/llama.out" 2>&1 < /dev/null &
+  echo $! > "$RUNNER_TEMP/llama.pid"
+  for i in $(seq 1 180); do
+    curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 && { echo "up after ${i}s"; exit 0; }
+    sleep 1
+  done
+  tail -40 "$RUNNER_TEMP/llama.log"; exit 1
+
+up after 2s
+=== completion ===============================================
+$ bash -c 
+  curl -sS -H "Content-Type: application/json" --max-time 120 \
+    -d "{\"model\":\"local\",\"messages\":[{\"role\":\"user\",\"content\":\"In one short sentence, what is a tunnel?\"}],\"max_tokens\":48}" \
+    "http://127.0.0.1:$PORT/v1/chat/completions" > "$LOGDIR/completion.json"
+  python - <<PY
+import json, os, pathlib
+data = json.loads(pathlib.Path(os.environ["LOGDIR"], "completion.json").read_text())
+text = data["choices"][0]["message"]["content"].strip()
+usage = data.get("usage", {})
+print("text:", text)
+print("usage:", usage)
+assert text, "empty reply"
+pathlib.Path(os.environ["LOGDIR"], "model-proof.json").write_text(json.dumps({"text": text, "usage": usage}, indent=2))
+PY
+
+text: A tunnel is a deep, narrow passageway through a solid surface, typically made of concrete or steel, that allows for access and movement through the material.
+usage: {'completion_tokens': 32, 'prompt_tokens': 40, 'total_tokens': 72, 'prompt_tokens_details': {'cached_tokens': 0}}
+=== sdk-matrix ===============================================
+$ ./scripts/remote_model.sh http://127.0.0.1:8080
+### endpoint
+http://127.0.0.1:8080
+curl /health      -> 200
+curl /v1/models   -> 200
+the server says: {"models":[{"name":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","model":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","modified_at":"","size":"","digest":"","type":"model","description":"","tags":[""],"capabilities":["completion"],"parameters":"","details":{"parent_model":"","form

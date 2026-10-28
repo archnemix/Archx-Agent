@@ -2,3 +2,9 @@
 
 step	status	seconds
 install	ok	20
+pytest	ok	334
+sdks	ok	2
+llama-cpp	ok	7
+model-download	ok	1
+serve	ok	1
+completion	ok	1

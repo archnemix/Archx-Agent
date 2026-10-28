@@ -1,0 +1,11 @@
+{
+  "text": "A tunnel is a deep, narrow passageway through a solid surface, typically made of concrete or steel, that allows for access and movement through the material.",
+  "usage": {
+    "completion_tokens": 32,
+    "prompt_tokens": 40,
+    "total_tokens": 72,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  }
+}
