@@ -1,0 +1,11 @@
+{
+  "text": "A tunnel is a narrow and deep passageway through which a great distance of space can be traversed.",
+  "usage": {
+    "completion_tokens": 21,
+    "prompt_tokens": 40,
+    "total_tokens": 61,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  }
+}
