@@ -1,0 +1,39 @@
+$ bash -c 
+  set -u
+  curl -fsSL -o "$RUNNER_TEMP/cloudflared" \
+    https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+  chmod +x "$RUNNER_TEMP/cloudflared"
+  "$RUNNER_TEMP/cloudflared" tunnel --no-autoupdate --url "http://127.0.0.1:$PORT" \
+    > "$RUNNER_TEMP/tunnel.log" 2>&1 &
+  echo $! > "$RUNNER_TEMP/tunnel.pid"
+  url=""
+  for i in $(seq 1 90); do
+    url="$(grep -oE "https://[a-z0-9-]+\.trycloudflare\.com" "$RUNNER_TEMP/tunnel.log" | head -1 || true)"
+    [ -n "$url" ] && break; sleep 1
+  done
+  [ -n "$url" ] || { tail -40 "$RUNNER_TEMP/tunnel.log"; exit 1; }
+  echo "url=$url" | tee "$LOGDIR/tunnel-url.txt"
+  for i in $(seq 1 60); do
+    curl -fsS --max-time 5 "$url/health" >/dev/null 2>&1 && break; sleep 2
+  done
+  code="$(curl -sS --max-time 60 -o "$LOGDIR/public.json" -w "%{http_code}" \
+    -H "Content-Type: application/json" \
+    -d "{\"model\":\"local\",\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}],\"max_tokens\":16}" \
+    "$url/v1/chat/completions")"
+  echo "public chat HTTP $code"; head -c 400 "$LOGDIR/public.json"
+  [ "$code" = "200" ] || exit 1
+  # and through a vendor SDK, over the public URL, from this runner
+  python - "$url" <<PY
+import sys
+from openai import OpenAI
+client = OpenAI(api_key="local-model-no-key", base_url=sys.argv[1] + "/v1")
+reply = client.chat.completions.create(
+    model="local", messages=[{"role": "user", "content": "Say hi in three words."}],
+    max_tokens=24, timeout=90,
+)
+print("openai SDK via the public URL:", reply.choices[0].message.content.strip())
+PY
+
+url=https://unto-classified-limited-bench.trycloudflare.com
+public chat HTTP 200
+{"choices":[{"finish_reason":"length","index":0,"message":{"role":"assistant","content":"Pong, a paddle-driven boat, is an iconic boat designed by the"}}],"created":1793201393,"model":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","system_fingerprint":"b11963-39febd2ad","object":"chat.completion","usage":{"completion_tokens":16,"prompt_tokens":31,"total_tokens":47,"prompt_tokens_details":{openai SDK via the public URL: "Hello, Hello, Hello"
