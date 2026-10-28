@@ -14,8 +14,18 @@
 # a crash), 2 for a usage error.
 set -u
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PY="$HERE/.venv/bin/python"
-CLI="$HERE/.venv/bin/archx-agent"
+# The venv is how this is run locally; a CI runner installs into its own interpreter, so fall
+# back to whatever `python3` and `archx-agent` resolve to before giving up.
+if [ -x "$HERE/.venv/bin/python" ]; then
+  PY="$HERE/.venv/bin/python"
+else
+  PY="$(command -v python3 || command -v python || echo python3)"
+fi
+if [ -x "$HERE/.venv/bin/archx-agent" ]; then
+  CLI="$HERE/.venv/bin/archx-agent"
+else
+  CLI="$(command -v archx-agent || echo "$HERE/.venv/bin/archx-agent")"
+fi
 SOURCE=""
 if [ "$#" -gt 0 ] && [ "${1#--}" = "$1" ]; then
   SOURCE="$1"
@@ -80,8 +90,15 @@ if not ok:
     print(f"SKIP  {why}")
     raise SystemExit(0)
 
-# A local llama.cpp server ignores the key, but the client still has to send one.
-endpoint = base + "/v1" if sdk == "openai" else base
+# cohere and ollama speak their own routes (/v2/chat, /api/chat); a llama.cpp server only
+# answers the OpenAI shape, so pointing them here would test nothing but their 404 handling.
+if sdk in ("cohere", "ollama"):
+    print(f"SKIP  the {sdk} client speaks its own protocol; it cannot drive an OpenAI-shaped server")
+    raise SystemExit(0)
+
+# A local llama.cpp server ignores the key, but the client still has to send one. The OpenAI
+# shape lives under /v1, and groq/together append /chat/completions to whatever they are given.
+endpoint = base + "/v1" if sdk in ("openai", "groq", "together") else base
 transport = transport_for(sdk, api_key="local-model-no-key", base_url=endpoint, timeout=120.0)
 try:
     result = transport.chat(
@@ -96,6 +113,22 @@ finally:
     transport.close()
 print(f"OK    {result.text.strip()[:200]!r}")
 print(f"      tokens in/out {result.prompt_tokens}/{result.completion_tokens}  finish {result.finish_reason}")
+
+# ...and streamed, because a client can get the shape right and the deltas wrong
+try:
+    pieces = list(transport.stream(
+        [{"role": "user", "content": "Count to three."}],
+        GenerationParams(temperature=0.2, max_tokens=32),
+        model="local",
+    ))
+except ProviderError as exc:
+    print(f"STREAM-FAIL  {type(exc).__name__}: {exc.message[:200]}")
+    raise SystemExit(1)
+joined = "".join(pieces)
+print(f"      streamed {len(pieces)} chunk(s), {len(joined)} chars: {joined.strip()[:120]!r}")
+if not joined.strip():
+    print("STREAM-FAIL  the stream produced no text")
+    raise SystemExit(1)
 PY
 )"
   printf '%s\n' "$OUT"
@@ -103,6 +136,9 @@ PY
     OK*) PASSED=$((PASSED + 1)) ;;
     SKIP*) ;;
     *) FAILURES=$((FAILURES + 1)) ;;
+  esac
+  case "$OUT" in
+    *STREAM-FAIL*) FAILURES=$((FAILURES + 1)) ;;
   esac
 done
 

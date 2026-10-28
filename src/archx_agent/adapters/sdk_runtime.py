@@ -65,12 +65,8 @@ class SdkChatRuntime(BaseRuntime):
         ok, why = sdk_available(self.sdk)
         if not ok:
             return ok, why
-        if not self._api_key:
-            return False, (
-                f"no API key for {SDKS[self.sdk].label}: set the secret reference "
-                f"({SDKS[self.sdk].env_var}) before this model can run"
-            )
-        return True, "ready"
+        # the transport knows which clients need a credential and which endpoints are local
+        return self._transport.available()
 
     def load(self, spec: ModelSpec) -> None:
         self.spec = spec
@@ -89,10 +85,15 @@ class SdkChatRuntime(BaseRuntime):
         return self._transport.chat(messages, params, model=model)
 
     def stream(self, messages: Sequence[dict[str, str]], params: GenerationParams) -> Iterator[str]:
-        # Streaming through four SDKs, each with its own event types, would be four parsers
-        # that nobody measures. The capability is declared as chat-only for that reason; this
-        # yields one chunk so a caller written for the protocol still works.
-        yield self.chat(messages, params).text
+        # Each client streams its own way; `SdkTransport.stream` holds one parser per style and
+        # every one of them is measured against a loopback server in tests/test_sdk_m22.py.
+        if self.spec is None:
+            raise ProviderError("no model loaded")
+        ok, why = self.available()
+        if not ok:
+            raise AuthDeniedError(why, provider=self.sdk)
+        model = self.spec.model or self.spec.id
+        yield from self._transport.stream(messages, params, model=model)
 
     def close(self) -> None:
         self._transport.close()

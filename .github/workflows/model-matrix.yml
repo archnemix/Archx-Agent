@@ -1,0 +1,310 @@
+name: model matrix
+
+# Runs a real, tiny, 4-bit model on a runner and drives every vendor SDK Archx supports
+# against it - then publishes **its own logs back into the repository**, so the run can be
+# read with nothing but `git fetch`.
+#
+# Why a push trigger instead of workflow_dispatch: dispatching through the API needs an
+# `actions: write` token, and this project's automation only has `contents`. A push is
+# something we can always do. Change `.ci/trigger` and the run happens.
+#
+# Why logs are committed: the same token cannot read the Actions API, but it can read `git`.
+# Every step writes `$LOGDIR/NN-name.log`; a background publisher pushes the folder to the
+# `ci-logs` branch every ~45 s while the job runs, and a final publisher runs even on failure.
+# Read a run with:
+#
+#   git fetch origin ci-logs && git show FETCH_HEAD:ci/runs/<run-id>/status.tsv
+#   ./scripts/ci_logs.sh                 # the same thing, with a summary
+#
+# Cost: one ~15 minute job per trigger. Change the trigger file, not the source, to re-run.
+
+on:
+  push:
+    paths:
+      - ".ci/trigger"
+      - ".github/workflows/model-matrix.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write      # to push the logs branch
+  actions: read
+
+concurrency:
+  group: model-matrix
+  cancel-in-progress: true
+
+env:
+  # the automatic token is not exported by default, and the log publisher needs it to push
+  GITHUB_TOKEN: ${{ github.token }}
+  PYTHONUNBUFFERED: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  LOG_BRANCH: ci-logs
+  MODEL_REPO: bartowski/SmolLM2-135M-Instruct-GGUF
+  MODEL_FILE: SmolLM2-135M-Instruct-Q4_K_M.gguf
+  PORT: "8080"
+
+jobs:
+  matrix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # ---------------------------------------------------------------- logging
+      - name: set up the log folder
+        run: |
+          RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-${GITHUB_SHA:0:7}"
+          echo "RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
+          LOGDIR="$RUNNER_TEMP/logs"
+          mkdir -p "$LOGDIR"
+          echo "LOGDIR=$LOGDIR" >> "$GITHUB_ENV"
+          printf 'run\t%s\ncommit\t%s\nbranch\t%s\nstarted\t%s\n' \
+            "$RUN_ID" "$GITHUB_SHA" "$GITHUB_REF_NAME" "$(date -u +%FT%TZ)" > "$LOGDIR/meta.tsv"
+          printf '# run %s\n\nstep\tstatus\tseconds\n' "$RUN_ID" > "$LOGDIR/status.tsv"
+          cat "$LOGDIR/meta.tsv"
+
+      # every step goes through this: it logs, it records the exit code, and it keeps going.
+      # A run that stops at the first failure answers one question; a run that finishes
+      # answers all of them.
+      - name: define the step runner
+        run: |
+          cat > "$RUNNER_TEMP/run.sh" <<'SH'
+          #!/usr/bin/env bash
+          # usage: run.sh <name> <command...>
+          name="$1"; shift
+          log="$LOGDIR/$(printf '%02d' "$(wc -l < "$LOGDIR/status.tsv")")-$name.log"
+          started=$(date +%s)
+          echo "=== $name ===============================================" >> "$LOGDIR/console.log"
+          { echo "\$ $*"; "$@" 2>&1; } | tee -a "$log" "$LOGDIR/console.log"
+          code=${PIPESTATUS[0]}
+          took=$(( $(date +%s) - started ))
+          printf '%s\t%s\t%s\n' "$name" "$([ "$code" -eq 0 ] && echo ok || echo "FAIL($code)")" "$took" >> "$LOGDIR/status.tsv"
+          echo "[$name] exit $code in ${took}s"
+          # exit 0 on purpose: a failed check is recorded, not fatal, so one run reports
+          # every problem instead of only the first. The `verdict` step fails the job.
+          exit 0
+          SH
+          chmod +x "$RUNNER_TEMP/run.sh"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      # ------------------------------------------------------------ the publisher
+      - name: define the publisher
+        run: |
+          cat > "$RUNNER_TEMP/publish.sh" <<'SH'
+          #!/usr/bin/env bash
+          # Push the current log folder to $LOG_BRANCH. Best effort: a failed publish must never
+          # fail the job, and a concurrent publish must never interleave commits (hence the lock).
+          set -u
+          [ -d "$LOGDIR" ] || exit 0
+          for _ in $(seq 1 30); do mkdir /tmp/publish.lock 2>/dev/null && break; sleep 1; done
+          trap 'rmdir /tmp/publish.lock 2>/dev/null' EXIT
+          # per-job scratch: a reused runner must not inherit another run's clone
+          work="${RUNNER_TEMP:-/tmp}/archx-publish"
+          if [ ! -d "$work/.git" ]; then
+            rm -rf "$work"; mkdir -p "$work"; cd "$work" || exit 0
+            git init -q -b "$LOG_BRANCH"
+            git config user.email "ci@archx.local"
+            git config user.name "Archx CI"
+            git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+            git fetch -q --depth 1 origin "$LOG_BRANCH" 2>/dev/null && \
+              git checkout -q -B "$LOG_BRANCH" FETCH_HEAD
+          fi
+          cd "$work" || exit 0
+          mkdir -p "ci/runs/$RUN_ID"
+          # keep the tree small: a log is evidence, not an archive
+          for f in "$LOGDIR"/*.log "$LOGDIR"/*.tsv "$LOGDIR"/*.txt "$LOGDIR"/*.json; do
+            [ -f "$f" ] || continue
+            tail -c 120000 "$f" > "ci/runs/$RUN_ID/$(basename "$f")"
+          done
+          cp "$LOGDIR/status.tsv" "ci/runs/$RUN_ID/status.tsv" 2>/dev/null
+          git add -A ci/runs >/dev/null 2>&1
+          git commit -q -m "ci: ${RUN_ID} ${1:-update}" >/dev/null 2>&1 || exit 0
+          git push -q origin "$LOG_BRANCH" >/dev/null 2>&1 || exit 0
+          exit 0
+          SH
+          chmod +x "$RUNNER_TEMP/publish.sh"
+          # watch it live: a copy lands in the repo about every 45 seconds
+          ( while true; do sleep 45; "$RUNNER_TEMP/publish.sh" "live" ; done ) &
+          echo "PUBLISHER_PID=$!" >> "$GITHUB_ENV"
+
+      # ------------------------------------------------------------------ checks
+      - name: install
+        run: |
+          run.sh install bash -c 'python -m pip install -e ".[dev,sdks]" && python -c "import archx_agent, openai, anthropic, google.genai, mistralai, groq, together, cohere, ollama; print(\"all eight clients import\")"'
+
+      - name: unit tests
+        run: run.sh pytest python -m pytest -o addopts="" -q
+
+      - name: sdk catalogue
+        run: run.sh sdks archx-agent models sdks
+
+      - name: install llama.cpp
+        run: |
+          run.sh llama-cpp bash -c '
+            set -u
+            mkdir -p "$HOME/llama"; server=""
+            for page in 1 2; do
+              asset="$(gh api "repos/ggml-org/llama.cpp/releases?per_page=10&page=$page" \
+                --jq ".[].assets[].browser_download_url" 2>/dev/null \
+                | grep -E "/llama-b[0-9]+-bin-ubuntu-x64\.tar\.gz$" | head -1 || true)"
+              [ -n "$asset" ] && break
+            done
+            if [ -n "${asset:-}" ]; then
+              echo "prebuilt: $asset"
+              curl -fsSL "$asset" -o /tmp/llama.tar.gz && tar -xzf /tmp/llama.tar.gz -C "$HOME/llama" || true
+              server="$(find "$HOME/llama" -name llama-server -type f | head -1)"
+            fi
+            if [ -z "$server" ]; then
+              echo "no prebuilt binary; building from source"
+              git clone --depth 1 https://github.com/ggml-org/llama.cpp /tmp/llama-src
+              cmake -S /tmp/llama-src -B /tmp/llama-src/build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF
+              cmake --build /tmp/llama-src/build --target llama-server -j "$(nproc)"
+              server=/tmp/llama-src/build/bin/llama-server
+            fi
+            [ -x "$server" ] || { echo "no llama-server binary"; exit 1; }
+            chmod +x "$server"; "$server" --version
+            echo "LLAMA_SERVER=$server" >> "$GITHUB_ENV"
+          '
+
+      - name: fetch the model
+        run: |
+          run.sh model-download bash -c '
+            mkdir -p "$HOME/model"
+            target="$HOME/model/$MODEL_FILE"
+            if [ ! -s "$target" ]; then
+              curl -fL --retry 3 -o "$target.part" \
+                "https://huggingface.co/$MODEL_REPO/resolve/main/$MODEL_FILE"
+              mv "$target.part" "$target"
+            fi
+            ls -lh "$target"
+            head -c 4 "$target" | grep -q GGUF || { echo "not a GGUF file"; exit 1; }
+            echo "MODEL_PATH=$target" >> "$GITHUB_ENV"
+          '
+
+      - name: serve it
+        run: |
+          run.sh serve bash -c '
+            "$LLAMA_SERVER" --model "$MODEL_PATH" --host 127.0.0.1 --port "$PORT" \
+              --ctx-size 512 --n-gpu-layers 0 --threads 2 --parallel 1 \
+              --no-warmup --log-file "$RUNNER_TEMP/llama.log" &
+            echo $! > "$RUNNER_TEMP/llama.pid"
+            for i in $(seq 1 180); do
+              curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 && { echo "up after ${i}s"; exit 0; }
+              sleep 1
+            done
+            tail -40 "$RUNNER_TEMP/llama.log"; exit 1
+          '
+
+      - name: the model really answers
+        run: |
+          run.sh completion bash -c '
+            curl -sS -H "Content-Type: application/json" --max-time 120 \
+              -d "{\"model\":\"local\",\"messages\":[{\"role\":\"user\",\"content\":\"In one short sentence, what is a tunnel?\"}],\"max_tokens\":48}" \
+              "http://127.0.0.1:$PORT/v1/chat/completions" > "$LOGDIR/completion.json"
+            python - <<PY
+          import json, os, pathlib
+          data = json.loads(pathlib.Path(os.environ["LOGDIR"], "completion.json").read_text())
+          text = data["choices"][0]["message"]["content"].strip()
+          usage = data.get("usage", {})
+          print("text:", text)
+          print("usage:", usage)
+          assert text, "empty reply"
+          pathlib.Path(os.environ["LOGDIR"], "model-proof.json").write_text(json.dumps({"text": text, "usage": usage}, indent=2))
+          PY
+          '
+
+      - name: every SDK against that model
+        run: |
+          run.sh sdk-matrix ./scripts/remote_model.sh "http://127.0.0.1:${PORT}"
+
+      - name: a real Ollama daemon (its own client needs its own protocol)
+        run: |
+          run.sh ollama bash -c '
+            set -u
+            docker run -d --name ollama -p 11434:11434 ollama/ollama:latest || exit 1
+            for i in $(seq 1 90); do
+              curl -fsS http://127.0.0.1:11434/api/tags >/dev/null 2>&1 && break
+              sleep 2
+            done
+            docker exec ollama ollama pull smollm2:135m || exit 1
+            curl -sS http://127.0.0.1:11434/api/tags
+            ./scripts/remote_model.sh http://127.0.0.1:11434 --sdk ollama | tee -a "$LOGDIR/console.log"
+          '
+
+      - name: a public URL through Cloudflare
+        run: |
+          run.sh tunnel bash -c '
+            set -u
+            curl -fsSL -o "$RUNNER_TEMP/cloudflared" \
+              https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+            chmod +x "$RUNNER_TEMP/cloudflared"
+            "$RUNNER_TEMP/cloudflared" tunnel --no-autoupdate --url "http://127.0.0.1:$PORT" \
+              > "$RUNNER_TEMP/tunnel.log" 2>&1 &
+            echo $! > "$RUNNER_TEMP/tunnel.pid"
+            url=""
+            for i in $(seq 1 90); do
+              url="$(grep -oE "https://[a-z0-9-]+\.trycloudflare\.com" "$RUNNER_TEMP/tunnel.log" | head -1 || true)"
+              [ -n "$url" ] && break; sleep 1
+            done
+            [ -n "$url" ] || { tail -40 "$RUNNER_TEMP/tunnel.log"; exit 1; }
+            echo "url=$url" | tee "$LOGDIR/tunnel-url.txt"
+            for i in $(seq 1 60); do
+              curl -fsS --max-time 5 "$url/health" >/dev/null 2>&1 && break; sleep 2
+            done
+            code="$(curl -sS --max-time 60 -o "$LOGDIR/public.json" -w "%{http_code}" \
+              -H "Content-Type: application/json" \
+              -d "{\"model\":\"local\",\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}],\"max_tokens\":16}" \
+              "$url/v1/chat/completions")"
+            echo "public chat HTTP $code"; head -c 400 "$LOGDIR/public.json"
+            [ "$code" = "200" ] || exit 1
+            # and through a vendor SDK, over the public URL, from this runner
+            python - "$url" <<PY
+          import sys
+          from openai import OpenAI
+          client = OpenAI(api_key="local-model-no-key", base_url=sys.argv[1] + "/v1")
+          reply = client.chat.completions.create(
+              model="local", messages=[{"role": "user", "content": "Say hi in three words."}],
+              max_tokens=24, timeout=90,
+          )
+          print("openai SDK via the public URL:", reply.choices[0].message.content.strip())
+          PY
+          '
+
+      - name: verdict
+        run: |
+          # count only rows that carry a verdict; the file has a comment line and a header
+          fail="$(awk -F'\t' '$2 ~ /^(ok|FAIL)/ && $2 != "ok" {n++} END {print n+0}' "$LOGDIR/status.tsv")"
+          printf '\n### steps\n' >> "$LOGDIR/console.log"
+          cat "$LOGDIR/status.tsv" | tee -a "$LOGDIR/console.log"
+          echo "failed=$fail" >> "$LOGDIR/console.log"
+          if [ "$fail" -gt 0 ]; then
+            echo "::error::$fail step(s) failed; read ci/runs/$RUN_ID/status.tsv"
+            echo "FAILED=$fail" >> "$GITHUB_ENV"
+          else
+            echo "all steps passed"
+          fi
+
+      - name: publish the logs
+        if: always()
+        run: |
+          kill "$PUBLISHER_PID" 2>/dev/null || true
+          rm -rf /tmp/publish.lock
+          printf 'finished\t%s\nfailed\t%s\n' "$(date -u +%FT%TZ)" "${FAILED:-0}" >> "$LOGDIR/meta.tsv"
+          "$RUNNER_TEMP/publish.sh" "final" || true
+          {
+            echo "## model matrix ${RUN_ID}"
+            echo ""
+            echo '```'
+            cat "$LOGDIR/status.tsv"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: fail the job if a step failed
+        if: always() && env.FAILED != ''
+        run: |
+          echo "::error::$FAILED step(s) failed"
+          exit 1

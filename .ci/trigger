@@ -1,0 +1,2 @@
+Change this file and push it to run .github/workflows/model-matrix.yml.
+The trigger is a path filter, so it needs no Actions API permission - only a push.

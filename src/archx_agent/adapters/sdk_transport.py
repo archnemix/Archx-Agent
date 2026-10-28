@@ -44,6 +44,7 @@ from archx_agent.helpers.exceptions import (
     RateLimitedError,
 )
 from archx_agent.helpers.redaction import redact
+from archx_agent.managers.providers import is_loopback_url
 
 #: words that mean "you are out of plan", not "slow down"
 _QUOTA_WORDS = ("quota", "billing", "credit", "insufficient", "payment", "plan limit", "exceeded your current")
@@ -63,6 +64,9 @@ class SdkSpec:
     api_style: str
     streaming: bool
     notes: str = ""
+    #: does this client need a credential before it can be used at all? A local Ollama daemon
+    #: does not, so a missing key must not mark the model unusable.
+    key_required: bool = True
 
 
 SDKS: dict[str, SdkSpec] = {
@@ -109,6 +113,54 @@ SDKS: dict[str, SdkSpec] = {
         default_base_url="https://api.mistral.ai",
         api_style="openai",
         streaming=True,
+    ),
+    "groq": SdkSpec(
+        key="groq",
+        label="Groq",
+        package="groq",
+        import_name="groq",
+        provider_template="groq",
+        env_var="GROQ_API_KEY",
+        default_base_url="https://api.groq.com/openai/v1",
+        api_style="openai",
+        streaming=True,
+    ),
+    "together": SdkSpec(
+        key="together",
+        label="Together",
+        package="together",
+        import_name="together",
+        provider_template="together",
+        env_var="TOGETHER_API_KEY",
+        default_base_url="https://api.together.xyz/v1",
+        api_style="openai",
+        streaming=True,
+    ),
+    "cohere": SdkSpec(
+        key="cohere",
+        label="Cohere",
+        package="cohere",
+        import_name="cohere",
+        provider_template="cohere",
+        env_var="COHERE_API_KEY",
+        default_base_url="https://api.cohere.com",
+        api_style="custom",
+        streaming=True,
+    ),
+    "ollama": SdkSpec(
+        key="ollama",
+        label="Ollama",
+        package="ollama",
+        import_name="ollama",
+        provider_template="ollama",
+        env_var="OLLAMA_API_KEY",
+        # No default: the client's own default is a local daemon on 127.0.0.1:11434, and
+        # Ollama's cloud endpoint is opt-in. Guessing one would silently pick a different
+        # service than the user expected.
+        default_base_url=None,
+        api_style="custom",
+        streaming=True,
+        key_required=False,
     ),
 }
 
@@ -212,13 +264,26 @@ class SdkTransport:
     def spec(self) -> SdkSpec:
         return SDKS[self.key]
 
+    def is_loopback(self) -> bool:
+        """Is this client talking to a daemon on this machine?"""
+        return is_loopback_url(self.base_url or "")
+
     def available(self) -> tuple[bool, str]:
         ok, why = sdk_available(self.key)
         if not ok:
             return ok, why
-        if not self.api_key:
+        if self.api_key:
+            return True, "ready"
+        if self.spec.key_required:
             return False, f"no API key: set {self.spec.env_var} or a secret:// reference"
-        return True, "ready"
+        if not self.is_loopback():
+            # the client would work without a credential, but the endpoint would reject it -
+            # saying "no key" now beats a 401 later
+            return False, (
+                f"no API key: {self.spec.label} at {self.base_url} is remote and needs one "
+                f"({self.spec.env_var})"
+            )
+        return True, f"ready: a local {self.spec.label} needs no key"
 
     def close(self) -> None:
         client = self._client
@@ -244,12 +309,16 @@ class SdkTransport:
     ) -> ChatResult:
         started = time.perf_counter()
         try:
-            if self.key in ("openai", "mistral"):
+            if self.key in ("openai", "mistral", "groq", "together"):
                 result = self._openai_shaped(messages, params, model)
             elif self.key == "anthropic":
                 result = self._anthropic(messages, params, model)
             elif self.key == "google":
                 result = self._google(messages, params, model)
+            elif self.key == "cohere":
+                result = self._cohere(messages, params, model)
+            elif self.key == "ollama":
+                result = self._ollama_chat(messages, params, model)
             else:  # pragma: no cover - guarded by SDKS
                 raise ProviderError(f"no transport for {self.key!r}")
         except ProviderError:
@@ -258,6 +327,164 @@ class SdkTransport:
             raise self._fail(exc) from exc
         result.latency_ms = round((time.perf_counter() - started) * 1000.0, 1)
         return result
+
+    def stream(
+        self,
+        messages: Sequence[dict[str, str]],
+        params: GenerationParams,
+        *,
+        model: str,
+    ) -> Iterator[str]:
+        """Yield text as the vendor sends it.
+
+        Each client spells streaming differently (a `stream=True` flag, a separate `*_stream`
+        method, or an event type on every chunk), so there is one small parser per style. All
+        of them are measured against a loopback server in `tests/test_sdk_m22.py`; a client
+        whose events this code got wrong fails there rather than in a user's terminal.
+        """
+        try:
+            if self.key in ("openai", "mistral", "groq", "together"):
+                yield from self._stream_openai_shaped(messages, params, model)
+            elif self.key == "anthropic":
+                yield from self._stream_anthropic(messages, params, model)
+            elif self.key == "google":
+                yield from self._stream_google(messages, params, model)
+            elif self.key == "cohere":
+                yield from self._stream_cohere(messages, params, model)
+            elif self.key == "ollama":
+                yield from self._stream_ollama(messages, params, model)
+            else:  # pragma: no cover - guarded by SDKS
+                raise ProviderError(f"no streaming transport for {self.key!r}")
+        except ProviderError:
+            raise
+        except BaseException as exc:  # noqa: BLE001 - every vendor failure becomes one of ours
+            raise self._fail(exc) from exc
+
+    def _stream_openai_shaped(self, messages, params, model) -> Iterator[str]:
+        if self.key == "mistral":
+            client = self._mistral_client()
+            call = client.chat.stream
+        elif self.key in ("groq", "together"):
+            client = self._openai_compatible_client()
+            call = client.chat.completions.create
+        else:
+            client = self._openai()
+            call = client.chat.completions.create
+        candidates: dict[str, Any] = {
+            "model": model,
+            "messages": list(messages),
+            "temperature": params.temperature,
+            "top_p": params.top_p,
+            "stop": list(params.stop or ()) or None,
+            "stream": True,
+        }
+        budget = "max_completion_tokens" if _accepts(call, "max_completion_tokens") else "max_tokens"
+        candidates[budget] = params.max_tokens
+        events = call(**_supported(call, candidates))
+        for event in events:
+            # mistralai wraps each chunk in `.data`; the OpenAI-shaped clients do not
+            chunk = getattr(event, "data", event)
+            choices = getattr(chunk, "choices", None) or []
+            if not choices:
+                continue
+            delta = getattr(choices[0], "delta", None)
+            text = getattr(delta, "content", None) if delta is not None else None
+            if text:
+                yield text
+
+    def _stream_anthropic(self, messages, params, model) -> Iterator[str]:
+        client = self._anthropic_client()
+        system_parts = [m["content"] for m in messages if m.get("role") == "system"]
+        turns = [
+            {"role": "assistant" if m.get("role") == "assistant" else "user", "content": m.get("content", "")}
+            for m in messages
+            if m.get("role") != "system"
+        ]
+        if not turns:
+            turns = [{"role": "user", "content": "".join(system_parts) or "hello"}]
+        candidates: dict[str, Any] = {
+            "model": model,
+            "max_tokens": max(int(params.max_tokens), 1),
+            "messages": turns,
+            "temperature": params.temperature,
+            "top_p": params.top_p,
+            "system": "\n".join(system_parts) or None,
+            "stream": True,
+        }
+        with client.messages.create(**_supported(client.messages.create, candidates)) as events:
+            for event in events:
+                if getattr(event, "type", "") != "content_block_delta":
+                    continue
+                text = getattr(getattr(event, "delta", None), "text", None)
+                if text:
+                    yield text
+
+    def _stream_google(self, messages, params, model) -> Iterator[str]:
+        from google.genai import types  # noqa: PLC0415
+
+        client = self._genai()
+        system_parts = [m["content"] for m in messages if m.get("role") == "system"]
+        contents = [
+            types.Content(
+                role="model" if m.get("role") == "assistant" else "user",
+                parts=[types.Part(text=m.get("content", ""))],
+            )
+            for m in messages
+            if m.get("role") != "system"
+        ]
+        if not contents:
+            contents = [types.Content(role="user", parts=[types.Part(text="".join(system_parts) or "hello")])]
+        config = types.GenerateContentConfig(
+            temperature=params.temperature,
+            top_p=params.top_p,
+            max_output_tokens=int(params.max_tokens),
+            system_instruction="\n".join(system_parts) or None,
+        )
+        for chunk in client.models.generate_content_stream(model=model, contents=contents, config=config):
+            text = getattr(chunk, "text", None)
+            if text:
+                yield text
+
+    def _stream_cohere(self, messages, params, model) -> Iterator[str]:
+        client = self._cohere_client()
+        call = client.chat_stream
+        candidates: dict[str, Any] = {
+            "model": model,
+            "messages": [dict(m) for m in messages],
+            "temperature": params.temperature,
+            "p": params.top_p,
+            "max_tokens": int(params.max_tokens),
+        }
+        for event in call(**_supported(call, candidates)):
+            if getattr(event, "type", "") != "content-delta":
+                continue
+            text = getattr(getattr(getattr(event, "delta", None), "message", None), "content", None)
+            text = getattr(text, "text", None) if text is not None else None
+            if text:
+                yield text
+
+    def _stream_ollama(self, messages, params, model) -> Iterator[str]:
+        client = self._ollama_client()
+        call = client.chat
+        candidates: dict[str, Any] = {
+            "model": model,
+            "messages": [dict(m) for m in messages],
+            "options": {
+                "temperature": params.temperature,
+                "top_p": params.top_p,
+                "num_predict": int(params.max_tokens),
+            },
+            "stream": True,
+        }
+        for chunk in call(**_supported(call, candidates)):
+            message = getattr(chunk, "message", None)
+            if message is None and isinstance(chunk, dict):
+                message = chunk.get("message") or {}
+            text = getattr(message, "content", None)
+            if text is None and isinstance(message, dict):
+                text = message.get("content")
+            if text:
+                yield text
 
     def list_models(self) -> list[str]:
         """Ask the vendor what it serves. Some SDKs cannot enumerate; that is reported."""
@@ -272,6 +499,14 @@ class SdkTransport:
             if self.key == "google":
                 client = self._genai()
                 return [getattr(item, "name", "") for item in client.models.list()]
+            if self.key in ("groq", "together"):
+                return [item.id for item in self._openai_compatible_client().models.list().data]
+            if self.key == "ollama":
+                response = self._ollama_client().list()
+                models = getattr(response, "models", None) or response.get("models", [])
+                return [getattr(item, "model", None) or item.get("model", "") for item in models]
+            if self.key == "cohere":
+                return [item.name for item in self._cohere_client().models.list().models]
         except BaseException as exc:  # noqa: BLE001
             raise self._fail(exc) from exc
         return []
@@ -301,6 +536,49 @@ class SdkTransport:
             self._client = Mistral(**kwargs)
         return self._client
 
+    def _openai_compatible_client(self):
+        """Clients that ship their own package but speak the OpenAI shape."""
+        if self._client is None:
+            kwargs: dict[str, Any] = {"api_key": self.api_key, "max_retries": 0, "timeout": self.timeout}
+            if self.base_url:
+                kwargs["base_url"] = self.base_url
+            if self.key == "groq":
+                from groq import Groq  # noqa: PLC0415
+
+                self._client = Groq(**kwargs)
+            else:
+                from together import Together  # noqa: PLC0415
+
+                self._client = Together(**kwargs)
+        return self._client
+
+    def _cohere_client(self):
+        if self._client is None:
+            import cohere  # noqa: PLC0415
+
+            kwargs: dict[str, Any] = {
+                "api_key": self.api_key,
+                "max_retries": 0,
+                "timeout": self.timeout,
+            }
+            if self.base_url:
+                kwargs["base_url"] = self.base_url
+            self._client = cohere.ClientV2(**kwargs)
+        return self._client
+
+    def _ollama_client(self):
+        if self._client is None:
+            from ollama import Client  # noqa: PLC0415
+
+            kwargs: dict[str, Any] = {"timeout": self.timeout}
+            if self.base_url:
+                kwargs["host"] = self.base_url
+            if self.api_key:
+                # Ollama Cloud authenticates with a bearer token; a local daemon ignores it.
+                kwargs["headers"] = {"Authorization": f"Bearer {self.api_key}"}
+            self._client = Client(**kwargs)
+        return self._client
+
     def _genai(self):
         if self._client is None:
             from google import genai  # noqa: PLC0415
@@ -327,9 +605,17 @@ class SdkTransport:
         return self._client
 
     def _openai_shaped(self, messages, params, model) -> ChatResult:
-        client = self._mistral_client() if self.key == "mistral" else self._openai()
+        if self.key == "mistral":
+            client = self._mistral_client()
+        elif self.key in ("groq", "together"):
+            client = self._openai_compatible_client()
+        else:
+            client = self._openai()
         stops = list(params.stop or ())
-        call = client.chat.complete if self.key == "mistral" else client.chat.completions.create
+        if self.key == "mistral":
+            call = client.chat.complete
+        else:
+            call = client.chat.completions.create
         candidates: dict[str, Any] = {
             "model": model,
             "messages": list(messages),
@@ -399,6 +685,70 @@ class SdkTransport:
             completion_tokens=int(getattr(usage, "output_tokens", 0) or 0),
             finish_reason=_finish(getattr(result, "stop_reason", None)),
             raw={"sdk": self.key, "id": getattr(result, "id", None)},
+        )
+
+    def _cohere(self, messages, params, model) -> ChatResult:
+        """Cohere's v2 chat: `message.content` blocks, `usage.tokens`, a `finish_reason`."""
+        client = self._cohere_client()
+        call = client.chat
+        candidates: dict[str, Any] = {
+            "model": model,
+            "messages": [dict(m) for m in messages],
+            "temperature": params.temperature,
+            "p": params.top_p,
+            "max_tokens": int(params.max_tokens),
+            "stop_sequences": list(params.stop or ()) or None,
+        }
+        result = call(**_supported(call, candidates))
+        message = getattr(result, "message", None)
+        blocks = getattr(message, "content", None) or []
+        parts = []
+        for block in blocks:
+            text = getattr(block, "text", None)
+            if text:
+                parts.append(text)
+        text = "\n".join(parts).strip()
+        if not text:
+            raise MalformedOutputError("the provider returned an empty message", provider=self.key)
+        usage = getattr(result, "usage", None)
+        tokens = getattr(usage, "tokens", None)
+        return ChatResult(
+            text=text,
+            model_id=model,
+            prompt_tokens=int(getattr(tokens, "input_tokens", 0) or 0),
+            completion_tokens=int(getattr(tokens, "output_tokens", 0) or 0),
+            finish_reason=_finish(getattr(result, "finish_reason", None)),
+            raw={"sdk": self.key},
+        )
+
+    def _ollama_chat(self, messages, params, model) -> ChatResult:
+        """Ollama's own client. Works against a local daemon and against Ollama Cloud."""
+        client = self._ollama_client()
+        call = client.chat
+        candidates: dict[str, Any] = {
+            "model": model,
+            "messages": [dict(m) for m in messages],
+            "options": {
+                "temperature": params.temperature,
+                "top_p": params.top_p,
+                "num_predict": int(params.max_tokens),
+                "stop": list(params.stop or ()) or None,
+            },
+        }
+        result = call(**_supported(call, candidates))
+        message = getattr(result, "message", None)
+        if message is None and isinstance(result, dict):  # older clients return plain dicts
+            message = result.get("message", {})
+        text = (getattr(message, "content", None) or (message.get("content") if isinstance(message, dict) else "") or "").strip()
+        if not text:
+            raise MalformedOutputError("the provider returned an empty message", provider=self.key)
+        return ChatResult(
+            text=text,
+            model_id=getattr(result, "model", None) or model,
+            prompt_tokens=int(getattr(result, "prompt_eval_count", 0) or 0),
+            completion_tokens=int(getattr(result, "eval_count", 0) or 0),
+            finish_reason="length" if getattr(result, "done_reason", "") == "length" else "stop",
+            raw={"sdk": self.key},
         )
 
     def _google(self, messages, params, model) -> ChatResult:

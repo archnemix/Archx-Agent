@@ -502,6 +502,14 @@ class Workspace:
             if not ok:
                 return False, why
             ref = (record.user_metadata or {}).get("credential_ref") or facts.get("credential_ref")
+            # A local Ollama daemon needs no credential; demanding one would mark a working
+            # local model unusable. Anything that leaves the machine still needs a reference.
+            key_optional = (
+                not SDKS[sdk].key_required
+                and is_loopback_url(facts.get("base_url") or SDKS[sdk].default_base_url or "")
+            )
+            if key_optional:
+                return True, f"ready: a local {SDKS[sdk].label} needs no key (no data leaves this machine)"
             if not ref:
                 return False, (
                     f"no API key reference; register the model with --credential-ref "
@@ -801,9 +809,18 @@ class Workspace:
                     f"model {record.name!r} uses the {SDKS[sdk].label} SDK but has no credential "
                     f"reference; register it with --credential-ref secret://env/{SDKS[sdk].env_var}"
                 )
+            api_key = ""
+            if ref:
+                try:
+                    api_key = resolve_secret(ref)
+                except ArchxError:
+                    if SDKS[sdk].key_required:
+                        raise
+                    # a local daemon: the absent key is the documented case, not an error
+                    api_key = ""
             runtime = SdkChatRuntime(
                 sdk,
-                api_key=resolve_secret(ref),
+                api_key=api_key,
                 base_url=facts.get("base_url") or None,
             )
             runtime.load(

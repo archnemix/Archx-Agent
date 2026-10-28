@@ -104,6 +104,87 @@ KNOWN_PROVIDERS: dict[str, dict[str, Any]] = {
         },
         "claim_source": "vendor documentation (not verified in this environment)",
     },
+    # The four below ship the endpoint and the wire style only. Their privacy terms are
+    # deliberately absent: transcribing a vendor's current policy from memory is exactly the
+    # kind of claim this catalogue refuses to make, so the user confirms the terms they read
+    # (`providers confirm`), and the refusal names that step.
+    "groq": {
+        "label": "Groq API",
+        "kind": "cloud",
+        "api_style": "openai",
+        "base_url": "https://api.groq.com/openai/v1",
+        "model_family": "llama, mixtral, qwen",
+        "is_local": False,
+        "privacy_claims": {
+            "data_leaves_device": True,
+            "training_use": "not transcribed here - read the vendor's terms before sending data",
+            "retention": "not transcribed here - read the vendor's terms before sending data",
+            "region": "vendor-defined",
+        },
+        "claim_source": "endpoint only; privacy terms not transcribed (confirm them yourself)",
+    },
+    "together": {
+        "label": "Together AI",
+        "kind": "cloud",
+        "api_style": "openai",
+        "base_url": "https://api.together.xyz/v1",
+        "model_family": "open models",
+        "is_local": False,
+        "privacy_claims": {
+            "data_leaves_device": True,
+            "training_use": "not transcribed here - read the vendor's terms before sending data",
+            "retention": "not transcribed here - read the vendor's terms before sending data",
+            "region": "vendor-defined",
+        },
+        "claim_source": "endpoint only; privacy terms not transcribed (confirm them yourself)",
+    },
+    "cohere": {
+        "label": "Cohere",
+        "kind": "cloud",
+        "api_style": "custom",
+        "base_url": "https://api.cohere.com",
+        "model_family": "command, embed",
+        "is_local": False,
+        "privacy_claims": {
+            "data_leaves_device": True,
+            "training_use": "not transcribed here - read the vendor's terms before sending data",
+            "retention": "not transcribed here - read the vendor's terms before sending data",
+            "region": "vendor-defined",
+        },
+        "claim_source": "endpoint only; privacy terms not transcribed (confirm them yourself)",
+    },
+    "mistral": {
+        "label": "Mistral AI",
+        "kind": "cloud",
+        "api_style": "openai",
+        "base_url": "https://api.mistral.ai",
+        "model_family": "mistral, codestral",
+        "is_local": False,
+        "privacy_claims": {
+            "data_leaves_device": True,
+            "training_use": "not transcribed here - read the vendor's terms before sending data",
+            "retention": "not transcribed here - read the vendor's terms before sending data",
+            "region": "vendor-defined",
+        },
+        "claim_source": "endpoint only; privacy terms not transcribed (confirm them yourself)",
+    },
+    "ollama": {
+        "label": "Ollama (local daemon or Ollama Cloud)",
+        "kind": "custom",
+        # The daemon is on this machine; the cloud endpoint is not. `is_local` is derived from
+        # the URL at registration, so this template does not get to decide.
+        "api_style": "custom",
+        "base_url": "http://127.0.0.1:11434",
+        "model_family": "whatever you have pulled",
+        "is_local": True,
+        "privacy_claims": {
+            "data_leaves_device": False,
+            "training_use": "no: prompts stay on this machine when the daemon is local",
+            "retention": "n/a on your own disk; Ollama Cloud would differ and is not assumed here",
+            "region": "this machine",
+        },
+        "claim_source": "endpoint only; a loopback daemon sends nothing off the machine",
+    },
     "openai-compatible-local": {
         "label": "Local OpenAI-compatible server (llama.cpp, Ollama, vLLM, LM Studio)",
         "kind": "local",

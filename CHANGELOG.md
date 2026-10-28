@@ -6,6 +6,39 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 ## [Unreleased]
 
 ### Added
+- **Four more official SDKs, and one of them needs no key.** `groq`, `together`, `cohere` and
+  `ollama` join `openai`/`anthropic`/`google`/`mistral`, so `models sdks` lists eight clients.
+  `SdkSpec.key_required` records that Ollama's local daemon must *not* be given a credential:
+  `transport.available()` is ready for it only on a loopback endpoint, `Workspace`
+  `runtime_availability` says `ready: a local Ollama needs no key (no data leaves this machine)`,
+  and the same client aimed at a remote host is still refused. Cohere is driven through
+  `ClientV2` (`POST /v2/chat`, `usage.tokens`), Ollama through `POST /api/chat` with the knobs in
+  `options`; Groq and Together reuse the OpenAI shape, with their base URLs carrying the `/v1`
+  those clients assume.
+- `KNOWN_PROVIDERS` gained `groq`, `together`, `cohere`, `mistral` and `ollama` templates, each
+  with a `privacy_claims` block whose retention/training wording says *not transcribed here*
+  rather than inventing vendor terms.
+- **CI you can watch without an Actions token.** `.github/workflows/model-matrix.yml` runs on a
+  push that changes `.ci/trigger` (no API dispatch), writes every step's output to
+  `$LOGDIR/NN-<name>.log` plus one `status.tsv` row, and a background publisher pushes the folder
+  to the `ci-logs` branch every 45 s and again at the end. `scripts/ci_logs.sh --list|--run|--tail|--wait`
+  reads it back over git and exits 1 if any step failed, 3 if no run has appeared. The job covers
+  pytest, a real llama.cpp server with SmolLM2-135M Q4_K_M, `scripts/remote_model.sh` across every
+  installed client, a real Ollama daemon in Docker, and a Cloudflare quick tunnel through the
+  OpenAI SDK.
+- `scripts/remote_model.sh` uses `python3`/`archx-agent` from `PATH` when there is no `.venv`
+  (the runner case), appends `/v1` for the clients that need it, and says `SKIP` - with the
+  reason - for `cohere`/`ollama` when the target is an OpenAI-shaped server.
+- **Every SDK client streams.** `SdkTransport.stream` holds one parser per vendor
+  (`chat.completion.chunk` deltas, Mistral's `.data` wrapper, Anthropic `content_block_delta`,
+  Gemini `streamGenerateContent` over a GET/POST, Cohere `content-delta` events, Ollama JSON
+  lines); `SdkChatRuntime.stream` uses it instead of returning one chunk, so the declared
+  `supports_streaming` is now true in fact. `chat --stream` works through all eight, and
+  `scripts/remote_model.sh` streams from the runner too.
+- `tests/test_sdk_m22.py` grew to 61 tests (Groq/Together request shape, Cohere v2 parsing, Ollama
+  `/api/chat` and its `options`, keyless-local vs key-required-remote, the workspace path);
+  `scripts/acceptance_sdk.sh` grew to 86 checks.
+
 - **Google Gemini is a real provider.** `adapters/gemini_runtime.py` speaks the
   `generateContent` / `streamGenerateContent` protocol natively (`contents`, `systemInstruction`,
   `generationConfig`, `usageMetadata`, `promptFeedback`), sends the key only as the

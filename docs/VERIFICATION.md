@@ -3667,9 +3667,9 @@ byte, against a server that speaks it - plus every gate, error path and redactio
 
 ## SDK acceptance transcript
 
-The vendor clients, driven over a real socket against one local server that speaks three
-protocols (OpenAI-compatible, Anthropic messages, Gemini `generateContent`). No vendor host is
-contacted.
+The vendor clients, driven over a real socket against one local server that speaks the routes they
+actually use (OpenAI-compatible, Anthropic messages, Gemini `generateContent`, Cohere `/v2/chat`,
+Ollama `/api/chat`). No vendor host is contacted. Eight clients, 86 checks.
 
 ```text
 $ ./scripts/acceptance_sdk.sh
@@ -3678,13 +3678,17 @@ $ ./scripts/acceptance_sdk.sh
 [ok]   the catalogue lists anthropic = 1
 [ok]   the catalogue lists google = 1
 [ok]   the catalogue lists mistral = 1
+[ok]   the catalogue lists groq = 1
+[ok]   the catalogue lists together = 1
+[ok]   the catalogue lists cohere = 1
+[ok]   the catalogue lists ollama = 1
 [ok]   each row says where its key comes from = 1
 ### each SDK is registered through the CLI, with a reference and never a key
 [ok]   add-sdk openai exits 0 = 0
 [ok]   openai is registered as runtime=sdk = 1
 [ok]   openai's key is a reference = 1
 [ok]   openai's output does not contain its key = 0
-   … the same four checks for anthropic, google and mistral …
+   … the same four checks for the other seven clients …
 [ok]   a literal key is refused = 2
 [ok]   an unknown SDK is refused = 2
 ### each SDK is actually driven, over a real socket
@@ -3692,7 +3696,19 @@ $ ./scripts/acceptance_sdk.sh
 [ok]   anthropic probe passed = 1
 [ok]   google probe passed = 1
 [ok]   mistral probe passed = 1
+[ok]   groq probe passed = 1
+[ok]   together probe passed = 1
+[ok]   cohere probe passed = 1
+[ok]   ollama probe passed = 1
 [ok]   openai probe did not substitute a test double = 0
+### a local daemon needs no key, and that is not a failure
+[ok]   the loopback ollama model is usable without a key = 1
+[ok]   and it really answers with no key at all = 1
+[ok]   a keyless SDK aimed off this machine is still refused = 1
+[ok]   and the refusal never reached the network = 0
+### every client streams, and each one streams its own way
+[ok]   openai streams and the text arrives whole = 1
+[ok]   … the same check for the other seven clients …
 ### a chat turn through the SDK becomes an ordinary task
 [ok]   chat exits 0 = 0
 [ok]   it is not labelled simulated = 0
@@ -3707,28 +3723,116 @@ $ ./scripts/acceptance_sdk.sh
 [ok]   the database does not contain a key = 0
 [ok]   the trace does not contain one = 0
 
-SDK acceptance: 46 checks passed
+SDK acceptance: 86 checks passed
 ```
 
 ```text
 $ .venv/bin/python -m pytest tests/test_sdk_m22.py -o addopts="" -q
-40 passed in 22.24s
+61 passed, 1 warning in 37.1s
+
+$ .venv/bin/python -m pytest tests/ -o addopts="" -q
+1251 passed, 1 warning in 289.42s (0:04:49)
 ```
 
-### The local-model tunnel workflow
+### Streaming, one parser per client
 
-Written and checked as far as this sandbox allows:
+A client can get the request shape right and the deltas wrong, so each parser is driven against a
+loopback server that emits that vendor's real event syntax (SSE for six, JSON-lines for Ollama,
+a GET for Gemini):
 
 ```text
-$ python -c "import yaml; d=yaml.safe_load(open('.github/workflows/local-model-tunnel.yml')); print(len(d['jobs']['serve']['steps']))"
-11
+$ .venv/bin/python -m pytest tests/test_sdk_m22.py -o addopts="" -q -k Streaming
+11 passed, 50 deselected in 8.62s
+
+$ ./scripts/acceptance_sdk.sh
+[ok]   openai streams and the text arrives whole = 1
+[ok]   anthropic streams and the text arrives whole = 1
+[ok]   google streams and the text arrives whole = 1
+[ok]   mistral streams and the text arrives whole = 1
+[ok]   groq streams and the text arrives whole = 1
+[ok]   together streams and the text arrives whole = 1
+[ok]   cohere streams and the text arrives whole = 1
+[ok]   ollama streams and the text arrives whole = 1
+SDK acceptance: 86 checks passed
+```
+
+### What each new client actually sent
+
+One loopback server, four new clients, the request paths read off the wire rather than assumed:
+
+```text
+groq      OK  'answer via the openai-shaped client'  tokens=8/3   finish=stop  POST /openai/v1/chat/completions
+together  OK  'answer via the openai-shaped client'  tokens=8/3   finish=stop  POST /v1/chat/completions
+cohere    OK  'answer via the cohere client'         tokens=13/5  finish=stop  POST /v2/chat
+ollama    OK  'answer via the ollama client'         tokens=21/6  finish=stop  POST /api/chat
+```
+
+That transcript is also what corrected the catalogue: Groq and Together append
+`/chat/completions` to their `base_url`, so the entries carry `/openai/v1` and `/v1`.
+
+### The CI workflow, rehearsed on a scratch remote
+
+The workflow cannot be dispatched with this token, so its two helper scripts were extracted from
+the YAML verbatim and run against a bare repository standing in for `origin`:
+
+```text
+$ python - <<'PY'   # extract run.sh and publish.sh from the workflow, point the remote at /tmp/ci_sim3/origin
+$ LOGDIR=/tmp/ci_sim3/logs RUN_ID=20260103T000000Z-aaa1111 ./run.sh passes bash -c 'echo fine'
+$ ./run.sh broke bash -c 'echo nope; exit 7'
+[passes] exit 0 in 0s
+[broke] exit 7 in 0s
+$ ./run.sh after bash -c 'echo still going'      # the job keeps going after a failure
+[after] exit 0 in 0s
+$ awk -F'\t' '$2 ~ /^(ok|FAIL)/ && $2 != "ok" {n++} END {print n+0}' status.tsv
+1
+
+$ ./publish.sh final            # -> branch `ci-logs`
+$ git ls-tree -r --name-only ci-logs
+ci/runs/20260103T000000Z-aaa1111/03-passes.log
+ci/runs/20260103T000000Z-aaa1111/04-broke.log
+ci/runs/20260103T000000Z-aaa1111/05-after.log
+ci/runs/20260103T000000Z-aaa1111/console.log
+ci/runs/20260103T000000Z-aaa1111/meta.tsv
+ci/runs/20260103T000000Z-aaa1111/status.tsv
+
+$ CI_LOG_REMOTE=/tmp/ci_sim3/origin bash scripts/ci_logs.sh --tail 6
+=== run 20260103T000000Z-aaa1111 ===
+step                               status     seconds
+passes                             ok         0
+broke                              FAIL(7)    0
+after                              ok         0
+
+1 step(s) failed
+... exit status 1                      # a failed step is a failed read, not a silent pass
+```
+
+Three bugs came out of that rehearsal and were fixed, all of which would have cost a full CI
+cycle to discover: `run.sh` ended with `return` outside a function, so every step would have
+aborted; the publisher reused a fixed `/tmp/publish` across jobs; the verdict counted the
+`status.tsv` header row as a failure.
+
+### The local-model workflow
+
+Written and checked as far as this sandbox allows — YAML parses, 18 steps, `permissions:
+contents: write`, and the llama.cpp asset name is real:
+
+```text
+$ python -c "import yaml; d=yaml.safe_load(open('.github/workflows/model-matrix.yml')); print(len(d['jobs']['matrix']['steps']))"
+18
 
 $ gh api 'repos/ggml-org/llama.cpp/releases?per_page=10' --jq '.[].assets[].browser_download_url' \
     | grep -E '/llama-b[0-9]+-bin-ubuntu-x64\.tar\.gz$' | head -1
 https://github.com/ggml-org/llama.cpp/releases/download/b11951/llama-b11951-bin-ubuntu-x64.tar.gz
 ```
 
-It has **not been run**: this session's credential is a GitHub App installation token without
-Actions permission (`GET /actions/workflows` → `total_count: 0`; a dispatch → `403 Resource not
-accessible by integration`). Run it with `gh workflow run local-model-tunnel.yml`; the artifact
-is `tunnel-url` and contains `tunnel-url.txt` plus `model-proof.json`.
+It is triggered by a push that changes `.ci/trigger`, because this session's credential is a
+GitHub App installation token without Actions permission (`GET /actions/workflows` →
+`total_count: 0`; a dispatch → `403 Resource not accessible by integration`). **It has not been
+run**: the runner, the llama.cpp download, the Ollama container and the Cloudflare tunnel are
+written, not observed. Read a run with `./scripts/ci_logs.sh`, or
+`git fetch origin ci-logs && git show FETCH_HEAD:ci/runs/<id>/status.tsv`.
+
+What is *not* proven by any of the above, stated plainly: Cohere's and Ollama's clients have
+never talked to their real vendors from here — the loopback server speaks their documented
+protocol, which proves Archx's half. The runner step that pulls a real Ollama image and a real
+135M model is the first place that gap can close, and until it runs, nobody should call it closed.

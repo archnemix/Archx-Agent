@@ -194,12 +194,36 @@ list empty, but it also means "we parse this vendor's response correctly" is onl
 against our own reading of the docs. So there is a second path, `runtime=sdk`, which drives the
 **vendor's own client**:
 
-| `sdk` | distribution | what the client wants | key variable |
-|-------|--------------|-----------------------|--------------|
-| `openai` | `openai` | `base_url` (append `/v1` yourself) | `OPENAI_API_KEY` |
-| `anthropic` | `anthropic` | `base_url` | `ANTHROPIC_API_KEY` |
-| `google` | `google-genai` | `http_options.base_url` | `GEMINI_API_KEY` |
-| `mistral` | `mistralai` | `server_url` (module `mistralai.client`) | `MISTRAL_API_KEY` |
+| `sdk` | distribution | wire shape | what the client wants | key variable | key needed? |
+|-------|--------------|-----------|-----------------------|--------------|-------------|
+| `openai` | `openai` | OpenAI | `base_url` (append `/v1` yourself) | `OPENAI_API_KEY` | yes |
+| `anthropic` | `anthropic` | Messages | `base_url` | `ANTHROPIC_API_KEY` | yes |
+| `google` | `google-genai` | generateContent | `http_options.base_url` | `GEMINI_API_KEY` | yes |
+| `mistral` | `mistralai` | OpenAI-ish | `server_url` (module `mistralai.client`) | `MISTRAL_API_KEY` | yes |
+| `groq` | `groq` | OpenAI | `base_url` **including** `/openai/v1` | `GROQ_API_KEY` | yes |
+| `together` | `together` | OpenAI | `base_url` **including** `/v1` | `TOGETHER_API_KEY` | yes |
+| `cohere` | `cohere` | `POST /v2/chat` | `base_url` (v2 client, `ClientV2`) | `COHERE_API_KEY` | yes |
+| `ollama` | `ollama` | `POST /api/chat` | `host` (**not** `base_url`) | `OLLAMA_API_KEY` | **no**, when it is local |
+
+The last column is the one that needed a real decision. Seven vendors reject an anonymous
+request; a local Ollama daemon *requires* one to be absent, so "no credential" is the normal
+state there rather than an error. `SdkSpec.key_required` carries that difference, and everything
+downstream reads it instead of guessing:
+
+* `transport.available()` is ready for a keyless client **only when the endpoint is loopback**
+  (`sdk_transport.SdkTransport.is_loopback`). The same Ollama client pointed at
+  `https://ollama.invalid` is refused *before* the socket opens, and again — if the model was
+  added with `local_only=true` — by the privacy gate, which speaks first. Both refusals are
+  asserted in `scripts/acceptance_sdk.sh`.
+* `Workspace.runtime_availability` reports a loopback keyless model as
+  `ready: a local Ollama needs no key (no data leaves this machine)` instead of demanding a
+  `secret://` reference; a remote one still gets the `no API key reference` message.
+* groq and together append `/chat/completions` to whatever base they are given, so a bare
+  origin produces `<origin>/v1/v1/chat/completions`. Their catalogue entries therefore carry the
+  full `/openai/v1` and `/v1` base; this was found by pointing the clients at a loopback server
+  and reading the path they actually requested (`POST /openai/v1/chat/completions` for Groq,
+  `POST /v1/chat/completions` for Together, `POST /v2/chat` for Cohere, `POST /api/chat` for
+  Ollama).
 
 ```bash
 archx-agent models sdks                       # which clients are importable here, and each one's variable
@@ -222,6 +246,13 @@ Three decisions are baked into `adapters/sdk_transport.py`:
   `temperature` from `messages.create`, and OpenAI grew `max_completion_tokens` beside
   `max_tokens`. Passing an unsupported keyword is a `TypeError` instead of a request, so the
   transport asks the client what it accepts and sends exactly one token-budget name.
+* **one streaming parser per client, each measured.** Streaming was the last thing declared but
+  not demonstrated: `supports_streaming` said yes while `stream()` returned a single chunk. Each
+  vendor spells it differently - OpenAI-shaped deltas, Mistral's `.data` wrapper, Anthropic's
+  `content_block_delta` events, Gemini's `streamGenerateContent` (the client POSTs to the
+  `:streamGenerateContent` path), Cohere's `content-delta` events, Ollama's newline-delimited
+  JSON - so there is one small parser per style, and eleven tests drive every one of them against
+  a loopback server that speaks exactly that syntax.
 * **one taxonomy.** `401/403` → `AuthDeniedError`, `404` → `ModelNotFoundError`, `429` with
   quota/billing wording → `QuotaExhaustedError` (else `RateLimitedError`), `5xx` →
   `ProviderOutageError`, connection errors → `NetworkFailureError`, an empty reply →
@@ -233,28 +264,79 @@ An SDK model is gated exactly like the raw ones: `sdk` is in `Workspace.NETWORK_
 the four rungs (`model.local_only`, registered provider, privacy confirmed, consent) apply
 before anything is sent.
 
-## Running a real model on a CI runner and pointing the SDKs at it
+## Running a real model on a CI runner, with the logs committed back
 
-`.github/workflows/local-model-tunnel.yml` serves **SmolLM-135M in Q4_K_M** (~100 MB, 4-bit)
-with llama.cpp on a GitHub runner, proves a completion, and exposes it through a Cloudflare
-quick tunnel; the URL lands in `tunnel-url.txt` (an artifact and the job summary).
+There is no local GPU, Hugging Face is unreachable from this sandbox, and — the reason this
+section exists — **this token cannot drive GitHub Actions**: `GET /repos/.../actions/workflows`
+returns `total_count: 0` and `POST .../dispatches` returns
+`403 Resource not accessible by integration`. So the workflow is not started with `gh workflow
+run`; it is started by **editing a file**, and its progress is read from **a git branch**, not
+from the Actions API.
 
-```bash
-gh workflow run local-model-tunnel.yml -f keep_alive_minutes=10
-gh run download --name tunnel-url          # tunnel-url.txt + model-proof.json
-./scripts/remote_model.sh                  # reads tunnel-url.txt, tries every SDK
-./scripts/remote_model.sh <url> --sdk openai --sdk mistral
+```
+edit .ci/trigger  ->  push  ->  .github/workflows/model-matrix.yml runs
+                                     |
+                                     +-> every step's stdout to $LOGDIR/NN-<name>.log
+                                     +-> one row per step in $LOGDIR/status.tsv
+                                     +-> a background publisher pushes the folder to
+                                         branch `ci-logs` every 45 s, and again at the end
+                                     |
+./scripts/ci_logs.sh  <----------------- read it back over plain git
 ```
 
-`remote_model.sh` runs each installed client against that one endpoint and then registers the
-same endpoint in Archx (`models add-sdk` + `models probe`) so the app, not just the SDK, has to
-work. It exits `0` if at least one client completed a turn and `3` if none did, so CI can tell
-"the endpoint is wrong" from "the script broke".
+Triggering:
 
-Two honest caveats: a quick tunnel is **unauthenticated and public** for as long as it runs, so
-treat the model as exposed; and the runner has no GPU, so the 135M model answers at a few
-tokens per second - which is fine, because the question is "did a token come out", not "is it
-good".
+```bash
+date -u +%FT%TZ >> .ci/trigger && git commit -am "ci: run" && git push
+./scripts/ci_logs.sh --wait 120        # exits 3 if no run has appeared yet
+./scripts/ci_logs.sh --run <run-id>    # one run, in full
+./scripts/ci_logs.sh --tail 40         # newest run, last 40 lines of console.log
+```
+
+What the run does, in order, each step wrapped by `run.sh` (which never fails the job itself, so
+one run reports **every** problem instead of the first):
+
+1. install `.[dev,sdks]`, run pytest, `archx-agent models sdks`;
+2. fetch a llama.cpp build (scanning release assets for `llama-b<N>-bin-ubuntu-x64.tar.gz`
+   rather than trusting `latest`, which at `v0.7.0` has no binary at all) with a source build as
+   the fallback, download **SmolLM2-135M Q4_K_M**, check the GGUF magic bytes, serve it;
+3. one real completion through the server, written to `model-proof.json`;
+4. `scripts/remote_model.sh` — every installed vendor client against that one endpoint, then the
+   same endpoint registered in Archx and probed through the app;
+5. a **real Ollama daemon** (`docker run ollama/ollama`, `ollama pull smollm2:135m`) so the two
+   clients that speak their own protocol (`ollama`, and `cohere`'s `/v2/chat` shape) get a live
+   server rather than a 404;
+6. a `cloudflared` quick tunnel plus the OpenAI SDK through the public URL;
+7. a verdict step that fails the job if any row in `status.tsv` is not `ok`.
+
+`status.tsv` is the machine-readable part:
+
+```
+name                               status     seconds
+pytest                             ok         71
+llama-cpp-build                    ok         94
+smollm-download                    ok         12
+ollama-daemon                      FAIL(1)    8
+```
+
+The publisher pushes to `ci-logs`, a **separate branch**, so the main branch's history is not
+polluted by one commit per run; per-file size is capped at 120 KB, and `RUN_ID` is
+`<UTC timestamp>-<sha7>`, so runs sort lexicographically and never collide.
+
+**Honest status:** this design is implemented and its two scripts were extracted from the
+workflow and exercised locally against a scratch bare repository — `run.sh` recorded
+`ok`/`FAIL(7)` rows correctly, `publish.sh` pushed six files to the `ci-logs` branch, and
+`scripts/ci_logs.sh` read them back and exited 1 because one step had failed. What has **not**
+been exercised is GitHub actually running the workflow: the trigger, the runner, the llama.cpp
+download, the Ollama container and the tunnel are written, parsed and dry-run, but no run has
+executed. Three bugs were found by that local rehearsal rather than in CI — `run.sh` ended with
+`return` outside a function (so every step would have aborted the script), the publisher reused
+a fixed `/tmp/publish` across jobs, and the verdict counted the `status.tsv` header row as a
+failure. That is the argument for rehearsing.
+
+Two more caveats. A quick tunnel is **unauthenticated and public** while it lives, so treat the
+model as exposed for those minutes. And the runner has no GPU: a 135M model answers at a few
+tokens a second, which is enough for "did a token come out", not for "is it good".
 
 ## Adding a provider
 

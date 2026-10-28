@@ -51,6 +51,10 @@ requires_openai = pytest.mark.skipif(not sdk_available("openai")[0], reason="ope
 requires_anthropic = pytest.mark.skipif(not sdk_available("anthropic")[0], reason="anthropic SDK not installed")
 requires_google = pytest.mark.skipif(not sdk_available("google")[0], reason="google-genai SDK not installed")
 requires_mistral = pytest.mark.skipif(not sdk_available("mistral")[0], reason="mistralai SDK not installed")
+requires_groq = pytest.mark.skipif(not sdk_available("groq")[0], reason="groq SDK not installed")
+requires_together = pytest.mark.skipif(not sdk_available("together")[0], reason="together SDK not installed")
+requires_cohere = pytest.mark.skipif(not sdk_available("cohere")[0], reason="cohere SDK not installed")
+requires_ollama = pytest.mark.skipif(not sdk_available("ollama")[0], reason="ollama SDK not installed")
 
 
 # --------------------------------------------------------------------------
@@ -86,6 +90,79 @@ class _Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(raw)
 
+    def _send_sse(self, events: list[str], *, done: str | None = "data: [DONE]\n\n") -> None:
+        """Server-sent events, close-delimited so the clients stop on the connection ending."""
+        body = "".join(events) + (done or "")
+        raw = body.encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "close")
+        self.send_header("Content-Length", str(len(raw)))
+        self.end_headers()
+        self.wfile.write(raw)
+        self.close_connection = True
+
+    def _stream(self, body: dict) -> None:
+        """The streaming shape for whichever route was hit. Paths are matched exactly."""
+        path = self.path
+        if path.endswith("/v2/chat"):
+            frames = [
+                {"type": "message-start", "delta": {"message": {"role": "assistant", "content": []}}},
+                {"type": "content-start", "delta": {"message": {"content": []}}},
+                {"type": "content-delta", "delta": {"message": {"content": {"text": "answer "}}}},
+                {"type": "content-delta", "delta": {"message": {"content": {"text": "from cohere"}}}},
+                {"type": "message-end", "delta": {"finish_reason": "COMPLETE",
+                                                  "usage": {"tokens": {"input_tokens": 13, "output_tokens": 5}}}},
+            ]
+            return self._send_sse([f"event: {f['type']}\ndata: {json.dumps(f)}\n\n" for f in frames], done=None)
+        if path.endswith("/api/chat"):
+            frames = [
+                {"model": "llama-stub", "message": {"role": "assistant", "content": "answer "}, "done": False},
+                {"model": "llama-stub", "message": {"role": "assistant", "content": "from ollama"}, "done": False},
+                {"model": "llama-stub", "message": {"role": "assistant", "content": ""}, "done": True,
+                 "done_reason": "stop", "prompt_eval_count": 21, "eval_count": 6},
+            ]
+            return self._send_sse([json.dumps(f) + "\n" for f in frames], done=None)
+        if "streamGenerateContent" in path:
+            frames = [
+                {"candidates": [{"content": {"role": "model", "parts": [{"text": "answer "}]}}]},
+                {"candidates": [{"content": {"role": "model", "parts": [{"text": "from google"}]},
+                                 "finishReason": "STOP"}]},
+            ]
+            return self._send_sse([f"data: {json.dumps(f)}\n\n" for f in frames], done=None)
+        if path.endswith("/messages"):
+            frames = [
+                {"type": "message_start", "message": {"id": "msg_1", "role": "assistant", "content": [],
+                                                      "usage": {"input_tokens": 12, "output_tokens": 0}}},
+                {"type": "content_block_start", "index": 0, "content_block": {"type": "text", "text": ""}},
+                {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "answer "}},
+                {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "from anthropic"}},
+                {"type": "content_block_stop", "index": 0},
+                {"type": "message_delta", "delta": {"stop_reason": "end_turn"}, "usage": {"output_tokens": 4}},
+                {"type": "message_stop"},
+            ]
+            return self._send_sse([f"event: {f['type']}\ndata: {json.dumps(f)}\n\n" for f in frames], done=None)
+        # the OpenAI shape, which groq, together and mistral share
+        frames = [
+            {"id": "c1", "object": "chat.completion.chunk", "model": "openai-stub",
+             "choices": [{"index": 0, "delta": {"role": "assistant", "content": "answer "}, "finish_reason": None}]},
+            {"id": "c1", "object": "chat.completion.chunk", "model": "openai-stub",
+             "choices": [{"index": 0, "delta": {"content": "from openai"}, "finish_reason": None}]},
+            {"id": "c1", "object": "chat.completion.chunk", "model": "openai-stub",
+             "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]},
+        ]
+        return self._send_sse([f"data: {json.dumps(f)}\n\n" for f in frames])
+
+    def do_GET(self):  # noqa: N802
+        """The Gemini SDK streams over a GET, so this route needs its own door."""
+        _State.attempts += 1
+        _State.seen.append({"path": self.path, "headers": {k.lower(): v for k, v in self.headers.items()},
+                            "body": {}, "method": "GET"})
+        if "streamGenerateContent" in self.path:
+            return self._stream({})
+        return self._send(404, {"error": "no such route"})
+
     def do_POST(self):  # noqa: N802
         length = int(self.headers.get("Content-Length") or 0)
         raw = self.rfile.read(length) if length else b"{}"
@@ -101,6 +178,9 @@ class _Handler(BaseHTTPRequestHandler):
         })
         if _State.mode == "error":
             return self._send(_State.status, _State.body)
+        # the Gemini client POSTs to :streamGenerateContent; the others set stream=true and POST
+        if "streamGenerateContent" in self.path or body.get("stream") is True:
+            return self._stream(body)
         if _State.empty_reply:
             return self._send(200, {
                 "id": "x", "object": "chat.completion", "created": 1, "model": "m",
@@ -115,6 +195,20 @@ class _Handler(BaseHTTPRequestHandler):
                 "content": [{"type": "text", "text": "answer from anthropic"}],
                 "stop_reason": "end_turn",
                 "usage": {"input_tokens": 12, "output_tokens": 4},
+            })
+        if self.path.endswith("/v2/chat"):
+            return self._send(200, {
+                "id": "co1", "finish_reason": "COMPLETE",
+                "message": {"role": "assistant",
+                            "content": [{"type": "text", "text": "answer from cohere"}]},
+                "usage": {"tokens": {"input_tokens": 13, "output_tokens": 5}},
+            })
+        if self.path.endswith("/api/chat"):
+            return self._send(200, {
+                "model": "llama-stub", "created_at": "2026-01-01T00:00:00Z",
+                "message": {"role": "assistant", "content": "answer from ollama"},
+                "done": True, "done_reason": "stop",
+                "prompt_eval_count": 21, "eval_count": 6,
             })
         if "generateContent" in self.path:
             return self._send(200, {
@@ -160,7 +254,9 @@ def _transport(key: str, url: str, *, base: str | None = None):
 # --------------------------------------------------------------------------
 class TestCatalogue:
     def test_every_sdk_knows_its_package_and_its_own_environment_variable(self):
-        assert set(SDKS) == {"openai", "anthropic", "google", "mistral"}
+        assert set(SDKS) == {
+            "openai", "anthropic", "google", "mistral", "groq", "together", "cohere", "ollama",
+        }
         for key, spec in SDKS.items():
             assert spec.package and spec.import_name and spec.env_var, key
             assert spec.provider_template, key
@@ -304,6 +400,7 @@ class TestMistral:
 class TestErrors:
     @pytest.mark.parametrize("key, base", [
         ("openai", "/v1"), ("anthropic", ""), ("google", ""), ("mistral", ""),
+        ("groq", "/openai/v1"), ("together", "/v1"), ("cohere", ""),
     ])
     def test_a_401_is_an_auth_failure_for_every_client(self, stub, key, base):
         if not sdk_available(key)[0]:
@@ -531,3 +628,172 @@ class TestCli:
         assert result.returncode == 0, result.stdout + result.stderr
         assert "answer from openai" in result.stdout
         assert KEY not in result.stdout + result.stderr
+
+
+class TestGroqAndTogether:
+    @requires_groq
+    def test_groq_uses_its_own_package_on_the_openai_shape(self, stub):
+        transport = _transport("groq", stub, base=stub + "/openai/v1")
+        try:
+            result = transport.chat(MESSAGES, PARAMS, model="llama-3.1-8b-instant")
+        finally:
+            transport.close()
+        assert result.text == "answer from openai"
+        seen = _State.seen[-1]
+        assert seen["path"].endswith("/chat/completions")
+        assert seen["headers"]["authorization"] == f"Bearer {KEY}"
+        assert seen["body"]["model"] == "llama-3.1-8b-instant"
+
+    @requires_together
+    def test_together_uses_its_own_package_too(self, stub):
+        transport = _transport("together", stub, base=stub + "/v1")
+        try:
+            result = transport.chat(MESSAGES, PARAMS, model="meta-llama/Llama-3-8b")
+        finally:
+            transport.close()
+        assert result.text == "answer from openai"
+        assert _State.seen[-1]["body"]["model"] == "meta-llama/Llama-3-8b"
+
+
+class TestCohere:
+    @requires_cohere
+    def test_the_v2_chat_shape_is_parsed(self, stub):
+        transport = _transport("cohere", stub)
+        try:
+            result = transport.chat(MESSAGES, PARAMS, model="command-r")
+        finally:
+            transport.close()
+        assert result.text == "answer from cohere"
+        assert (result.prompt_tokens, result.completion_tokens) == (13, 5)
+        seen = _State.seen[-1]
+        assert seen["path"].endswith("/v2/chat")
+        assert seen["headers"]["authorization"] == f"Bearer {KEY}"
+        assert seen["body"]["model"] == "command-r"
+        assert [m["role"] for m in seen["body"]["messages"]] == ["system", "user"]
+
+
+class TestOllama:
+    @requires_ollama
+    def test_a_local_daemon_needs_no_key_and_is_still_usable(self, stub):
+        """The one client where a missing credential is the normal case."""
+        transport = transport_for("ollama", api_key="", base_url=stub)
+        ok, why = transport.available()
+        assert ok is True, why
+        try:
+            result = transport.chat(MESSAGES, PARAMS, model="llama3.2")
+        finally:
+            transport.close()
+        assert result.text == "answer from ollama"
+        assert (result.prompt_tokens, result.completion_tokens) == (21, 6)
+        seen = _State.seen[-1]
+        assert seen["path"].endswith("/api/chat")
+        assert "authorization" not in seen["headers"], "a local daemon should not receive a key"
+
+    @requires_ollama
+    def test_a_key_is_sent_to_a_remote_ollama(self, stub):
+        transport = transport_for("ollama", api_key=KEY, base_url=stub)
+        try:
+            transport.chat(MESSAGES, PARAMS, model="llama3.2")
+        finally:
+            transport.close()
+        assert _State.seen[-1]["headers"]["authorization"] == f"Bearer {KEY}"
+
+    @requires_ollama
+    def test_the_options_block_carries_the_knobs(self, stub):
+        transport = transport_for("ollama", api_key="", base_url=stub)
+        try:
+            transport.chat(MESSAGES, PARAMS, model="llama3.2")
+        finally:
+            transport.close()
+        options = _State.seen[-1]["body"]["options"]
+        assert options["num_predict"] == 32
+        assert options["temperature"] == 0.1
+
+
+class TestOllamaWorkspace:
+    @requires_ollama
+    def test_a_loopback_ollama_model_is_ready_without_a_key(self, ws, stub):
+        record = ws.register_sdk("local-llama", sdk="ollama", model_ref="llama3.2", base_url=stub,
+                                 credential_ref="secret://env/OLLAMA_API_KEY")
+        ready, why = ws.runtime_availability(record)
+        assert ready is True, why
+        reply = ws.chat.send("hello", model_id=record.id)
+        assert reply.text == "answer from ollama"
+        assert reply.simulated is False
+
+
+class TestStreaming:
+    """Every client streams its own way; each parser is measured, not assumed."""
+
+    def _collect(self, key: str, url: str, base: str | None = None) -> str:
+        transport = _transport(key, url, base=base)
+        try:
+            return "".join(transport.stream(MESSAGES, PARAMS, model="stub-model"))
+        finally:
+            transport.close()
+
+    @requires_openai
+    def test_openai_deltas_are_joined(self, stub):
+        assert self._collect("openai", stub, base=stub + "/v1") == "answer from openai"
+        assert _State.seen[-1]["body"]["stream"] is True
+
+    @requires_groq
+    def test_groq_streams_the_same_shape(self, stub):
+        assert self._collect("groq", stub, base=stub + "/openai/v1") == "answer from openai"
+
+    @requires_together
+    def test_together_streams_the_same_shape(self, stub):
+        assert self._collect("together", stub, base=stub + "/v1") == "answer from openai"
+
+    @requires_mistral
+    def test_mistral_wraps_each_chunk_in_data(self, stub):
+        assert self._collect("mistral", stub) == "answer from openai"
+
+    @requires_anthropic
+    def test_anthropic_content_block_deltas(self, stub):
+        assert self._collect("anthropic", stub) == "answer from anthropic"
+
+    @requires_google
+    def test_google_streams_over_a_get(self, stub):
+        assert self._collect("google", stub) == "answer from google"
+        assert "streamGenerateContent" in _State.seen[-1]["path"]
+
+    @requires_cohere
+    def test_cohere_content_delta_events(self, stub):
+        assert self._collect("cohere", stub) == "answer from cohere"
+
+    @requires_ollama
+    def test_ollama_newline_delimited_chunks(self, stub):
+        assert self._collect("ollama", stub) == "answer from ollama"
+
+    @requires_ollama
+    def test_a_keyless_local_daemon_can_stream(self, stub):
+        transport = transport_for("ollama", api_key="", base_url=stub)
+        try:
+            text = "".join(transport.stream(MESSAGES, PARAMS, model="stub-model"))
+        finally:
+            transport.close()
+        assert text == "answer from ollama"
+
+    @requires_openai
+    def test_a_stream_failure_is_classified_like_any_other(self, stub):
+        _State.mode, _State.status = "error", 401
+        _State.body = {"error": {"message": "bad key", "type": "invalid_request_error"}}
+        transport = _transport("openai", stub, base=stub + "/v1")
+        try:
+            with pytest.raises(AuthDeniedError):
+                list(transport.stream(MESSAGES, PARAMS, model="stub-model"))
+        finally:
+            transport.close()
+
+    @requires_openai
+    def test_the_runtime_streams_and_still_refuses_without_a_model(self, stub):
+        from archx_agent.adapters.sdk_runtime import SdkChatRuntime
+        from archx_agent.helpers.exceptions import ProviderError
+
+        runtime = SdkChatRuntime("openai", api_key=KEY, base_url=stub + "/v1")
+        try:
+            with pytest.raises(ProviderError):
+                list(runtime.stream(MESSAGES, PARAMS))
+        finally:
+            runtime.close()

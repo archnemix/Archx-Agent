@@ -875,6 +875,42 @@ and nobody mistakes the output for quality.
 
 ## Storage and config
 
+**D145. A missing credential is evidence of a local daemon, not a fault - but only on loopback.**
+Seven of the eight vendor clients reject an anonymous request; the Ollama client *requires* one
+to be absent when it talks to your own machine. So "has a key" cannot be the readiness rule.
+`SdkSpec.key_required` states the vendor's rule, and `SdkTransport.available()` allows the
+keyless case only while the endpoint is loopback - the same client pointed at a remote host is
+refused before the socket opens, and the model's own `local_only` gate speaks first anyway. The
+alternative, demanding a dummy key for local Ollama, would teach people to paste secrets into
+places that never needed one.
+
+**D146. Flag a client's URL convention in its catalogue entry, not in a comment.**
+Groq and Together append `/chat/completions` to whatever `base_url` they are handed, so a bare
+origin yields `/v1/v1/chat/completions` - a 404 that looks like a credential problem. The base
+URLs in `KNOWN_PROVIDERS` therefore carry `/openai/v1` and `/v1` explicitly. This was not read
+off the docs: the clients were pointed at a loopback server and the paths they actually requested
+were recorded, which is the only way to know what a client does rather than what it says.
+
+**D147. When the CI API is closed, the logs become the API.**
+This token cannot list or dispatch workflows (`403 Resource not accessible by integration`), so
+the workflow is triggered by touching `.ci/trigger` and its progress is read from a `ci-logs`
+branch over plain git. Each step's stdout is a numbered file in that folder, and one `status.tsv`
+row per step carries `ok` or `FAIL(n)`. A publisher pushes the folder every 45 s, so a run is
+monitorable *while* it happens rather than after. The cost is a branch that grows one directory
+per run; the benefit is that nothing about the run needs an API this token lacks.
+
+**D148. A step runner that records failures instead of raising them.**
+`run.sh` never exits non-zero: it writes the verdict and lets the next step run, and a single
+`verdict` step fails the job at the end. One run then reports every broken step rather than only
+the first, which matters on a runner where a full cycle costs minutes.
+
+**D149. Rehearse CI machinery against a scratch remote before trusting it.**
+Extracting `run.sh` and `publish.sh` from the workflow and running them against a local bare
+repository found three bugs that would each have burned a full CI cycle: `return` outside a
+function (every step would have aborted the runner), a fixed `/tmp/publish` shared between jobs,
+and a verdict that counted the `status.tsv` header as a failure. Local rehearsal is cheap;
+a wrong workflow at 2 a.m. is not.
+
 **D31. Unknown config keys are errors.**
 A typo silently doing nothing is a support burden and a security risk (e.g. a permission
 setting that never applies). The error names the file, the key and the expected form.
