@@ -664,6 +664,20 @@ class TestTheCli:
         compared = self.run_cli(env, "experiment", "compare", experiment_id)
         assert "size=9" in compared.stdout
 
+    def test_listing_says_how_many_runs_each_experiment_has(self, env, lab):
+        (lab / "emit.py").write_text(
+            "import json, sys\nprint(json.dumps({'size': int(sys.argv[1])}))\n"
+        )
+        created = self.run_cli(
+            env, "experiment", "create", "counted", "--command", "python emit.py {n}",
+            "--param", "n=1", "--metric-source", "stdout-json",
+        )
+        experiment_id = created.stdout.split()[1]
+        self.run_cli(env, "experiment", "run", experiment_id, "--set", "n=2")
+        listing = self.run_cli(env, "experiment", "list").stdout
+        assert experiment_id in listing
+        assert "1 run(s)" in listing
+
     def test_a_failed_run_exits_one(self, env, lab):
         (lab / "broken.py").write_text("import sys\nsys.exit(4)\n")
         created = self.run_cli(

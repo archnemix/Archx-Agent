@@ -145,7 +145,7 @@ archx-agent experiment delete ex_… --yes   # takes the runs and metrics with i
 
 | what | where |
 |------|-------|
-| unit and route tests | `tests/test_experiments_m32.py` (65) |
+| unit and route tests | `tests/test_experiments_m32.py` (66) |
 | acceptance, driven like a person | `scripts/acceptance_m32.sh` (53 checks) |
 | CI step | `experimental mode acceptance` in `.github/workflows/model-matrix.yml` |
 | GUI | the **Experiments** tab, `docs/GUI.md` § the Experiments panel |

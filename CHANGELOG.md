@@ -39,7 +39,7 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 - The GUI grew a twelfth panel (declare, run with overrides, the run table with the column that
   says *why* a run has no number, and the comparison with its notes); `scripts/gui_smoke.mjs`
   exercises it.
-- `pytest tests/test_experiments_m32.py` (65), `scripts/acceptance_m32.sh` (53 checks over a real
+- `pytest tests/test_experiments_m32.py` (66), `scripts/acceptance_m32.sh` (53 checks over a real
   socket), a CI step, `docs/EXPERIMENTS.md`.
 
 ### Added - M31, the coding workspace

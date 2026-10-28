@@ -4994,9 +4994,14 @@ def cmd_experiment(args: argparse.Namespace) -> int:
                 if not rows:
                     emit("no experiments yet (archx-agent experiment create NAME --command ...)")
                     return EXIT_OK
+                counts = ws.experiments.run_counts()
                 for row in rows:
                     mark = "open  " if row.open else "closed"
-                    emit(f"{row.id}  {mark}  {row.name}  {row.root}")
+                    stats = counts.get(row.id, {"runs": 0, "failed": 0})
+                    emitted = f"{stats['runs']} run(s)"
+                    if stats["failed"]:
+                        emitted += f", {stats['failed']} not passed"
+                    emit(f"{row.id}  {mark}  {row.name}  ({emitted})  {row.root}")
                 return EXIT_OK
 
             if command == "show":
