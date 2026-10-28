@@ -37,3 +37,126 @@ latest: Pulling from ollama/ollama
 9875afbb5e6f: Download complete
 7f7b56512083: Pull complete
 3bf3052c2e7a: Pull complete
+9875afbb5e6f: Pull complete
+Digest: sha256:20d1bbfbabe1c97ba4b16301f08a20d8484bcf77047742a3cb71c613d8e12d0b
+Status: Downloaded newer image for ollama/ollama:latest
+33d44b13774e9d1d58a1eaef5a16ec26a9a45acee2acc5bc16b674fe6d284728
+[?2026h[?25l[1Gpulling manifest ⠋ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠙ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠹ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠸ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠼ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠴ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠦ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠧ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠇ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠏ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠋ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest [K
+pulling f535f83ec568:   0% ▕                  ▏ 368 KB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:   8% ▕█                 ▏  21 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  18% ▕███               ▏  48 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  22% ▕███               ▏  59 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  32% ▕█████             ▏  87 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  38% ▕██████            ▏ 102 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  42% ▕███████           ▏ 114 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  49% ▕████████          ▏ 133 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  55% ▕█████████         ▏ 149 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  60% ▕██████████        ▏ 161 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  66% ▕███████████       ▏ 179 MB/270 MB  179 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  70% ▕████████████      ▏ 189 MB/270 MB  179 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  75% ▕█████████████     ▏ 202 MB/270 MB  179 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  78% ▕██████████████    ▏ 212 MB/270 MB  179 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  81% ▕██████████████    ▏ 220 MB/270 MB  179 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  82% ▕██████████████    ▏ 222 MB/270 MB  179 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  83% ▕██████████████    ▏ 225 MB/270 MB  179 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  84% ▕███████████████   ▏ 226 MB/270 MB  179 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  85% ▕███████████████   ▏ 228 MB/270 MB  179 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  86% ▕███████████████   ▏ 232 MB/270 MB  179 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  87% ▕███████████████   ▏ 236 MB/270 MB  118 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  88% ▕███████████████   ▏ 237 MB/270 MB  118 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  89% ▕████████████████  ▏ 241 MB/270 MB  118 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  90% ▕████████████████  ▏ 245 MB/270 MB  118 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  91% ▕████████████████  ▏ 245 MB/270 MB  118 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  91% ▕████████████████  ▏ 246 MB/270 MB  118 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  93% ▕████████████████  ▏ 251 MB/270 MB  118 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  93% ▕████████████████  ▏ 251 MB/270 MB  118 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  94% ▕████████████████  ▏ 255 MB/270 MB  118 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  95% ▕█████████████████ ▏ 258 MB/270 MB  118 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  95% ▕█████████████████ ▏ 258 MB/270 MB  118 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  96% ▕█████████████████ ▏ 260 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  97% ▕█████████████████ ▏ 263 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  97% ▕█████████████████ ▏ 263 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  98% ▕█████████████████ ▏ 265 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 267 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K
+pulling b0f58c4c1a3c: 100% ▕██████████████████▏  561 B                         [K
+verifying sha256 digest ⠋ [K[?25h[?2026l[?2026h[?25l[A[A[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K
+pulling b0f58c4c1a3c: 100% ▕██████████████████▏  561 B                         [K
+verifying sha256 digest ⠙ [K[?25h[?2026l[?2026h[?25l[A[A[A[1Gpulling manifest [K
+pulling f535f83ec568: 100% ▕█████████████████ ▏ 270 MB/270 MB   86 MB/s      0s[K
+pulling b0f58c4c1a3c: 100% ▕██████████████████▏  561 B                         [K
+verifying sha256 digest [K
+writing manifest [K
+success [K[?25h[?2026l
+{"models":[{"name":"smollm2:135m","model":"smollm2:135m","modified_at":"2026-10-28T15:45:28.397362357Z","size":270898672,"digest":"9077fe9d2ae1a4a41a868836b56b8163731a8fe16621397028c2c76f838c6907","details":{"parent_model":"/Users/administrator/.ollama/models/blobs/sha256-f535f83ec568d040f88ddc04a199fa6da90923bbb41d4dcaed02caa924d6ef57","format":"gguf","family":"llama","families":["llama"],"parameter_size":"134.52M","quantization_level":"F16","context_length":8192,"embedding_length":576,"runner":"ggml"},"capabilities":["completion"]}]}### endpoint
+http://127.0.0.1:11434
+curl /health      -> 404
+curl /v1/models   -> 200
+the server says: {"object":"list","data":[{"id":"smollm2:135m","object":"model","created":1793202328,"owned_by":"library"}]}
+
+### the same endpoint through each official SDK
+
+--- ollama
+OK    'Hello, welcome to my little corner of the internet.'
+      tokens in/out 36/12  finish stop
+      base http://127.0.0.1:11434  ->  /api/chat
+      streamed 2 chunk(s), 6 chars: 'Three.'
+
+### summary
+1 SDK(s) completed a turn, 0 failed
+
+### and through Archx itself (the app, not just the SDK)
+home /tmp/archx-remote-nDbM0A
+
+$ archx-agent models add-sdk --name remote-ollama --sdk ollama --model local --base-url http://127.0.0.1:11434
+  registered remote-ollama (mdl_0001m61k064q0000000064f3f673d64cfaad) provider=ollama runtime=sdk
+    sdk      ollama (`ollama`)
+    model    local
+    endpoint http://127.0.0.1:11434
+    key      read at use time from secret://env/OLLAMA_API_KEY (never stored)
+    sdk      installed
+    runtime  ready - ready: a local Ollama needs no key (no data leaves this machine)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    chat: failed  (ModelNotFoundError: model not found: model 'local' not found (status code: 404))
+      latency 155.8 ms
+      state now unsupported (probe failed)
+      this drove the runtime; the result is recorded and the router will use it
+registered ollama-local (mdl_0001m61k07090000000064ade1c092ef5034) provider=ollama runtime=sdk
+  sdk      ollama (`ollama`)
+  model    smollm2:135m
+  endpoint http://127.0.0.1:11434
+  key      read at use time from secret://env/OLLAMA_API_KEY (never stored)
+  sdk      installed
+  runtime  ready - ready: a local Ollama needs no key (no data leaves this machine)
+note: capabilities are claims until measured with `archx-agent models probe`
+chat: passed  (40 chars, finish_reason=stop)
+  latency 254.2 ms
+  state now verified (probe passed)
+  this drove the runtime; the result is recorded and the router will use it
+One colour is blue.
+
+[model ollama-local (ollama) | 130ms | context 52/130304 tokens | strategy oldest_first]
+[warning] no embedding index is configured; semantic search is unavailable and results are keyword-only
