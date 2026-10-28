@@ -12,3 +12,4 @@ llama-cpp	ok	1
 model-download	ok	2
 serve	ok	1
 completion	ok	0
+sdk-matrix	ok	10

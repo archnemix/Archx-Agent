@@ -742,3 +742,109 @@ $ archx-agent models add-sdk --name remote-google --sdk google --model local --b
     error: secret reference secret://env/GEMINI_API_KEY not found in environment (GEMINI_API_KEY)
 
 $ archx-agent models add-sdk --name remote-mistral --sdk mistral --model local --base-url http://127.0.0.1:8080
+  registered remote-mistral (mdl_0001m61j1dh5000000004d021987ea829f49) provider=mistral runtime=sdk
+    sdk      mistralai (`mistralai.client`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/MISTRAL_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/MISTRAL_API_KEY could not be resolved: secret reference secret://env/MISTRAL_API_KEY not found in environment (MISTRAL_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/MISTRAL_API_KEY not found in environment (MISTRAL_API_KEY)
+
+$ archx-agent models add-sdk --name remote-groq --sdk groq --model local --base-url http://127.0.0.1:8080
+  registered remote-groq (mdl_0001m61j1e0v0000000053279f91c21cd47e) provider=groq runtime=sdk
+    sdk      groq (`groq`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/GROQ_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/GROQ_API_KEY could not be resolved: secret reference secret://env/GROQ_API_KEY not found in environment (GROQ_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/GROQ_API_KEY not found in environment (GROQ_API_KEY)
+
+$ archx-agent models add-sdk --name remote-together --sdk together --model local --base-url http://127.0.0.1:8080
+  registered remote-together (mdl_0001m61j1ed9000000009b9843b46e15ec08) provider=together runtime=sdk
+    sdk      together (`together`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/TOGETHER_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/TOGETHER_API_KEY could not be resolved: secret reference secret://env/TOGETHER_API_KEY not found in environment (TOGETHER_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/TOGETHER_API_KEY not found in environment (TOGETHER_API_KEY)
+
+$ archx-agent models add-sdk --name remote-cohere --sdk cohere --model local --base-url http://127.0.0.1:8080
+  registered remote-cohere (mdl_0001m61j1ewh000000006be6b39235c23529) provider=cohere runtime=sdk
+    sdk      cohere (`cohere`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/COHERE_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/COHERE_API_KEY could not be resolved: secret reference secret://env/COHERE_API_KEY not found in environment (COHERE_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/COHERE_API_KEY not found in environment (COHERE_API_KEY)
+
+$ archx-agent models add-sdk --name remote-ollama --sdk ollama --model local --base-url http://127.0.0.1:8080
+  registered remote-ollama (mdl_0001m61j1f5k00000000bb4d445c1fe4320c) provider=ollama runtime=sdk
+    sdk      ollama (`ollama`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/OLLAMA_API_KEY (never stored)
+    sdk      installed
+    runtime  ready - ready: a local Ollama needs no key (no data leaves this machine)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    chat: failed  (ModelNotFoundError: model not found: {'message': 'File Not Found', 'type': 'not_found_error', 'code': 404} (status code: 404))
+      latency 133.1 ms
+      state now unsupported (probe failed)
+      this drove the runtime; the result is recorded and the router will use it
+=== ollama ===============================================
+$ bash -c 
+  set -u
+  docker run -d --name ollama -p 11434:11434 ollama/ollama:latest || exit 1
+  for i in $(seq 1 90); do
+    curl -fsS http://127.0.0.1:11434/api/tags >/dev/null 2>&1 && break
+    sleep 2
+  done
+  docker exec ollama ollama pull smollm2:135m || exit 1
+  curl -sS http://127.0.0.1:11434/api/tags
+  # the ollama client against a real daemon; smollm2 is the name the daemon knows
+  REMOTE_MODEL=smollm2:135m ./scripts/remote_model.sh http://127.0.0.1:11434 --sdk ollama \
+    | tee -a "$LOGDIR/console.log"
+  # and through Archx itself: a keyless local daemon is the one case where a model
+  # is ready with no credential, so this also proves that rule on a real daemon.
+  export ARCHX_PATHS_HOME="$RUNNER_TEMP/archx-ollama"
+  archx-agent init >/dev/null
+  archx-agent models add-sdk --name ollama-local --sdk ollama \
+    --model smollm2:135m --base-url http://127.0.0.1:11434
+  archx-agent models probe ollama-local --capability chat
+  archx-agent chat --stream --message "Name one colour." --model ollama-local
+
+Unable to find image 'ollama/ollama:latest' locally
+latest: Pulling from ollama/ollama
+7a48b8f0e5c7: Pulling fs layer
+7f7b56512083: Pulling fs layer
+3bf3052c2e7a: Pulling fs layer
+9875afbb5e6f: Pulling fs layer
+9875afbb5e6f: Waiting
+3bf3052c2e7a: Verifying Checksum
+3bf3052c2e7a: Download complete
+7a48b8f0e5c7: Verifying Checksum
+7a48b8f0e5c7: Download complete
+7f7b56512083: Verifying Checksum
+7f7b56512083: Download complete
+7a48b8f0e5c7: Pull complete
+9875afbb5e6f: Verifying Checksum
+9875afbb5e6f: Download complete
+7f7b56512083: Pull complete
+3bf3052c2e7a: Pull complete
