@@ -1,135 +1,4 @@
-=== install ===============================================
-$ bash -c 
-  python -m pip install -e ".[dev,sdks]" || exit 1
-  # name the one that is missing instead of a bare ModuleNotFoundError
-  python - <<PY
-import importlib
-missing = []
-for name in ("archx_agent", "openai", "anthropic", "google.genai", "mistralai",
-             "groq", "together", "cohere", "ollama"):
-    try:
-        importlib.import_module(name)
-    except Exception as exc:
-        missing.append(f"{name}: {type(exc).__name__}")
-print("all eight clients import" if not missing else "MISSING " + ", ".join(missing))
-raise SystemExit(1 if missing else 0)
-PY
-
-Obtaining file:///home/runner/work/Archx-Agent/Archx-Agent
-  Installing build dependencies: started
-  Installing build dependencies: finished with status 'done'
-  Checking if build backend supports build_editable: started
-  Checking if build backend supports build_editable: finished with status 'done'
-  Getting requirements to build editable: started
-  Getting requirements to build editable: finished with status 'done'
-  Preparing editable metadata (pyproject.toml): started
-  Preparing editable metadata (pyproject.toml): finished with status 'done'
-Collecting pytest>=8 (from archx-agent==0.30.0)
-  Downloading pytest-9.2.0-py3-none-any.whl.metadata (7.9 kB)
-Collecting pytest-cov>=4 (from archx-agent==0.30.0)
-  Downloading pytest_cov-7.1.0-py3-none-any.whl.metadata (32 kB)
-Collecting openai>=1 (from archx-agent==0.30.0)
-  Downloading openai-3.41.0-py3-none-any.whl.metadata (44 kB)
-Collecting anthropic>=0.40 (from archx-agent==0.30.0)
-  Downloading anthropic-2.3.0-py3-none-any.whl.metadata (6.0 kB)
-Collecting google-genai>=1 (from archx-agent==0.30.0)
-  Downloading google_genai-2.34.0-py3-none-any.whl.metadata (59 kB)
-Collecting mistralai>=1 (from archx-agent==0.30.0)
-  Downloading mistralai-3.6.0-py3-none-any.whl.metadata (89 kB)
-Collecting groq>=0.11 (from archx-agent==0.30.0)
-  Downloading groq-1.7.0-py3-none-any.whl.metadata (16 kB)
-Collecting together>=1 (from archx-agent==0.30.0)
-  Downloading together-3.0.0-py3-none-any.whl.metadata (26 kB)
-Collecting cohere>=5.11 (from archx-agent==0.30.0)
-  Downloading cohere-7.3.0-py3-none-any.whl.metadata (6.9 kB)
-Collecting ollama>=0.4 (from archx-agent==0.30.0)
-  Downloading ollama-0.6.3-py3-none-any.whl.metadata (7.6 kB)
-Collecting anyio<5,>=4.1.0 (from anthropic>=0.40->archx-agent==0.30.0)
-  Downloading anyio-4.15.1-py3-none-any.whl.metadata (4.7 kB)
-Collecting docstring-parser<1,>=0.15 (from anthropic>=0.40->archx-agent==0.30.0)
-  Downloading docstring_parser-0.18.0-py3-none-any.whl.metadata (3.5 kB)
-Collecting httpx2<3,>=2.0.0 (from anthropic>=0.40->archx-agent==0.30.0)
-  Downloading httpx2-2.16.0-py3-none-any.whl.metadata (10 kB)
-Collecting jiter<1,>=0.4.0 (from anthropic>=0.40->archx-agent==0.30.0)
-  Downloading jiter-0.18.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (5.2 kB)
-Collecting opentelemetry-api<2,>=1.1.0 (from anthropic>=0.40->archx-agent==0.30.0)
-  Downloading opentelemetry_api-1.45.1-py3-none-any.whl.metadata (1.4 kB)
-Collecting pydantic<3,>=1.10.0 (from anthropic>=0.40->archx-agent==0.30.0)
-  Downloading pydantic-2.14.2-py3-none-any.whl.metadata (137 kB)
-Collecting sniffio<2,>=1 (from anthropic>=0.40->archx-agent==0.30.0)
-  Downloading sniffio-1.3.1-py3-none-any.whl.metadata (3.9 kB)
-Collecting typing-extensions<5,>=4.14 (from anthropic>=0.40->archx-agent==0.30.0)
-  Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
-Collecting idna>=2.8 (from anyio<5,>=4.1.0->anthropic>=0.40->archx-agent==0.30.0)
-  Downloading idna-3.20-py3-none-any.whl.metadata (7.2 kB)
-Collecting httpcore2==2.16.0 (from httpx2<3,>=2.0.0->anthropic>=0.40->archx-agent==0.30.0)
-  Downloading httpcore2-2.16.0-py3-none-any.whl.metadata (27 kB)
-Collecting truststore>=0.10 (from httpx2<3,>=2.0.0->anthropic>=0.40->archx-agent==0.30.0)
-  Downloading truststore-0.10.5-py3-none-any.whl.metadata (4.5 kB)
-Collecting h11>=0.16 (from httpcore2==2.16.0->httpx2<3,>=2.0.0->anthropic>=0.40->archx-agent==0.30.0)
-  Downloading h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
-Collecting annotated-types>=0.6.0 (from pydantic<3,>=1.10.0->anthropic>=0.40->archx-agent==0.30.0)
-  Downloading annotated_types-0.8.0-py3-none-any.whl.metadata (15 kB)
-Collecting pydantic-core==2.50.2 (from pydantic<3,>=1.10.0->anthropic>=0.40->archx-agent==0.30.0)
-  Downloading pydantic_core-2.50.2-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (6.5 kB)
-Collecting typing-inspection>=0.4.4 (from pydantic<3,>=1.10.0->anthropic>=0.40->archx-agent==0.30.0)
-  Downloading typing_inspection-0.4.4-py3-none-any.whl.metadata (2.6 kB)
-Collecting fastavro<2.0.0,>=1.9.4 (from cohere>=5.11->archx-agent==0.30.0)
-  Downloading fastavro-1.13.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (6.3 kB)
-Collecting httpx>=0.25.0 (from cohere>=5.11->archx-agent==0.30.0)
-  Downloading httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
-Collecting requests<3.0.0,>=2.0.0 (from cohere>=5.11->archx-agent==0.30.0)
-  Downloading requests-2.34.2-py3-none-any.whl.metadata (4.8 kB)
-Collecting tokenizers<1,>=0.15 (from cohere>=5.11->archx-agent==0.30.0)
-  Downloading tokenizers-0.23.3-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (9.8 kB)
-Collecting types-requests<3.0.0,>=2.0.0 (from cohere>=5.11->archx-agent==0.30.0)
-  Downloading types_requests-2.33.0.20261006-py3-none-any.whl.metadata (2.2 kB)
-Collecting charset_normalizer<4,>=2 (from requests<3.0.0,>=2.0.0->cohere>=5.11->archx-agent==0.30.0)
-  Downloading charset_normalizer-3.5.2-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (46 kB)
-Collecting urllib3<3,>=1.26 (from requests<3.0.0,>=2.0.0->cohere>=5.11->archx-agent==0.30.0)
-  Downloading urllib3-2.8.0-py3-none-any.whl.metadata (7.4 kB)
-Collecting certifi>=2023.5.7 (from requests<3.0.0,>=2.0.0->cohere>=5.11->archx-agent==0.30.0)
-  Downloading certifi-2026.10.23-py3-none-any.whl.metadata (2.5 kB)
-Collecting huggingface-hub<3.0,>=0.16.4 (from tokenizers<1,>=0.15->cohere>=5.11->archx-agent==0.30.0)
-  Downloading huggingface_hub-2.4.0-py3-none-any.whl.metadata (16 kB)
-Collecting click<9.0.0,>=8.4.2 (from huggingface-hub<3.0,>=0.16.4->tokenizers<1,>=0.15->cohere>=5.11->archx-agent==0.30.0)
-  Downloading click-8.5.0-py3-none-any.whl.metadata (2.6 kB)
-Collecting filelock>=3.10.0 (from huggingface-hub<3.0,>=0.16.4->tokenizers<1,>=0.15->cohere>=5.11->archx-agent==0.30.0)
-  Downloading filelock-4.2.4-py3-none-any.whl.metadata (2.0 kB)
-Collecting fsspec>=2023.5.0 (from huggingface-hub<3.0,>=0.16.4->tokenizers<1,>=0.15->cohere>=5.11->archx-agent==0.30.0)
-  Downloading fsspec-2026.9.0-py3-none-any.whl.metadata (10 kB)
-Collecting hf-xet<2.0.0,>=1.6.0 (from huggingface-hub<3.0,>=0.16.4->tokenizers<1,>=0.15->cohere>=5.11->archx-agent==0.30.0)
-  Downloading hf_xet-1.7.1-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (4.9 kB)
-Collecting packaging>=20.9 (from huggingface-hub<3.0,>=0.16.4->tokenizers<1,>=0.15->cohere>=5.11->archx-agent==0.30.0)
-  Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
-Collecting pyyaml>=5.1 (from huggingface-hub<3.0,>=0.16.4->tokenizers<1,>=0.15->cohere>=5.11->archx-agent==0.30.0)
-  Downloading pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.4 kB)
-Collecting tqdm>=4.42.1 (from huggingface-hub<3.0,>=0.16.4->tokenizers<1,>=0.15->cohere>=5.11->archx-agent==0.30.0)
-  Downloading tqdm-4.70.1-py3-none-any.whl.metadata (57 kB)
-Collecting google-auth<3.0.0,>=2.56.0 (from google-auth[requests]<3.0.0,>=2.56.0->google-genai>=1->archx-agent==0.30.0)
-  Downloading google_auth-2.62.0-py3-none-any.whl.metadata (6.0 kB)
-Collecting tenacity<9.2.0,>=8.2.3 (from google-genai>=1->archx-agent==0.30.0)
-  Downloading tenacity-9.1.4-py3-none-any.whl.metadata (1.2 kB)
-Collecting websockets<18.0,>=13.0.0 (from google-genai>=1->archx-agent==0.30.0)
-  Downloading websockets-17.3-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (6.3 kB)
-Collecting distro<2,>=1.7.0 (from google-genai>=1->archx-agent==0.30.0)
-  Downloading distro-1.9.0-py3-none-any.whl.metadata (6.8 kB)
-Collecting pyasn1-modules>=0.2.1 (from google-auth<3.0.0,>=2.56.0->google-auth[requests]<3.0.0,>=2.56.0->google-genai>=1->archx-agent==0.30.0)
-  Downloading pyasn1_modules-0.4.2-py3-none-any.whl.metadata (3.5 kB)
-Collecting cryptography>=38.0.3 (from google-auth<3.0.0,>=2.56.0->google-auth[requests]<3.0.0,>=2.56.0->google-genai>=1->archx-agent==0.30.0)
-  Downloading cryptography-50.0.2-cp311-abi3-manylinux_2_34_x86_64.whl.metadata (4.4 kB)
-Collecting httpcore==1.* (from httpx>=0.25.0->cohere>=5.11->archx-agent==0.30.0)
-  Downloading httpcore-1.0.9-py3-none-any.whl.metadata (21 kB)
-Collecting cffi>=2.0.0 (from cryptography>=38.0.3->google-auth<3.0.0,>=2.56.0->google-auth[requests]<3.0.0,>=2.56.0->google-genai>=1->archx-agent==0.30.0)
-  Downloading cffi-2.1.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.5 kB)
-Collecting pycparser (from cffi>=2.0.0->cryptography>=38.0.3->google-auth<3.0.0,>=2.56.0->google-auth[requests]<3.0.0,>=2.56.0->google-genai>=1->archx-agent==0.30.0)
-  Downloading pycparser-3.12-py3-none-any.whl.metadata (9.7 kB)
-Collecting eval-type-backport>=0.2.0 (from mistralai>=1->archx-agent==0.30.0)
-  Downloading eval_type_backport-0.4.0-py3-none-any.whl.metadata (3.1 kB)
-Collecting jsonpath-python>=1.0.6 (from mistralai>=1->archx-agent==0.30.0)
-  Downloading jsonpath_python-1.1.6-py3-none-any.whl.metadata (17 kB)
-Collecting opentelemetry-semantic-conventions>=0.61b0 (from mistralai>=1->archx-agent==0.30.0)
-  Downloading opentelemetry_semantic_conventions-0.66b1-py3-none-any.whl.metadata (2.4 kB)
+ns-0.66b1-py3-none-any.whl.metadata (2.4 kB)
 Collecting python-dateutil>=2.8.2 (from mistralai>=1->archx-agent==0.30.0)
   Downloading python_dateutil-3.0.0-py2.py3-none-any.whl.metadata (8.2 kB)
 Collecting pyasn1<0.7.0,>=0.6.1 (from pyasn1-modules>=0.2.1->google-auth<3.0.0,>=2.56.0->google-auth[requests]<3.0.0,>=2.56.0->google-genai>=1->archx-agent==0.30.0)
@@ -1386,3 +1255,871 @@ $ bash -c
   bash scripts/release_check.sh
 
 * Getting build dependencies for sdist...
+running egg_info
+writing src/archx_agent.egg-info/PKG-INFO
+writing dependency_links to src/archx_agent.egg-info/dependency_links.txt
+writing entry points to src/archx_agent.egg-info/entry_points.txt
+writing requirements to src/archx_agent.egg-info/requires.txt
+writing top-level names to src/archx_agent.egg-info/top_level.txt
+reading manifest file 'src/archx_agent.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file 'src/archx_agent.egg-info/SOURCES.txt'
+WARNING `project.license` as a TOML table is deprecated
+!!
+
+        ********************************************************************************
+        Please use a simple string containing a SPDX expression for `project.license`. You can also use `project.license-files`. (Both options available on setuptools>=77.0.0).
+
+        This deprecation is overdue, please update your project and remove deprecated
+        calls to avoid build errors in the future.
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+* Building sdist...
+running sdist
+running egg_info
+writing src/archx_agent.egg-info/PKG-INFO
+writing dependency_links to src/archx_agent.egg-info/dependency_links.txt
+writing entry points to src/archx_agent.egg-info/entry_points.txt
+writing requirements to src/archx_agent.egg-info/requires.txt
+writing top-level names to src/archx_agent.egg-info/top_level.txt
+reading manifest file 'src/archx_agent.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file 'src/archx_agent.egg-info/SOURCES.txt'
+running check
+creating archx_agent-0.30.0
+creating archx_agent-0.30.0/src/archx_agent
+creating archx_agent-0.30.0/src/archx_agent.egg-info
+creating archx_agent-0.30.0/src/archx_agent/adapters
+creating archx_agent-0.30.0/src/archx_agent/application
+creating archx_agent-0.30.0/src/archx_agent/helpers
+creating archx_agent-0.30.0/src/archx_agent/interfaces
+creating archx_agent-0.30.0/src/archx_agent/interfaces/cli
+creating archx_agent-0.30.0/src/archx_agent/interfaces/gui
+creating archx_agent-0.30.0/src/archx_agent/interfaces/gui/assets
+creating archx_agent-0.30.0/src/archx_agent/managers
+creating archx_agent-0.30.0/tests
+copying files to archx_agent-0.30.0...
+copying LICENSE -> archx_agent-0.30.0
+copying README.md -> archx_agent-0.30.0
+copying pyproject.toml -> archx_agent-0.30.0
+copying src/archx_agent/__init__.py -> archx_agent-0.30.0/src/archx_agent
+copying src/archx_agent.egg-info/PKG-INFO -> archx_agent-0.30.0/src/archx_agent.egg-info
+copying src/archx_agent.egg-info/SOURCES.txt -> archx_agent-0.30.0/src/archx_agent.egg-info
+copying src/archx_agent.egg-info/dependency_links.txt -> archx_agent-0.30.0/src/archx_agent.egg-info
+copying src/archx_agent.egg-info/entry_points.txt -> archx_agent-0.30.0/src/archx_agent.egg-info
+copying src/archx_agent.egg-info/requires.txt -> archx_agent-0.30.0/src/archx_agent.egg-info
+copying src/archx_agent.egg-info/top_level.txt -> archx_agent-0.30.0/src/archx_agent.egg-info
+copying src/archx_agent/adapters/__init__.py -> archx_agent-0.30.0/src/archx_agent/adapters
+copying src/archx_agent/adapters/embedding_runtime.py -> archx_agent-0.30.0/src/archx_agent/adapters
+copying src/archx_agent/adapters/extension_runtime.py -> archx_agent-0.30.0/src/archx_agent/adapters
+copying src/archx_agent/adapters/gemini_runtime.py -> archx_agent-0.30.0/src/archx_agent/adapters
+copying src/archx_agent/adapters/http_runtime.py -> archx_agent-0.30.0/src/archx_agent/adapters
+copying src/archx_agent/adapters/llama_cpp_runtime.py -> archx_agent-0.30.0/src/archx_agent/adapters
+copying src/archx_agent/adapters/local_tools.py -> archx_agent-0.30.0/src/archx_agent/adapters
+copying src/archx_agent/adapters/mcp_client.py -> archx_agent-0.30.0/src/archx_agent/adapters
+copying src/archx_agent/adapters/model_runtime.py -> archx_agent-0.30.0/src/archx_agent/adapters
+copying src/archx_agent/adapters/net_fetch.py -> archx_agent-0.30.0/src/archx_agent/adapters
+copying src/archx_agent/adapters/scripted_runtime.py -> archx_agent-0.30.0/src/archx_agent/adapters
+copying src/archx_agent/adapters/sdk_runtime.py -> archx_agent-0.30.0/src/archx_agent/adapters
+copying src/archx_agent/adapters/sdk_transport.py -> archx_agent-0.30.0/src/archx_agent/adapters
+copying src/archx_agent/application/__init__.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/agent.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/automations.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/chat.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/coding.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/datasets.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/execution.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/experiments.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/games.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/geometry.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/learning.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/media.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/play.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/remote.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/remote_worker.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/researcher.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/retrieval_eval.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/router.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/scene_validation.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/scenes.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/scheduler.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/search.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/simple.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/simulations.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/training.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/voice.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/application/workspace.py -> archx_agent-0.30.0/src/archx_agent/application
+copying src/archx_agent/helpers/__init__.py -> archx_agent-0.30.0/src/archx_agent/helpers
+copying src/archx_agent/helpers/backup_recovery.py -> archx_agent-0.30.0/src/archx_agent/helpers
+copying src/archx_agent/helpers/config.py -> archx_agent-0.30.0/src/archx_agent/helpers
+copying src/archx_agent/helpers/events.py -> archx_agent-0.30.0/src/archx_agent/helpers
+copying src/archx_agent/helpers/exceptions.py -> archx_agent-0.30.0/src/archx_agent/helpers
+copying src/archx_agent/helpers/jsonio.py -> archx_agent-0.30.0/src/archx_agent/helpers
+copying src/archx_agent/helpers/paths.py -> archx_agent-0.30.0/src/archx_agent/helpers
+copying src/archx_agent/helpers/redaction.py -> archx_agent-0.30.0/src/archx_agent/helpers
+copying src/archx_agent/helpers/result.py -> archx_agent-0.30.0/src/archx_agent/helpers
+copying src/archx_agent/helpers/sqlite_store.py -> archx_agent-0.30.0/src/archx_agent/helpers
+copying src/archx_agent/helpers/timeutil.py -> archx_agent-0.30.0/src/archx_agent/helpers
+copying src/archx_agent/helpers/tokens.py -> archx_agent-0.30.0/src/archx_agent/helpers
+copying src/archx_agent/helpers/vectors.py -> archx_agent-0.30.0/src/archx_agent/helpers
+copying src/archx_agent/helpers/write_coordinator.py -> archx_agent-0.30.0/src/archx_agent/helpers
+copying src/archx_agent/interfaces/__init__.py -> archx_agent-0.30.0/src/archx_agent/interfaces
+copying src/archx_agent/interfaces/mcp_server.py -> archx_agent-0.30.0/src/archx_agent/interfaces
+copying src/archx_agent/interfaces/cli/__init__.py -> archx_agent-0.30.0/src/archx_agent/interfaces/cli
+copying src/archx_agent/interfaces/cli/main.py -> archx_agent-0.30.0/src/archx_agent/interfaces/cli
+copying src/archx_agent/interfaces/gui/__init__.py -> archx_agent-0.30.0/src/archx_agent/interfaces/gui
+copying src/archx_agent/interfaces/gui/server.py -> archx_agent-0.30.0/src/archx_agent/interfaces/gui
+copying src/archx_agent/interfaces/gui/assets/app.js -> archx_agent-0.30.0/src/archx_agent/interfaces/gui/assets
+copying src/archx_agent/interfaces/gui/assets/index.html -> archx_agent-0.30.0/src/archx_agent/interfaces/gui/assets
+copying src/archx_agent/interfaces/gui/assets/style.css -> archx_agent-0.30.0/src/archx_agent/interfaces/gui/assets
+copying src/archx_agent/managers/base.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/coding.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/context.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/conversation.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/datasets.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/embeddings.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/execution.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/experiments.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/extensions.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/jobs.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/learning.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/mcp.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/media.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/memory.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/models.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/permissions.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/play.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/projects.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/providers.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/remote.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/reproduction.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/research.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/scenes.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/schema.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/tasks.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/tools.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/training.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/versions.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying src/archx_agent/managers/workflows.py -> archx_agent-0.30.0/src/archx_agent/managers
+copying tests/test_agent_m25.py -> archx_agent-0.30.0/tests
+copying tests/test_application.py -> archx_agent-0.30.0/tests
+copying tests/test_automations_m40.py -> archx_agent-0.30.0/tests
+copying tests/test_cli.py -> archx_agent-0.30.0/tests
+copying tests/test_coding_m31.py -> archx_agent-0.30.0/tests
+copying tests/test_config.py -> archx_agent-0.30.0/tests
+copying tests/test_context_m19.py -> archx_agent-0.30.0/tests
+copying tests/test_datasets_m35.py -> archx_agent-0.30.0/tests
+copying tests/test_edge_cases.py -> archx_agent-0.30.0/tests
+copying tests/test_embeddings_m18.py -> archx_agent-0.30.0/tests
+copying tests/test_execution_m38.py -> archx_agent-0.30.0/tests
+copying tests/test_experiments_m32.py -> archx_agent-0.30.0/tests
+copying tests/test_extensions_m23.py -> archx_agent-0.30.0/tests
+copying tests/test_foundation.py -> archx_agent-0.30.0/tests
+copying tests/test_gemini_m21.py -> archx_agent-0.30.0/tests
+copying tests/test_gui_m29.py -> archx_agent-0.30.0/tests
+copying tests/test_gui_stream.py -> archx_agent-0.30.0/tests
+copying tests/test_integration.py -> archx_agent-0.30.0/tests
+copying tests/test_learning_m30.py -> archx_agent-0.30.0/tests
+copying tests/test_mcp_m23.py -> archx_agent-0.30.0/tests
+copying tests/test_memory_m17.py -> archx_agent-0.30.0/tests
+copying tests/test_models.py -> archx_agent-0.30.0/tests
+copying tests/test_play_m33.py -> archx_agent-0.30.0/tests
+copying tests/test_providers_m20.py -> archx_agent-0.30.0/tests
+copying tests/test_release_m41.py -> archx_agent-0.30.0/tests
+copying tests/test_remote_m37.py -> archx_agent-0.30.0/tests
+copying tests/test_research_close.py -> archx_agent-0.30.0/tests
+copying tests/test_research_m28.py -> archx_agent-0.30.0/tests
+copying tests/test_router_m21.py -> archx_agent-0.30.0/tests
+copying tests/test_scenes_m39.py -> archx_agent-0.30.0/tests
+copying tests/test_scheduler_m26.py -> archx_agent-0.30.0/tests
+copying tests/test_sdk_m22.py -> archx_agent-0.30.0/tests
+copying tests/test_search_m27.py -> archx_agent-0.30.0/tests
+copying tests/test_simple_m27.py -> archx_agent-0.30.0/tests
+copying tests/test_storage.py -> archx_agent-0.30.0/tests
+copying tests/test_stress.py -> archx_agent-0.30.0/tests
+copying tests/test_tasks_m24.py -> archx_agent-0.30.0/tests
+copying tests/test_tool_probe.py -> archx_agent-0.30.0/tests
+copying tests/test_tools_m22.py -> archx_agent-0.30.0/tests
+copying tests/test_training_m36.py -> archx_agent-0.30.0/tests
+copying tests/test_voice_m34.py -> archx_agent-0.30.0/tests
+copying src/archx_agent.egg-info/SOURCES.txt -> archx_agent-0.30.0/src/archx_agent.egg-info
+Writing archx_agent-0.30.0/setup.cfg
+Creating tar archive
+removing 'archx_agent-0.30.0' (and everything under it)
+WARNING `project.license` as a TOML table is deprecated
+!!
+
+        ********************************************************************************
+        Please use a simple string containing a SPDX expression for `project.license`. You can also use `project.license-files`. (Both options available on setuptools>=77.0.0).
+
+        This deprecation is overdue, please update your project and remove deprecated
+        calls to avoid build errors in the future.
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+* Building wheel from sdist
+* Getting build dependencies for wheel...
+running egg_info
+writing src/archx_agent.egg-info/PKG-INFO
+writing dependency_links to src/archx_agent.egg-info/dependency_links.txt
+writing entry points to src/archx_agent.egg-info/entry_points.txt
+writing requirements to src/archx_agent.egg-info/requires.txt
+writing top-level names to src/archx_agent.egg-info/top_level.txt
+reading manifest file 'src/archx_agent.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file 'src/archx_agent.egg-info/SOURCES.txt'
+WARNING `project.license` as a TOML table is deprecated
+!!
+
+        ********************************************************************************
+        Please use a simple string containing a SPDX expression for `project.license`. You can also use `project.license-files`. (Both options available on setuptools>=77.0.0).
+
+        This deprecation is overdue, please update your project and remove deprecated
+        calls to avoid build errors in the future.
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+* Building wheel...
+running bdist_wheel
+running build
+running build_py
+creating build/lib/archx_agent
+copying src/archx_agent/__init__.py -> build/lib/archx_agent
+creating build/lib/archx_agent/application
+copying src/archx_agent/application/media.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/training.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/simple.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/coding.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/datasets.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/researcher.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/search.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/automations.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/chat.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/retrieval_eval.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/remote.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/play.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/simulations.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/scene_validation.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/experiments.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/router.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/agent.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/workspace.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/__init__.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/scheduler.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/learning.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/scenes.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/voice.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/remote_worker.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/execution.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/geometry.py -> build/lib/archx_agent/application
+copying src/archx_agent/application/games.py -> build/lib/archx_agent/application
+creating build/lib/archx_agent/interfaces
+copying src/archx_agent/interfaces/__init__.py -> build/lib/archx_agent/interfaces
+copying src/archx_agent/interfaces/mcp_server.py -> build/lib/archx_agent/interfaces
+creating build/lib/archx_agent/adapters
+copying src/archx_agent/adapters/sdk_transport.py -> build/lib/archx_agent/adapters
+copying src/archx_agent/adapters/scripted_runtime.py -> build/lib/archx_agent/adapters
+copying src/archx_agent/adapters/embedding_runtime.py -> build/lib/archx_agent/adapters
+copying src/archx_agent/adapters/http_runtime.py -> build/lib/archx_agent/adapters
+copying src/archx_agent/adapters/sdk_runtime.py -> build/lib/archx_agent/adapters
+copying src/archx_agent/adapters/llama_cpp_runtime.py -> build/lib/archx_agent/adapters
+copying src/archx_agent/adapters/extension_runtime.py -> build/lib/archx_agent/adapters
+copying src/archx_agent/adapters/model_runtime.py -> build/lib/archx_agent/adapters
+copying src/archx_agent/adapters/local_tools.py -> build/lib/archx_agent/adapters
+copying src/archx_agent/adapters/__init__.py -> build/lib/archx_agent/adapters
+copying src/archx_agent/adapters/net_fetch.py -> build/lib/archx_agent/adapters
+copying src/archx_agent/adapters/gemini_runtime.py -> build/lib/archx_agent/adapters
+copying src/archx_agent/adapters/mcp_client.py -> build/lib/archx_agent/adapters
+creating build/lib/archx_agent/managers
+copying src/archx_agent/managers/media.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/embeddings.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/training.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/memory.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/providers.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/coding.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/reproduction.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/datasets.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/research.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/models.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/mcp.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/remote.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/play.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/permissions.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/tools.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/experiments.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/workflows.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/jobs.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/schema.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/projects.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/learning.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/conversation.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/scenes.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/base.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/extensions.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/context.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/versions.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/tasks.py -> build/lib/archx_agent/managers
+copying src/archx_agent/managers/execution.py -> build/lib/archx_agent/managers
+creating build/lib/archx_agent/helpers
+copying src/archx_agent/helpers/timeutil.py -> build/lib/archx_agent/helpers
+copying src/archx_agent/helpers/sqlite_store.py -> build/lib/archx_agent/helpers
+copying src/archx_agent/helpers/write_coordinator.py -> build/lib/archx_agent/helpers
+copying src/archx_agent/helpers/exceptions.py -> build/lib/archx_agent/helpers
+copying src/archx_agent/helpers/config.py -> build/lib/archx_agent/helpers
+copying src/archx_agent/helpers/jsonio.py -> build/lib/archx_agent/helpers
+copying src/archx_agent/helpers/backup_recovery.py -> build/lib/archx_agent/helpers
+copying src/archx_agent/helpers/tokens.py -> build/lib/archx_agent/helpers
+copying src/archx_agent/helpers/__init__.py -> build/lib/archx_agent/helpers
+copying src/archx_agent/helpers/vectors.py -> build/lib/archx_agent/helpers
+copying src/archx_agent/helpers/redaction.py -> build/lib/archx_agent/helpers
+copying src/archx_agent/helpers/events.py -> build/lib/archx_agent/helpers
+copying src/archx_agent/helpers/paths.py -> build/lib/archx_agent/helpers
+copying src/archx_agent/helpers/result.py -> build/lib/archx_agent/helpers
+creating build/lib/archx_agent/interfaces/gui
+copying src/archx_agent/interfaces/gui/server.py -> build/lib/archx_agent/interfaces/gui
+copying src/archx_agent/interfaces/gui/__init__.py -> build/lib/archx_agent/interfaces/gui
+creating build/lib/archx_agent/interfaces/cli
+copying src/archx_agent/interfaces/cli/main.py -> build/lib/archx_agent/interfaces/cli
+copying src/archx_agent/interfaces/cli/__init__.py -> build/lib/archx_agent/interfaces/cli
+running egg_info
+writing src/archx_agent.egg-info/PKG-INFO
+writing dependency_links to src/archx_agent.egg-info/dependency_links.txt
+writing entry points to src/archx_agent.egg-info/entry_points.txt
+writing requirements to src/archx_agent.egg-info/requires.txt
+writing top-level names to src/archx_agent.egg-info/top_level.txt
+reading manifest file 'src/archx_agent.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file 'src/archx_agent.egg-info/SOURCES.txt'
+creating build/lib/archx_agent/interfaces/gui/assets
+copying src/archx_agent/interfaces/gui/assets/index.html -> build/lib/archx_agent/interfaces/gui/assets
+copying src/archx_agent/interfaces/gui/assets/style.css -> build/lib/archx_agent/interfaces/gui/assets
+copying src/archx_agent/interfaces/gui/assets/app.js -> build/lib/archx_agent/interfaces/gui/assets
+installing to build/bdist.linux-x86_64/wheel
+running install
+running install_lib
+creating build/bdist.linux-x86_64/wheel
+creating build/bdist.linux-x86_64/wheel/archx_agent
+creating build/bdist.linux-x86_64/wheel/archx_agent/application
+copying build/lib/archx_agent/application/media.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/training.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/simple.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/coding.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/datasets.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/researcher.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/search.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/automations.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/chat.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/retrieval_eval.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/remote.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/play.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/simulations.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/scene_validation.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/experiments.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/router.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/agent.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/workspace.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/__init__.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/scheduler.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/learning.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/scenes.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/voice.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/remote_worker.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/execution.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/geometry.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+copying build/lib/archx_agent/application/games.py -> build/bdist.linux-x86_64/wheel/./archx_agent/application
+creating build/bdist.linux-x86_64/wheel/archx_agent/interfaces
+creating build/bdist.linux-x86_64/wheel/archx_agent/interfaces/gui
+creating build/bdist.linux-x86_64/wheel/archx_agent/interfaces/gui/assets
+copying build/lib/archx_agent/interfaces/gui/assets/index.html -> build/bdist.linux-x86_64/wheel/./archx_agent/interfaces/gui/assets
+copying build/lib/archx_agent/interfaces/gui/assets/app.js -> build/bdist.linux-x86_64/wheel/./archx_agent/interfaces/gui/assets
+copying build/lib/archx_agent/interfaces/gui/assets/style.css -> build/bdist.linux-x86_64/wheel/./archx_agent/interfaces/gui/assets
+copying build/lib/archx_agent/interfaces/gui/server.py -> build/bdist.linux-x86_64/wheel/./archx_agent/interfaces/gui
+copying build/lib/archx_agent/interfaces/gui/__init__.py -> build/bdist.linux-x86_64/wheel/./archx_agent/interfaces/gui
+copying build/lib/archx_agent/interfaces/__init__.py -> build/bdist.linux-x86_64/wheel/./archx_agent/interfaces
+creating build/bdist.linux-x86_64/wheel/archx_agent/interfaces/cli
+copying build/lib/archx_agent/interfaces/cli/main.py -> build/bdist.linux-x86_64/wheel/./archx_agent/interfaces/cli
+copying build/lib/archx_agent/interfaces/cli/__init__.py -> build/bdist.linux-x86_64/wheel/./archx_agent/interfaces/cli
+copying build/lib/archx_agent/interfaces/mcp_server.py -> build/bdist.linux-x86_64/wheel/./archx_agent/interfaces
+copying build/lib/archx_agent/__init__.py -> build/bdist.linux-x86_64/wheel/./archx_agent
+creating build/bdist.linux-x86_64/wheel/archx_agent/adapters
+copying build/lib/archx_agent/adapters/sdk_transport.py -> build/bdist.linux-x86_64/wheel/./archx_agent/adapters
+copying build/lib/archx_agent/adapters/scripted_runtime.py -> build/bdist.linux-x86_64/wheel/./archx_agent/adapters
+copying build/lib/archx_agent/adapters/embedding_runtime.py -> build/bdist.linux-x86_64/wheel/./archx_agent/adapters
+copying build/lib/archx_agent/adapters/http_runtime.py -> build/bdist.linux-x86_64/wheel/./archx_agent/adapters
+copying build/lib/archx_agent/adapters/sdk_runtime.py -> build/bdist.linux-x86_64/wheel/./archx_agent/adapters
+copying build/lib/archx_agent/adapters/llama_cpp_runtime.py -> build/bdist.linux-x86_64/wheel/./archx_agent/adapters
+copying build/lib/archx_agent/adapters/extension_runtime.py -> build/bdist.linux-x86_64/wheel/./archx_agent/adapters
+copying build/lib/archx_agent/adapters/model_runtime.py -> build/bdist.linux-x86_64/wheel/./archx_agent/adapters
+copying build/lib/archx_agent/adapters/local_tools.py -> build/bdist.linux-x86_64/wheel/./archx_agent/adapters
+copying build/lib/archx_agent/adapters/__init__.py -> build/bdist.linux-x86_64/wheel/./archx_agent/adapters
+copying build/lib/archx_agent/adapters/net_fetch.py -> build/bdist.linux-x86_64/wheel/./archx_agent/adapters
+copying build/lib/archx_agent/adapters/gemini_runtime.py -> build/bdist.linux-x86_64/wheel/./archx_agent/adapters
+copying build/lib/archx_agent/adapters/mcp_client.py -> build/bdist.linux-x86_64/wheel/./archx_agent/adapters
+creating build/bdist.linux-x86_64/wheel/archx_agent/managers
+copying build/lib/archx_agent/managers/media.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/embeddings.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/training.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/memory.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/providers.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/coding.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/reproduction.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/datasets.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/research.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/models.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/mcp.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/remote.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/play.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/permissions.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/tools.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/experiments.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/workflows.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/jobs.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/schema.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/projects.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/learning.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/conversation.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/scenes.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/base.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/extensions.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/context.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/versions.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/tasks.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+copying build/lib/archx_agent/managers/execution.py -> build/bdist.linux-x86_64/wheel/./archx_agent/managers
+creating build/bdist.linux-x86_64/wheel/archx_agent/helpers
+copying build/lib/archx_agent/helpers/timeutil.py -> build/bdist.linux-x86_64/wheel/./archx_agent/helpers
+copying build/lib/archx_agent/helpers/sqlite_store.py -> build/bdist.linux-x86_64/wheel/./archx_agent/helpers
+copying build/lib/archx_agent/helpers/write_coordinator.py -> build/bdist.linux-x86_64/wheel/./archx_agent/helpers
+copying build/lib/archx_agent/helpers/exceptions.py -> build/bdist.linux-x86_64/wheel/./archx_agent/helpers
+copying build/lib/archx_agent/helpers/config.py -> build/bdist.linux-x86_64/wheel/./archx_agent/helpers
+copying build/lib/archx_agent/helpers/jsonio.py -> build/bdist.linux-x86_64/wheel/./archx_agent/helpers
+copying build/lib/archx_agent/helpers/backup_recovery.py -> build/bdist.linux-x86_64/wheel/./archx_agent/helpers
+copying build/lib/archx_agent/helpers/tokens.py -> build/bdist.linux-x86_64/wheel/./archx_agent/helpers
+copying build/lib/archx_agent/helpers/__init__.py -> build/bdist.linux-x86_64/wheel/./archx_agent/helpers
+copying build/lib/archx_agent/helpers/vectors.py -> build/bdist.linux-x86_64/wheel/./archx_agent/helpers
+copying build/lib/archx_agent/helpers/redaction.py -> build/bdist.linux-x86_64/wheel/./archx_agent/helpers
+copying build/lib/archx_agent/helpers/events.py -> build/bdist.linux-x86_64/wheel/./archx_agent/helpers
+copying build/lib/archx_agent/helpers/paths.py -> build/bdist.linux-x86_64/wheel/./archx_agent/helpers
+copying build/lib/archx_agent/helpers/result.py -> build/bdist.linux-x86_64/wheel/./archx_agent/helpers
+running install_egg_info
+Copying src/archx_agent.egg-info to build/bdist.linux-x86_64/wheel/./archx_agent-0.30.0-py3.11.egg-info
+running install_scripts
+creating build/bdist.linux-x86_64/wheel/archx_agent-0.30.0.dist-info/WHEEL
+creating '/tmp/archx-release-check-2zYw1M/packages/.tmp-v1jcqfcb/archx_agent-0.30.0-py3-none-any.whl' and adding 'build/bdist.linux-x86_64/wheel' to it
+adding 'archx_agent/__init__.py'
+adding 'archx_agent/adapters/__init__.py'
+adding 'archx_agent/adapters/embedding_runtime.py'
+adding 'archx_agent/adapters/extension_runtime.py'
+adding 'archx_agent/adapters/gemini_runtime.py'
+adding 'archx_agent/adapters/http_runtime.py'
+adding 'archx_agent/adapters/llama_cpp_runtime.py'
+adding 'archx_agent/adapters/local_tools.py'
+adding 'archx_agent/adapters/mcp_client.py'
+adding 'archx_agent/adapters/model_runtime.py'
+adding 'archx_agent/adapters/net_fetch.py'
+adding 'archx_agent/adapters/scripted_runtime.py'
+adding 'archx_agent/adapters/sdk_runtime.py'
+adding 'archx_agent/adapters/sdk_transport.py'
+adding 'archx_agent/application/__init__.py'
+adding 'archx_agent/application/agent.py'
+adding 'archx_agent/application/automations.py'
+adding 'archx_agent/application/chat.py'
+adding 'archx_agent/application/coding.py'
+adding 'archx_agent/application/datasets.py'
+adding 'archx_agent/application/execution.py'
+adding 'archx_agent/application/experiments.py'
+adding 'archx_agent/application/games.py'
+adding 'archx_agent/application/geometry.py'
+adding 'archx_agent/application/learning.py'
+adding 'archx_agent/application/media.py'
+adding 'archx_agent/application/play.py'
+adding 'archx_agent/application/remote.py'
+adding 'archx_agent/application/remote_worker.py'
+adding 'archx_agent/application/researcher.py'
+adding 'archx_agent/application/retrieval_eval.py'
+adding 'archx_agent/application/router.py'
+adding 'archx_agent/application/scene_validation.py'
+adding 'archx_agent/application/scenes.py'
+adding 'archx_agent/application/scheduler.py'
+adding 'archx_agent/application/search.py'
+adding 'archx_agent/application/simple.py'
+adding 'archx_agent/application/simulations.py'
+adding 'archx_agent/application/training.py'
+adding 'archx_agent/application/voice.py'
+adding 'archx_agent/application/workspace.py'
+adding 'archx_agent/helpers/__init__.py'
+adding 'archx_agent/helpers/backup_recovery.py'
+adding 'archx_agent/helpers/config.py'
+adding 'archx_agent/helpers/events.py'
+adding 'archx_agent/helpers/exceptions.py'
+adding 'archx_agent/helpers/jsonio.py'
+adding 'archx_agent/helpers/paths.py'
+adding 'archx_agent/helpers/redaction.py'
+adding 'archx_agent/helpers/result.py'
+adding 'archx_agent/helpers/sqlite_store.py'
+adding 'archx_agent/helpers/timeutil.py'
+adding 'archx_agent/helpers/tokens.py'
+adding 'archx_agent/helpers/vectors.py'
+adding 'archx_agent/helpers/write_coordinator.py'
+adding 'archx_agent/interfaces/__init__.py'
+adding 'archx_agent/interfaces/mcp_server.py'
+adding 'archx_agent/interfaces/cli/__init__.py'
+adding 'archx_agent/interfaces/cli/main.py'
+adding 'archx_agent/interfaces/gui/__init__.py'
+adding 'archx_agent/interfaces/gui/server.py'
+adding 'archx_agent/interfaces/gui/assets/app.js'
+adding 'archx_agent/interfaces/gui/assets/index.html'
+adding 'archx_agent/interfaces/gui/assets/style.css'
+adding 'archx_agent/managers/base.py'
+adding 'archx_agent/managers/coding.py'
+adding 'archx_agent/managers/context.py'
+adding 'archx_agent/managers/conversation.py'
+adding 'archx_agent/managers/datasets.py'
+adding 'archx_agent/managers/embeddings.py'
+adding 'archx_agent/managers/execution.py'
+adding 'archx_agent/managers/experiments.py'
+adding 'archx_agent/managers/extensions.py'
+adding 'archx_agent/managers/jobs.py'
+adding 'archx_agent/managers/learning.py'
+adding 'archx_agent/managers/mcp.py'
+adding 'archx_agent/managers/media.py'
+adding 'archx_agent/managers/memory.py'
+adding 'archx_agent/managers/models.py'
+adding 'archx_agent/managers/permissions.py'
+adding 'archx_agent/managers/play.py'
+adding 'archx_agent/managers/projects.py'
+adding 'archx_agent/managers/providers.py'
+adding 'archx_agent/managers/remote.py'
+adding 'archx_agent/managers/reproduction.py'
+adding 'archx_agent/managers/research.py'
+adding 'archx_agent/managers/scenes.py'
+adding 'archx_agent/managers/schema.py'
+adding 'archx_agent/managers/tasks.py'
+adding 'archx_agent/managers/tools.py'
+adding 'archx_agent/managers/training.py'
+adding 'archx_agent/managers/versions.py'
+adding 'archx_agent/managers/workflows.py'
+adding 'archx_agent-0.30.0.dist-info/licenses/LICENSE'
+adding 'archx_agent-0.30.0.dist-info/METADATA'
+adding 'archx_agent-0.30.0.dist-info/WHEEL'
+adding 'archx_agent-0.30.0.dist-info/entry_points.txt'
+adding 'archx_agent-0.30.0.dist-info/top_level.txt'
+adding 'archx_agent-0.30.0.dist-info/RECORD'
+removing build/bdist.linux-x86_64/wheel
+WARNING `project.license` as a TOML table is deprecated
+!!
+
+        ********************************************************************************
+        Please use a simple string containing a SPDX expression for `project.license`. You can also use `project.license-files`. (Both options available on setuptools>=77.0.0).
+
+        This deprecation is overdue, please update your project and remove deprecated
+        calls to avoid build errors in the future.
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+Successfully built archx_agent-0.30.0.tar.gz and archx_agent-0.30.0-py3-none-any.whl
+Processing /tmp/archx-release-check-2zYw1M/packages/archx_agent-0.30.0-py3-none-any.whl
+Installing collected packages: archx-agent
+Successfully installed archx-agent-0.30.0
+No broken requirements found.
+[]
+[]
+release check: wheel installs without runtime dependencies; CLI, schema and packaged GUI assets verified
+=== sdks ===============================================
+$ archx-agent models sdks
+openai     OpenAI           installed  openai         key from OPENAI_API_KEY
+anthropic  Anthropic        installed  anthropic      key from ANTHROPIC_API_KEY
+google     Google Gemini    installed  google-genai   key from GEMINI_API_KEY
+mistral    Mistral          installed  mistralai      key from MISTRAL_API_KEY
+groq       Groq             installed  groq           key from GROQ_API_KEY
+together   Together         installed  together       key from TOGETHER_API_KEY
+cohere     Cohere           installed  cohere         key from COHERE_API_KEY
+ollama     Ollama           installed  ollama         key from OLLAMA_API_KEY
+=== llama-cpp ===============================================
+$ bash -c 
+  set -u
+  mkdir -p "$HOME/llama"; server=""
+  for page in 1 2; do
+    asset="$(gh api "repos/ggml-org/llama.cpp/releases?per_page=10&page=$page" \
+      --jq ".[].assets[].browser_download_url" 2>/dev/null \
+      | grep -E "/llama-b[0-9]+-bin-ubuntu-x64\.tar\.gz$" | head -1 || true)"
+    [ -n "$asset" ] && break
+  done
+  if [ -n "${asset:-}" ]; then
+    echo "prebuilt: $asset"
+    curl -fsSL "$asset" -o /tmp/llama.tar.gz && tar -xzf /tmp/llama.tar.gz -C "$HOME/llama" || true
+    server="$(find "$HOME/llama" -name llama-server -type f | head -1)"
+  fi
+  if [ -z "$server" ]; then
+    echo "no prebuilt binary; building from source"
+    git clone --depth 1 https://github.com/ggml-org/llama.cpp /tmp/llama-src
+    cmake -S /tmp/llama-src -B /tmp/llama-src/build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF
+    cmake --build /tmp/llama-src/build --target llama-server -j "$(nproc)"
+    server=/tmp/llama-src/build/bin/llama-server
+  fi
+  [ -x "$server" ] || { echo "no llama-server binary"; exit 1; }
+  chmod +x "$server"; "$server" --version
+  echo "LLAMA_SERVER=$server" >> "$GITHUB_ENV"
+
+prebuilt: https://github.com/ggml-org/llama.cpp/releases/download/b11982/llama-b11982-bin-ubuntu-x64.tar.gz
+version: 0.8.0-dev (build 11982, commit 8a199ad31)
+built with GNU 11.4.0 for Linux x86_64
+=== model-download ===============================================
+$ bash -c 
+  mkdir -p "$HOME/model"
+  target="$HOME/model/$MODEL_FILE"
+  if [ ! -s "$target" ]; then
+    curl -fL --retry 3 -o "$target.part" \
+      "https://huggingface.co/$MODEL_REPO/resolve/main/$MODEL_FILE"
+    mv "$target.part" "$target"
+  fi
+  ls -lh "$target"
+  head -c 4 "$target" | grep -q GGUF || { echo "not a GGUF file"; exit 1; }
+  echo "MODEL_PATH=$target" >> "$GITHUB_ENV"
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  1116  100  1116    0     0   9756      0 --:--:-- --:--:-- --:--:--  9789
+  0  100M    0  3446    0     0   4817      0  6:04:52 --:--:--  6:04:52  4817100  100M  100  100M    0     0  80.8M      0  0:00:01  0:00:01 --:--:--  190M
+-rw-r--r-- 1 runner runner 101M Oct 29 16:59 /home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf
+=== serve ===============================================
+$ bash -c 
+  # Detach *all three* descriptors. A backgrounded server that inherits the closing
+  # pipeline keeps the tee pipe open, so run.sh waits forever even after the check
+  # here is done - the first run of this workflow hung on exactly this line.
+  setsid "$LLAMA_SERVER" --model "$MODEL_PATH" --host 127.0.0.1 --port "$PORT" \
+    --ctx-size 512 --n-gpu-layers 0 --threads 2 --parallel 1 \
+    --no-warmup --log-file "$RUNNER_TEMP/llama.log" \
+    > "$RUNNER_TEMP/llama.out" 2>&1 < /dev/null &
+  echo $! > "$RUNNER_TEMP/llama.pid"
+  for i in $(seq 1 180); do
+    curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 && { echo "up after ${i}s"; exit 0; }
+    sleep 1
+  done
+  tail -40 "$RUNNER_TEMP/llama.log"; exit 1
+
+up after 2s
+=== completion ===============================================
+$ bash -c 
+  curl -sS -H "Content-Type: application/json" --max-time 120 \
+    -d "{\"model\":\"local\",\"messages\":[{\"role\":\"user\",\"content\":\"In one short sentence, what is a tunnel?\"}],\"max_tokens\":48}" \
+    "http://127.0.0.1:$PORT/v1/chat/completions" > "$LOGDIR/completion.json"
+  python - <<PY
+import json, os, pathlib
+data = json.loads(pathlib.Path(os.environ["LOGDIR"], "completion.json").read_text())
+text = data["choices"][0]["message"]["content"].strip()
+usage = data.get("usage", {})
+print("text:", text)
+print("usage:", usage)
+assert text, "empty reply"
+pathlib.Path(os.environ["LOGDIR"], "model-proof.json").write_text(json.dumps({"text": text, "usage": usage}, indent=2))
+PY
+
+text: A tunnel is a narrow, cylindrical passageway that allows air and liquids to flow through it, providing a unique and often eerie experience.
+usage: {'completion_tokens': 28, 'prompt_tokens': 40, 'total_tokens': 68, 'prompt_tokens_details': {'cached_tokens': 0}}
+=== sdk-matrix ===============================================
+$ ./scripts/remote_model.sh http://127.0.0.1:8080
+### endpoint
+http://127.0.0.1:8080
+curl /health      -> 200
+curl /v1/models   -> 200
+the server says: {"models":[{"name":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","model":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","modified_at":"","size":"","digest":"","type":"model","description":"","tags":[""],"capabilities":["completion"],"parameters":"","details":{"parent_model":"","form
+
+### the same endpoint through each official SDK
+
+--- openai
+OK    'Hello, welcome to my little corner of the internet.'
+      tokens in/out 36/12  finish stop
+      base http://127.0.0.1:8080/v1  ->  /chat/completions
+      streamed 4 chunk(s), 15 chars: 'Count to three.'
+
+--- anthropic
+OK    'Hello!'
+      tokens in/out 12/3  finish stop
+      base http://127.0.0.1:8080  ->  /v1/messages
+      streamed 6 chunk(s), 23 chars: 'I am counting to three.'
+
+--- google
+SKIP  the google client speaks :generateContent; this endpoint does not
+
+--- mistral
+OK    'Hello, welcome to my little corner of the internet.'
+      tokens in/out 36/12  finish stop
+      base http://127.0.0.1:8080  ->  /v1/chat/completions
+      streamed 4 chunk(s), 15 chars: 'Count to three.'
+
+--- groq
+SKIP  groq requests /openai/v1/chat/completions; this endpoint answers 404 there (model not found: Error code: 404 - {'error': {'message': 'File Not Found', 'type)
+
+--- together
+OK    'Hello, welcome to our chat about the latest news in the world of technology.'
+      tokens in/out 36/17  finish stop
+      base http://127.0.0.1:8080  ->  /v1/chat/completions
+      streamed 4 chunk(s), 12 chars: 'Yes, please.'
+
+--- cohere
+SKIP  no /v2/chat here; the cohere client has nothing to talk to
+
+--- ollama
+SKIP  no /api/tags here; the ollama client has nothing to talk to
+
+### summary
+4 SDK(s) completed a turn, 0 failed
+
+### and through Archx itself (the app, not just the SDK)
+home /tmp/archx-remote-jJsXZU
+
+$ archx-agent models add-sdk --name remote-openai --sdk openai --model local --base-url http://127.0.0.1:8080
+  registered remote-openai (mdl_0001m649kx0d000000003b6b3c0302e69b6f) provider=openai runtime=sdk
+    sdk      openai (`openai`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/OPENAI_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/OPENAI_API_KEY could not be resolved: secret reference secret://env/OPENAI_API_KEY not found in environment (OPENAI_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/OPENAI_API_KEY not found in environment (OPENAI_API_KEY)
+
+$ archx-agent models add-sdk --name remote-anthropic --sdk anthropic --model local --base-url http://127.0.0.1:8080
+  registered remote-anthropic (mdl_0001m649ky1e0000000004b8b9cd4dd74b56) provider=anthropic runtime=sdk
+    sdk      anthropic (`anthropic`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/ANTHROPIC_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/ANTHROPIC_API_KEY could not be resolved: secret reference secret://env/ANTHROPIC_API_KEY not found in environment (ANTHROPIC_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/ANTHROPIC_API_KEY not found in environment (ANTHROPIC_API_KEY)
+
+$ archx-agent models add-sdk --name remote-google --sdk google --model local --base-url http://127.0.0.1:8080
+  registered remote-google (mdl_0001m649m0830000000051c17afdf34561c3) provider=google runtime=sdk
+    sdk      google-genai (`google.genai`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/GEMINI_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/GEMINI_API_KEY could not be resolved: secret reference secret://env/GEMINI_API_KEY not found in environment (GEMINI_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/GEMINI_API_KEY not found in environment (GEMINI_API_KEY)
+
+$ archx-agent models add-sdk --name remote-mistral --sdk mistral --model local --base-url http://127.0.0.1:8080
+  registered remote-mistral (mdl_0001m649m19e00000000788cf2e0e1d8f977) provider=mistral runtime=sdk
+    sdk      mistralai (`mistralai.client`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/MISTRAL_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/MISTRAL_API_KEY could not be resolved: secret reference secret://env/MISTRAL_API_KEY not found in environment (MISTRAL_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/MISTRAL_API_KEY not found in environment (MISTRAL_API_KEY)
+
+$ archx-agent models add-sdk --name remote-groq --sdk groq --model local --base-url http://127.0.0.1:8080
+  registered remote-groq (mdl_0001m649m24e00000000c209fa9fbe58f919) provider=groq runtime=sdk
+    sdk      groq (`groq`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/GROQ_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/GROQ_API_KEY could not be resolved: secret reference secret://env/GROQ_API_KEY not found in environment (GROQ_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/GROQ_API_KEY not found in environment (GROQ_API_KEY)
+
+$ archx-agent models add-sdk --name remote-together --sdk together --model local --base-url http://127.0.0.1:8080
+  registered remote-together (mdl_0001m649m2wk0000000054f087ea8bc73366) provider=together runtime=sdk
+    sdk      together (`together`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/TOGETHER_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/TOGETHER_API_KEY could not be resolved: secret reference secret://env/TOGETHER_API_KEY not found in environment (TOGETHER_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/TOGETHER_API_KEY not found in environment (TOGETHER_API_KEY)
+
+$ archx-agent models add-sdk --name remote-cohere --sdk cohere --model local --base-url http://127.0.0.1:8080
+  registered remote-cohere (mdl_0001m649m3rs000000004f96b7f2a4d19ea0) provider=cohere runtime=sdk
+    sdk      cohere (`cohere`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/COHERE_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/COHERE_API_KEY could not be resolved: secret reference secret://env/COHERE_API_KEY not found in environment (COHERE_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/COHERE_API_KEY not found in environment (COHERE_API_KEY)
+
+$ archx-agent models add-sdk --name remote-ollama --sdk ollama --model local --base-url http://127.0.0.1:8080
+  registered remote-ollama (mdl_0001m649m4ae000000005477f3838ea599a2) provider=ollama runtime=sdk
+    sdk      ollama (`ollama`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/OLLAMA_API_KEY (never stored)
+    sdk      installed
+    runtime  ready - ready: a local Ollama needs no key (no data leaves this machine)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    chat: failed  (ModelNotFoundError: model not found: {'message': 'File Not Found', 'type': 'not_found_error', 'code': 404} (status code: 404))
+      latency 230.4 ms
+      state now unsupported (probe failed)
+      this drove the runtime; the result is recorded and the router will use it
+=== ollama ===============================================
+$ bash -c 
+  set -u
+  docker run -d --name ollama -p 11434:11434 ollama/ollama:latest || exit 1
+  for i in $(seq 1 90); do
+    curl -fsS http://127.0.0.1:11434/api/tags >/dev/null 2>&1 && break
+    sleep 2
+  done
+  docker exec ollama ollama pull smollm2:135m || exit 1
+  curl -sS http://127.0.0.1:11434/api/tags
+  # the ollama client against a real daemon; smollm2 is the name the daemon knows
+  REMOTE_MODEL=smollm2:135m ./scripts/remote_model.sh http://127.0.0.1:11434 --sdk ollama \
+    | tee -a "$LOGDIR/console.log"
+  # and through Archx itself: a keyless local daemon is the one case where a model
+  # is ready with no credential, so this also proves that rule on a real daemon.
+  export ARCHX_PATHS_HOME="$RUNNER_TEMP/archx-ollama"
+  archx-agent init >/dev/null
+  archx-agent models add-sdk --name ollama-local --sdk ollama \
+    --model smollm2:135m --base-url http://127.0.0.1:11434
+  archx-agent models probe ollama-local --capability chat
+  archx-agent chat --stream --message "Name one colour." --model ollama-local
+
+Unable to find image 'ollama/ollama:latest' locally
+latest: Pulling from ollama/ollama
+7a48b8f0e5c7: Pulling fs layer
+ca35e959b662: Pulling fs layer
+1929caaeecb0: Pulling fs layer
+1b00b80b926b: Pulling fs layer
+1b00b80b926b: Waiting
+1929caaeecb0: Verifying Checksum
+1929caaeecb0: Download complete
+7a48b8f0e5c7: Verifying Checksum
+7a48b8f0e5c7: Download complete
+ca35e959b662: Verifying Checksum
+ca35e959b662: Download complete
+7a48b8f0e5c7: Pull complete
+ca35e959b662: Pull complete
+1b00b80b926b: Verifying Checksum
+1b00b80b926b: Download complete
+1929caaeecb0: Pull complete

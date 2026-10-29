@@ -16,3 +16,10 @@ execution-acceptance	ok	15
 scenes-acceptance	ok	8
 automation-acceptance	ok	6
 blender-real	ok	33
+release-check	ok	9
+sdks	ok	3
+llama-cpp	ok	2
+model-download	ok	1
+serve	ok	1
+completion	ok	1
+sdk-matrix	ok	16

@@ -1,0 +1,17 @@
+$ bash -c 
+  mkdir -p "$HOME/model"
+  target="$HOME/model/$MODEL_FILE"
+  if [ ! -s "$target" ]; then
+    curl -fL --retry 3 -o "$target.part" \
+      "https://huggingface.co/$MODEL_REPO/resolve/main/$MODEL_FILE"
+    mv "$target.part" "$target"
+  fi
+  ls -lh "$target"
+  head -c 4 "$target" | grep -q GGUF || { echo "not a GGUF file"; exit 1; }
+  echo "MODEL_PATH=$target" >> "$GITHUB_ENV"
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  1116  100  1116    0     0   9756      0 --:--:-- --:--:-- --:--:--  9789
+  0  100M    0  3446    0     0   4817      0  6:04:52 --:--:--  6:04:52  4817100  100M  100  100M    0     0  80.8M      0  0:00:01  0:00:01 --:--:--  190M
+-rw-r--r-- 1 runner runner 101M Oct 29 16:59 /home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf

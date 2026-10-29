@@ -1,0 +1,157 @@
+$ ./scripts/remote_model.sh http://127.0.0.1:8080
+### endpoint
+http://127.0.0.1:8080
+curl /health      -> 200
+curl /v1/models   -> 200
+the server says: {"models":[{"name":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","model":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","modified_at":"","size":"","digest":"","type":"model","description":"","tags":[""],"capabilities":["completion"],"parameters":"","details":{"parent_model":"","form
+
+### the same endpoint through each official SDK
+
+--- openai
+OK    'Hello, welcome to my little corner of the internet.'
+      tokens in/out 36/12  finish stop
+      base http://127.0.0.1:8080/v1  ->  /chat/completions
+      streamed 4 chunk(s), 15 chars: 'Count to three.'
+
+--- anthropic
+OK    'Hello!'
+      tokens in/out 12/3  finish stop
+      base http://127.0.0.1:8080  ->  /v1/messages
+      streamed 6 chunk(s), 23 chars: 'I am counting to three.'
+
+--- google
+SKIP  the google client speaks :generateContent; this endpoint does not
+
+--- mistral
+OK    'Hello, welcome to my little corner of the internet.'
+      tokens in/out 36/12  finish stop
+      base http://127.0.0.1:8080  ->  /v1/chat/completions
+      streamed 4 chunk(s), 15 chars: 'Count to three.'
+
+--- groq
+SKIP  groq requests /openai/v1/chat/completions; this endpoint answers 404 there (model not found: Error code: 404 - {'error': {'message': 'File Not Found', 'type)
+
+--- together
+OK    'Hello, welcome to our chat about the latest news in the world of technology.'
+      tokens in/out 36/17  finish stop
+      base http://127.0.0.1:8080  ->  /v1/chat/completions
+      streamed 4 chunk(s), 12 chars: 'Yes, please.'
+
+--- cohere
+SKIP  no /v2/chat here; the cohere client has nothing to talk to
+
+--- ollama
+SKIP  no /api/tags here; the ollama client has nothing to talk to
+
+### summary
+4 SDK(s) completed a turn, 0 failed
+
+### and through Archx itself (the app, not just the SDK)
+home /tmp/archx-remote-jJsXZU
+
+$ archx-agent models add-sdk --name remote-openai --sdk openai --model local --base-url http://127.0.0.1:8080
+  registered remote-openai (mdl_0001m649kx0d000000003b6b3c0302e69b6f) provider=openai runtime=sdk
+    sdk      openai (`openai`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/OPENAI_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/OPENAI_API_KEY could not be resolved: secret reference secret://env/OPENAI_API_KEY not found in environment (OPENAI_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/OPENAI_API_KEY not found in environment (OPENAI_API_KEY)
+
+$ archx-agent models add-sdk --name remote-anthropic --sdk anthropic --model local --base-url http://127.0.0.1:8080
+  registered remote-anthropic (mdl_0001m649ky1e0000000004b8b9cd4dd74b56) provider=anthropic runtime=sdk
+    sdk      anthropic (`anthropic`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/ANTHROPIC_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/ANTHROPIC_API_KEY could not be resolved: secret reference secret://env/ANTHROPIC_API_KEY not found in environment (ANTHROPIC_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/ANTHROPIC_API_KEY not found in environment (ANTHROPIC_API_KEY)
+
+$ archx-agent models add-sdk --name remote-google --sdk google --model local --base-url http://127.0.0.1:8080
+  registered remote-google (mdl_0001m649m0830000000051c17afdf34561c3) provider=google runtime=sdk
+    sdk      google-genai (`google.genai`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/GEMINI_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/GEMINI_API_KEY could not be resolved: secret reference secret://env/GEMINI_API_KEY not found in environment (GEMINI_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/GEMINI_API_KEY not found in environment (GEMINI_API_KEY)
+
+$ archx-agent models add-sdk --name remote-mistral --sdk mistral --model local --base-url http://127.0.0.1:8080
+  registered remote-mistral (mdl_0001m649m19e00000000788cf2e0e1d8f977) provider=mistral runtime=sdk
+    sdk      mistralai (`mistralai.client`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/MISTRAL_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/MISTRAL_API_KEY could not be resolved: secret reference secret://env/MISTRAL_API_KEY not found in environment (MISTRAL_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/MISTRAL_API_KEY not found in environment (MISTRAL_API_KEY)
+
+$ archx-agent models add-sdk --name remote-groq --sdk groq --model local --base-url http://127.0.0.1:8080
+  registered remote-groq (mdl_0001m649m24e00000000c209fa9fbe58f919) provider=groq runtime=sdk
+    sdk      groq (`groq`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/GROQ_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/GROQ_API_KEY could not be resolved: secret reference secret://env/GROQ_API_KEY not found in environment (GROQ_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/GROQ_API_KEY not found in environment (GROQ_API_KEY)
+
+$ archx-agent models add-sdk --name remote-together --sdk together --model local --base-url http://127.0.0.1:8080
+  registered remote-together (mdl_0001m649m2wk0000000054f087ea8bc73366) provider=together runtime=sdk
+    sdk      together (`together`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/TOGETHER_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/TOGETHER_API_KEY could not be resolved: secret reference secret://env/TOGETHER_API_KEY not found in environment (TOGETHER_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/TOGETHER_API_KEY not found in environment (TOGETHER_API_KEY)
+
+$ archx-agent models add-sdk --name remote-cohere --sdk cohere --model local --base-url http://127.0.0.1:8080
+  registered remote-cohere (mdl_0001m649m3rs000000004f96b7f2a4d19ea0) provider=cohere runtime=sdk
+    sdk      cohere (`cohere`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/COHERE_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/COHERE_API_KEY could not be resolved: secret reference secret://env/COHERE_API_KEY not found in environment (COHERE_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/COHERE_API_KEY not found in environment (COHERE_API_KEY)
+
+$ archx-agent models add-sdk --name remote-ollama --sdk ollama --model local --base-url http://127.0.0.1:8080
+  registered remote-ollama (mdl_0001m649m4ae000000005477f3838ea599a2) provider=ollama runtime=sdk
+    sdk      ollama (`ollama`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/OLLAMA_API_KEY (never stored)
+    sdk      installed
+    runtime  ready - ready: a local Ollama needs no key (no data leaves this machine)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    chat: failed  (ModelNotFoundError: model not found: {'message': 'File Not Found', 'type': 'not_found_error', 'code': 404} (status code: 404))
+      latency 230.4 ms
+      state now unsupported (probe failed)
+      this drove the runtime; the result is recorded and the router will use it
