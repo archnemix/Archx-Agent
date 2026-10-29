@@ -1041,3 +1041,357 @@ M36 acceptance on /tmp/archx-m36-cMdIQB
 ### a comparison names what it could not rank
 [ok]   two n-gram runs rank on val perplexity = True
 [ok]   a mixed comparison names no winner = None
+[ok]   and says why = True
+[ok]   a refused run is listed with its status = True
+
+### the counters agree with the rows
+[ok]   jobs = 5
+[ok]   completed = 3
+[ok]   metrics = 27
+$ archx-agent train list
+id                                       method    status     dataset                                  artifact                                            created                 
+---------------------------------------  --------  ---------  ---------------------------------------  --------------------------------------------------  ------------------------
+tj_0001m63kc29t0000000001f0cb9a5d24e925  ngram     completed  ds_0001m63kbvj20000000083a0b0f20ab78ceb  tj_0001m63kc29t0000000001f0cb9a5d24e925.model.json  2026-10-29T10:30:27.898Z
+tj_0001m63kc16h00000000136b309b536e3112  qlora     refused    ds_0001m63kbvj20000000083a0b0f20ab78ceb  -                                                   2026-10-29T10:30:26.769Z
+tj_0001m63kc01900000000eabaa8b59bbe13db  lora      refused    ds_0001m63kbvj20000000083a0b0f20ab78ceb  -                                                   2026-10-29T10:30:25.577Z
+tj_0001m63kbz1v00000000aa939f6da437df06  centroid  completed  ds_0001m63kbvj20000000083a0b0f20ab78ceb  tj_0001m63kbz1v00000000aa939f6da437df06.model.json  2026-10-29T10:30:24.571Z
+tj_0001m63kby7s00000000af767e63b28a9f85  ngram     completed  ds_0001m63kbvj20000000083a0b0f20ab78ceb  tj_0001m63kby7s00000000af767e63b28a9f85.model.json  2026-10-29T10:30:23.737Z
+[exit 0]
+
+### the page is a client of the same service
+[ok]   the page lists the runs the CLI made = 5
+[ok]   the page says it cannot fine-tune = False
+[ok]   a run started in the page is a row the CLI reads = 1
+[ok]   the metrics endpoint returns the same numbers = True
+[ok]   a refusal over HTTP is a 200 with the reasons = True
+[ok]   an unknown run is a 404 = 404
+[ok]   an unauthenticated call is refused = 401
+[ok]   the preflight route answers the same question = False
+
+### the record survives a restart
+[ok]   the completed run is still completed = completed
+[ok]   the metrics are still the ones measured = ['test', 'train', 'val']
+[ok]   the artifact path is still recorded = yes
+[ok]   and the refusal is still a refusal = refused
+
+M36 acceptance: 57 checks passed, 0 failed
+=== remote-acceptance ===============================================
+$ bash scripts/acceptance_m37.sh
+M37 acceptance on /tmp/archx-m37-Y6w5d9
+
+### the schema adopts the table v8 reserved, and adds what makes a result checkable
+[ok]   remote is a versioned migration = 1
+[ok]   jobs and attempts are tables = 2
+[ok]   the reserved columns survive the adoption = 8
+[ok]   and the two hashes are separate columns = 2
+[ok]   a fresh home has dispatched nothing = 0
+[ok]   and says why nothing could be = True
+[ok]   the protocol is named = archx-remote/1
+
+### a bundle cannot be made from a dataset nobody built
+[ok]   an unbuilt dataset exits 2 (usage), not 0 = 2
+[ok]   and the reason asks for a build = 1
+
+### a bundle identifies its input down to two digests per record
+[ok]   the bundle is a file on disk = yes
+[ok]   its hash is the hash of its bytes = ead2f9a727f2dd74dbd00a5fcd5667b5f4598a0fdf3ca7fb0697b2ffe23da1a2
+[ok]   it carries every kept record = 8
+[ok]   with a file digest and a text digest that differ = True
+[ok]   the text digest is the digest of the text = True
+[ok]   the manifest checksum is the dataset's own = 50e360ad023211260a93bc1a6cf0ac3f5566ac2182e5eeecf94eb9be25ebd697
+[ok]   the run is declared in the bundle = 2
+
+### nothing leaves the machine until the switch, an endpoint and an approval all say yes
+$ archx-agent remote dispatch rj_0001m63kcad400000000c66384b88a40bb5b
+refused rj_0001m63kcad400000000c66384b88a40bb5b
+  nothing was sent: remote.require_approval is on and rj_0001m63kcad400000000c66384b88a40bb5b has not been approved: `archx-agent remote approve rj_0001m63kcad400000000c66384b88a40bb5b`; remote compute is off: `archx-agent config set remote.enabled true`; no cloud provider is reachable from this build: a worker is a second machine (or a second process) running `archx-agent remote worker`, and nothing here talks to a vendor's compute service
+  - remote.require_approval is on and rj_0001m63kcad400000000c66384b88a40bb5b has not been approved: `archx-agent remote approve rj_0001m63kcad400000000c66384b88a40bb5b`
+  - remote compute is off: `archx-agent config set remote.enabled true`
+  - no cloud provider is reachable from this build: a worker is a second machine (or a second process) running `archx-agent remote worker`, and nothing here talks to a vendor's compute service
+[exit 3]
+[ok]   a dispatch without approval is refused = refused
+[ok]   and says which approval is missing = 1
+[ok]   the refusal is an attempt row = 1
+[ok]   the approval is on the job = user:user
+[ok]   a dispatch with the switch off is still refused = 3
+[ok]   and it names the switch = yes
+[ok]   no dispatch succeeded while the switch was off = 0
+
+### a dispatch to a port nobody is listening on is a row, not a crash
+[ok]   an unreachable endpoint exits 3 = 3
+[ok]   the job is failed, not verified = failed
+[ok]   the failed attempt is in the log = 1
+[ok]   and the error is stored, not printed at the user = 1
+
+### a worker checks a bundle against itself before it computes anything
+[ok]   the worker is up and says which protocol it speaks = archx-remote/1
+[ok]   the worker is a separate process with no database = 1
+
+### an approved bundle is dispatched, computed, collected and verified
+[ok]   the dispatch is recorded against the endpoint = http://127.0.0.1:57953
+[ok]   the worker's machine is recorded = acceptance-box
+[ok]   the worker named its own job id = 1
+[ok]   collecting exits 0 only when the hash agrees = 0
+[ok]   the job is verified = verified
+[ok]   what the worker claimed and what this machine measured agree = True
+[ok]   and the claim is not empty = 64
+[ok]   the artifact is a file on disk = yes
+[ok]   the file hashes to what was stored = ba57be774d94533c69dbcbb22dfc77745c04f0f2cf578660cf3b23d7b946e0dd
+[ok]   a second verify still agrees = 1
+[ok]   the verification time is recorded = 1
+
+### the numbers are a local run's numbers, because it is the same trainer
+[ok]   the remote train perplexity equals the local one = 2.892797183739609
+[ok]   each split agrees exactly = True
+[ok]   the artifact holds the same counts as the local run's = True
+[ok]   the worker says who computed it = worker:acceptance-box
+
+### a worker that misreports its hash produces a disagreement, not a result
+[ok]   a claimed hash that does not match is not verified = received
+[ok]   the two hashes are stored separately = True
+[ok]   the note names both = True
+[ok]   nothing wrote a verification time = none
+[ok]   the attempt is recorded as a mismatch = mismatch
+[ok]   re-verifying cannot rescue it = 3
+[ok]   and the job stays received = received
+[ok]   the stats count it as unverified = 1
+
+### a worker speaking another protocol is refused by both names
+[ok]   a protocol mismatch exits 3 = 3
+[ok]   the job is refused, not dispatched = refused
+[ok]   and both versions are named = 1
+
+### a corpus edited after the build cannot become a bundle
+[ok]   a drifted corpus exits 2 = 2
+[ok]   and the file is named with the reason = 1
+[ok]   no job was created for it = 0
+[ok]   restoring the file makes the dataset verify again = True
+
+### the page is a client of the same service, over a real socket
+[ok]   the remote route needs a token = 401
+[ok]   with a token it answers = 200
+[ok]   an unknown job is a 404 = 404
+[ok]   an unknown status is a 400 = 400
+[ok]   the page counts the same jobs the CLI does = 4
+[ok]   the page can write a bundle = 1
+[ok]   and approve it = user:gui
+[ok]   and dispatch it to the configured endpoint = dispatched
+[ok]   and collect a verified result = verified
+[ok]   the detail shows both hashes = True
+
+### the record survives the process that wrote it
+[ok]   every job is still there after five more processes = 5
+[ok]   and the attempts were never overwritten = 3
+
+M37 acceptance: 71 checks passed, 0 failed
+=== execution-acceptance ===============================================
+$ bash scripts/acceptance_m38.sh
+M38 acceptance on /tmp/archx-m38-nbFbcp
+
+### the schema records where a command ran, and what crossed the boundary
+[ok]   execution is a versioned migration = 1
+[ok]   targets, runs and files are tables = 3
+[ok]   a run keeps the invocation, not just the command = 4
+[ok]   a training run names its machine = 2
+[ok]   a fresh home has run nothing = 0
+[ok]   and execution is off = False
+
+### every backend is named with a reason or a way to enable it
+[ok]   seven backends are listed = 7
+[ok]   each unusable one has a reason and a hint = True
+[FAIL] docker is not here, and says so: got 'False' want 'True'
+[ok]   windows sandbox is named as Windows-only = True
+[ok]   local is available = True
+[ok]   the isolation is stated, not implied = True
+
+### nothing runs before the switch
+[ok]   a run with execution off exits 3 = 3
+[ok]   and says which setting = yes
+[ok]   the refusal is a row = refused
+[ok]   a local run exits 0 = 0
+[ok]   it records the backend it ran on = local
+[ok]   its output is kept = hello-from-local
+[ok]   and kept as a file too = yes
+
+### a command that fails is a row with its exit code, not a crash
+[ok]   a non-zero exit exits 1 = 1
+[ok]   and the code is recorded = 7
+
+### an unusable backend refuses with the reason it was already given
+[FAIL] the target is recorded as refused: got 'probed' want 'refused'
+[FAIL] running on it exits 3: got '1' want '3'
+[FAIL] and the reason names docker: got '' want 'yes'
+
+### the wrapper really is what executes (a stand-in binary proves the argv)
+[ok]   docker becomes available when the binary appears = True
+[ok]   a docker run goes through the wrapper = 0
+[ok]   the invocation is on the row = True
+[ok]   the disposable flag reached the binary = 1
+[ok]   the network really was disabled = 1
+[ok]   the image was passed = 1
+[ok]   the command was passed to the shell inside = 1
+[ok]   the stand-in's output is the run's output = True
+
+### another machine is a real machine, and it says no until its operator says yes
+[ok]   a worker without --allow-exec refuses the command = 3
+[ok]   and names the flag = yes
+[ok]   the worker reports execution is on = 1
+[ok]   a remote run exits 0 = 0
+[ok]   it names the machine that computed it = ran on exec-box
+[ok]   the output came from the worker's work directory = True
+[ok]   not from this one = True
+[ok]   a wrong token is refused, not run = refused
+[ok]   and the refusal names the token = True
+[ok]   a timeout is a timeout, not a failure = timeout
+
+### the project goes there, is edited there, and comes back
+[ok]   two files were pushed = 2
+[ok]   both hashes are recorded = 2
+[ok]   and the hashes agreed = 2
+[ok]   the edited file came back = ['main.py']
+[ok]   and it is what the worker wrote = print(2)
+
+### a file changed on both sides is a conflict, not a silent overwrite
+[ok]   a conflict exits 3 = 3
+[ok]   the conflict is named = 1
+[ok]   the local file was not overwritten = print('edited here')
+[ok]   the conflict is in the ledger = conflict
+[ok]   with --force the worker's version wins = print('edited there')
+
+### training can run here or there, and the numbers are the same numbers
+[ok]   a local training run names this CPU = local
+[ok]   a remote training run completes = completed
+[ok]   and names the worker = remote
+[ok]   and records the remote job it came from = True
+[ok]   both runs are rows in one ledger = 2
+[ok]   the remote metrics equal the local metrics exactly = True
+[ok]   the remote artifact was hashed here = 64
+[ok]   an unknown training target is refused by name = 2
+[ok]   and the parser names the choices it accepts = 1
+
+### the ledger answers the question the milestone exists for
+[ok]   runs are counted per backend = True
+[ok]   the conflict is counted = 1
+[ok]   every run row names a target = 0
+[ok]   each run's command is exactly what was typed = 1
+
+M38 acceptance: 61 passed, 4 failed
+  FAIL | docker is not here, and says so | got 'False' want 'True'
+  FAIL | the target is recorded as refused | got 'probed' want 'refused'
+  FAIL | running on it exits 3 | got '1' want '3'
+  FAIL | and the reason names docker | got '' want 'yes'
+=== sdks ===============================================
+$ archx-agent models sdks
+openai     OpenAI           installed  openai         key from OPENAI_API_KEY
+anthropic  Anthropic        installed  anthropic      key from ANTHROPIC_API_KEY
+google     Google Gemini    installed  google-genai   key from GEMINI_API_KEY
+mistral    Mistral          installed  mistralai      key from MISTRAL_API_KEY
+groq       Groq             installed  groq           key from GROQ_API_KEY
+together   Together         installed  together       key from TOGETHER_API_KEY
+cohere     Cohere           installed  cohere         key from COHERE_API_KEY
+ollama     Ollama           installed  ollama         key from OLLAMA_API_KEY
+=== llama-cpp ===============================================
+$ bash -c 
+  set -u
+  mkdir -p "$HOME/llama"; server=""
+  for page in 1 2; do
+    asset="$(gh api "repos/ggml-org/llama.cpp/releases?per_page=10&page=$page" \
+      --jq ".[].assets[].browser_download_url" 2>/dev/null \
+      | grep -E "/llama-b[0-9]+-bin-ubuntu-x64\.tar\.gz$" | head -1 || true)"
+    [ -n "$asset" ] && break
+  done
+  if [ -n "${asset:-}" ]; then
+    echo "prebuilt: $asset"
+    curl -fsSL "$asset" -o /tmp/llama.tar.gz && tar -xzf /tmp/llama.tar.gz -C "$HOME/llama" || true
+    server="$(find "$HOME/llama" -name llama-server -type f | head -1)"
+  fi
+  if [ -z "$server" ]; then
+    echo "no prebuilt binary; building from source"
+    git clone --depth 1 https://github.com/ggml-org/llama.cpp /tmp/llama-src
+    cmake -S /tmp/llama-src -B /tmp/llama-src/build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF
+    cmake --build /tmp/llama-src/build --target llama-server -j "$(nproc)"
+    server=/tmp/llama-src/build/bin/llama-server
+  fi
+  [ -x "$server" ] || { echo "no llama-server binary"; exit 1; }
+  chmod +x "$server"; "$server" --version
+  echo "LLAMA_SERVER=$server" >> "$GITHUB_ENV"
+
+prebuilt: https://github.com/ggml-org/llama.cpp/releases/download/b11981/llama-b11981-bin-ubuntu-x64.tar.gz
+version: 0.8.0-dev (build 11981, commit da6c30ade)
+built with GNU 11.4.0 for Linux x86_64
+=== model-download ===============================================
+$ bash -c 
+  mkdir -p "$HOME/model"
+  target="$HOME/model/$MODEL_FILE"
+  if [ ! -s "$target" ]; then
+    curl -fL --retry 3 -o "$target.part" \
+      "https://huggingface.co/$MODEL_REPO/resolve/main/$MODEL_FILE"
+    mv "$target.part" "$target"
+  fi
+  ls -lh "$target"
+  head -c 4 "$target" | grep -q GGUF || { echo "not a GGUF file"; exit 1; }
+  echo "MODEL_PATH=$target" >> "$GITHUB_ENV"
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  1116  100  1116    0     0  19850      0 --:--:-- --:--:-- --:--:-- 19928
+ 98  100M   98 99.3M    0     0   126M      0 --:--:-- --:--:-- --:--:--  126M100  100M  100  100M    0     0   127M      0 --:--:-- --:--:-- --:--:--  409M
+-rw-r--r-- 1 runner runner 101M Oct 29 10:31 /home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf
+=== serve ===============================================
+$ bash -c 
+  # Detach *all three* descriptors. A backgrounded server that inherits the closing
+  # pipeline keeps the tee pipe open, so run.sh waits forever even after the check
+  # here is done - the first run of this workflow hung on exactly this line.
+  setsid "$LLAMA_SERVER" --model "$MODEL_PATH" --host 127.0.0.1 --port "$PORT" \
+    --ctx-size 512 --n-gpu-layers 0 --threads 2 --parallel 1 \
+    --no-warmup --log-file "$RUNNER_TEMP/llama.log" \
+    > "$RUNNER_TEMP/llama.out" 2>&1 < /dev/null &
+  echo $! > "$RUNNER_TEMP/llama.pid"
+  for i in $(seq 1 180); do
+    curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 && { echo "up after ${i}s"; exit 0; }
+    sleep 1
+  done
+  tail -40 "$RUNNER_TEMP/llama.log"; exit 1
+
+up after 2s
+=== completion ===============================================
+$ bash -c 
+  curl -sS -H "Content-Type: application/json" --max-time 120 \
+    -d "{\"model\":\"local\",\"messages\":[{\"role\":\"user\",\"content\":\"In one short sentence, what is a tunnel?\"}],\"max_tokens\":48}" \
+    "http://127.0.0.1:$PORT/v1/chat/completions" > "$LOGDIR/completion.json"
+  python - <<PY
+import json, os, pathlib
+data = json.loads(pathlib.Path(os.environ["LOGDIR"], "completion.json").read_text())
+text = data["choices"][0]["message"]["content"].strip()
+usage = data.get("usage", {})
+print("text:", text)
+print("usage:", usage)
+assert text, "empty reply"
+pathlib.Path(os.environ["LOGDIR"], "model-proof.json").write_text(json.dumps({"text": text, "usage": usage}, indent=2))
+PY
+
+text: A tunnel is a narrow, underground passageway that connects two or more buildings, usually using a network of tunnels and passageways to move people, goods, and services.
+usage: {'completion_tokens': 35, 'prompt_tokens': 40, 'total_tokens': 75, 'prompt_tokens_details': {'cached_tokens': 0}}
+=== sdk-matrix ===============================================
+$ ./scripts/remote_model.sh http://127.0.0.1:8080
+### endpoint
+http://127.0.0.1:8080
+curl /health      -> 200
+curl /v1/models   -> 200
+the server says: {"models":[{"name":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","model":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","modified_at":"","size":"","digest":"","type":"model","description":"","tags":[""],"capabilities":["completion"],"parameters":"","details":{"parent_model":"","form
+
+### the same endpoint through each official SDK
+
+--- openai
+OK    'Hello, welcome to my little corner of the internet!'
+      tokens in/out 36/12  finish stop
+      base http://127.0.0.1:8080/v1  ->  /chat/completions
+      streamed 4 chunk(s), 15 chars: 'Count to three.'
+
+--- anthropic
+OK    'Hello!'
+      tokens in/out 12/3  finish stop
+      base http://127.0.0.1:8080  ->  /v1/messages
+      streamed 14 chunk(s), 36 chars: 'There are 3, 1, and 2, respectively.'
+
+--- google

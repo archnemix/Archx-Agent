@@ -52,3 +52,37 @@ M36 acceptance on /tmp/archx-m36-cMdIQB
 ### a comparison names what it could not rank
 [ok]   two n-gram runs rank on val perplexity = True
 [ok]   a mixed comparison names no winner = None
+[ok]   and says why = True
+[ok]   a refused run is listed with its status = True
+
+### the counters agree with the rows
+[ok]   jobs = 5
+[ok]   completed = 3
+[ok]   metrics = 27
+$ archx-agent train list
+id                                       method    status     dataset                                  artifact                                            created                 
+---------------------------------------  --------  ---------  ---------------------------------------  --------------------------------------------------  ------------------------
+tj_0001m63kc29t0000000001f0cb9a5d24e925  ngram     completed  ds_0001m63kbvj20000000083a0b0f20ab78ceb  tj_0001m63kc29t0000000001f0cb9a5d24e925.model.json  2026-10-29T10:30:27.898Z
+tj_0001m63kc16h00000000136b309b536e3112  qlora     refused    ds_0001m63kbvj20000000083a0b0f20ab78ceb  -                                                   2026-10-29T10:30:26.769Z
+tj_0001m63kc01900000000eabaa8b59bbe13db  lora      refused    ds_0001m63kbvj20000000083a0b0f20ab78ceb  -                                                   2026-10-29T10:30:25.577Z
+tj_0001m63kbz1v00000000aa939f6da437df06  centroid  completed  ds_0001m63kbvj20000000083a0b0f20ab78ceb  tj_0001m63kbz1v00000000aa939f6da437df06.model.json  2026-10-29T10:30:24.571Z
+tj_0001m63kby7s00000000af767e63b28a9f85  ngram     completed  ds_0001m63kbvj20000000083a0b0f20ab78ceb  tj_0001m63kby7s00000000af767e63b28a9f85.model.json  2026-10-29T10:30:23.737Z
+[exit 0]
+
+### the page is a client of the same service
+[ok]   the page lists the runs the CLI made = 5
+[ok]   the page says it cannot fine-tune = False
+[ok]   a run started in the page is a row the CLI reads = 1
+[ok]   the metrics endpoint returns the same numbers = True
+[ok]   a refusal over HTTP is a 200 with the reasons = True
+[ok]   an unknown run is a 404 = 404
+[ok]   an unauthenticated call is refused = 401
+[ok]   the preflight route answers the same question = False
+
+### the record survives a restart
+[ok]   the completed run is still completed = completed
+[ok]   the metrics are still the ones measured = ['test', 'train', 'val']
+[ok]   the artifact path is still recorded = yes
+[ok]   and the refusal is still a refusal = refused
+
+M36 acceptance: 57 checks passed, 0 failed
