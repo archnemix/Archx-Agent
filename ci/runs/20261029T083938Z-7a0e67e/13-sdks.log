@@ -1,0 +1,4 @@
+$ archx-agent models sdks
+openai     OpenAI           installed  openai         key from OPENAI_API_KEY
+anthropic  Anthropic        installed  anthropic      key from ANTHROPIC_API_KEY
+google     Google Gemini    installed  google-genai   key from GEMINI_API_KEY
