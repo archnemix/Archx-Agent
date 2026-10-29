@@ -653,6 +653,9 @@ scene.collection.objects.link(light)
 light.location = LIGHT_LOCATION
 
 scene.render.engine = ENGINE
+if ENGINE == "CYCLES":
+    scene.cycles.device = "CPU"
+    scene.cycles.samples = 16
 scene.render.resolution_x = RESOLUTION[0]
 scene.render.resolution_y = RESOLUTION[1]
 scene.render.filepath = RENDER_PATH

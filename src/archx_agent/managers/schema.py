@@ -1346,6 +1346,15 @@ SCENES_V29 = Migration(
     ),
 )
 
+AUTOMATIONS_V30 = Migration(
+    version=30, name="automation_revisions",
+    statements=(
+        "ALTER TABLE automations ADD COLUMN revision INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE automation_runs ADD COLUMN job_id TEXT",
+        "CREATE INDEX idx_automation_runs_job ON automation_runs(job_id)",
+    ),
+)
+
 MIGRATIONS: tuple[Migration, ...] = (
     CONVERSATIONS_V1,
     PROJECTS_V2,
@@ -1376,6 +1385,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     REMOTE_V27,
     EXECUTION_V28,
     SCENES_V29,
+    AUTOMATIONS_V30,
 )
 
 SCHEMA_VERSION = max(m.version for m in MIGRATIONS)

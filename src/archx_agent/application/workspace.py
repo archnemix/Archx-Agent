@@ -80,6 +80,7 @@ from archx_agent.managers.training import TrainingManager
 from archx_agent.managers.remote import RemoteManager
 from archx_agent.managers.execution import ExecutionManager
 from archx_agent.managers.scenes import SceneManager
+from archx_agent.application.automations import AutomationManager, AutomationService
 from archx_agent.managers.tools import ToolManager
 from archx_agent.managers.versions import VersionManager
 from archx_agent.managers.workflows import WorkflowManager
@@ -123,6 +124,7 @@ class Workspace:
     remote: RemoteManager | None = None
     execution: ExecutionManager | None = None
     scenes: SceneManager | None = None
+    automations: AutomationManager | None = None
     reproduction: ReproductionManager | None = None
     router: Any = None
     context: ContextManager | None = None
@@ -366,6 +368,7 @@ class Workspace:
         ws.remote = RemoteManager(store, coordinator, events=events)
         ws.execution = ExecutionManager(store, coordinator, events=events)
         ws.scenes = SceneManager(store, coordinator, events=events)
+        ws.automations = AutomationManager(store, coordinator, jobs=ws.jobs, events=events)
         ws.research = ResearchManager(
             store, coordinator, events=events, config=config
         )
@@ -489,6 +492,10 @@ class Workspace:
         from .remote import RemoteService
 
         return RemoteService(self)
+
+    @property
+    def automation(self):
+        return AutomationService(self)
 
     @property
     def scene_workflow(self):

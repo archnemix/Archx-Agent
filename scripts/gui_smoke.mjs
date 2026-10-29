@@ -297,6 +297,10 @@ const routes = {
     task_id: null, started_at: "2026-10-29T10:00:00Z", ended_at: "2026-10-29T10:00:00Z",
     sentence: "`echo hello` ran on this machine and exited 0", reasons: [],
   },
+  "GET /api/automations": { automations: [{ id: "au_demo", name: "backup", enabled: false, schedule: { mode: "interval", seconds: 60 }, next_run_at: "2026-10-30T00:00:00Z" }], runs: [] },
+  "POST /api/automations/tick": { dispatched: [], refused: [] },
+  "POST /api/automations/au_demo/enable": { id: "au_demo", enabled: true },
+  "POST /api/automations": { id: "au_demo", enabled: false },
   "GET /api/scenes/sc_demo": { id: "sc_demo", name: "demo", measured: { triangles: 12, volume: 8 },
     objects_detail: [{ name: "cube", primitive: "cube", triangles: 12, watertight: true }], outputs: [], drifted: false },
   "GET /api/scenes": { scenes: [{ id: "sc_demo", name: "demo", triangles: 12 }], stats: {} },
@@ -457,7 +461,7 @@ function assert(condition, message) {
 }
 
 // the shell
-assert(doc.querySelectorAll(".tab").length === 19, "expected nineteen mode tabs");
+assert(doc.querySelectorAll(".tab").length === 20, "expected twenty mode tabs");
 assert(doc.getElementById("view-code"), "the coding view is missing");
 assert(doc.getElementById("view-experiments"), "the experiments view is missing");
 assert(doc.getElementById("view-play"), "the play view is missing");
@@ -720,6 +724,16 @@ Array.from(doc.querySelectorAll("#scene-detail button")).find(button => button.t
 await tick(); await tick(); await tick();
 assert(doc.getElementById("scenes-status").textContent.includes("refused"), "render refusal hidden");
 
+doc.querySelector('[data-view="automations"]').click();
+await tick(); await tick();
+assert(doc.getElementById("automations-list").textContent.includes("disabled"), "automation state hidden");
+doc.querySelector("#automations-list button").click();
+await tick(); await tick();
+assert(calls.includes("POST /api/automations/au_demo/enable"), "automation enable did not post");
+doc.getElementById("automations-tick").click();
+await tick(); await tick();
+assert(calls.includes("POST /api/automations/tick"), "automation tick did not post");
+
 // no inline style attributes were produced, and no inline handlers leaked into the markup
 assert(!/style="/.test(doc.body.innerHTML), "inline style attribute produced");
 assert(!/onclick="/.test(doc.body.innerHTML), "inline handler produced");
@@ -731,4 +745,4 @@ if (problems.length) {
   for (const problem of problems) console.error(" - " + problem);
   process.exit(1);
 }
-console.log("smoke ok: 19 tabs, 4 gate rows, code, experiment, play, voice, dataset, training, remote and exec panels render, forms post, no page errors");
+console.log("smoke ok: 20 tabs, 4 gate rows, code, experiment, play, voice, dataset, training, remote and exec panels render, forms post, no page errors");

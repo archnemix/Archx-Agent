@@ -229,6 +229,14 @@ class JobRunner:
 
         task = self._ensure_task(job, "automation", f"job: {job.title}")
         self.jobs.link_task(job.id, task.id)
+        if payload.get("automation_id"):
+            # A recurring definition is not a permanent grant. Check and consume authority at
+            # every execution, including jobs that sat in the queue while grants were revoked.
+            self.ws.tools.runtime.resolve(str(cwd or self.ws.tools.roots()[0]))
+            decision = self.ws.permissions.check("shell.run", subject="shell.run", task_id=task.id,
+                consume=True, purpose="scheduled automation " + str(payload["automation_id"]))
+            if not decision.allowed:
+                raise ApprovalRequiredError(decision.reason or "scheduled shell.run needs approval")
         started = time.perf_counter()
         deadline = self._deadline_ts(job)
         env = dict(os.environ)
