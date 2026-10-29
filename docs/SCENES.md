@@ -1,8 +1,10 @@
 # Scenes and Blender — M39 foundation
 
-**In progress, not milestone-complete.** Geometry, persistence, CLI, the Scenes GUI tab and a
-self-checking acceptance script are implemented. Document validation is green in CI run #23 (21 steps). Task artifact linkage
-was added afterward and its new CI result must be checked separately. No real Blender render has been validated in this environment.
+**Complete within documented scope.** Geometry, persistence, CLI, GUI, task artifacts and local
+rendering are implemented. CI #25 verifies a real render using official Blender 4.2 `bpy` and
+Cycles CPU through the documented adapter (`scripts/blender_real_check.py`). The standalone
+desktop Blender binary and other versions/engines have not been validated. Native libraries are
+installed on the CI runner; this sandbox itself lacks those libraries and cannot load bpy.
 
 ## CLI
 
@@ -93,7 +95,7 @@ actual renderer compatibility validation remain follow-up work.
   reading export bytes independently, corrupting a file and recording a stand-in's argv.
 - GUI smoke: **19 tabs**, including scene list, add, wireframe image and render refusal.
 - CI run #23 on `17a4253`: **21 steps green**, **1921 tests**, **49 scene checks**.
-  This predates task linkage. No real Blender render is claimed.
+  This predates task linkage. CI #25 subsequently verifies a real Blender render.
 
 ## GUI and API
 
@@ -151,4 +153,13 @@ artifacts are references with versions, not an immutable render-input bundle.
 Job integration review: rendering is currently synchronous, locally executed, with a 600-second
 execution timeout. It does not register a background scheduler job and does not promise restart
 recovery or queued rendering. Those features are explicitly deferred rather than exposing a job
-row that cannot resume. Actual Blender compatibility validation remains the main M39 open item.
+row that cannot resume. Blender compatibility is verified for official bpy 4.2 / Cycles CPU in CI; desktop binaries and other versions remain outside the verified matrix.
+
+
+## Real renderer evidence
+
+CI #25 (`385d386`) passed the actual renderer check, in addition to the stand-in acceptance.
+Official bpy 4.2 renders the exported OBJ using Cycles CPU at 64×64. The recorded output is 4897
+bytes with SHA-256 `c157d34edbb959f8194117dc220b515b6bd5f750154ea5cb39337c34cd509570`.
+The adapter imports Blender and executes the generated script; it does not fabricate an image.
+A renderer is still optional and is never installed as an Archx Agent runtime dependency.

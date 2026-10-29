@@ -479,3 +479,11 @@ not as live page markup. Routes, scope and remaining M39 work: `docs/SCENES.md`.
 Scene creation also accepts an optional existing task ID. Linked scenes and exports appear in
 the task's artifacts, while render attempts appear on its timeline. This does not complete or
 fail the parent task, nor create a background scheduler job.
+
+
+## M40 Automations tab
+
+The twentieth tab creates disabled interval, one-shot or file-watch schedules, shows enabled/next
+state, enables/disables schedules, explicitly ticks due work and shows occurrence/job state.
+Ticking does not execute jobs; the Jobs interface or `automation serve` runs them. Execution-time
+capabilities are checked again. API and scope: `docs/AUTOMATIONS.md`.

@@ -157,7 +157,7 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 | Training: two CPU trainers with real metrics and hashed artifacts; fine-tuning refused by name | verified, scoped (M36) |
 | Remote compute: a portable bundle with two digests per record, a worker that re-checks it, and an artifact hashed again on arrival | verified, scoped (M37 - no cloud, no vendor SDK) |
 | Execution environments: seven backends behind one recorded wrapper, a refusal with its reason, and a push/pull hash ledger that keeps a both-sides edit as a conflict | verified, scoped (M38 - WSL is not a boundary, Windows Sandbox is detached) |
-| Scenes/Blender, automations | **M39 in progress:** scene CLI/GUI, measured meshes and exports; actual Blender validation pending. Automations not built (see PLAN.md and docs/SCENES.md) |
+| Scenes/Blender, automations | **Implemented, scoped:** measured scenes, task artifacts and Blender 4.2 CPU rendering; interval/once/hash-watch scheduling with explicit workers. See docs/SCENES.md and docs/AUTOMATIONS.md |
 
 ## Design principles (enforced, not aspirational)
 

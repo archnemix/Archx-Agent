@@ -96,11 +96,11 @@ edit .ci/trigger -> push -> .github/workflows/model-matrix.yml (19 steps, 19 ste
 | ~~16~~ | ~~**M38 Execution environments and sandboxing**~~ | **Done, scoped.** Seven backends known by name, the wrapper built by one function and stored on the run row (so a target called `docker` cannot quietly run the command here), a refusal that is a row with every reason and exit 3 for "nothing ran", a worker that runs commands only with `--allow-exec` and a token, and a push/pull hash ledger that makes a both-sides edit a conflict rather than a silent overwrite. WSL is labelled *not a boundary*, Windows Sandbox is `detached`. No image management, no snapshots, no streaming, no sync into containers/VMs. `docs/EXECUTION.md`, `pytest tests/test_execution_m38.py` (49), `scripts/acceptance_m38.sh` (65). | closed |
 | 12 | **Speech recognition or synthesis** | Needs weights and an adapter that no machine here can run; building one would be a claim this repository could not verify. `M36` (training) inherits the same problem. | blocked on hardware |
 
-What is left is one thing that a live network could close: a call to a vendor's cloud API, which
-needs keys this environment does not have - and one thing no network here can close: speech in or
-out, and a transformer training run. M35, M36, M37 and M38 closed as far as this machine allows; M39
-(Blender and 3D) is next and needs a Blender binary this machine does not have, so it will be scoped
-the same way. Nothing in between is "implemented but untested".
+M39 and M40 are complete within scope: measured scenes and actual Blender 4.2 bpy/Cycles CPU
+rendering are verified on CI; interval/once/hash-watch automations dispatch atomically to the
+existing queue with execution-time permission checks. M41 hardening and clean-wheel packaging
+checks are implemented and await the final combined CI result. Vendor credentials, speech and
+transformer training limitations remain explicitly open; roadmap closure does not erase them.
 
 ---
 

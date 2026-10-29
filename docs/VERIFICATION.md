@@ -4860,6 +4860,11 @@ run #16 20261028T181313Z-e098a06   all 17 steps ok; 1720 tests in 320 s, 91 stre
                                   88/88, 72/72). The dataset acceptance writes its corpus on the
                                   runner, so every hash it checks is arithmetic on content the run
                                   chose - and the manifest is then broken by an edit and a delete
+run #25 20261029T163024Z-385d386   all 23 steps ok; 1940 tests in 430 s, 91 stress/edge, 11
+                                  integration, ten acceptances including scenes 59/59 and
+                                  automations 34/34. REAL official Blender 4.2 bpy/Cycles CPU
+                                  rendered a 64x64 PNG, 4897 bytes, verified against its hash.
+                                  GitHub run 40912224001. Predates M41 hardening/release gate.
 run #23 20261029T133321Z-17a4253   all 21 steps ok; 1921 tests in 406 s, 91 stress/edge, 11
                                   integration, and all nine acceptances (scene checks 49/49).
                                   Scene validation runs before allocation/writes. GitHub run
@@ -5088,3 +5093,17 @@ New tests check document/export artifact hashes, missing-task refusal before fil
 render-refusal timeline entries without changing parent task state, attachment failure preserving
 the output ledger, and a stand-in writer's output attached to the same task as the execution run.
 The stand-in is not evidence of a real Blender render. Task-linkage CI result is pending.
+
+
+## M39–M41 final combined gate
+
+Local full suite: **1951 passed in 486.57 seconds**. M40 tests: 17; M41 hardening regressions: 8.
+M39 acceptance: 59/59; M40 acceptance: 34/34; GUI smoke: 20 tabs; clean-wheel/sdist build and
+installation check: passed with no runtime dependencies. Final combined CI is pending.
+
+CI #25 is green and independently verified the real official bpy 4.2 / Cycles CPU render:
+64×64 PNG, 4897 bytes, SHA-256
+`c157d34edbb959f8194117dc220b515b6bd5f750154ea5cb39337c34cd509570`. This uses Blender itself,
+not the argv-only stand-in. Native libraries were installed on the CI runner; bpy cannot load in
+this sandbox due to missing X11/OpenGL libraries. The desktop Blender binary is not in the tested
+matrix. Release scope and operator caveats: `docs/RELEASE.md`.

@@ -797,6 +797,9 @@ class ToolManager(BaseManager):
                 dry_run=dry_run,
             )
         if spec.name == "fs.write_bytes":
+            # Refuse before allocating the decoded byte string; the runtime checks exact size too.
+            if len(args["content_base64"]) > 4 * ((runtime.max_file_bytes + 2) // 3):
+                raise ToolValidationError("binary payload exceeds tools.max_file_bytes")
             try:
                 payload = base64.b64decode(args["content_base64"], validate=True)
             except (ValueError, TypeError) as exc:

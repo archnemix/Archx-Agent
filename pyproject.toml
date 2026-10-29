@@ -33,6 +33,9 @@ archx-agent = "archx_agent.interfaces.cli.main:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"archx_agent.interfaces.gui" = ["assets/*.html", "assets/*.css", "assets/*.js"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"

@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from datetime import timedelta, timezone
 
-from archx_agent.helpers.exceptions import ArchxError, ValidationError, NotFoundError
+from archx_agent.helpers.exceptions import ArchxError, ConflictError, ValidationError, NotFoundError
 from archx_agent.helpers.timeutil import iso_now, parse_iso, new_id
 from archx_agent.managers.base import BaseManager
 from archx_agent.managers.jobs import Job, DEFAULT_ESTIMATES
@@ -16,8 +16,10 @@ from archx_agent.managers.tools import ToolContext
 
 
 def stamp(value=None):
+    if value is not None and not isinstance(value, str):
+        raise ValidationError("schedule time must be an ISO timestamp string")
     try:
-        dt = parse_iso(value or iso_now())
+        dt = parse_iso(iso_now() if value is None else value)
         if dt.tzinfo is None:
             raise ValueError("timezone required")
         return dt.astimezone(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
@@ -115,12 +117,18 @@ class AutomationService:
     def create(self, name, command, *, interval=None, at=None, watch=None, cwd=None, timeout=60):
         if not isinstance(name, str) or not name.strip() or len(name) > 120:
             raise ValidationError("automation needs a name of 1-120 characters")
-        if not isinstance(command, list) or not command or any(not isinstance(x, str) or not x or "\x00" in x for x in command):
+        if not isinstance(command, list) or not command or any(not isinstance(x, str) or "\x00" in x for x in command) or not command[0]:
             raise ValidationError("command must be a nonempty JSON argv array")
         if sum(value is not None for value in (interval, at, watch)) != 1:
             raise ValidationError("choose exactly one interval, at timestamp, or watch path")
         if type(timeout) is not int or not 1 <= timeout <= 86400:
             raise ValidationError("timeout must be an integer from 1 to 86400")
+        if cwd is not None and not isinstance(cwd, str):
+            raise ValidationError("cwd must be a tool-root directory path")
+        if watch is not None and (not isinstance(watch, str) or not watch):
+            raise ValidationError("watch must be a nonempty file path")
+        if not self.ws.tools.roots():
+            raise ValidationError("automations need a configured tool root")
         root = str(self.ws.tools.runtime.resolve(cwd or str(self.ws.tools.roots()[0])))
         if not self.ws.tools.runtime.resolve(root).is_dir():
             raise ValidationError("automation cwd must be an existing directory")
@@ -183,5 +191,9 @@ class AutomationService:
                 job = self.ws.jobs.get(occurrence["job_id"])
                 # Scope this worker to automation jobs only; ordinary queue work is untouched.
                 if job.payload.get("automation_id"):
-                    result["jobs"].append(self.ws.scheduler.execute(job).to_dict())
+                    try:
+                        result["jobs"].append(self.ws.scheduler.execute(job).to_dict())
+                    except ConflictError:
+                        # Another worker claimed it after our snapshot. The queue owns the claim.
+                        continue
         return result

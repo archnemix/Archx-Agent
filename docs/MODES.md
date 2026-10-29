@@ -45,9 +45,9 @@ there is no code.
 | M36 | **Training and model modification** | **partial** | two CPU trainers that really run (perplexity, accuracy), metrics as rows, artifacts hashed and versioned; fine-tuning refused by name - no weights, no GPU, no library here (see §3.5) |
 | M37 | **Remote compute and portability** | **partial** | a portable bundle with two digests per record, a worker that re-checks it and runs the same trainer, and a result hashed again on arrival; no cloud, no vendor SDK, no credentials (see §3.6) |
 | M38 | **Execution environments** | **partial** | a recorded wrapper per backend (`local`, `remote`, `docker`, `wsl`, `windows-sandbox`, `vmware`, `virtualbox`), the invocation on the row, push/pull with a hash ledger; WSL is not a boundary, Windows Sandbox is detached, and nothing is pulled or snapshot (see §3.7) |
-| M39 | Blender and 3D workflows | not built | scene scripting through the tool layer |
-| M40 | Automations and scheduled tasks | not built | triggers, watches, recurring work |
-| M41 | Hardening and release | not built | packaging, upgrade path, audits |
+| M39 | Blender and 3D workflows | scoped | measured scenes, exports and task artifacts; actual bpy 4.2/Cycles CPU rendering verified in CI (`docs/SCENES.md`) |
+| M40 | Automations and scheduled tasks | scoped | interval, one-shot, hash watches; atomic jobs and explicit permissioned worker (`docs/AUTOMATIONS.md`) |
+| M41 | Hardening and release | final CI pending | hardening regressions, packaged GUI and clean-wheel install (`docs/RELEASE.md`) |
 
 ## 2. Modes: same shell, different tools
 
@@ -330,14 +330,12 @@ boundary.
 
 ## 4. Where this leaves the roadmap
 
-Built: M01–M38 (with the seven honest `partial`s above), plus the Research completion model
-(§3.1). M38 was executed as **execution environments** rather than the brief's Blender milestone,
-because M36 and M37 both end by needing one ("run it on that machine instead"); Blender moves to
-M39. Next: **M39 Blender and 3D workflows**, which needs a Blender binary this machine does not
-have - so it will be scoped the way M34, M36 and M37 were: what can be measured and scripted is
-built, and the renderer is refused by name. The Research gaps in §3.1 remain the most valuable
-repair, and they no longer have an excuse: the runner and the record they needed now exist in the
-coding workspace, which can be reused rather than invented.
+Built: M01–M40 within the documented scopes. M41 hardening is implemented and awaiting final
+combined CI. M38 became execution environments and Blender moved to M39; Blender 4.2's official
+bpy runtime now produces a real verified CPU render on CI. M40 schedules command jobs without
+turning a recurring definition into a permission grant. The remaining feature limitations and
+unverified platforms stay explicit in GAPS.md; release readiness is not a claim of feature parity
+with every third-party environment or a published installer.
 
 If a mode is missing from the sidebar, it is because the code is missing — not because the button
 was hidden.

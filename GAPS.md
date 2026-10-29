@@ -22,7 +22,9 @@ This file records what is **not** true yet. If a feature is not listed as verifi
 
 ## Not built yet
 
-M39 Blender/3D is in progress: geometry, scene persistence, CLI, GUI and acceptance checks are implemented; validation checkpoint CI #23 is green and task artifacts are implemented; rendering remains synchronous, and real renderer validation is pending (`docs/SCENES.md`). M40-M41 automations and release hardening are not implemented. M17-M38 are
+M39 and M40 are implemented within documented scope: real Blender 4.2 bpy/Cycles CPU rendering
+is verified in CI, and explicit polling automations support interval, one-shot and file hash watches.
+M41 hardening and clean-wheel checks are implemented; final combined CI is pending. M17-M40 are
 implemented and verified (see [PROGRESS.md](PROGRESS.md)); M33 (Play Mode), M34 (Voice and media),
 M35 (Dataset preparation), M36 (Training), M37 (Remote compute) and M38 (Execution environments) are
 deliberately small - three board games and one simulation; four container formats, three tables and

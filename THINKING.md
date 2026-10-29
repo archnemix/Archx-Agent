@@ -1266,3 +1266,15 @@ Attach documents and exports through the existing versioned artifact service, pa
 execution, and log refusal as an attempt. Do not mark the whole task complete or failed for one
 render. Report artifact bookkeeping failures separately from output production so an attachment
 problem cannot erase a successful output ledger row. Synchronous execution is not a resumable job.
+
+
+**D194. Scheduling is atomic dispatch, not an execution grant.** An occurrence, queue insertion
+and schedule revision commit together. Concurrent ticks compare revisions; missed intervals
+coalesce; a schedule does not overlap itself. Watch hashes are measured through permissioned tools.
+A queued command checks current authority again: a grant revoked after enqueue must not authorize
+the process. Running a polling worker is explicit, not a workspace-open side effect.
+
+**D195. Test the wheel away from the checkout.** Editable installs hid the absence of explicit
+GUI package data. Build wheel/sdist, install the wheel without dependencies into a fresh environment,
+change directory away from the source tree, and ask it to load the CLI, schema and GUI assets.
+A clean source-tree test is not evidence that an installed distribution can find its files.

@@ -6,6 +6,13 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 ## [Unreleased]
 
 ### Added
+- **M40 automations:** interval, timezone-qualified one-shot and permissioned file-hash watches;
+  atomic schedule/job/occurrence dispatch, disabled defaults, non-overlap, explicit polling worker,
+  CLI/API/GUI, live job status and capability checks at execution. 17 tests and 34 acceptance checks.
+- **Real Blender validation:** CI #25 rendered a 64×64 PNG using official bpy 4.2 / Cycles CPU;
+  dimensions, byte hash and scene ledger verified. M39 closes within that documented scope.
+- **M41 release gate:** wheel/sdist build and dependency-free clean install with CLI/schema/GUI
+  checks, explicit GUI package data and the declared MIT license text. Final combined CI pending.
 - **M39 task artifact linkage:** scene creation accepts an existing task through CLI/API/GUI;
   documents and exports attach as versioned task artifacts, render attempts log to the task timeline,
   and execution runs inherit the task. Parent task status is never changed by a render attempt.
@@ -23,6 +30,9 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
   validation remain pending; see `docs/SCENES.md`.
 
 ### Fixed
+- **M41 hardening:** reject malformed HTTP body framing before reads, reject oversized base64
+  before decoding, spool noisy job output to avoid pipe deadlocks, and fail an automated command's
+  own task when permission is refused. Full local suite: 1951 passed; GUI smoke: 20 tabs.
 - **Scene JSON is validated before geometry allocation and document writes.** Reject malformed
   types, non-finite numbers, invalid camera bases, duplicate names, and oversized object/geometry
   budgets. Invalid additions preserve the file and object rows. 53 scene tests pass; full suite

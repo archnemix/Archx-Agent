@@ -1947,10 +1947,14 @@ class GuiHandler(BaseHTTPRequestHandler):
 
     # -- one request ----------------------------------------------------
     def _handle(self, method: str) -> None:
-        try:
-            length = int(self.headers.get("content-length") or 0)
-        except ValueError:
-            length = 0
+        raw_length = self.headers.get("content-length") or "0"
+        if (not raw_length.isascii() or not raw_length.isdigit() or len(raw_length) > 12
+                or len(self.headers.get_all("content-length", [])) > 1 or self.headers.get("transfer-encoding")):
+            self.close_connection = True
+            self._send(Response(status=400, payload={"ok": False, "error": {
+                "code": "bad_length", "message": "use a nonnegative Content-Length; transfer encoding is not supported"}}))
+            return
+        length = int(raw_length)
         if length > self.api.max_body_bytes:
             self._send(Response(status=413, payload={"ok": False, "error": {
                 "code": "too_large", "message": f"a body must be at most {self.api.max_body_bytes} bytes"}}))

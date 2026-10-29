@@ -1,11 +1,8 @@
 # Progress
 
-Last updated: M38 complete and scoped (Execution environments and sandboxing), 1868 tests, eight
-acceptances, CI run #21 green with 20 steps. Before that: M37 (Remote compute and portability,
-scoped, CI run #18 green with 19 steps), M36 (Training and model modification, scoped), M35
-(Dataset preparation), M34 (Voice and media, scoped), M33 (Play Mode), M32 (Experimental Mode), M31
-(Coding workspace), M30 (Learning Mode), research completion, eight vendor SDKs and a second wire
-protocol (Gemini). Next: M39.
+Last updated: M39 and M40 complete within documented scope; M41 hardening implemented and
+awaiting final combined CI. Full local suite: 1951 passed. GUI smoke: 20 tabs. CI #25 is green
+(23 logged steps, 1940 tests, ten acceptances and a real Blender 4.2 CPU render).
 
 ## Verified in this session
 
@@ -169,17 +166,19 @@ about 3.13 and about llama.cpp).
 `docs/reports/STATUS.md` is the itemised list of everything still open (a live vendor call, M35
 onward), with the reason each one is open and what would close it.
 
-## Next steps (in order)
+## Final roadmap gate
 
-1. M39 in progress: geometry, schema v29 scene ledger, scene service, CLI and GUI implemented.
-   Six primitives, measured meshes, OBJ/STL/SVG/script exports, hash verification, and local Blender
-   command/refusal paths. `tests/test_scenes_m39.py`: 58 passed; full suite: 1926 passed in 463.12 s.
-   This is a foundation checkpoint, **not M39 completion**. 59 acceptance checks pass and are wired into CI; GUI smoke passes with 19 tabs.
-   CI #23 is green (21 steps, 1921 tests, 49 scene checks); evidence is saved in docs/ci.
-   Task artifact linkage is implemented and awaits its CI result. Job scope is reviewed: renders
-   remain synchronous and do not claim scheduler recovery. Next: real Blender compatibility checks.
-   No real Blender render has been validated here. Scope and limitations: `docs/SCENES.md`.
-2. M40-M41 per PLAN.md (automations, then hardening).
+M39 is verified with a real official bpy 4.2/Cycles CPU render in CI (64×64, 4897 PNG bytes,
+SHA-256 `c157d34edbb959f8194117dc220b515b6bd5f750154ea5cb39337c34cd509570`).
+Task artifacts and synchronous rendering are implemented; no background render recovery is claimed.
+M40 provides interval, one-shot and hash-watch scheduling, atomic queue dispatch and an explicit
+permissioned polling worker. Its CLI acceptance passes 34 checks; M39 acceptance passes 59.
+M41 adds release packaging and hardening regressions. Latest local suite: **1951 passed in
+486.57 s**; GUI smoke: **20 tabs**; clean-wheel install passes without runtime dependencies.
+
+Only the final combined CI evidence remains before closing M41. Future feature extensions are
+limitations in GAPS.md, not remaining M01–M41 roadmap milestones. No installer or published release
+is implied by release readiness. See `docs/RELEASE.md` for the supported/verified scope.
 
 ## Known breakage
 

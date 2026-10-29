@@ -41,6 +41,7 @@ import shutil
 import signal
 import subprocess
 import time
+import tempfile
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Mapping, Sequence
@@ -236,91 +237,100 @@ class JobRunner:
             decision = self.ws.permissions.check("shell.run", subject="shell.run", task_id=task.id,
                 consume=True, purpose="scheduled automation " + str(payload["automation_id"]))
             if not decision.allowed:
-                raise ApprovalRequiredError(decision.reason or "scheduled shell.run needs approval")
+                reason = decision.reason or "scheduled shell.run needs approval"
+                self.ws.tasks.fail(task.id, reason)
+                raise ApprovalRequiredError(reason)
         started = time.perf_counter()
         deadline = self._deadline_ts(job)
         env = dict(os.environ)
         for key, value in dict(payload.get("env") or {}).items():
             env[str(key)] = str(value)
 
-        proc = subprocess.Popen(  # noqa: S603 - argv comes from the user's own job
-            argv,
-            cwd=str(cwd) if cwd else None,
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            errors="replace",
-            start_new_session=True,
-        )
-        self._log(task.id, "command_started", " ".join(argv)[:500])
-        timed_out = False
-        cancelled = False
-        try:
-            while True:
-                code = proc.poll()
-                if code is not None:
-                    break
-                if deadline is not None and time.time() >= deadline:
-                    timed_out = True
-                    self._kill(proc)
-                    break
-                control_state = self.jobs.control(job.id)
-                if control_state == "cancel":
-                    cancelled = True
-                    self._kill(proc)
-                    break
-                time.sleep(min(self.poll, 0.2))
-            out, err = proc.communicate(timeout=10)
-        except subprocess.TimeoutExpired:  # pragma: no cover - a killed child that lingers
-            proc.kill()
-            out, err = proc.communicate()
-        elapsed_ms = round((time.perf_counter() - started) * 1000, 2)
-        limit = min(MAX_OUTPUT_CHARS, int(self._cfg("tools.max_output_bytes", MAX_OUTPUT_CHARS)))
-        out, out_cut = _truncate(out or "", limit)
-        err, err_cut = _truncate(err or "", limit)
-        result = {
-            "argv": argv,
-            "exit_code": proc.returncode,
-            "stdout": out,
-            "stderr": err,
-            "duration_ms": elapsed_ms,
-            "truncated": bool(out_cut or err_cut),
-            "timed_out": timed_out,
-            "cancelled": cancelled,
-            "env_overrides": sorted(dict(payload.get("env") or {})),
-        }
-        self.jobs.heartbeat(
-            job.id,
-            progress=1.0,
-            resource_observed={"memory_mb_peak": _peak_rss_mb(), "duration_ms": elapsed_ms},
-        )
-        if cancelled:
-            self.ws.tasks.cancel(task.id, "cancelled while the command was running")
-            raise JobStopped("cancel", message="cancelled while the command was running")
-        if timed_out:
-            failure = ValidationError(
-                f"command timed out after {job.timeout_seconds}s and was killed"
+        # Pipes must be drained while a child runs. Spooling avoids pipe-capacity deadlocks
+        # and bounds the amount loaded into memory after exit, including noisy subprocesses.
+        with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:
+            proc = subprocess.Popen(  # noqa: S603 - argv comes from the user's own job
+                argv,
+                cwd=str(cwd) if cwd else None,
+                env=env,
+                stdout=stdout_file,
+                stderr=stderr_file,
+                text=True,
+                errors="replace",
+                start_new_session=True,
             )
-            self.ws.tasks.fail(task.id, failure)
-            self._log(task.id, "command_timed_out", f"after {job.timeout_seconds}s")
-            failure.result = result  # type: ignore[attr-defined]
-            raise failure
-        if proc.returncode != 0:
-            detail = (err or out or "").strip().splitlines()
-            tail = detail[-1][:300] if detail else ""
-            failure = ValidationError(
-                f"command exited with code {proc.returncode}"
-                + (f": {tail}" if tail else "")
+            self._log(task.id, "command_started", " ".join(argv)[:500])
+            timed_out = False
+            cancelled = False
+            try:
+                while True:
+                    code = proc.poll()
+                    if code is not None:
+                        break
+                    if deadline is not None and time.time() >= deadline:
+                        timed_out = True
+                        self._kill(proc)
+                        break
+                    control_state = self.jobs.control(job.id)
+                    if control_state == "cancel":
+                        cancelled = True
+                        self._kill(proc)
+                        break
+                    time.sleep(min(self.poll, 0.2))
+                proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:  # pragma: no cover - a killed child that lingers
+                proc.kill()
+                proc.wait()
+            stdout_file.seek(0)
+            stderr_file.seek(0)
+            out = stdout_file.read(MAX_OUTPUT_CHARS * 4 + 1).decode("utf-8", errors="replace")
+            err = stderr_file.read(MAX_OUTPUT_CHARS * 4 + 1).decode("utf-8", errors="replace")
+            elapsed_ms = round((time.perf_counter() - started) * 1000, 2)
+            limit = min(MAX_OUTPUT_CHARS, int(self._cfg("tools.max_output_bytes", MAX_OUTPUT_CHARS)))
+            out, out_cut = _truncate(out or "", limit)
+            err, err_cut = _truncate(err or "", limit)
+            result = {
+                "argv": argv,
+                "exit_code": proc.returncode,
+                "stdout": out,
+                "stderr": err,
+                "duration_ms": elapsed_ms,
+                "truncated": bool(out_cut or err_cut),
+                "timed_out": timed_out,
+                "cancelled": cancelled,
+                "env_overrides": sorted(dict(payload.get("env") or {})),
+            }
+            self.jobs.heartbeat(
+                job.id,
+                progress=1.0,
+                resource_observed={"memory_mb_peak": _peak_rss_mb(), "duration_ms": elapsed_ms},
             )
-            self.ws.tasks.fail(task.id, failure)
-            self._log(task.id, "command_failed", f"exit {proc.returncode}")
-            failure.result = result  # type: ignore[attr-defined]
-            raise failure
-        self._log(task.id, "command_succeeded", f"exit 0 in {elapsed_ms:.0f}ms")
-        # The task is closed by execute() *after* the job is marked completed, so the
-        # timeline reads "... command_succeeded, job_completed, summary, completed".
-        return result
+            if cancelled:
+                self.ws.tasks.cancel(task.id, "cancelled while the command was running")
+                raise JobStopped("cancel", message="cancelled while the command was running")
+            if timed_out:
+                failure = ValidationError(
+                    f"command timed out after {job.timeout_seconds}s and was killed"
+                )
+                self.ws.tasks.fail(task.id, failure)
+                self._log(task.id, "command_timed_out", f"after {job.timeout_seconds}s")
+                failure.result = result  # type: ignore[attr-defined]
+                raise failure
+            if proc.returncode != 0:
+                detail = (err or out or "").strip().splitlines()
+                tail = detail[-1][:300] if detail else ""
+                failure = ValidationError(
+                    f"command exited with code {proc.returncode}"
+                    + (f": {tail}" if tail else "")
+                )
+                self.ws.tasks.fail(task.id, failure)
+                self._log(task.id, "command_failed", f"exit {proc.returncode}")
+                failure.result = result  # type: ignore[attr-defined]
+                raise failure
+            self._log(task.id, "command_succeeded", f"exit 0 in {elapsed_ms:.0f}ms")
+            # The task is closed by execute() *after* the job is marked completed, so the
+            # timeline reads "... command_succeeded, job_completed, summary, completed".
+            return result
 
     # -- research jobs -----------------------------------------------------
     def _run_research(self, job: Job) -> Mapping[str, Any]:

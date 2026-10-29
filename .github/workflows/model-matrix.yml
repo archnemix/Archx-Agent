@@ -236,6 +236,13 @@ jobs:
             "$RUNNER_TEMP/blender-env/bin/python" scripts/blender_real_check.py
           '
 
+      - name: clean wheel release check
+        run: |
+          run.sh release-check bash -c '
+            python -m pip install -q build wheel "setuptools>=68"
+            bash scripts/release_check.sh
+          '
+
       - name: sdk catalogue
         run: run.sh sdks archx-agent models sdks
 

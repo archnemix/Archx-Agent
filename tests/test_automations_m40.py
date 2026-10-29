@@ -115,3 +115,44 @@ def test_atomic_job_failure_rolls_back_schedule(ws, monkeypatch):
     assert result["refused"]
     assert ws.automations.get(item["id"]) == before
     assert not ws.automations.runs()
+
+
+def test_interval_coalesces_and_does_not_overlap(ws):
+    item = ws.automation.create("repeat", command(), interval=1)
+    ws.automation.enable(item["id"], True)
+    far_future = "2030-01-01T00:00:00Z"
+    first = ws.automation.tick(now=far_future)["dispatched"][0]
+    assert not ws.automation.tick(now="2031-01-01T00:00:00Z")["dispatched"]
+    ws.jobs.cancel(first["job_id"])
+    assert len(ws.automation.tick(now="2031-01-01T00:00:00Z")["dispatched"]) == 1
+    assert len(ws.automations.runs()) == 2
+
+
+def test_watch_permission_failure_does_not_advance_baseline(ws):
+    path = ws.tools.runtime.resolve("watch.txt")
+    path.write_text("old")
+    grant = ws.permissions.grant("fs.read", subject="*", duration="persistent", confirm=True)
+    item = ws.automation.create("watch", command(), watch="watch.txt")
+    ws.automation.enable(item["id"], True)
+    ws.permissions.revoke(grant.id)
+    path.write_text("new")
+    before = ws.automations.get(item["id"])
+    assert ws.automation.tick()["refused"]
+    assert ws.automations.get(item["id"]) == before
+    assert not ws.automations.runs()
+
+
+def test_api_uses_same_disabled_default_and_auth(ws):
+    from archx_agent.interfaces.gui.server import GuiApi, Request
+    api = GuiApi(ws, token="token")
+    def call(method, path, body=None, token="token"):
+        return api.dispatch(Request(method=method, path=path, query={}, headers={"x-archx-token": token}, body=body))
+    payload = {"name": "api", "command": command(), "at": "2020-01-01T00:00:00Z"}
+    assert call("POST", "/api/automations", payload, token="wrong").status == 401
+    created = call("POST", "/api/automations", payload)
+    assert created.status == 200
+    item = created.payload["data"]
+    assert not item["enabled"]
+    assert call("POST", f"/api/automations/{item['id']}/enable", {}).status == 200
+    assert call("POST", "/api/automations/tick", {}).payload["data"]["dispatched"]
+    assert call("GET", "/api/automations").payload["data"]["runs"][0]["status"] == "queued"
