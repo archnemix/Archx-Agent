@@ -328,4 +328,9 @@ FAILED tests/test_execution_m38.py::TestTheBoundary::test_an_unusable_backend_re
 2 failed, 1864 passed, 2 warnings in 521.08s (0:08:41)
 === stress-edge ===============================================
 $ python -m pytest tests/test_stress.py tests/test_edge_cases.py -o addopts= -q
-..........
+........................................................................ [ 79%]
+...................                                                      [100%]
+91 passed in 48.10s
+=== integration ===============================================
+$ python -m pytest tests/test_integration.py -o addopts= -q
+...
