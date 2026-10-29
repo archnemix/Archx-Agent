@@ -1,0 +1,91 @@
+$ bash scripts/acceptance_m38.sh
+M38 acceptance on /tmp/archx-m38-6GuqWl
+
+### the schema records where a command ran, and what crossed the boundary
+[ok]   execution is a versioned migration = 1
+[ok]   targets, runs and files are tables = 3
+[ok]   a run keeps the invocation, not just the command = 4
+[ok]   a training run names its machine = 2
+[ok]   a fresh home has run nothing = 0
+[ok]   and execution is off = False
+
+### every backend is named with a reason or a way to enable it
+[ok]   seven backends are listed = 7
+[ok]   each unusable one has a reason and a hint = True
+[ok]   a backend that is here has no refusal attached = True
+[ok]   windows sandbox is named as Windows-only = True
+[ok]   local is available = True
+[ok]   the isolation is stated, not implied = True
+
+### nothing runs before the switch
+[ok]   a run with execution off exits 3 = 3
+[ok]   and says which setting = yes
+[ok]   the refusal is a row = refused
+[ok]   a local run exits 0 = 0
+[ok]   it records the backend it ran on = local
+[ok]   its output is kept = hello-from-local
+[ok]   and kept as a file too = yes
+
+### a command that fails is a row with its exit code, not a crash
+[ok]   a non-zero exit exits 1 = 1
+[ok]   and the code is recorded = 7
+
+### an unusable backend refuses with the reason the probe gives
+[ok]   the target is recorded as refused = refused
+[ok]   running on it exits 3 = 3
+[ok]   and the reason names docker = yes
+
+### the wrapper really is what executes (a stand-in binary proves the argv)
+[ok]   the target becomes available when a docker appears on PATH = True
+[ok]   a docker run goes through the wrapper = 0
+[ok]   the invocation is on the row = True
+[ok]   the disposable flag reached the binary = 1
+[ok]   the network really was disabled = 1
+[ok]   the image was passed = 1
+[ok]   the command was passed to the shell inside = 1
+[ok]   the stand-in's output is the run's output = True
+
+### another machine is a real machine, and it says no until its operator says yes
+[ok]   a worker without --allow-exec refuses the command = 3
+[ok]   and names the flag = yes
+[ok]   the worker reports execution is on = 1
+[ok]   a remote run exits 0 = 0
+[ok]   it names the machine that computed it = ran on exec-box
+[ok]   the output came from the worker's work directory = True
+[ok]   not from this one = True
+[ok]   a wrong token is refused, not run = refused
+[ok]   and the refusal names the token = True
+[ok]   a timeout is a timeout, not a failure = timeout
+
+### the project goes there, is edited there, and comes back
+[ok]   two files were pushed = 2
+[ok]   both hashes are recorded = 2
+[ok]   and the hashes agreed = 2
+[ok]   the edited file came back = ['main.py']
+[ok]   and it is what the worker wrote = print(2)
+
+### a file changed on both sides is a conflict, not a silent overwrite
+[ok]   a conflict exits 3 = 3
+[ok]   the conflict is named = 1
+[ok]   the local file was not overwritten = print('edited here')
+[ok]   the conflict is in the ledger = conflict
+[ok]   with --force the worker's version wins = print('edited there')
+
+### training can run here or there, and the numbers are the same numbers
+[ok]   a local training run names this CPU = local
+[ok]   a remote training run completes = completed
+[ok]   and names the worker = remote
+[ok]   and records the remote job it came from = True
+[ok]   both runs are rows in one ledger = 2
+[ok]   the remote metrics equal the local metrics exactly = True
+[ok]   the remote artifact was hashed here = 64
+[ok]   an unknown training target is refused by name = 2
+[ok]   and the parser names the choices it accepts = 1
+
+### the ledger answers the question the milestone exists for
+[ok]   runs are counted per backend = True
+[ok]   the conflict is counted = 1
+[ok]   every run row names a target = 0
+[ok]   each run's command is exactly what was typed = 1
+
+M38 acceptance: 65 checks passed, 0 failed

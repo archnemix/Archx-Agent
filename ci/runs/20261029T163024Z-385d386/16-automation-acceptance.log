@@ -1,0 +1,36 @@
+$ bash scripts/acceptance_m40.sh
+[ok] exit for automation add
+[ok] starts disabled
+[ok] exit for automation tick
+[ok] disabled tick enqueues nothing
+[ok] exit for automation enable
+[ok] exit for automation tick
+[ok] one occurrence enqueued
+[ok] tick does not execute
+[ok] exit for automation serve
+[ok] no execution without grant
+[ok] exit for automation runs
+[ok] refusal observed from job
+[ok] exit for permissions grant
+[ok] exit for automation add
+[ok] exit for automation enable
+[ok] exit for automation serve
+[ok] real command side effect
+[ok] exit for automation runs
+[ok] completion is observed
+[ok] exit for automation tick
+[ok] one-shot does not repeat
+[ok] exit for automation add
+[ok] exit for permissions grant
+[ok] exit for automation add
+[ok] exit for automation enable
+[ok] exit for automation tick
+[ok] unchanged watch quiet
+[ok] exit for automation tick
+[ok] changed watch enqueues
+[ok] exit for automation tick
+[ok] unchanged hash not repeated
+[ok] exit for automation disable
+[ok] exit for automation show
+[ok] disable persists
+M40 acceptance: 34 checks passed, 0 failed

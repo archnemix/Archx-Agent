@@ -9,3 +9,9 @@ coding-acceptance	ok	12
 experiment-acceptance	ok	8
 play-acceptance	ok	10
 voice-acceptance	ok	10
+dataset-acceptance	ok	10
+training-acceptance	ok	9
+remote-acceptance	ok	11
+execution-acceptance	ok	11
+scenes-acceptance	ok	6
+automation-acceptance	ok	4
