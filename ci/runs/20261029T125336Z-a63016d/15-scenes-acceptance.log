@@ -59,3 +59,15 @@ $ archx-agent config set blender.executable /tmp/archx-m39-g5Teza/scene-case-821
 [ok] expected CLI exit
 $ archx-agent config set execution.enabled true [exit 0]
 [ok] expected CLI exit
+$ archx-agent scene render demo [exit 1]
+[ok] expected CLI exit
+[ok] stand-in was executed
+[ok] zero exit without a PNG is not success
+[ok] Blender flags reached binary
+[ok] script path is absolute and exists
+$ archx-agent scene remove demo cube [exit 0]
+[ok] expected CLI exit
+$ archx-agent scene show demo [exit 0]
+[ok] expected CLI exit
+[ok] remove recomputes totals
+M39 acceptance: 49 checks passed, 0 failed

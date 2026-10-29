@@ -13,3 +13,10 @@ dataset-acceptance	ok	13
 training-acceptance	ok	13
 remote-acceptance	ok	14
 execution-acceptance	ok	15
+scenes-acceptance	ok	7
+sdks	ok	3
+llama-cpp	ok	1
+model-download	ok	1
+serve	ok	1
+completion	ok	1
+sdk-matrix	ok	16
