@@ -43,3 +43,46 @@ M36 acceptance on /tmp/archx-m36-glTucc
 [ok]   the refusal is a row = refused
 [ok]   the first reason is the switch = True
 [ok]   the last is the missing adapter = True
+[ok]   turning training on removes exactly one reason = 1
+[ok]   and the switch is no longer the first reason = False
+[ok]   the library and the GPU are named = True
+[ok]   a refused run has no artifact = 0
+[ok]   and cannot be predicted from = 2
+
+### a comparison names what it could not rank
+[ok]   two n-gram runs rank on val perplexity = True
+[ok]   a mixed comparison names no winner = None
+[ok]   and says why = True
+[ok]   a refused run is listed with its status = True
+
+### the counters agree with the rows
+[ok]   jobs = 5
+[ok]   completed = 3
+[ok]   metrics = 27
+$ archx-agent train list
+id                                       method    status     dataset                                  artifact                                            created                 
+---------------------------------------  --------  ---------  ---------------------------------------  --------------------------------------------------  ------------------------
+tj_0001m63m3c38000000009597197b5146254f  ngram     completed  ds_0001m63m353e000000008fe761245ca5537a  tj_0001m63m3c38000000009597197b5146254f.model.json  2026-10-29T10:43:11.592Z
+tj_0001m63m3azq0000000028ed23404ca8090a  qlora     refused    ds_0001m63m353e000000008fe761245ca5537a  -                                                   2026-10-29T10:43:10.455Z
+tj_0001m63m39sg000000004c4c35fb917a71a4  lora      refused    ds_0001m63m353e000000008fe761245ca5537a  -                                                   2026-10-29T10:43:09.232Z
+tj_0001m63m38s400000000fd02d70fe5ec0c74  centroid  completed  ds_0001m63m353e000000008fe761245ca5537a  tj_0001m63m38s400000000fd02d70fe5ec0c74.model.json  2026-10-29T10:43:08.196Z
+tj_0001m63m37xx00000000818d94b90607f9ab  ngram     completed  ds_0001m63m353e000000008fe761245ca5537a  tj_0001m63m37xx00000000818d94b90607f9ab.model.json  2026-10-29T10:43:07.325Z
+[exit 0]
+
+### the page is a client of the same service
+[ok]   the page lists the runs the CLI made = 5
+[ok]   the page says it cannot fine-tune = False
+[ok]   a run started in the page is a row the CLI reads = 1
+[ok]   the metrics endpoint returns the same numbers = True
+[ok]   a refusal over HTTP is a 200 with the reasons = True
+[ok]   an unknown run is a 404 = 404
+[ok]   an unauthenticated call is refused = 401
+[ok]   the preflight route answers the same question = False
+
+### the record survives a restart
+[ok]   the completed run is still completed = completed
+[ok]   the metrics are still the ones measured = ['test', 'train', 'val']
+[ok]   the artifact path is still recorded = yes
+[ok]   and the refusal is still a refusal = refused
+
+M36 acceptance: 57 checks passed, 0 failed
