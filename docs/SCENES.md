@@ -163,3 +163,8 @@ Official bpy 4.2 renders the exported OBJ using Cycles CPU at 64×64. The record
 bytes with SHA-256 `c157d34edbb959f8194117dc220b515b6bd5f750154ea5cb39337c34cd509570`.
 The adapter imports Blender and executes the generated script; it does not fabricate an image.
 A renderer is still optional and is never installed as an Archx Agent runtime dependency.
+
+Final combined CI #26 repeats the real-render check successfully on the M41 tip (`48dd607`):
+64×64, 4883 PNG bytes, SHA-256
+`ffe179acb67b8ab98b66feee3e6012151ea3a03292fa2e394e82ec87ea215e1f`. The render hash is evidence
+of that run's bytes, not a promise of byte-identical images across machines or Blender runs.

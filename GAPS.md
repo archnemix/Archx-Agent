@@ -24,7 +24,7 @@ This file records what is **not** true yet. If a feature is not listed as verifi
 
 M39 and M40 are implemented within documented scope: real Blender 4.2 bpy/Cycles CPU rendering
 is verified in CI, and explicit polling automations support interval, one-shot and file hash watches.
-M41 hardening and clean-wheel checks are implemented; final combined CI is pending. M17-M40 are
+M41 hardening and clean-wheel checks passed final combined CI #26. M17-M41 are
 implemented and verified (see [PROGRESS.md](PROGRESS.md)); M33 (Play Mode), M34 (Voice and media),
 M35 (Dataset preparation), M36 (Training), M37 (Remote compute) and M38 (Execution environments) are
 deliberately small - three board games and one simulation; four container formats, three tables and

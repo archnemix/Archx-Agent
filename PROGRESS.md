@@ -1,8 +1,8 @@
 # Progress
 
-Last updated: M39 and M40 complete within documented scope; M41 hardening implemented and
-awaiting final combined CI. Full local suite: 1951 passed. GUI smoke: 20 tabs. CI #25 is green
-(23 logged steps, 1940 tests, ten acceptances and a real Blender 4.2 CPU render).
+Last updated: **M01–M41 complete within the documented milestone scopes. Zero roadmap milestones
+remain open.** Full suite: 1951 passed. GUI smoke: 20 tabs. CI #26 is green (24 logged steps,
+ten acceptances, a real Blender 4.2 CPU render and the isolated-wheel release check).
 
 ## Verified in this session
 
@@ -166,7 +166,7 @@ about 3.13 and about llama.cpp).
 `docs/reports/STATUS.md` is the itemised list of everything still open (a live vendor call, M35
 onward), with the reason each one is open and what would close it.
 
-## Final roadmap gate
+## Roadmap closure
 
 M39 is verified with a real official bpy 4.2/Cycles CPU render in CI (64×64, 4897 PNG bytes,
 SHA-256 `c157d34edbb959f8194117dc220b515b6bd5f750154ea5cb39337c34cd509570`).
@@ -176,9 +176,13 @@ permissioned polling worker. Its CLI acceptance passes 34 checks; M39 acceptance
 M41 adds release packaging and hardening regressions. Latest local suite: **1951 passed in
 486.57 s**; GUI smoke: **20 tabs**; clean-wheel install passes without runtime dependencies.
 
-Only the final combined CI evidence remains before closing M41. Future feature extensions are
-limitations in GAPS.md, not remaining M01–M41 roadmap milestones. No installer or published release
-is implied by release readiness. See `docs/RELEASE.md` for the supported/verified scope.
+**Final combined CI #26 is green**, head `48dd607`, run `40914694127`: 1951 tests in 536.36 s,
+91 stress/edge checks, 11 integrations, ten acceptances, real Blender render and clean-wheel check.
+Evidence: `docs/ci/`, run `20261029T164537Z-48dd607`. All 24 logged steps passed.
+
+M41 is closed within source/wheel readiness scope. Future feature extensions are limitations in
+GAPS.md, not remaining M01–M41 roadmap milestones. No installer or published release is implied.
+See `docs/RELEASE.md` for the supported/verified scope.
 
 ## Known breakage
 

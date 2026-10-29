@@ -4860,6 +4860,11 @@ run #16 20261028T181313Z-e098a06   all 17 steps ok; 1720 tests in 320 s, 91 stre
                                   88/88, 72/72). The dataset acceptance writes its corpus on the
                                   runner, so every hash it checks is arithmetic on content the run
                                   chose - and the manifest is then broken by an edit and a delete
+run #26 20261029T164537Z-48dd607   all 24 steps ok; 1951 tests in 536 s, 91 stress/edge, 11
+                                  integration, all ten acceptances; scenes 59/59, automation
+                                  34/34. Actual bpy 4.2/Cycles CPU render and isolated-wheel
+                                  build/install check pass. M39–M41 closure within scope.
+                                  GitHub run 40914694127.
 run #25 20261029T163024Z-385d386   all 23 steps ok; 1940 tests in 430 s, 91 stress/edge, 11
                                   integration, ten acceptances including scenes 59/59 and
                                   automations 34/34. REAL official Blender 4.2 bpy/Cycles CPU
@@ -5107,3 +5112,25 @@ CI #25 is green and independently verified the real official bpy 4.2 / Cycles CP
 not the argv-only stand-in. Native libraries were installed on the CI runner; bpy cannot load in
 this sandbox due to missing X11/OpenGL libraries. The desktop Blender binary is not in the tested
 matrix. Release scope and operator caveats: `docs/RELEASE.md`.
+
+
+### Final result — M39–M41 closed within documented scope
+
+CI #26 `40914694127`, head `48dd607`, published evidence
+`ci/runs/20261029T164537Z-48dd607`: **success, 24/24 logged steps**.
+
+| Gate | Result |
+|---|---|
+| Full suite | 1951 passed, 2 third-party deprecation warnings, 536.36 s |
+| Stress/hostile-client | 91 passed |
+| CLI/GUI/SQLite integration | 11 passed |
+| Acceptances M31–M40 | 48, 53, 69, 88, 72, 57, 71, 65, 59, 34 — all passed |
+| Actual Blender | official bpy 4.2 / Cycles CPU, 64×64 PNG, 4883 bytes |
+| Render SHA-256 | ffe179acb67b8ab98b66feee3e6012151ea3a03292fa2e394e82ec87ea215e1f |
+| Release check | wheel/sdist built; isolated dependency-free install; CLI/schema/GUI passed |
+| Model/SDK gates | all green, including actual Ollama daemon and public tunnel |
+| Local GUI smoke | 20 tabs, forms post, no page errors |
+
+No M01–M41 milestone remains open. M39 excludes other renderer/platform combinations and async
+rendering; M40 excludes cron/cloud triggers; M41 is source/wheel readiness rather than published
+installers or a security certification. Scope and operator checklist: `docs/RELEASE.md`.

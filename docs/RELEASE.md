@@ -8,7 +8,7 @@ SBOM or reproducible dependency lock in this milestone.
 ## Release gates
 
 1. Full pytest suite, plus independent stress/hostile-client and integration suites on CI.
-2. All milestone acceptance scripts through M40; failed/refused work is checked, not omitted.
+2. The ten milestone acceptance scripts M31–M40; failed/refused work is checked, not omitted.
 3. GUI smoke for all 20 tabs, including scene edits/render refusal and automation enable/tick.
 4. A real headless Blender render: official `bpy==4.2.0`, `numpy<2`, native libraries, Cycles CPU.
    `scripts/blender_real_check.py` renders a cube, validates dimensions and byte hash, and verifies
@@ -62,4 +62,8 @@ privileges. Use M38's supported boundaries where applicable; a label is not isol
   is not implemented.
 
 Verification logs and exact commit identities: `docs/VERIFICATION.md`, `docs/ci/` and the workflow's
-published `ci-logs` branch. No release is claimed green until the final run completes successfully.
+published `ci-logs` branch. The final combined gate **passed**: CI #26, head `48dd607`, run `40914694127`, all 24 logged
+steps green; 1951 tests, 91 stress/edge checks, 11 integrations, ten acceptances, a real Blender
+render and the isolated-wheel check. This closes M41 within the scope above; it does not publish
+a release. The CI annotation about older checkout/setup actions using a deprecated Node.js
+runtime is nonblocking (the runner forces Node.js 24); action-version upgrades remain maintenance.

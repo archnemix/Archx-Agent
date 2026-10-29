@@ -47,7 +47,7 @@ there is no code.
 | M38 | **Execution environments** | **partial** | a recorded wrapper per backend (`local`, `remote`, `docker`, `wsl`, `windows-sandbox`, `vmware`, `virtualbox`), the invocation on the row, push/pull with a hash ledger; WSL is not a boundary, Windows Sandbox is detached, and nothing is pulled or snapshot (see §3.7) |
 | M39 | Blender and 3D workflows | scoped | measured scenes, exports and task artifacts; actual bpy 4.2/Cycles CPU rendering verified in CI (`docs/SCENES.md`) |
 | M40 | Automations and scheduled tasks | scoped | interval, one-shot, hash watches; atomic jobs and explicit permissioned worker (`docs/AUTOMATIONS.md`) |
-| M41 | Hardening and release | final CI pending | hardening regressions, packaged GUI and clean-wheel install (`docs/RELEASE.md`) |
+| M41 | Hardening and release | scoped | hardening regressions, packaged GUI and clean-wheel install; CI #26 green (`docs/RELEASE.md`) |
 
 ## 2. Modes: same shell, different tools
 
@@ -330,8 +330,8 @@ boundary.
 
 ## 4. Where this leaves the roadmap
 
-Built: M01–M40 within the documented scopes. M41 hardening is implemented and awaiting final
-combined CI. M38 became execution environments and Blender moved to M39; Blender 4.2's official
+Built and verified: M01–M41 within the documented scopes. Final CI #26 is green, including
+the real-renderer and clean-wheel gates. M38 became execution environments and Blender moved to M39; Blender 4.2's official
 bpy runtime now produces a real verified CPU render on CI. M40 schedules command jobs without
 turning a recurring definition into a permission grant. The remaining feature limitations and
 unverified platforms stay explicit in GAPS.md; release readiness is not a claim of feature parity

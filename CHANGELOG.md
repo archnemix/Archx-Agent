@@ -12,7 +12,7 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 - **Real Blender validation:** CI #25 rendered a 64×64 PNG using official bpy 4.2 / Cycles CPU;
   dimensions, byte hash and scene ledger verified. M39 closes within that documented scope.
 - **M41 release gate:** wheel/sdist build and dependency-free clean install with CLI/schema/GUI
-  checks, explicit GUI package data and the declared MIT license text. Final combined CI pending.
+  checks, explicit GUI package data and the declared MIT license text. Final combined CI #26 green: 24 logged steps, 1951 tests, ten acceptances, real render and clean wheel.
 - **M39 task artifact linkage:** scene creation accepts an existing task through CLI/API/GUI;
   documents and exports attach as versioned task artifacts, render attempts log to the task timeline,
   and execution runs inherit the task. Parent task status is never changed by a render attempt.

@@ -214,3 +214,12 @@ cannot run are reported as **skipped**, never as passed.
 ## License
 
 MIT.
+
+
+### Roadmap completion and release scope
+
+M01–M41 are complete within their documented scopes. Final CI #26 is green: 1951 tests, ten
+acceptances, real Blender 4.2/Cycles CPU rendering and an isolated-wheel install check. Scenes
+and Automations are available in the CLI and the 20-tab GUI. This is source/wheel readiness, not
+a published installer or a guarantee that all platforms and third-party engines work. See
+[PLAN.md](PLAN.md), [docs/RELEASE.md](docs/RELEASE.md) and [GAPS.md](GAPS.md).

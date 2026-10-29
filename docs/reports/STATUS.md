@@ -99,7 +99,8 @@ edit .ci/trigger -> push -> .github/workflows/model-matrix.yml (19 steps, 19 ste
 M39 and M40 are complete within scope: measured scenes and actual Blender 4.2 bpy/Cycles CPU
 rendering are verified on CI; interval/once/hash-watch automations dispatch atomically to the
 existing queue with execution-time permission checks. M41 hardening and clean-wheel packaging
-checks are implemented and await the final combined CI result. Vendor credentials, speech and
+checks passed final combined CI #26 (24 logged steps, 1951 tests). No M01–M41 roadmap milestone
+remains open; narrower feature/platform scopes remain documented. Vendor credentials, speech and
 transformer training limitations remain explicitly open; roadmap closure does not erase them.
 
 ---

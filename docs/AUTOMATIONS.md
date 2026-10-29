@@ -46,3 +46,10 @@ Use the Jobs tab/CLI or the explicit worker to execute them. Authenticated API r
 Schema v30 adopts the reserved automation tables, adding revision and job linkage. Scope excludes
 cron/calendar/DST syntax, cloud triggers, email/webhook delivery, directory recursion, automatic
 retry policy editing and a system-service installer. These are not advertised as working.
+
+## Verification
+
+17 automation tests, 34 independent CLI acceptance checks, GUI smoke with 20 tabs, and final
+CI #26 green (all 24 logged steps, full suite 1951). Scenarios include disabled defaults, real
+command output, permission refusal/revocation, unchanged and changed watches, concurrent ticks,
+non-overlap/coalescing, API authentication and rollback of queue-insertion failure.
