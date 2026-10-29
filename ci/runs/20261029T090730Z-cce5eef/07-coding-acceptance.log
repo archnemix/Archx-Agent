@@ -1,0 +1,42 @@
+$ bash scripts/acceptance_m31.sh
+M31 acceptance on /tmp/archx-m31-17kFGo
+
+### a session is a directory, a task and a row
+$ archx-agent code list
+cs_0001m63f522b000000041c206d3697074268  open    second session  /tmp/archx-m31-17kFGo/project
+cs_0001m63f51vn00000003932563c7fae44371  open    fix the greeting  /tmp/archx-m31-17kFGo/project
+[ok]   the session is a database row = 1
+[ok]   the session binds the directory = /tmp/archx-m31-17kFGo/project
+[ok]   the session owns a coding task = coding
+[ok]   the schema grew, it did not reuse a table = code_changes
+
+### nothing happens without a grant
+[ok]   a write without fs.write exits 4 = 4
+[ok]   the file is untouched = 4579e386b95ec1ff0f24c9bedca59bf7efb6c657
+[ok]   the refusal names the approval = 2
+[ok]   the refusal created a pending request = True
+[ok]   the refused edit did not become a change row = 0
+error: fs.write: fs.write is not granted for 'fs.write'; approval ap_0001m63f52h800000003df69a8507265e73f is pending (archx-agent approvals approve ap_0001m63f52h800000003df69a8507265e73f)
+approve it with: archx-agent approvals approve ap_0001m63f52h800000003df69a8507265e73f
+
+### approving is what makes it possible, and the write then lands
+$ archx-agent code write cs_0001m63f51vn00000003932563c7fae44371 hello.py --file /tmp/archx-m31-17kFGo/new_hello.py
+modify hello.py  +1/-1
+  diff     ar_0001m63f540p0000000415d4f6489e9eb30a
+[exit 0]
+[ok]   the file really changed = 1
+[ok]   the change is a row with a diff = modify
+[ok]   the diff mentions the old and the new line = 2
+[ok]   the edit is attached to the task as an artifact = True
+
+### the runner records every command
+$ archx-agent code run cs_0001m63f51vn00000003932563c7fae44371 "python3 try_it.py"
+hello archx
+[run passed: exit 0 in 11 ms]
+[output saved as ar_0001m63f54mt0000000085d8575fa43544fc]
+[ok]   the command passed = passed
+[ok]   the exit code is recorded = 0
+[ok]   the argv that ran is recorded, not just the string = ['python3', 'try_it.py']
+[ok]   a failing command exits 1 = 1
+[ok]   the failure is a failed row with its exit code = failed/1
+[ok]   the failure asked a question on the task = True
