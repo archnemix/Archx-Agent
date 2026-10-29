@@ -288,6 +288,47 @@ const routes = {
     ],
     reasons: [],
   },
+  // exec: one local run, and a backend that is not usable here
+  "GET /api/exec/runs/xr_demo": {
+    id: "xr_demo", target_id: "xt_local", kind: "local", command: "echo hello",
+    invocation: "echo hello", cwd: ".", status: "ok", exit_code: 0, duration_ms: 3.1,
+    stdout: "hello\n", stderr: "", stdout_path: "xr_demo.stdout.txt", stderr_path: null,
+    truncated: false, detached: false, note: "ran on this machine", remote_job_id: null,
+    task_id: null, started_at: "2026-10-29T10:00:00Z", ended_at: "2026-10-29T10:00:00Z",
+    sentence: "`echo hello` ran on this machine and exited 0", reasons: [],
+  },
+  "GET /api/exec/runs": {
+    runs: [
+      { id: "xr_demo", kind: "local", command: "echo hello", status: "ok", exit_code: 0,
+        started_at: "2026-10-29T10:00:00Z" },
+      { id: "xr_refused", kind: "docker", command: "python3 -V", status: "refused", exit_code: null,
+        started_at: "2026-10-29T10:00:00Z" },
+    ],
+    stats: { targets: 2, runs: 2, files: 1, conflicts: 0, by_kind: { local: 1, docker: 1 },
+             enabled: true, default_target: "local" },
+  },
+  "GET /api/exec/targets": {
+    probes: [
+      { kind: "local", available: true, summary: "this machine", why_not: [], enable: null,
+        isolation: "capability grants only", this_machine: "Linux" },
+      { kind: "docker", available: false, summary: "a container per command",
+        why_not: ["the docker CLI is not on PATH here, so no container can be started"],
+        enable: "install Docker", isolation: "a container", this_machine: "Linux" },
+    ],
+    targets: [
+      { id: "xt_local", kind: "local", name: "local", status: "probed", endpoint: null,
+        spec: {}, refusal: null, created_at: "2026-10-29T10:00:00Z", last_probe_at: null },
+      { id: "xt_docker", kind: "docker", name: "docker", status: "refused", endpoint: null,
+        spec: {}, refusal: "the docker CLI is not on PATH here, so no container can be started",
+        created_at: "2026-10-29T10:00:00Z", last_probe_at: null },
+    ],
+    stats: { targets: 2, runs: 2, files: 1, conflicts: 0, by_kind: {}, enabled: true,
+             default_target: "local" },
+  },
+  "POST /api/exec/runs": {
+    id: "xr_new", kind: "local", command: "echo hi", status: "ok", exit_code: 0,
+    sentence: "`echo hi` ran on this machine and exited 0", reasons: [], stdout: "hi",
+  },
   "GET /api/remote/jobs": {
     jobs: [
       { id: "rj_demo", provider: "worker", kind: "training", status: "verified", dataset_id: "ds_demo",
@@ -409,7 +450,7 @@ function assert(condition, message) {
 }
 
 // the shell
-assert(doc.querySelectorAll(".tab").length === 17, "expected seventeen mode tabs");
+assert(doc.querySelectorAll(".tab").length === 18, "expected eighteen mode tabs");
 assert(doc.getElementById("view-code"), "the coding view is missing");
 assert(doc.getElementById("view-experiments"), "the experiments view is missing");
 assert(doc.getElementById("view-play"), "the play view is missing");
@@ -417,6 +458,7 @@ assert(doc.getElementById("view-voice"), "the voice view is missing");
 assert(doc.getElementById("view-data"), "the datasets view is missing");
 assert(doc.getElementById("view-train"), "the training view is missing");
 assert(doc.getElementById("view-remote"), "the remote view is missing");
+assert(doc.getElementById("view-exec"), "the execution view is missing");
 assert(doc.getElementById("view-chat"), "chat view is missing");
 
 // every refresh button answers a click without throwing
@@ -627,6 +669,33 @@ await tick();
 assert(calls.includes("POST /api/remote/export"), `the export form never posted: ${JSON.stringify(calls.slice(-4))}`);
 assert(doc.getElementById("remote-export-status").textContent.includes("bundled"), "the export was not reported");
 
+// exec: where a command ran is on the row, and an unusable backend is named rather than hidden
+doc.querySelector('[data-view="exec"]').click();
+await tick();
+await tick();
+assert(calls.includes("GET /api/exec/targets"), `the exec panel never asked for targets: ${JSON.stringify(calls.slice(-4))}`);
+assert(doc.querySelectorAll("#exec-runs .list-item").length === 2, "the run list did not render");
+const probes = doc.getElementById("exec-probes").textContent;
+assert(probes.includes("docker"), "an unusable backend is not listed");
+assert(probes.includes("docker CLI is not on PATH"), "an unusable backend does not say why");
+assert(doc.getElementById("exec-target").options.length >= 1, "the target picker is empty");
+doc.querySelector("#exec-runs .list-item").click();
+await tick();
+await tick();
+await tick();
+assert(calls.includes("GET /api/exec/runs/xr_demo"), `the run was never opened: ${JSON.stringify(calls.slice(-4))}`);
+const execPanel = doc.getElementById("exec-detail").textContent;
+assert(execPanel.includes("ran on this machine"), "the run sentence is not shown");
+assert(execPanel.includes("echo hello"), "the command is not shown");
+
+doc.getElementById("exec-cmdline").value = "echo hi";
+doc.getElementById("exec-run-form").dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
+await tick();
+await tick();
+await tick();
+assert(calls.includes("POST /api/exec/runs"), `the exec form never posted: ${JSON.stringify(calls.slice(-4))}`);
+assert(doc.getElementById("exec-run-status").textContent.includes("exit"), "the exit code is not reported");
+
 // no inline style attributes were produced, and no inline handlers leaked into the markup
 assert(!/style="/.test(doc.body.innerHTML), "inline style attribute produced");
 assert(!/onclick="/.test(doc.body.innerHTML), "inline handler produced");
@@ -638,4 +707,4 @@ if (problems.length) {
   for (const problem of problems) console.error(" - " + problem);
   process.exit(1);
 }
-console.log("smoke ok: 17 tabs, 4 gate rows, code, experiment, play, voice, dataset, training and remote panels render, forms post, no page errors");
+console.log("smoke ok: 18 tabs, 4 gate rows, code, experiment, play, voice, dataset, training, remote and exec panels render, forms post, no page errors");

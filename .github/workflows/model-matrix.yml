@@ -211,6 +211,13 @@ jobs:
       - name: remote acceptance
         run: run.sh remote-acceptance bash scripts/acceptance_m37.sh
 
+      # Execution: `exec run` must really change where a command runs, so every unusable backend is
+      # refused by name, a stand-in `docker` on PATH records the argv it was handed (proving the
+      # wrapper is there), a worker refuses without `--allow-exec` and refuses a wrong token, and a
+      # file edited on both sides is a conflict rather than a silent overwrite.
+      - name: execution acceptance
+        run: run.sh execution-acceptance bash scripts/acceptance_m38.sh
+
       - name: sdk catalogue
         run: run.sh sdks archx-agent models sdks
 
