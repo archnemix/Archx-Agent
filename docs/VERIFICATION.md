@@ -4688,7 +4688,7 @@ ollama    OK  'answer via the ollama client'         tokens=21/6  finish=stop  P
 That transcript is also what corrected the catalogue: Groq and Together append
 `/chat/completions` to their `base_url`, so the entries carry `/openai/v1` and `/v1`.
 
-### The CI workflow, run seventeen times on GitHub
+### The CI workflow, run eighteen times on GitHub
 
 The workflow is triggered by editing `.ci/trigger` and pushing, and its output is read from the
 `ci-logs` branch. It has now actually run; `docs/ci/` keeps the parts worth reading.
@@ -4727,6 +4727,12 @@ run #16 20261028T181313Z-e098a06   all 17 steps ok; 1720 tests in 320 s, 91 stre
                                   88/88, 72/72). The dataset acceptance writes its corpus on the
                                   runner, so every hash it checks is arithmetic on content the run
                                   chose - and the manifest is then broken by an edit and a delete
+run #18 20261029T090730Z-cce5eef   all 19 steps ok; 1819 tests in 461 s, 91 stress/edge, 11
+                                  integration, and seven acceptances (48/48, 53/53, 69/69, 88/88,
+                                  72/72, 57/57, 71/71) - the commit that carries M37. The remote
+                                  acceptance starts a real worker process on the runner, dispatches
+                                  to it, collects the artifact and re-hashes it there, and hands a
+                                  lying worker a bundle so the mismatch path runs on CI too
 run #17 20261029T083938Z-7a0e67e   all 18 steps ok; 1774 tests in 471 s, 91 stress/edge, 11
                                   integration, and six acceptances (48/48, 53/53, 69/69, 88/88,
                                   72/72, 57/57) - the commit that carries M36. The training
@@ -4734,9 +4740,9 @@ run #17 20261029T083938Z-7a0e67e   all 18 steps ok; 1774 tests in 471 s, 91 stre
                                   implementation on the runner and fails above a 1e-9 difference,
                                   so the metric is checked against arithmetic rather than itself
 
-$ gh api "repos/archnemix/Archx-Agent/actions/runs?per_page=17" \
+$ gh api "repos/archnemix/Archx-Agent/actions/runs?per_page=18" \
     --jq '.workflow_runs[] | {n:.run_number,conclusion}'
-{"n":17,"conclusion":"success"}
+{"n":18,"conclusion":"success"}  {"n":17,"conclusion":"success"}
 {"n":16,"conclusion":"success"}  {"n":15,"conclusion":"success"}
 {"n":14,"conclusion":"success"}
 {"n":13,"conclusion":"success"}

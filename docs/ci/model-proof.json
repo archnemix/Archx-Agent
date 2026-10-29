@@ -1,9 +1,9 @@
 {
-  "text": "A tunnel is a passageway through solid materials, typically narrow and often enclosed by walls or fences, used for transport purposes, such as passageways through tunnels, caverns, or tunnels that are deeper than a typical residential building or parking garage",
+  "text": "A tunnel is a passageway or channel through which a piece of machinery, such as a tunnel or pipeline, can travel.",
   "usage": {
-    "completion_tokens": 48,
+    "completion_tokens": 26,
     "prompt_tokens": 40,
-    "total_tokens": 88,
+    "total_tokens": 66,
     "prompt_tokens_details": {
       "cached_tokens": 0
     }

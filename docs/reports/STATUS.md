@@ -57,7 +57,7 @@ through the CLI for all eight.
 ### 1.3 CI triggered by a file, monitored over git
 
 ```
-edit .ci/trigger -> push -> .github/workflows/model-matrix.yml (18 steps, 14 of them recorded)
+edit .ci/trigger -> push -> .github/workflows/model-matrix.yml (19 steps, 19 step logs recorded)
                               -> $LOGDIR/NN-<name>.log per step + status.tsv + console.log
                               -> publisher pushes ci/runs/<id>/ to branch `ci-logs` every 45 s
 ./scripts/ci_logs.sh  <--------  read it back with plain git

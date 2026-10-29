@@ -1,6 +1,7 @@
 # Progress
 
-Last updated: M37 complete and scoped (Remote compute and portability). Before that: M36 (Training
+Last updated: M37 complete and scoped (Remote compute and portability), CI run #18 green (19 steps,
+1819 tests, seven acceptances). Before that: M36 (Training
 and model modification, scoped), M35 (Dataset preparation), M34 (Voice and media, scoped), M33 (Play
 Mode), M32 (Experimental Mode), M31 (Coding workspace), M30 (Learning Mode), research completion,
 eight vendor SDKs and a second wire protocol (Gemini). Next: M38.
