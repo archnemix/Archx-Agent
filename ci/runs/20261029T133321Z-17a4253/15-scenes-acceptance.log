@@ -1,0 +1,73 @@
+$ bash scripts/acceptance_m39.sh
+$ archx-agent permissions grant fs.read --subject * --duration persistent --confirm [exit 0]
+[ok] expected CLI exit
+$ archx-agent permissions grant fs.write --subject * --duration persistent --confirm [exit 0]
+[ok] expected CLI exit
+$ archx-agent permissions grant shell.run --subject * --duration persistent --confirm [exit 0]
+[ok] expected CLI exit
+$ archx-agent config set blender.executable  [exit 0]
+[ok] expected CLI exit
+$ archx-agent scene create demo [exit 0]
+[ok] expected CLI exit
+$ archx-agent scene add demo cube --params {"size":2} [exit 0]
+[ok] expected CLI exit
+[ok] measured cube area
+[ok] measured cube volume
+[ok] measured cube triangles
+[ok] cube has closed edge incidence
+$ archx-agent scene export demo obj [exit 0]
+[ok] expected CLI exit
+[ok] obj recorded byte count
+[ok] obj recorded hash
+[ok] OBJ vertices really written
+$ archx-agent scene export demo stl [exit 0]
+[ok] expected CLI exit
+[ok] stl recorded byte count
+[ok] stl recorded hash
+[ok] STL triangle count from binary header
+[ok] STL byte layout
+$ archx-agent scene export demo svg [exit 0]
+[ok] expected CLI exit
+[ok] svg recorded byte count
+[ok] svg recorded hash
+[ok] SVG labelled not a render
+$ archx-agent scene export demo script [exit 0]
+[ok] expected CLI exit
+[ok] script recorded byte count
+[ok] script recorded hash
+[ok] script uses OBJ import
+$ archx-agent scene verify demo [exit 0]
+[ok] expected CLI exit
+[ok] fresh scene verifies
+$ archx-agent scene verify demo [exit 3]
+[ok] expected CLI exit
+[ok] modified export fails verification
+$ archx-agent scene export demo obj [exit 0]
+[ok] expected CLI exit
+$ archx-agent scene verify demo [exit 0]
+[ok] expected CLI exit
+[ok] latest export is verification baseline
+$ archx-agent scene render demo [exit 3]
+[ok] expected CLI exit
+[ok] missing Blender is a recorded refusal
+$ archx-agent scene create demo [exit 2]
+[ok] expected CLI exit
+$ archx-agent scene show demo [exit 0]
+[ok] expected CLI exit
+[ok] duplicate create leaves objects intact
+$ archx-agent config set blender.executable /tmp/archx-m39-By7ZDw/scene-case-zzrj0y0z/fake blender [exit 0]
+[ok] expected CLI exit
+$ archx-agent config set execution.enabled true [exit 0]
+[ok] expected CLI exit
+$ archx-agent scene render demo [exit 1]
+[ok] expected CLI exit
+[ok] stand-in was executed
+[ok] zero exit without a PNG is not success
+[ok] Blender flags reached binary
+[ok] script path is absolute and exists
+$ archx-agent scene remove demo cube [exit 0]
+[ok] expected CLI exit
+$ archx-agent scene show demo [exit 0]
+[ok] expected CLI exit
+[ok] remove recomputes totals
+M39 acceptance: 49 checks passed, 0 failed

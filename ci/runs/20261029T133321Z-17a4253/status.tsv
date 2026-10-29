@@ -12,3 +12,11 @@ voice-acceptance	ok	9
 dataset-acceptance	ok	9
 training-acceptance	ok	8
 remote-acceptance	ok	10
+execution-acceptance	ok	10
+scenes-acceptance	ok	4
+sdks	ok	3
+llama-cpp	ok	1
+model-download	ok	2
+serve	ok	1
+completion	ok	0
+sdk-matrix	ok	11

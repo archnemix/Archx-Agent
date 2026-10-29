@@ -1,0 +1,11 @@
+{
+  "text": "A tunnel is a narrow, often invisible, passageway that allows light to pass through a solid object, such as a tunnel, tunnel system, or tunnel tube.",
+  "usage": {
+    "completion_tokens": 34,
+    "prompt_tokens": 40,
+    "total_tokens": 74,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  }
+}
