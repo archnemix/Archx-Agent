@@ -2,3 +2,4 @@
 
 step	status	seconds
 install	ok	20
+pytest	ok	462
