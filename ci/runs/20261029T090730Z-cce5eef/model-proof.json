@@ -1,0 +1,11 @@
+{
+  "text": "A tunnel is a passageway or channel through which a piece of machinery, such as a tunnel or pipeline, can travel.",
+  "usage": {
+    "completion_tokens": 26,
+    "prompt_tokens": 40,
+    "total_tokens": 66,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  }
+}

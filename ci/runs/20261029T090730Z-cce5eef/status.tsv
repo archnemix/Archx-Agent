@@ -9,3 +9,12 @@ coding-acceptance	ok	13
 experiment-acceptance	ok	9
 play-acceptance	ok	12
 voice-acceptance	ok	10
+dataset-acceptance	ok	11
+training-acceptance	ok	10
+remote-acceptance	ok	11
+sdks	ok	2
+llama-cpp	ok	2
+model-download	ok	2
+serve	ok	1
+completion	ok	0
+sdk-matrix	ok	13

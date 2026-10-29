@@ -905,3 +905,532 @@ M35 acceptance on /tmp/archx-m35-yMNXIK
 [ok]   a deleted file is a difference too = ['missing']
 
 ### require_license refuses rather than inventing one
+[ok]   cleaning an undeclared dataset with require_license exits 2 = 2
+[ok]   and says why = 1
+
+### the counters agree with the rows
+[ok]   datasets = 2
+[ok]   candidates = 19
+[ok]   kept = 10
+$ archx-agent dataset show ds_0001m63f6chy00000000d6e42206fcdc5ea3
+ds_0001m63f6chy00000000d6e42206fcdc5ea3  'corpus'  (built)
+  license   CC-BY-4.0  (declared by the user: CC-BY-4.0)
+  sources   corpus
+  records   4 kept, 6 dropped
+  splits    train 4
+  seed      m35
+  manifest  2e7e990dc79afc9f4a1cdc997bc9d9bf88f49f033eea2dd2cccc1cb233de8440
+  export    corpus.jsonl
+
+  ledger:
+    1. scan    0 -> 9  2026-10-29T09:17:29.030Z
+    2. clean   9 -> 4  2026-10-29T09:17:29.592Z
+    3. clean   9 -> 3  2026-10-29T09:17:30.495Z
+    4. split   3 -> 3  2026-10-29T09:17:30.917Z
+    5. scan    9 -> 10  2026-10-29T09:17:31.396Z
+    6. clean   10 -> 4  2026-10-29T09:17:31.754Z
+    7. split   4 -> 4  2026-10-29T09:17:32.030Z
+    8. split   4 -> 4  2026-10-29T09:17:32.641Z
+    9. split   4 -> 4  2026-10-29T09:17:32.849Z
+    10. build   4 -> 4  2026-10-29T09:17:33.260Z
+[exit 0]
+
+### the page is a client of the same service
+[ok]   the page lists the datasets the CLI wrote = 2
+[ok]   the stats ride with the collection = 2
+[ok]   a dataset created in the page is a row the CLI reads = 1
+[ok]   scanning from the page measures the same files = True
+[ok]   dropped records are visible over HTTP with their reason = True
+[ok]   an unknown dataset is a 404 = 404
+[ok]   a bad filter is a 400 = 400
+[ok]   an unauthenticated call is refused = 401
+[ok]   the verify disagreement over HTTP is a 200 with agrees false = False
+
+### the record survives a restart
+[ok]   the manifest hash is still the one built = 2e7e990dc79afc9f4a1cdc997bc9d9bf88f49f033eea2dd2cccc1cb233de8440
+[ok]   the dropped reasons are still there = True
+[ok]   and the ledger still has every step = True
+
+M35 acceptance: 72 checks passed, 0 failed
+=== training-acceptance ===============================================
+$ bash scripts/acceptance_m36.sh
+M36 acceptance on /tmp/archx-m36-vuOFEb
+
+### the schema adopts the table v8 reserved
+[ok]   training is a versioned migration = 1
+[ok]   jobs and metrics are tables = 2
+[ok]   the reserved columns survive the adoption = 8
+[ok]   a fresh home has run nothing = 0
+[ok]   and says plainly it cannot fine-tune = False
+
+### a run is not attempted until the dataset can support one
+[ok]   an unsplit dataset is not runnable = False
+[ok]   and the reason names the missing split = True
+[ok]   the preflight exits 3 (cannot), not 0 = 3
+[ok]   a split but unbuilt dataset still fails = False
+[ok]   and the reason names the build = True
+[ok]   a built, split, verified dataset is runnable = True
+[ok]   every check is a row = True
+[ok]   including the manifest = True
+
+### an n-gram model is trained here, and its perplexity is arithmetic
+[ok]   the run completed = completed
+[ok]   it trained on the dataset it names = ds_0001m63f6qwt00000000af3eecc8107cf84e
+[ok]   train, val and test were each scored = 3
+[ok]   perplexity is recorded per split = 3
+[ok]   the metrics are rows, not a blob = 9
+[ok]   the artifact is a file on disk = yes
+[ok]   its recorded hash is the file's hash = af721d82568aaa402c07b17bac106a630b178aa849a555788871f4ced2c25167
+[ok]   the artifact says what it is = ngram
+[ok]   the artifact is versioned = versioned
+[ok]   an independent implementation gets the same perplexity = True
+
+### a classifier is trained here, and predicts a label this script knows
+[ok]   the classifier completed = completed
+[ok]   it labelled from the directory and said so = 1
+[ok]   it saw two labels = 2.0
+[ok]   accuracy is a fraction between 0 and 1 = True
+[ok]   a rust-shaped document predicts rust = rust
+[ok]   a python-shaped document predicts python = python
+
+### fine-tuning is refused with every missing link, in order
+[ok]   asking for a fine-tune exits 3 = 3
+[ok]   the refusal is a row = refused
+[ok]   the first reason is the switch = True
+[ok]   the last is the missing adapter = True
+[ok]   turning training on removes exactly one reason = 1
+[ok]   and the switch is no longer the first reason = False
+[ok]   the library and the GPU are named = True
+[ok]   a refused run has no artifact = 0
+[ok]   and cannot be predicted from = 2
+
+### a comparison names what it could not rank
+[ok]   two n-gram runs rank on val perplexity = True
+[ok]   a mixed comparison names no winner = None
+[ok]   and says why = True
+[ok]   a refused run is listed with its status = True
+
+### the counters agree with the rows
+[ok]   jobs = 5
+[ok]   completed = 3
+[ok]   metrics = 27
+$ archx-agent train list
+id                                       method    status     dataset                                  artifact                                            created                 
+---------------------------------------  --------  ---------  ---------------------------------------  --------------------------------------------------  ------------------------
+tj_0001m63f6x21000000007a7a8751f38986ef  ngram     completed  ds_0001m63f6qwt00000000af3eecc8107cf84e  tj_0001m63f6x21000000007a7a8751f38986ef.model.json  2026-10-29T09:17:44.385Z
+tj_0001m63f6w77000000000b1f26a6029c5e67  qlora     refused    ds_0001m63f6qwt00000000af3eecc8107cf84e  -                                                   2026-10-29T09:17:43.527Z
+tj_0001m63f6vbg000000005d67380100e4f58d  lora      refused    ds_0001m63f6qwt00000000af3eecc8107cf84e  -                                                   2026-10-29T09:17:42.640Z
+tj_0001m63f6tjn00000000488914d010d0e97d  centroid  completed  ds_0001m63f6qwt00000000af3eecc8107cf84e  tj_0001m63f6tjn00000000488914d010d0e97d.model.json  2026-10-29T09:17:41.845Z
+tj_0001m63f6syh00000000b71ae858585b7a4a  ngram     completed  ds_0001m63f6qwt00000000af3eecc8107cf84e  tj_0001m63f6syh00000000b71ae858585b7a4a.model.json  2026-10-29T09:17:41.201Z
+[exit 0]
+
+### the page is a client of the same service
+[ok]   the page lists the runs the CLI made = 5
+[ok]   the page says it cannot fine-tune = False
+[ok]   a run started in the page is a row the CLI reads = 1
+[ok]   the metrics endpoint returns the same numbers = True
+[ok]   a refusal over HTTP is a 200 with the reasons = True
+[ok]   an unknown run is a 404 = 404
+[ok]   an unauthenticated call is refused = 401
+[ok]   the preflight route answers the same question = False
+
+### the record survives a restart
+[ok]   the completed run is still completed = completed
+[ok]   the metrics are still the ones measured = ['test', 'train', 'val']
+[ok]   the artifact path is still recorded = yes
+[ok]   and the refusal is still a refusal = refused
+
+M36 acceptance: 57 checks passed, 0 failed
+=== remote-acceptance ===============================================
+$ bash scripts/acceptance_m37.sh
+M37 acceptance on /tmp/archx-m37-TELPtQ
+
+### the schema adopts the table v8 reserved, and adds what makes a result checkable
+[ok]   remote is a versioned migration = 1
+[ok]   jobs and attempts are tables = 2
+[ok]   the reserved columns survive the adoption = 8
+[ok]   and the two hashes are separate columns = 2
+[ok]   a fresh home has dispatched nothing = 0
+[ok]   and says why nothing could be = True
+[ok]   the protocol is named = archx-remote/1
+
+### a bundle cannot be made from a dataset nobody built
+[ok]   an unbuilt dataset exits 2 (usage), not 0 = 2
+[ok]   and the reason asks for a build = 1
+
+### a bundle identifies its input down to two digests per record
+[ok]   the bundle is a file on disk = yes
+[ok]   its hash is the hash of its bytes = 2c47ce27f20dc4286d13167e4e2a32d74ad161575bdc0fe40c774a7d9b6138d7
+[ok]   it carries every kept record = 8
+[ok]   with a file digest and a text digest that differ = True
+[ok]   the text digest is the digest of the text = True
+[ok]   the manifest checksum is the dataset's own = 50e360ad023211260a93bc1a6cf0ac3f5566ac2182e5eeecf94eb9be25ebd697
+[ok]   the run is declared in the bundle = 2
+
+### nothing leaves the machine until the switch, an endpoint and an approval all say yes
+$ archx-agent remote dispatch rj_0001m63f736j0000000058b5062696577867
+refused rj_0001m63f736j0000000058b5062696577867
+  nothing was sent: remote.require_approval is on and rj_0001m63f736j0000000058b5062696577867 has not been approved: `archx-agent remote approve rj_0001m63f736j0000000058b5062696577867`; remote compute is off: `archx-agent config set remote.enabled true`; no cloud provider is reachable from this build: a worker is a second machine (or a second process) running `archx-agent remote worker`, and nothing here talks to a vendor's compute service
+  - remote.require_approval is on and rj_0001m63f736j0000000058b5062696577867 has not been approved: `archx-agent remote approve rj_0001m63f736j0000000058b5062696577867`
+  - remote compute is off: `archx-agent config set remote.enabled true`
+  - no cloud provider is reachable from this build: a worker is a second machine (or a second process) running `archx-agent remote worker`, and nothing here talks to a vendor's compute service
+[exit 3]
+[ok]   a dispatch without approval is refused = refused
+[ok]   and says which approval is missing = 1
+[ok]   the refusal is an attempt row = 1
+[ok]   the approval is on the job = user:user
+[ok]   a dispatch with the switch off is still refused = 3
+[ok]   and it names the switch = yes
+[ok]   no dispatch succeeded while the switch was off = 0
+
+### a dispatch to a port nobody is listening on is a row, not a crash
+[ok]   an unreachable endpoint exits 3 = 3
+[ok]   the job is failed, not verified = failed
+[ok]   the failed attempt is in the log = 1
+[ok]   and the error is stored, not printed at the user = 1
+
+### a worker checks a bundle against itself before it computes anything
+[ok]   the worker is up and says which protocol it speaks = archx-remote/1
+[ok]   the worker is a separate process with no database = 1
+
+### an approved bundle is dispatched, computed, collected and verified
+[ok]   the dispatch is recorded against the endpoint = http://127.0.0.1:47501
+[ok]   the worker's machine is recorded = acceptance-box
+[ok]   the worker named its own job id = 1
+[ok]   collecting exits 0 only when the hash agrees = 0
+[ok]   the job is verified = verified
+[ok]   what the worker claimed and what this machine measured agree = True
+[ok]   and the claim is not empty = 64
+[ok]   the artifact is a file on disk = yes
+[ok]   the file hashes to what was stored = 2a53146040b4875028b4e18fa8d89cae7b5e36931f0b7f2594ffdcce86171eab
+[ok]   a second verify still agrees = 1
+[ok]   the verification time is recorded = 1
+
+### the numbers are a local run's numbers, because it is the same trainer
+[ok]   the remote train perplexity equals the local one = 2.892797183739609
+[ok]   each split agrees exactly = True
+[ok]   the artifact holds the same counts as the local run's = True
+[ok]   the worker says who computed it = worker:acceptance-box
+
+### a worker that misreports its hash produces a disagreement, not a result
+[ok]   a claimed hash that does not match is not verified = received
+[ok]   the two hashes are stored separately = True
+[ok]   the note names both = True
+[ok]   nothing wrote a verification time = none
+[ok]   the attempt is recorded as a mismatch = mismatch
+[ok]   re-verifying cannot rescue it = 3
+[ok]   and the job stays received = received
+[ok]   the stats count it as unverified = 1
+
+### a worker speaking another protocol is refused by both names
+[ok]   a protocol mismatch exits 3 = 3
+[ok]   the job is refused, not dispatched = refused
+[ok]   and both versions are named = 1
+
+### a corpus edited after the build cannot become a bundle
+[ok]   a drifted corpus exits 2 = 2
+[ok]   and the file is named with the reason = 1
+[ok]   no job was created for it = 0
+[ok]   restoring the file makes the dataset verify again = True
+
+### the page is a client of the same service, over a real socket
+[ok]   the remote route needs a token = 401
+[ok]   with a token it answers = 200
+[ok]   an unknown job is a 404 = 404
+[ok]   an unknown status is a 400 = 400
+[ok]   the page counts the same jobs the CLI does = 4
+[ok]   the page can write a bundle = 1
+[ok]   and approve it = user:gui
+[ok]   and dispatch it to the configured endpoint = dispatched
+[ok]   and collect a verified result = verified
+[ok]   the detail shows both hashes = True
+
+### the record survives the process that wrote it
+[ok]   every job is still there after five more processes = 5
+[ok]   and the attempts were never overwritten = 3
+
+M37 acceptance: 71 checks passed, 0 failed
+=== sdks ===============================================
+$ archx-agent models sdks
+openai     OpenAI           installed  openai         key from OPENAI_API_KEY
+anthropic  Anthropic        installed  anthropic      key from ANTHROPIC_API_KEY
+google     Google Gemini    installed  google-genai   key from GEMINI_API_KEY
+mistral    Mistral          installed  mistralai      key from MISTRAL_API_KEY
+groq       Groq             installed  groq           key from GROQ_API_KEY
+together   Together         installed  together       key from TOGETHER_API_KEY
+cohere     Cohere           installed  cohere         key from COHERE_API_KEY
+ollama     Ollama           installed  ollama         key from OLLAMA_API_KEY
+=== llama-cpp ===============================================
+$ bash -c 
+  set -u
+  mkdir -p "$HOME/llama"; server=""
+  for page in 1 2; do
+    asset="$(gh api "repos/ggml-org/llama.cpp/releases?per_page=10&page=$page" \
+      --jq ".[].assets[].browser_download_url" 2>/dev/null \
+      | grep -E "/llama-b[0-9]+-bin-ubuntu-x64\.tar\.gz$" | head -1 || true)"
+    [ -n "$asset" ] && break
+  done
+  if [ -n "${asset:-}" ]; then
+    echo "prebuilt: $asset"
+    curl -fsSL "$asset" -o /tmp/llama.tar.gz && tar -xzf /tmp/llama.tar.gz -C "$HOME/llama" || true
+    server="$(find "$HOME/llama" -name llama-server -type f | head -1)"
+  fi
+  if [ -z "$server" ]; then
+    echo "no prebuilt binary; building from source"
+    git clone --depth 1 https://github.com/ggml-org/llama.cpp /tmp/llama-src
+    cmake -S /tmp/llama-src -B /tmp/llama-src/build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF
+    cmake --build /tmp/llama-src/build --target llama-server -j "$(nproc)"
+    server=/tmp/llama-src/build/bin/llama-server
+  fi
+  [ -x "$server" ] || { echo "no llama-server binary"; exit 1; }
+  chmod +x "$server"; "$server" --version
+  echo "LLAMA_SERVER=$server" >> "$GITHUB_ENV"
+
+prebuilt: https://github.com/ggml-org/llama.cpp/releases/download/b11981/llama-b11981-bin-ubuntu-x64.tar.gz
+version: 0.8.0-dev (build 11981, commit da6c30ade)
+built with GNU 11.4.0 for Linux x86_64
+=== model-download ===============================================
+$ bash -c 
+  mkdir -p "$HOME/model"
+  target="$HOME/model/$MODEL_FILE"
+  if [ ! -s "$target" ]; then
+    curl -fL --retry 3 -o "$target.part" \
+      "https://huggingface.co/$MODEL_REPO/resolve/main/$MODEL_FILE"
+    mv "$target.part" "$target"
+  fi
+  ls -lh "$target"
+  head -c 4 "$target" | grep -q GGUF || { echo "not a GGUF file"; exit 1; }
+  echo "MODEL_PATH=$target" >> "$GITHUB_ENV"
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  1122  100  1122    0     0  10091      0 --:--:-- --:--:-- --:--:-- 10017
+  2  100M    2 2274k    0     0  2255k      0  0:00:45  0:00:01  0:00:44 2255k100  100M  100  100M    0     0  59.7M      0  0:00:01  0:00:01 --:--:--  145M
+-rw-r--r-- 1 runner runner 101M Oct 29 09:18 /home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf
+=== serve ===============================================
+$ bash -c 
+  # Detach *all three* descriptors. A backgrounded server that inherits the closing
+  # pipeline keeps the tee pipe open, so run.sh waits forever even after the check
+  # here is done - the first run of this workflow hung on exactly this line.
+  setsid "$LLAMA_SERVER" --model "$MODEL_PATH" --host 127.0.0.1 --port "$PORT" \
+    --ctx-size 512 --n-gpu-layers 0 --threads 2 --parallel 1 \
+    --no-warmup --log-file "$RUNNER_TEMP/llama.log" \
+    > "$RUNNER_TEMP/llama.out" 2>&1 < /dev/null &
+  echo $! > "$RUNNER_TEMP/llama.pid"
+  for i in $(seq 1 180); do
+    curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 && { echo "up after ${i}s"; exit 0; }
+    sleep 1
+  done
+  tail -40 "$RUNNER_TEMP/llama.log"; exit 1
+
+up after 2s
+=== completion ===============================================
+$ bash -c 
+  curl -sS -H "Content-Type: application/json" --max-time 120 \
+    -d "{\"model\":\"local\",\"messages\":[{\"role\":\"user\",\"content\":\"In one short sentence, what is a tunnel?\"}],\"max_tokens\":48}" \
+    "http://127.0.0.1:$PORT/v1/chat/completions" > "$LOGDIR/completion.json"
+  python - <<PY
+import json, os, pathlib
+data = json.loads(pathlib.Path(os.environ["LOGDIR"], "completion.json").read_text())
+text = data["choices"][0]["message"]["content"].strip()
+usage = data.get("usage", {})
+print("text:", text)
+print("usage:", usage)
+assert text, "empty reply"
+pathlib.Path(os.environ["LOGDIR"], "model-proof.json").write_text(json.dumps({"text": text, "usage": usage}, indent=2))
+PY
+
+text: A tunnel is a passageway or channel through which a piece of machinery, such as a tunnel or pipeline, can travel.
+usage: {'completion_tokens': 26, 'prompt_tokens': 40, 'total_tokens': 66, 'prompt_tokens_details': {'cached_tokens': 0}}
+=== sdk-matrix ===============================================
+$ ./scripts/remote_model.sh http://127.0.0.1:8080
+### endpoint
+http://127.0.0.1:8080
+curl /health      -> 200
+curl /v1/models   -> 200
+the server says: {"models":[{"name":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","model":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","modified_at":"","size":"","digest":"","type":"model","description":"","tags":[""],"capabilities":["completion"],"parameters":"","details":{"parent_model":"","form
+
+### the same endpoint through each official SDK
+
+--- openai
+OK    'Hello, welcome to my little corner of the internet.'
+      tokens in/out 36/12  finish stop
+      base http://127.0.0.1:8080/v1  ->  /chat/completions
+      streamed 6 chunk(s), 22 chars: "I'm counting to three."
+
+--- anthropic
+OK    'Hello, welcome to my world of colorful sounds and vibrant ideas!'
+      tokens in/out 12/14  finish stop
+      base http://127.0.0.1:8080  ->  /v1/messages
+      streamed 32 chunk(s), 49 chars: 'Three, five, seven, nine, 12, 15, 18, 21, 24, 27.'
+
+--- google
+SKIP  the google client speaks :generateContent; this endpoint does not
+
+--- mistral
+OK    'Hello, hello, hello!'
+      tokens in/out 36/7  finish stop
+      base http://127.0.0.1:8080  ->  /v1/chat/completions
+      streamed 4 chunk(s), 15 chars: 'Count to three.'
+
+--- groq
+SKIP  groq requests /openai/v1/chat/completions; this endpoint answers 404 there (model not found: Error code: 404 - {'error': {'message': 'File Not Found', 'type)
+
+--- together
+OK    'Hello!'
+      tokens in/out 36/3  finish stop
+      base http://127.0.0.1:8080  ->  /v1/chat/completions
+      streamed 6 chunk(s), 22 chars: "I'm counting to three."
+
+--- cohere
+SKIP  no /v2/chat here; the cohere client has nothing to talk to
+
+--- ollama
+SKIP  no /api/tags here; the ollama client has nothing to talk to
+
+### summary
+4 SDK(s) completed a turn, 0 failed
+
+### and through Archx itself (the app, not just the SDK)
+home /tmp/archx-remote-pQYw2z
+
+$ archx-agent models add-sdk --name remote-openai --sdk openai --model local --base-url http://127.0.0.1:8080
+  registered remote-openai (mdl_0001m63f7rst00000000f6223f56b017e2e1) provider=openai runtime=sdk
+    sdk      openai (`openai`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/OPENAI_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/OPENAI_API_KEY could not be resolved: secret reference secret://env/OPENAI_API_KEY not found in environment (OPENAI_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/OPENAI_API_KEY not found in environment (OPENAI_API_KEY)
+
+$ archx-agent models add-sdk --name remote-anthropic --sdk anthropic --model local --base-url http://127.0.0.1:8080
+  registered remote-anthropic (mdl_0001m63f7sjg000000004599419b5b977bd3) provider=anthropic runtime=sdk
+    sdk      anthropic (`anthropic`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/ANTHROPIC_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/ANTHROPIC_API_KEY could not be resolved: secret reference secret://env/ANTHROPIC_API_KEY not found in environment (ANTHROPIC_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/ANTHROPIC_API_KEY not found in environment (ANTHROPIC_API_KEY)
+
+$ archx-agent models add-sdk --name remote-google --sdk google --model local --base-url http://127.0.0.1:8080
+  registered remote-google (mdl_0001m63f7v6600000000e6218666be8b6b12) provider=google runtime=sdk
+    sdk      google-genai (`google.genai`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/GEMINI_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/GEMINI_API_KEY could not be resolved: secret reference secret://env/GEMINI_API_KEY not found in environment (GEMINI_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/GEMINI_API_KEY not found in environment (GEMINI_API_KEY)
+
+$ archx-agent models add-sdk --name remote-mistral --sdk mistral --model local --base-url http://127.0.0.1:8080
+  registered remote-mistral (mdl_0001m63f7w0q000000005426e8cefbdb528d) provider=mistral runtime=sdk
+    sdk      mistralai (`mistralai.client`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/MISTRAL_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/MISTRAL_API_KEY could not be resolved: secret reference secret://env/MISTRAL_API_KEY not found in environment (MISTRAL_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/MISTRAL_API_KEY not found in environment (MISTRAL_API_KEY)
+
+$ archx-agent models add-sdk --name remote-groq --sdk groq --model local --base-url http://127.0.0.1:8080
+  registered remote-groq (mdl_0001m63f7wrh00000000fc4f78106417c9d0) provider=groq runtime=sdk
+    sdk      groq (`groq`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/GROQ_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/GROQ_API_KEY could not be resolved: secret reference secret://env/GROQ_API_KEY not found in environment (GROQ_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/GROQ_API_KEY not found in environment (GROQ_API_KEY)
+
+$ archx-agent models add-sdk --name remote-together --sdk together --model local --base-url http://127.0.0.1:8080
+  registered remote-together (mdl_0001m63f7xa60000000007f8540fdb57f512) provider=together runtime=sdk
+    sdk      together (`together`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/TOGETHER_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/TOGETHER_API_KEY could not be resolved: secret reference secret://env/TOGETHER_API_KEY not found in environment (TOGETHER_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/TOGETHER_API_KEY not found in environment (TOGETHER_API_KEY)
+
+$ archx-agent models add-sdk --name remote-cohere --sdk cohere --model local --base-url http://127.0.0.1:8080
+  registered remote-cohere (mdl_0001m63f7xyv000000004a033572ed261841) provider=cohere runtime=sdk
+    sdk      cohere (`cohere`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/COHERE_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/COHERE_API_KEY could not be resolved: secret reference secret://env/COHERE_API_KEY not found in environment (COHERE_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/COHERE_API_KEY not found in environment (COHERE_API_KEY)
+
+$ archx-agent models add-sdk --name remote-ollama --sdk ollama --model local --base-url http://127.0.0.1:8080
+  registered remote-ollama (mdl_0001m63f7yby00000000acf31295b8bbb4ad) provider=ollama runtime=sdk
+    sdk      ollama (`ollama`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/OLLAMA_API_KEY (never stored)
+    sdk      installed
+    runtime  ready - ready: a local Ollama needs no key (no data leaves this machine)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    chat: failed  (ModelNotFoundError: model not found: {'message': 'File Not Found', 'type': 'not_found_error', 'code': 404} (status code: 404))
+      latency 174.2 ms
+      state now unsupported (probe failed)
+      this drove the runtime; the result is recorded and the router will use it
+=== ollama ===============================================
+$ bash -c 
+  set -u
+  docker run -d --name ollama -p 11434:11434 ollama/ollama:latest || exit 1
+  for i in $(seq 1 90); do
+    curl -fsS http://127.0.0.1:11434/api/tags >/dev/null 2>&1 && break
+    sleep 2
+  done
+  docker exec ollama ollama pull smollm2:135m || exit 1
+  curl -sS http://127.0.0.1:11434/api/tags
+  # the ollama client against a real daemon; smollm2 is the name the daemon knows
+  REMOTE_MODEL=smollm2:135m ./scripts/remote_model.sh http://127.0.0.1:11434 --sdk ollama \
+    | tee -a "$LOGDIR/console.log"
+  # and through Archx itself: a keyless local daemon is the one case where a model
+  # is ready with no credential, so this also proves that rule on a real daemon.
+  export ARCHX_PATHS_HOME="$RUNNER_TEMP/archx-ollama"
+  archx-agent init >/dev/null
+  archx-agent models add-sdk --name ollama-local --sdk ollama \
+    --model smollm2:135m --base-url http://127.0.0.1:11434
+  archx-agent models probe ollama-local --capability chat
+  archx-agent chat --stream --message "Name one colour." --model ollama-local
+
+Unable to find image 'ollama/ollama:latest' locally
+latest: Pulling from ollama/ollama
+7a48b8f0e5c7: Pulling fs layer
+ca35e959b662: Pulling fs layer
+1929caaeecb0: Pulling fs layer
+1b00b80b926b: Pulling fs layer
+1b00b80b926b: Waiting
+1929caaeecb0: Verifying Checksum
+1929caaeecb0: Download complete
+7a48b8f0e5c7: Download complete
+ca35e959b662: Verifying Checksum
+ca35e959b662: Download complete
