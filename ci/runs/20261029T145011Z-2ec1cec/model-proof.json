@@ -1,0 +1,11 @@
+{
+  "text": "A tunnel is a tunnelway, a narrow passageway that connects two distant points through a tunneling system.",
+  "usage": {
+    "completion_tokens": 23,
+    "prompt_tokens": 40,
+    "total_tokens": 63,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  }
+}

@@ -50,3 +50,40 @@ $ archx-agent scene verify demo [exit 0]
 $ archx-agent scene render demo [exit 3]
 [ok] expected CLI exit
 [ok] missing Blender is a recorded refusal
+$ archx-agent scene create demo [exit 2]
+[ok] expected CLI exit
+$ archx-agent scene show demo [exit 0]
+[ok] expected CLI exit
+[ok] duplicate create leaves objects intact
+$ archx-agent config set blender.executable /tmp/archx-m39-iDy8GU/scene-case-0u2j60ae/fake blender [exit 0]
+[ok] expected CLI exit
+$ archx-agent config set execution.enabled true [exit 0]
+[ok] expected CLI exit
+$ archx-agent scene render demo [exit 1]
+[ok] expected CLI exit
+[ok] stand-in was executed
+[ok] zero exit without a PNG is not success
+[ok] Blender flags reached binary
+[ok] script path is absolute and exists
+$ archx-agent scene remove demo cube [exit 0]
+[ok] expected CLI exit
+$ archx-agent scene show demo [exit 0]
+[ok] expected CLI exit
+[ok] remove recomputes totals
+$ archx-agent tasks start --type tool --title Scene acceptance [exit 0]
+[ok] expected CLI exit
+$ archx-agent scene create linked --task tk_0001m642yce6000000005e9d443fd74ec741 [exit 0]
+[ok] expected CLI exit
+[ok] scene has task artifact
+$ archx-agent scene add linked cube [exit 0]
+[ok] expected CLI exit
+$ archx-agent scene export linked obj [exit 0]
+[ok] expected CLI exit
+[ok] export attached to same task
+$ archx-agent tasks artifacts tk_0001m642yce6000000005e9d443fd74ec741 [exit 0]
+[ok] expected CLI exit
+[ok] task lists document and mesh artifacts
+$ archx-agent scene create invalid-task --task missing [exit 1]
+[ok] expected CLI exit
+[ok] unknown task left no scene document
+M39 acceptance: 59 checks passed, 0 failed
