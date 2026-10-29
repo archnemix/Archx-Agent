@@ -12,6 +12,32 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
   if the read is not allowed, records the diff as partial with the reason. (`docs/GUI.md` already
   promised one request; now the code does too.)
 
+### Added - M37, Remote compute and portability
+- **A bundle that identifies its input.** `remote export` writes one JSON document carrying the
+  corpus, the M35 manifest checksum and the declared run, then hashes it. Each record carries two
+  digests that are *not* the same number: `file_sha256` measured with `fs.probe` (bytes, the same
+  measurement the dataset recorded) and `text_sha256` of what `fs.read` returns (trimmed). One number
+  for both would refuse the bundle's own records; the pair is what catches an edit after the build
+  and an edit in transit, respectively.
+- **Nothing leaves without three answers.** `remote.enabled`, `remote.endpoint` and
+  `remote.require_approval` (on by default, so the setting is not a lie). A refusal is a row with
+  every reason and an entry in `remote_attempts`; the job can be dispatched later.
+- **A worker with no database.** `archx-agent remote worker` takes a bundle, re-checks the protocol,
+  the body hash, every text digest, the rebuilt manifest and that a `train` split exists - refusing
+  over the wire with the reason - and then calls the same `train_records()` the local command calls.
+  A remote run's perplexities are **equal** to a local run's, and the tests assert equality.
+- **The artifact is hashed twice.** `claimed_sha256` (what the worker said) and `received_sha256`
+  (what this machine measured) are separate columns because the point is that they can disagree. A
+  disagreement stores the file, marks the job `received`, records the attempt as `mismatch`, and sets
+  no `verified_at`; `remote verify` re-reads the file *and* re-checks the claim, so asking twice
+  cannot rescue a misreported hash.
+- **A dispatch that never arrived is a row** - `failed` with the error stored, in the same spirit as
+  M34's refused probes and M36's refused runs. A worker speaking `archx-remote/0` is refused with
+  both versions named.
+- Schema v27 adopts v8's reserved `remote_jobs` with `ALTER TABLE` and adds `remote_attempts`.
+- The GUI grew a seventeenth panel: bundle a dataset, approve, dispatch, collect, and the two hashes
+  shown as separate rows.
+
 ### Added - M36, Training and model modification
 - **Two trainers that really run**, both dependency-free and deterministic: an n-gram language model
   with add-k smoothing scored by **perplexity** per split, and a nearest-centroid classifier over

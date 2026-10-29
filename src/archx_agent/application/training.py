@@ -224,6 +224,63 @@ class CentroidModel:
         return model
 
 
+def train_records(
+    entries: list[dict[str, Any]], method: str, config: dict[str, Any]
+) -> dict[str, Any]:
+    """Train on records that are already in memory: ``{"path", "split", "label", "text"}``.
+
+    This is the whole trainer, in one place, because it has two callers: the local run, which reads
+    the files itself, and the remote worker (M37), which must not train a *different* model from the
+    one the local command would have trained. A worker that reimplemented the arithmetic would make
+    every remote metric a claim about a second implementation.
+    """
+    texts: dict[str, list[tuple[str, str]]] = {"train": [], "val": [], "test": []}
+    for entry in entries:
+        texts.setdefault(entry.get("split") or "train", []).append(
+            (entry["path"], entry["text"])
+        )
+    labels = {entry["path"]: entry.get("label") for entry in entries}
+
+    if method == "ngram":
+        model = NGramModel(order=int(config["order"]), smoothing=float(config["smoothing"]))
+        model.fit([text for _path, text in texts.get("train", [])])
+        metrics: dict[str, dict[str, float | None]] = {}
+        for split, items in texts.items():
+            if not items:
+                continue
+            perplexities = [model.perplexity(text) for _path, text in items]
+            metrics[split] = {
+                "perplexity": sum(perplexities) / len(perplexities),
+                "records": float(len(items)),
+                "tokens": float(sum(len(tokenize(text)) for _path, text in items)),
+            }
+        artifact = model.to_dict()
+    elif method == "centroid":
+        examples: dict[str, list[tuple[str, str]]] = {}
+        for split, items in texts.items():
+            examples[split] = [
+                (text, labels[path]) for path, text in items if labels.get(path) is not None
+            ]
+        model = CentroidModel()
+        model.fit(examples.get("train") or [])
+        metrics = {}
+        for split, items in examples.items():
+            if not items:
+                continue
+            # NaN is recorded as a null, with the reason in the job's notes: a metric that was not
+            # measurable is not a metric of zero.
+            accuracy = model.accuracy(items)
+            metrics[split] = {
+                "accuracy": accuracy if accuracy == accuracy else None,
+                "records": float(len(items)),
+                "labels": float(len(model.labels)),
+            }
+        artifact = model.to_dict()
+    else:
+        raise ValidationError(f"{method!r} is not a trainer this build can run")
+    return {"metrics": metrics, "artifact": artifact}
+
+
 class TrainingService:
     """Run the two trainers that work here, and say why the others cannot."""
 
@@ -491,54 +548,19 @@ class TrainingService:
     ) -> dict[str, Any]:
         view = self.ws.data.view(dataset)
         records = self.ws.data.records(view["id"], status="kept", limit=100_000)
-        texts: dict[str, list[tuple[str, str]]] = {"train": [], "val": [], "test": []}
-        for record in records:
-            split = record["split"] or "train"
-            content = self._read_text(record["path"], task_id)
-            texts.setdefault(split, []).append((record["path"], content))
-
-        if method == "ngram":
-            model = NGramModel(order=int(config["order"]), smoothing=float(config["smoothing"]))
-            model.fit([text for _path, text in texts.get("train", [])])
-            metrics: dict[str, dict[str, float]] = {}
-            for split, items in texts.items():
-                if not items:
-                    continue
-                perplexities = [model.perplexity(text) for _path, text in items]
-                metrics[split] = {
-                    "perplexity": sum(perplexities) / len(perplexities),
-                    "records": float(len(items)),
-                    "tokens": float(sum(len(tokenize(text)) for _path, text in items)),
-                }
-            artifact = model.to_dict()
-        else:
-            examples: dict[str, list[tuple[str, str]]] = {}
-            labels_by_path = {record["path"]: self._label(record, config["label_source"])
-                              for record in records}
-            for split, items in texts.items():
-                examples[split] = [
-                    (text, labels_by_path[path]) for path, text in items
-                    if labels_by_path.get(path) is not None
-                ]
-            model = CentroidModel()
-            model.fit(examples.get("train") or [])
-            metrics = {}
-            for split, items in examples.items():
-                if not items:
-                    continue
-                # NaN is recorded as a null, with the reason in the job's notes: a metric that was
-                # not measurable is not a metric of zero.
-                accuracy = model.accuracy(items)
-                metrics[split] = {
-                    "accuracy": accuracy if accuracy == accuracy else None,
-                    "records": float(len(items)),
-                    "labels": float(len(model.labels)),
-                }
-            artifact = model.to_dict()
-
-        artifact["trained_on"] = view["id"]
-        artifact["seed"] = int(config["seed"])
-        return {"metrics": metrics, "artifact": artifact}
+        entries = [
+            {
+                "path": record["path"],
+                "split": record["split"] or "train",
+                "label": self._label(record, config.get("label_source") or "record"),
+                "text": self._read_text(record["path"], task_id),
+            }
+            for record in records
+        ]
+        trained = train_records(entries, method, config)
+        trained["artifact"]["trained_on"] = view["id"]
+        trained["artifact"]["seed"] = int(config["seed"])
+        return trained
 
     @staticmethod
     def _label(record: dict[str, Any], source: str) -> str | None:

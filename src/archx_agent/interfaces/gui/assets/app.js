@@ -69,6 +69,11 @@
       sub: "two trainers that run here · metrics as rows · a fine-tune refused by name, never faked",
       tools: ["fs.read", "metrics", "artifact"],
     },
+    remote: {
+      title: "Remote",
+      sub: "a bundle with digests · an endpoint that computed it · a hash re-checked on arrival",
+      tools: ["fs.write", "bundle_sha256", "verified"],
+    },
     experiments: {
       title: "Experiments",
       sub: "declared commands, declared parameters, and a comparison that says what it could not rank",
@@ -2292,6 +2297,129 @@
         ? "completed; the metrics are rows"
         : run.status + ": " + ((run.reasons || []).length) + " reason(s), recorded";
       await openRun(run.id);
+    } catch (error) {
+      report(status, error);
+    }
+  });
+
+  // ------------------------------------------------------------------ remote
+  // The page's claim is the two hashes: what the worker said, and what this machine measured. They
+  // are shown as separate rows because the interesting case is the one where they disagree.
+  async function loadRemote() {
+    state.remote = state.remote || {};
+    const payload = await api("GET", "/api/remote/jobs");
+    const stats = payload.stats || {};
+    const summary = clear(document.getElementById("remote-stats"));
+    summary.append(el("p", { class: "small", text: (stats.jobs || 0) + " job(s) · " + (stats.attempts || 0) + " attempt(s) · " + (stats.unverified || 0) + " unverified" }));
+    summary.append(el("p", { class: "small dim", text: (stats.enabled ? "dispatch is on" : "dispatch is off") + " · endpoint " + (stats.endpoint || "(none)") + " · " + (stats.protocol || "") }));
+
+    const list = clear(document.getElementById("remote-jobs"));
+    if (!payload.jobs.length) list.append(el("li", { class: "dim small", text: "no remote jobs yet" }));
+    for (const job of payload.jobs) {
+      const button = el("button", { type: "button", class: "list-item" + (state.remote.id === job.id ? " active" : "") }, [
+        el("span", { class: "t", text: job.kind + " · " + shortId(job.id) }),
+        el("span", { class: "s", text: job.status + " · " + (job.endpoint || "not sent") }),
+      ]);
+      button.addEventListener("click", () => openRemoteJob(job.id).catch((error) => report(document.getElementById("remote-detail"), error)));
+      list.append(el("li", {}, [button]));
+    }
+    return payload;
+  }
+
+  async function openRemoteJob(jobId) {
+    const panel = clear(document.getElementById("remote-detail"));
+    state.remote = state.remote || {};
+    state.remote.id = jobId;
+    const job = await api("GET", "/api/remote/jobs/" + jobId);
+
+    panel.append(el("div", { class: "row between" }, [
+      el("h2", { text: job.kind + " · " + shortId(job.id) }),
+      statusBadge(job.status),
+    ]));
+    panel.append(el("p", { class: "small", text: job.sentence }));
+
+    const chips = el("div", { class: "row" }, [
+      toolChip("dataset", job.dataset_id ? shortId(job.dataset_id) : "–"),
+      toolChip("endpoint", job.endpoint || "not sent"),
+      toolChip("approved", job.approved_by || "no"),
+    ]);
+    panel.append(chips);
+
+    panel.append(table(["claim", "value"], [
+      ["bundle sha256", String(job.bundle_sha256 || "–").slice(0, 24) + "…"],
+      ["bundle path", job.bundle_path || "–"],
+      ["endpoint said", job.claimed_sha256 || "–"],
+      ["measured here", job.received_sha256 || "–"],
+      ["artifact", job.artifact_path || "–"],
+      ["machine", job.machine || "–"],
+      ["protocol", job.protocol || "–"],
+      ["note", job.verify_note || "–"],
+    ]));
+
+    if ((job.reasons || []).length) {
+      const card = el("div", { class: "card" });
+      card.append(el("div", { class: "card-head" }, [
+        el("h3", { text: "Not sent, and why" }),
+        el("p", { class: "hint", text: "Nothing left this machine. Each line below is a condition that is not met." }),
+      ]));
+      for (const reason of job.reasons) card.append(el("p", { class: "small", text: "· " + reason }));
+      panel.append(card);
+    }
+
+    const metrics = (job.outputs && job.outputs.metrics) || {};
+    const rows = metricRows(metrics);
+    if (rows.length) panel.append(table(["split", "metric", "value"], rows));
+
+    const actions = el("div", { class: "row" });
+    const addAction = (label, path, body) => {
+      const button = el("button", { type: "button", class: "btn", text: label });
+      button.addEventListener("click", async () => {
+        button.disabled = true;
+        try {
+          await api("POST", "/api/remote/jobs/" + jobId + path, body);
+          await openRemoteJob(jobId);
+        } catch (error) {
+          report(panel, error);
+        } finally {
+          button.disabled = false;
+        }
+      });
+      actions.append(button);
+    };
+    if (!job.approved_by) addAction("Approve", "/approve", {});
+    if (job.status === "draft" || job.status === "refused" || job.status === "failed") addAction("Dispatch", "/dispatch", {});
+    if (job.status === "dispatched" || job.status === "running") addAction("Collect", "/collect", {});
+    if (job.status === "received" || job.status === "verified") addAction("Verify again", "/verify", {});
+    panel.append(actions);
+
+    if ((job.attempts || []).length) {
+      panel.append(table(["when", "action", "status", "detail"], job.attempts.map((attempt) => [
+        attempt.created_at, attempt.action, attempt.status, attempt.detail || "–",
+      ])));
+    }
+  }
+
+  loaders.remote = async () => {
+    await loadRemote();
+    if (state.remote && state.remote.id) await openRemoteJob(state.remote.id);
+  };
+
+  document.getElementById("remote-refresh").addEventListener("click", () => {
+    loaders.remote().catch((error) => report(document.getElementById("remote-detail"), error));
+  });
+
+  document.getElementById("remote-export-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const status = document.getElementById("remote-export-status");
+    status.textContent = "";
+    try {
+      const job = await api("POST", "/api/remote/export", {
+        dataset: document.getElementById("remote-dataset").value.trim(),
+        order: Number(document.getElementById("remote-order").value || 2),
+      });
+      status.textContent = "bundled " + job.records + " record(s), " + job.chars + " characters";
+      await loadRemote();
+      await openRemoteJob(job.id);
     } catch (error) {
       report(status, error);
     }

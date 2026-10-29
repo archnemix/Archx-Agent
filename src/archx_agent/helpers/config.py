@@ -276,6 +276,10 @@ SPEC: dict[str, tuple[type, Any, Validator, str]] = {
     "training.weights_dir": (str, "", _str, "Local checkpoint directory, if you have one."),
     "training.ngram_max_order": (int, 5, _range(2, 5, integer=True), "Ceiling for the n-gram order."),
     "remote.require_approval": (bool, True, _bool, "Every remote dispatch needs approval."),
+    "remote.enabled": (bool, False, _bool, "Allow dispatching a bundle to a worker endpoint."),
+    "remote.endpoint": (str, "", _str, "Worker endpoint a bundle would be sent to (empty = none)."),
+    "remote.timeout": (int, 10, _range(1, 600, integer=True), "Seconds to wait for the worker."),
+    "remote.max_chars": (int, 200000, _range(1, 5000000, integer=True), "Corpus size a bundle may carry."),
     "blender.executable": (str, "", _str, "Path to the Blender binary (empty = not installed)."),
     "blender.preview_resolution": (int, 480, _range(64, 4096, integer=True), "Preview render resolution."),
     # ---- extensions

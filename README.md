@@ -155,7 +155,8 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 | CLI | verified end-to-end |
 | Datasets: candidates measured, cleaning that keeps its reasons, splits that do not move, a manifest that can fail | verified (M35) |
 | Training: two CPU trainers with real metrics and hashed artifacts; fine-tuning refused by name | verified, scoped (M36) |
-| Remote compute, Blender, automations | **not built yet** (M37–M40, see PLAN.md) |
+| Remote compute: a portable bundle with two digests per record, a worker that re-checks it, and an artifact hashed again on arrival | verified, scoped (M37 - no cloud, no vendor SDK) |
+| Blender, automations | **not built yet** (M38–M40, see PLAN.md) |
 
 ## Design principles (enforced, not aspirational)
 

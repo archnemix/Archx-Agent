@@ -265,6 +265,45 @@ const routes = {
     reasons: ["training is off", "no adapter in this build can fine-tune anything"],
     sentence: "ngram was refused before it started",
   },
+  // remote: two hashes that agree, and an endpoint that is named
+  "GET /api/remote/jobs/rj_demo": {
+    id: "rj_demo", provider: "worker", kind: "training", status: "verified",
+    dataset_id: "ds_demo", endpoint: "http://127.0.0.1:9001", machine: "box",
+    protocol: "archx-remote/1",
+    bundle_sha256: "ea35ae177c0aed3c60fa748f4e7c35761612898519f56eb7400784fea29f5dd5",
+    bundle_path: "code.bundle.json",
+    claimed_sha256: "8974207343b5330b33523079ffd245ae80842225d1413ddf623549d1cb96c65d",
+    received_sha256: "8974207343b5330b33523079ffd245ae80842225d1413ddf623549d1cb96c65d",
+    artifact_path: "rj_demo.remote.json", verified_at: "2026-10-28T10:00:00Z",
+    verify_note: "the artifact on disk still hashes to what was received",
+    remote_job_id: "rj_worker_1", received_at: "2026-10-28T10:00:00Z", refusal: null,
+    config: {}, estimate: {}, actual: { records: 8, seconds: 0.001 },
+    outputs: { artifact_kind: "ngram", metrics: { train: { perplexity: 2.8928, records: 5 } } },
+    approved_by: "user:cli", created_at: "2026-10-28T10:00:00Z",
+    completed_at: "2026-10-28T10:00:00Z", error: null, task_id: null,
+    sentence: "http://127.0.0.1:9001 computed this from bundle ea35ae177c0a and the artifact's hash was checked here",
+    attempts: [
+      { id: "ra_1", job_id: "rj_demo", action: "dispatch", status: "ok", detail: "accepted as rj_worker_1",
+        endpoint: "http://127.0.0.1:9001", created_at: "2026-10-28T10:00:00Z", metadata: {} },
+    ],
+    reasons: [],
+  },
+  "GET /api/remote/jobs": {
+    jobs: [
+      { id: "rj_demo", provider: "worker", kind: "training", status: "verified", dataset_id: "ds_demo",
+        endpoint: "http://127.0.0.1:9001", bundle_sha256: "ea35", created_at: "2026-10-28T10:00:00Z" },
+      { id: "rj_refused", provider: "worker", kind: "training", status: "refused", dataset_id: "ds_demo",
+        endpoint: "http://127.0.0.1:9001", bundle_sha256: "bb11", created_at: "2026-10-28T10:00:00Z" },
+    ],
+    stats: { jobs: 2, by_status: { verified: 1, refused: 1 }, attempts: 3, unverified: 0,
+             protocol: "archx-remote/1", enabled: true, endpoint: "http://127.0.0.1:9001",
+             statuses: ["draft", "dispatched", "running", "received", "verified", "failed", "refused"] },
+    attempts: [],
+  },
+  "POST /api/remote/export": {
+    id: "rj_new", records: 8, chars: 308,
+    bundle_sha256: "ea35ae177c0aed3c60fa748f4e7c35761612898519f56eb7400784fea29f5dd5",
+  },
   // the mock matches routes by prefix, so the specific paths are listed before the collection
   "GET /api/datasets/ds_demo/records?limit=100": {
     dataset_id: "ds_demo",
@@ -370,13 +409,14 @@ function assert(condition, message) {
 }
 
 // the shell
-assert(doc.querySelectorAll(".tab").length === 16, "expected sixteen mode tabs");
+assert(doc.querySelectorAll(".tab").length === 17, "expected seventeen mode tabs");
 assert(doc.getElementById("view-code"), "the coding view is missing");
 assert(doc.getElementById("view-experiments"), "the experiments view is missing");
 assert(doc.getElementById("view-play"), "the play view is missing");
 assert(doc.getElementById("view-voice"), "the voice view is missing");
 assert(doc.getElementById("view-data"), "the datasets view is missing");
 assert(doc.getElementById("view-train"), "the training view is missing");
+assert(doc.getElementById("view-remote"), "the remote view is missing");
 assert(doc.getElementById("view-chat"), "chat view is missing");
 
 // every refresh button answers a click without throwing
@@ -562,6 +602,31 @@ await tick();
 assert(calls.includes("POST /api/training/runs"), `the run form never posted: ${JSON.stringify(calls.slice(-4))}`);
 assert(doc.getElementById("train-run-status").textContent.includes("refused"), "a refusal must be reported as one");
 
+// remote: both hashes on screen, and an action that is limited to what the row allows
+doc.querySelector('[data-view="remote"]').click();
+await tick();
+await tick();
+assert(doc.querySelectorAll("#remote-jobs .list-item").length === 2, "the remote list did not render");
+assert(doc.getElementById("remote-stats").textContent.includes("2 job"), "the remote stats did not render");
+doc.querySelector("#remote-jobs .list-item").click();
+await tick();
+await tick();
+await tick();
+assert(calls.includes("GET /api/remote/jobs/rj_demo"), `the remote job was never opened: ${JSON.stringify(calls.slice(-4))}`);
+const remotePanel = doc.getElementById("remote-detail").textContent;
+assert(remotePanel.includes("measured here"), "the measured hash row is missing");
+assert(remotePanel.includes("8974207343b5330b33523079ff"), "the artifact hash is not shown");
+assert(remotePanel.includes("perplexity"), "the worker's metrics are not shown");
+assert(remotePanel.includes("the artifact on disk still hashes to what was received"), "the verify note is not shown");
+
+doc.getElementById("remote-dataset").value = "ds_demo";
+doc.getElementById("remote-export-form").dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
+await tick();
+await tick();
+await tick();
+assert(calls.includes("POST /api/remote/export"), `the export form never posted: ${JSON.stringify(calls.slice(-4))}`);
+assert(doc.getElementById("remote-export-status").textContent.includes("bundled"), "the export was not reported");
+
 // no inline style attributes were produced, and no inline handlers leaked into the markup
 assert(!/style="/.test(doc.body.innerHTML), "inline style attribute produced");
 assert(!/onclick="/.test(doc.body.innerHTML), "inline handler produced");
@@ -573,4 +638,4 @@ if (problems.length) {
   for (const problem of problems) console.error(" - " + problem);
   process.exit(1);
 }
-console.log("smoke ok: 16 tabs, 4 gate rows, code, experiment, play, voice, dataset and training panels render, forms post, no page errors");
+console.log("smoke ok: 17 tabs, 4 gate rows, code, experiment, play, voice, dataset, training and remote panels render, forms post, no page errors");

@@ -206,6 +206,11 @@ jobs:
       - name: training acceptance
         run: run.sh training-acceptance bash scripts/acceptance_m36.sh
 
+      # Remote: a bundle whose hash is the hash of its bytes, three refusals before anything leaves,
+      # a real worker on a loopback port, and a lying worker whose result must not verify.
+      - name: remote acceptance
+        run: run.sh remote-acceptance bash scripts/acceptance_m37.sh
+
       - name: sdk catalogue
         run: run.sh sdks archx-agent models sdks
 

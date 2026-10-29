@@ -413,7 +413,7 @@ class TestTheLedger:
         assert stats["metrics"] >= 3
 
     def test_the_schema_adopts_the_reserved_table(self, ws):
-        assert SCHEMA_VERSION == 26
+        assert SCHEMA_VERSION >= 26
         assert ws.store.table_exists("training_jobs")
         assert ws.store.table_exists("training_metrics")
         columns = {row["name"] for row in ws.store.query("PRAGMA table_info(training_jobs)")}

@@ -1132,3 +1132,45 @@ are different claims and must not share a representation.
 the metric - even if exactly one run *does* have one. A winner among a class of one is not a
 comparison, it is a wish. The notes then say which condition failed, so the reader learns why rather
 than assuming the tool could not make up its mind.
+
+**D177. A remote result is worth exactly what can be re-measured about it.** The temptation is to
+build `remote run` as one verb: send, wait, print the number. Everything that makes the number
+trustworthy lives in the stages that verb hides - what was sent, who was asked, what came back, and
+whether the bytes match the claim. So M37 has five verbs (`export`, `approve`, `dispatch`, `collect`,
+`verify`) and the interesting one is the last, which can say "no". A feature that can only succeed is
+not a check.
+
+**D178. Two hashes per record, because one would be a lie about the other.** `fs.probe` hashes the
+file's bytes; `fs.read` returns text with surrounding whitespace trimmed. For most files those are
+different numbers. Recording one digest for both made the bundle refuse its own records - which the
+acceptance script caught before I noticed the trimming - and hashing only the trimmed text would
+have made the bundle incomparable with the dataset's manifest. So `file_sha256` is checked against
+M35's manifest and `text_sha256` against what the worker received: one catches an edit before the
+export, the other an edit in transit. Two columns, two questions.
+
+**D179. The worker must call the same trainer, or the number means nothing.** The tempting shape is a
+worker that "knows how to train" - its own small copy of the arithmetic, maybe even a faster one. Every
+remote metric would then be a claim about a second program, and any disagreement would be
+unfalsifiable at the receiving end. `train_records()` was extracted from `TrainingService._train` so
+both callers share one function, and the test asserts a remote run's perplexities are **equal** to a
+local run's - not close, equal. The refactor was checked by re-running M36's 114 tests unchanged.
+
+**D180. A setting that is not enforced is a lie in the config file.** `remote.require_approval`
+existed in the settings table since the reserved tables were written, defaulting to true. A dispatch
+that ignored it would make the key decorative, which is the failure mode this repository has spent
+thirty-seven milestones refusing. So a dispatch without an approval is refused with the exact
+command that grants it, and `remote approve` records who approved and when - in the log as well as on
+the job.
+
+**D181. A second verify must not be able to rescue a first lie.** `remote verify` re-reads the file
+and compares it with `received_sha256`. Written that way, it verified a job whose worker had
+*claimed* a different hash - because the bytes on disk did match what this machine measured. The
+claim and the measurement are two different assertions and the file can only speak to one of them, so
+`verify` now checks both and says which failed. The test that caught it is the liar-worker one, and it
+is the reason the mismatch case has its own fixture rather than a note in the happy path.
+
+**D182. Portability is the corpus travelling, not the paths matching.** A bundle of file paths would
+be "portable" exactly between two machines that already share a filesystem. Carrying the text costs a
+`remote.max_chars` limit (200 000, refused rather than truncated) and buys the property that matters:
+the worker needs nothing but the request. The limit is honest - a real corpus needs a transfer
+mechanism this build does not have, and `GAPS.md` says so.

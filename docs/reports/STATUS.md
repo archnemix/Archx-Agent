@@ -92,13 +92,14 @@ edit .ci/trigger -> push -> .github/workflows/model-matrix.yml (18 steps, 14 of 
 | ~~11~~ | ~~**M34 Voice and media**~~ | **Done, scoped.** A file is measured from its own bytes (PNG, JPEG, GIF, WAV parsed by hand), the name is a claim kept beside the measurement, unsupported containers are refused with their leading bytes, and asking it to hear or speak is a recorded refusal that names every missing link. Marked `partial`: no microphone, no speech weights and no GPU exist here, so recognition and synthesis are **not implemented in any form**. `docs/VOICE.md`, `pytest tests/test_voice_m34.py` (67), `scripts/acceptance_m34.sh` (88). | closed |
 | ~~13~~ | ~~**M35 Dataset preparation**~~ | **Done, scoped.** Candidates kept *and* dropped with their reasons, splits that follow from the record's hash (a resaved document is refused across splits), a manifest hash that `verify` can disagree with, and a license that is recorded rather than inferred. Text corpora only: no training, no tokenisation, no upload. `docs/DATASETS.md`, `pytest tests/test_datasets_m35.py` (60), `scripts/acceptance_m35.sh` (72). | closed |
 | ~~14~~ | ~~**M36 Training and model modification**~~ | **Done, scoped.** Two trainers that really run on a CPU (n-gram perplexity, centroid accuracy) with metrics as rows, hashed and versioned artifacts, and a preflight that refuses a corpus which cannot produce a number; fine-tuning refused with a computed chain. No weights, no GPU, no library, so no transformer training in any form. `docs/TRAINING.md`, `pytest tests/test_training_m36.py` (54), `scripts/acceptance_m36.sh` (57). | closed |
+| ~~15~~ | ~~**M37 Remote compute and portability**~~ | **Done, scoped.** A bundle carries the corpus and two digests per record, an endpoint is named before anything is sent, a worker re-checks the bundle against itself and runs the same trainer, and the artifact's hash is measured again on arrival - a mismatch is `received`, never `verified`. No cloud, no vendor SDK, no credentials: a worker is a process you start and can see. `docs/REMOTE.md`, `pytest tests/test_remote_m37.py` (45), `scripts/acceptance_m37.sh` (71). | closed |
 | 12 | **Speech recognition or synthesis** | Needs weights and an adapter that no machine here can run; building one would be a claim this repository could not verify. `M36` (training) inherits the same problem. | blocked on hardware |
 
 What is left is one thing that a live network could close: a call to a vendor's cloud API, which
 needs keys this environment does not have - and one thing no network here can close: speech in or
-out, and a transformer training run. M35 and M36 closed as far as this machine allows; M37 (remote
-compute) is next and needs nothing this machine lacks. Nothing in between is "implemented but
-untested".
+out, and a transformer training run. M35, M36 and M37 closed as far as this machine allows; M38
+(Blender and 3D) is next and needs a Blender binary this machine does not have, so it will be scoped
+the same way. Nothing in between is "implemented but untested".
 
 ---
 

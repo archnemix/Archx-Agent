@@ -88,6 +88,7 @@ HttpOnly session cookie, and never keeps the token itself.
 | **Play** | start a game, play it (move box, legal moves as buttons, engine move, engine ×5, resign), read the board as text and the move log *with the refusals and their reasons*; run a simulation and replay its hash | `PlayService` - the same `move`/`engine_move`/`simulate`/`replay` calls the CLI makes |
 | **Voice** | measure a file (probe), read what the bytes say *and* what the name claimed, ask for words or speech and read the refusal with every missing link named, record the words you typed, and read the attempts table - refusals included | `VoiceService` - the same `probe`/`transcribe`/`say`/`add_transcript` calls the CLI makes; a missing `fs.read` grant is the same 403 and the same approval id |
 | **Data** | create a dataset over source paths, scan, clean, split, build and verify, and read the record table *including the dropped rows with the rule that dropped them* | `DatasetService` - the same `scan`/`clean`/`split`/`build`/`verify` calls the CLI makes, with the same refusals (a leak across splits, a manifest that moved) |
+| **Remote** | bundle a dataset, approve it, dispatch to a worker, collect the artifact and see the two hashes side by side; only the actions the row allows are offered | `RemoteService` - the same `export`/`approve`/`dispatch`/`collect`/`verify` calls the CLI makes; a refusal is `200` with every reason and an attempt row |
 | **Train** | run an n-gram or centroid trainer, read the metrics per split, see the artifact hash - and read the fine-tune refusal as a card with every missing link listed | `TrainingService` - the same `run`/`view`/`metrics`/`preflight` calls the CLI makes; a refusal is `200` with the reasons, not an error |
 
 There are no placeholder controls. If a panel would need something this build does not have,
@@ -334,6 +335,18 @@ permission centre, a task, an artifact, and rows. A refusal is `403 approval_req
 approval in the Access panel; a parameter that would not survive the shell is a `400 validation`
 and nothing starts. `compare` never hides a row: the card prints the notes, including the runs it
 could not rank and why.
+
+### The Remote panel, and the two hashes
+
+The panel's whole claim fits in one table: `claimed` is what the worker said the artifact hashes to,
+`measured` is what this machine computed on arrival. They are separate rows because the interesting
+case is the one where they disagree - a job in `received` offers `Verify again` rather than a
+verified badge, and no `verified_at` is written until they match.
+
+Only the actions the row allows are drawn: an unapproved job has Approve, an approved `draft` has
+Dispatch, a `dispatched` one has Collect. The form on the left writes a bundle for a dataset and
+reports how many records and characters it carried. `docs/REMOTE.md` has the lifecycle and the
+refusals; the panel adds no rule of its own.
 
 ### The Train panel, and the refusal that is a card
 

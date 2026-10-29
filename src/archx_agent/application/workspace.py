@@ -77,6 +77,7 @@ from archx_agent.managers.reproduction import ReproductionManager
 from archx_agent.managers.research import ResearchManager
 from archx_agent.managers.tasks import TaskManager
 from archx_agent.managers.training import TrainingManager
+from archx_agent.managers.remote import RemoteManager
 from archx_agent.managers.tools import ToolManager
 from archx_agent.managers.versions import VersionManager
 from archx_agent.managers.workflows import WorkflowManager
@@ -117,6 +118,7 @@ class Workspace:
     media: MediaManager | None = None
     datasets: DatasetManager | None = None
     training: TrainingManager | None = None
+    remote: RemoteManager | None = None
     reproduction: ReproductionManager | None = None
     router: Any = None
     context: ContextManager | None = None
@@ -357,6 +359,7 @@ class Workspace:
         ws.media = MediaManager(store, coordinator, events=events)
         ws.datasets = DatasetManager(store, coordinator, events=events)
         ws.training = TrainingManager(store, coordinator, events=events)
+        ws.remote = RemoteManager(store, coordinator, events=events)
         ws.research = ResearchManager(
             store, coordinator, events=events, config=config
         )
@@ -473,6 +476,13 @@ class Workspace:
         from .training import TrainingService
 
         return TrainingService(self)
+
+    @property
+    def remotes(self):
+        """The remote compute service (imported lazily to keep the composition root acyclic)."""
+        from .remote import RemoteService
+
+        return RemoteService(self)
 
     @property
     def play_mode(self):

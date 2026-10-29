@@ -22,9 +22,9 @@ This file records what is **not** true yet. If a feature is not listed as verifi
 
 ## Not built yet
 
-Milestones M37-M40 are not implemented: remote compute, Blender/3D, automations and release
-hardening. M17-M35 are implemented and verified (see [PROGRESS.md](PROGRESS.md)); M33 (Play
-Mode), M34 (Voice and media) and M35 (Dataset preparation) are deliberately small - three board games
+Milestones M38-M40 are not implemented: Blender/3D, automations and release hardening. M17-M37 are
+implemented and verified (see [PROGRESS.md](PROGRESS.md)); M33 (Play Mode), M34 (Voice and media),
+M35 (Dataset preparation), M36 (Training) and M37 (Remote compute) are deliberately small - three board games
 and one simulation; four container formats, three tables and a refusal chain; text corpora with a
 ledger - and none of them claims the "sandboxed tinkering", "voice in and out" or "training data
 pipeline" its milestone name suggests.
@@ -49,6 +49,14 @@ items**. Both are marked `partial` in PLAN.md rather than `done`.
   a computed chain, and nothing here loads weights, uses a GPU, or estimates what such a run would
   cost. There is no serving path either - an artifact can be scored with `train predict` and that is
   all.
+* **Remote compute has no cloud behind it.** A worker is a second process running this build's
+  trainers - there is no provider SDK, no credential, no billing, no queue, no chunked or resumable
+  transfer, no sharding, and no retries. A worker is identified by the endpoint you typed and by the
+  hash of the bytes it returned; there is no signature, so a worker that computes the right artifact
+  and *also* lies about something else in the payload is only caught where a hash covers it.
+* **A bundle carries the corpus, capped and uncompressed.** `remote.max_chars` (200 000) refuses
+  anything larger rather than shipping it, so a real corpus needs a transfer mechanism this build
+  does not have. Bundles are JSON with the text inline; there is no streaming and no resume.
 * **Datasets are text only and stop at the export.** No training, no tokenisation, no chat-format
   templating, no image or audio records beyond counting them as shelved candidates, no cross-dataset
   dedupe, and no upload or publishing path anywhere in the build. A manifest records the source

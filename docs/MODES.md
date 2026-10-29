@@ -43,7 +43,7 @@ there is no code.
 | M34 | **Voice and media** | **partial** | media measured from its own bytes, transcripts with provenance, speech refused by name - no microphone and no speech model exist here (see §3.4) |
 | M35 | **Dataset preparation** | **partial** | candidates kept and dropped with reasons, splits that do not move, a manifest that can fail; text corpora only - no training, no tokenisation, no upload (see §2.6) |
 | M36 | **Training and model modification** | **partial** | two CPU trainers that really run (perplexity, accuracy), metrics as rows, artifacts hashed and versioned; fine-tuning refused by name - no weights, no GPU, no library here (see §3.5) |
-| M37 | Remote compute | not built | hand work to another machine, portably |
+| M37 | **Remote compute and portability** | **partial** | a portable bundle with two digests per record, a worker that re-checks it and runs the same trainer, and a result hashed again on arrival; no cloud, no vendor SDK, no credentials (see §3.6) |
 | M38 | Blender and 3D workflows | not built | scene scripting through the tool layer |
 | M39 | Automations and scheduled tasks | not built | triggers, watches, recurring work |
 | M40 | Hardening and release | not built | packaging, upgrade path, audits |
@@ -82,7 +82,6 @@ were asked to do, and no button pretending they exist. Nothing below has code to
 |---|---------------|-------------------------|----------------------------|
 | M35 | Dataset preparation | collect, clean, split and version a corpus | versions, artifacts, tool roots, search |
 | M36 | Training and model modification | LoRA / fine-tune a model | none here: no weights and no GPU are reachable |
-| M37 | Remote compute | hand work to another machine portably | HTTP runtime, jobs, providers, consent records |
 | M38 | Blender and 3D workflows | script scenes through the tool layer | tools, jobs, artifacts |
 | M39 | Automations and scheduled tasks | triggers, watches, recurring work | scheduler, jobs, workflows |
 | M40 | Hardening and release | packaging, upgrade path, audits | migrations, backups, `doctor`, this acceptance corpus |
@@ -257,7 +256,7 @@ answers them; deleting stays a CLI act.
 
 ### 3.3 The GUI is a client, not a product surface for everything
 
-Sixteen panels, all wired, nothing decorative. The shell is one page with a sidebar, a top bar
+Seventeen panels, all wired, nothing decorative. The shell is one page with a sidebar, a top bar
 carrying each mode's live tool chips, three themes and a chat transcript with markdown,
 copy buttons and confirmations for anything that cannot be undone. Workflow authoring, streaming tokens, files, a
 multi-user story and TLS are not there; they are listed in `GAPS.md` and `docs/GUI.md` rather
@@ -280,14 +279,34 @@ whole boundary. The milestone is `partial` in `PLAN.md` for that reason, not bec
 trainers are shy about their size - a 2.58 training perplexity on a three-file corpus is a small
 model being honest, and the docs say so.
 
+## 3.6 Remote compute: a result is someone else's claim, and here is how it is checked
+
+`remote export` writes one JSON bundle - the corpus, each record's two digests, the M35 manifest
+checksum and the declared run - and hashes it. `remote approve` says the bundle may leave;
+`remote dispatch` sends it and records the endpoint, machine and protocol it answered with;
+`remote collect` fetches the artifact, re-measures it here and stores `claimed_sha256` beside
+`received_sha256`; `remote verify` re-reads the file *and* re-checks the claim.
+
+The worker (`archx-agent remote worker`) is a second process with no database: it refuses a bundle
+that does not hash to its own claim, a record whose text was edited in transit, a manifest that does
+not rebuild, a protocol it does not speak, or a corpus with no `train` split - over the wire, with
+the reason - and then calls the same `train_records()` the local command calls. The tests assert a
+remote run and a local run of one config produce *equal* perplexities, because a worker with its own
+implementation would make every remote metric a claim about a second program.
+
+What does not exist: any cloud provider, credential, billing or queue; chunked or resumable
+transfer; multi-machine training or aggregation; and any signature on a result beyond the endpoint
+you named and the hash of the bytes it returned. `docs/REMOTE.md` §8 lists the boundary, and
+`remote stats` prints the standing reason.
+
 ## 4. Where this leaves the roadmap
 
-Built: M01–M36 (with the five honest `partial`s above), plus the Research completion model
-(§3.1). Next: **M37 Remote compute and portability**, which needs nothing this machine lacks - the
-careful part is that a remote result is recorded as someone else's result, with the endpoint, the
-machine and the time it came from. The Research gaps in §3.1
-remain the most valuable repair, and they no longer have an excuse: the runner and the record
-they needed now exist in the coding workspace, which can be reused rather than invented.
+Built: M01–M37 (with the six honest `partial`s above), plus the Research completion model
+(§3.1). Next: **M38 Blender and 3D workflows**, which needs a Blender binary this machine does not
+have - so it will be scoped the way M34, M36 and M37 were: what can be measured and scripted is
+built, and the renderer is refused by name. The Research gaps in §3.1 remain the most valuable
+repair, and they no longer have an excuse: the runner and the record they needed now exist in the
+coding workspace, which can be reused rather than invented.
 
 If a mode is missing from the sidebar, it is because the code is missing — not because the button
 was hidden.

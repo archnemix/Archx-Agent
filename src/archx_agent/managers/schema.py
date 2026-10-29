@@ -26,6 +26,7 @@ migration's content in place would silently diverge between machines.
     20 research closure, 21 coding workspace, 22 experiments, 23 play, 24 media and voice
     25 datasets: a candidate record kept or dropped *with its reason*, and a manifest hash
     26 training: jobs that run a real CPU trainer, metrics as rows, and refusals with a reason
+    27 remote: a portable bundle, an endpoint that computed a result, and a hash re-checked on arrival
 """
 
 from __future__ import annotations
@@ -1184,6 +1185,45 @@ TRAINING_V26 = Migration(
     ),
 )
 
+REMOTE_V27 = Migration(
+    version=27,
+    name="remote",
+    statements=(
+        # `remote_jobs` was reserved in v8 (provider, status, config, estimate, actual, outputs,
+        # approved_by). It is adopted with ALTER so a home that already has rows keeps them, and
+        # gains what makes a remote result checkable: who computed it, at which endpoint, and a
+        # hash that can be re-computed when the artifact comes back.
+        "ALTER TABLE remote_jobs ADD COLUMN kind TEXT NOT NULL DEFAULT 'training'",
+        "ALTER TABLE remote_jobs ADD COLUMN dataset_id TEXT",
+        "ALTER TABLE remote_jobs ADD COLUMN endpoint TEXT",
+        "ALTER TABLE remote_jobs ADD COLUMN machine TEXT",
+        "ALTER TABLE remote_jobs ADD COLUMN protocol TEXT",
+        "ALTER TABLE remote_jobs ADD COLUMN bundle_sha256 TEXT",
+        "ALTER TABLE remote_jobs ADD COLUMN bundle_path TEXT",
+        "ALTER TABLE remote_jobs ADD COLUMN claimed_sha256 TEXT",
+        "ALTER TABLE remote_jobs ADD COLUMN received_sha256 TEXT",
+        "ALTER TABLE remote_jobs ADD COLUMN artifact_path TEXT",
+        "ALTER TABLE remote_jobs ADD COLUMN verified_at TEXT",
+        "ALTER TABLE remote_jobs ADD COLUMN verify_note TEXT",
+        "ALTER TABLE remote_jobs ADD COLUMN remote_job_id TEXT",
+        "ALTER TABLE remote_jobs ADD COLUMN received_at TEXT",
+        "ALTER TABLE remote_jobs ADD COLUMN refusal TEXT",
+        # One row per attempt to talk to an endpoint: a dispatch that never arrived is a finding,
+        # in the same spirit as M34's refused probes and M36's refused runs.
+        "CREATE TABLE IF NOT EXISTS remote_attempts ("
+        " id TEXT PRIMARY KEY,"
+        " job_id TEXT,"
+        " action TEXT NOT NULL,"
+        " status TEXT NOT NULL,"
+        " detail TEXT,"
+        " endpoint TEXT,"
+        " created_at TEXT NOT NULL,"
+        " metadata TEXT NOT NULL DEFAULT '{}')",
+        "CREATE INDEX IF NOT EXISTS idx_remote_attempts_job ON remote_attempts(job_id)",
+        "CREATE INDEX IF NOT EXISTS idx_remote_jobs_status ON remote_jobs(status)",
+    ),
+)
+
 MIGRATIONS: tuple[Migration, ...] = (
     CONVERSATIONS_V1,
     PROJECTS_V2,
@@ -1211,6 +1251,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     MEDIA_V24,
     DATASETS_V25,
     TRAINING_V26,
+    REMOTE_V27,
 )
 
 SCHEMA_VERSION = max(m.version for m in MIGRATIONS)
