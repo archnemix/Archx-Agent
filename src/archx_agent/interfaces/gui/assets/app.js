@@ -74,6 +74,11 @@
       sub: "a bundle with digests · an endpoint that computed it · a hash re-checked on arrival",
       tools: ["fs.write", "bundle_sha256", "verified"],
     },
+    exec: {
+      title: "Exec",
+      sub: "a command, the environment it ran in, and a hash per file that crossed the boundary",
+      tools: ["shell.run", "targets", "ledger"],
+    },
     experiments: {
       title: "Experiments",
       sub: "declared commands, declared parameters, and a comparison that says what it could not rank",
@@ -2420,6 +2425,108 @@
       status.textContent = "bundled " + job.records + " record(s), " + job.chars + " characters";
       await loadRemote();
       await openRemoteJob(job.id);
+    } catch (error) {
+      report(status, error);
+    }
+  });
+
+  // -------------------------------------------------------------------- exec
+  // Two claims on this page: every row says *where* the command ran, and every backend this machine
+  // cannot use is listed with the reason instead of being hidden from the picker.
+  async function loadExec() {
+    state.exec = state.exec || {};
+    const payload = await api("GET", "/api/exec/targets");
+    const stats = payload.stats || {};
+    const summary = clear(document.getElementById("exec-stats"));
+    summary.append(el("p", { class: "small", text: (stats.targets || 0) + " target(s) · " + (stats.runs || 0) + " run(s) · " + (stats.files || 0) + " file(s) · " + (stats.conflicts || 0) + " conflict(s)" }));
+    summary.append(el("p", { class: "small dim", text: (stats.enabled ? "execution is on" : "execution is off") + " · default " + (stats.default_target || "local") }));
+
+    const select = document.getElementById("exec-target");
+    const current = select.value;
+    clear(select);
+    const usable = [];
+    for (const target of payload.targets) usable.push({ value: target.name, label: target.name + " (" + target.kind + ")" });
+    if (!usable.length) usable.push({ value: "local", label: "local (this machine)" });
+    for (const option of usable) {
+      const node = el("option", { value: option.value, text: option.label });
+      select.append(node);
+    }
+    if (current) select.value = current;
+
+    const probes = clear(document.getElementById("exec-probes"));
+    for (const probe of payload.probes) {
+      const row = el("p", { class: "small" + (probe.available ? "" : " dim") }, [
+        el("strong", { text: probe.kind + ": " }),
+        document.createTextNode(probe.available ? "available" : "not here - " + (probe.why_not || []).join("; ")),
+      ]);
+      probes.append(row);
+    }
+
+    const runs = await api("GET", "/api/exec/runs");
+    const list = clear(document.getElementById("exec-runs"));
+    if (!runs.runs.length) list.append(el("li", { class: "dim small", text: "nothing has run yet" }));
+    for (const run of runs.runs) {
+      const button = el("button", { type: "button", class: "list-item" + (state.exec.id === run.id ? " active" : "") }, [
+        el("span", { class: "t", text: run.command.slice(0, 40) }),
+        el("span", { class: "s", text: run.kind + " · " + run.status + " · exit " + run.exit_code }),
+      ]);
+      button.addEventListener("click", () => openExecRun(run.id).catch((error) => report(document.getElementById("exec-detail"), error)));
+      list.append(el("li", {}, [button]));
+    }
+    return payload;
+  }
+
+  async function openExecRun(runId) {
+    const panel = clear(document.getElementById("exec-detail"));
+    state.exec = state.exec || {};
+    state.exec.id = runId;
+    const run = await api("GET", "/api/exec/runs/" + runId);
+    panel.append(el("div", { class: "row between" }, [
+      el("h2", { text: run.kind + " · " + shortId(run.id) }),
+      statusBadge(run.status),
+    ]));
+    panel.append(el("p", { class: "small", text: run.sentence }));
+    panel.append(table(["field", "value"], [
+      ["command", run.command],
+      ["invocation", run.invocation || "–"],
+      ["cwd", run.cwd || "–"],
+      ["exit", String(run.exit_code)],
+      ["duration", String(run.duration_ms || "–") + " ms"],
+      ["note", run.note || "–"],
+    ]));
+    for (const reason of run.reasons || []) panel.append(el("p", { class: "small", text: "· " + reason }));
+    for (const stream of ["stdout", "stderr"]) {
+      const text = (run[stream] || "").trim();
+      if (!text) continue;
+      const card = el("div", { class: "card" }, [
+        el("div", { class: "card-head" }, [el("h3", { text: stream })]),
+      ]);
+      for (const line of text.split("\n").slice(0, 40)) card.append(el("p", { class: "small mono", text: line }));
+      panel.append(card);
+    }
+  }
+
+  loaders.exec = async () => {
+    await loadExec();
+    if (state.exec && state.exec.id) await openExecRun(state.exec.id);
+  };
+
+  document.getElementById("exec-refresh").addEventListener("click", () => {
+    loaders.exec().catch((error) => report(document.getElementById("exec-detail"), error));
+  });
+
+  document.getElementById("exec-run-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const status = document.getElementById("exec-run-status");
+    status.textContent = "";
+    try {
+      const run = await api("POST", "/api/exec/runs", {
+        cmdline: document.getElementById("exec-cmdline").value.trim(),
+        target: document.getElementById("exec-target").value,
+      });
+      status.textContent = run.status + " · exit " + run.exit_code;
+      await loadExec();
+      await openExecRun(run.id);
     } catch (error) {
       report(status, error);
     }

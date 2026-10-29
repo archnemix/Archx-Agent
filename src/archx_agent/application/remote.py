@@ -332,16 +332,21 @@ class RemoteService:
         )
         return self.view(sent.id)
 
+    def _headers(self) -> dict[str, str]:
+        """A worker may require a bearer token; the bundle and the exec route use the same one."""
+        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        token = str(self.ws.config.get("remote.worker_token", "") or "")
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        return headers
+
     def _post(self, url: str, body: bytes, *, timeout: float) -> dict[str, Any]:
-        request = urllib.request.Request(
-            url, data=body, method="POST",
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+        request = urllib.request.Request(url, data=body, method="POST", headers=self._headers())
         with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310 - http(s)
             return json.loads(response.read().decode("utf-8"))
 
     def _get(self, url: str, *, timeout: float) -> dict[str, Any]:
-        request = urllib.request.Request(url, method="GET", headers={"Accept": "application/json"})
+        request = urllib.request.Request(url, method="GET", headers=self._headers())
         with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310
             return json.loads(response.read().decode("utf-8"))
 

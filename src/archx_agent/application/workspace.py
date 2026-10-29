@@ -78,6 +78,7 @@ from archx_agent.managers.research import ResearchManager
 from archx_agent.managers.tasks import TaskManager
 from archx_agent.managers.training import TrainingManager
 from archx_agent.managers.remote import RemoteManager
+from archx_agent.managers.execution import ExecutionManager
 from archx_agent.managers.tools import ToolManager
 from archx_agent.managers.versions import VersionManager
 from archx_agent.managers.workflows import WorkflowManager
@@ -119,6 +120,7 @@ class Workspace:
     datasets: DatasetManager | None = None
     training: TrainingManager | None = None
     remote: RemoteManager | None = None
+    execution: ExecutionManager | None = None
     reproduction: ReproductionManager | None = None
     router: Any = None
     context: ContextManager | None = None
@@ -360,6 +362,7 @@ class Workspace:
         ws.datasets = DatasetManager(store, coordinator, events=events)
         ws.training = TrainingManager(store, coordinator, events=events)
         ws.remote = RemoteManager(store, coordinator, events=events)
+        ws.execution = ExecutionManager(store, coordinator, events=events)
         ws.research = ResearchManager(
             store, coordinator, events=events, config=config
         )
@@ -483,6 +486,13 @@ class Workspace:
         from .remote import RemoteService
 
         return RemoteService(self)
+
+    @property
+    def exec_env(self):
+        """Execution targets and runs (imported lazily to keep the composition root acyclic)."""
+        from .execution import ExecutionService
+
+        return ExecutionService(self)
 
     @property
     def play_mode(self):

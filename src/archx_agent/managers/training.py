@@ -63,6 +63,9 @@ class TrainingJob:
     completed_at: str | None = None
     error: str | None = None
     task_id: str | None = None
+    #: Where the run executed: ``local`` (this machine's CPU) or ``remote`` (an M37 worker).
+    target: str = "local"
+    remote_job_id: str | None = None
 
     @property
     def ran(self) -> bool:
@@ -90,6 +93,8 @@ class TrainingJob:
             "completed_at": self.completed_at,
             "error": self.error,
             "task_id": self.task_id,
+            "target": self.target,
+            "remote_job_id": self.remote_job_id,
             "created_at": self.created_at,
         }
 
@@ -150,6 +155,8 @@ def _job_from_row(row: Mapping[str, Any]) -> TrainingJob:
         completed_at=row["completed_at"],
         error=row["error"],
         task_id=row["task_id"],
+        target=row["target"] if "target" in row.keys() else "local",
+        remote_job_id=row["remote_job_id"] if "remote_job_id" in row.keys() else None,
         created_at=row["created_at"],
     )
 
@@ -183,8 +190,9 @@ class TrainingManager(BaseManager):
         tx.execute(
             "INSERT INTO training_jobs(id, method, base_model, dataset_id, status, config,"
             " preflight, metrics, checkpoints, created_at, started_at, completed_at, error,"
-            " task_id, kind, seed, artifact_path, artifact_sha256, refusal, version_id, notes)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            " task_id, kind, seed, artifact_path, artifact_sha256, refusal, version_id, notes,"
+            " target, remote_job_id)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 job["id"], job["method"], job.get("base_model"), job.get("dataset_id"),
                 job["status"], json_text(job.get("config") or {}),
@@ -194,6 +202,7 @@ class TrainingManager(BaseManager):
                 job.get("task_id"), job.get("kind") or job["method"], int(job.get("seed") or 0),
                 job.get("artifact_path"), job.get("artifact_sha256"), job.get("refusal"),
                 job.get("version_id"), job.get("notes") or "",
+                job.get("target") or "local", job.get("remote_job_id"),
             ),
         )
         return {"id": job["id"]}
@@ -203,13 +212,14 @@ class TrainingManager(BaseManager):
         tx.execute(
             "UPDATE training_jobs SET status = ?, preflight = ?, metrics = ?, checkpoints = ?,"
             " started_at = ?, completed_at = ?, error = ?, artifact_path = ?, artifact_sha256 = ?,"
-            " refusal = ?, version_id = ?, notes = ? WHERE id = ?",
+            " refusal = ?, version_id = ?, notes = ?, target = ?, remote_job_id = ? WHERE id = ?",
             (
                 job["status"], json_text(job.get("preflight") or {}),
                 json_text(job.get("metrics") or {}), json_text(job.get("checkpoints") or []),
                 job.get("started_at"), job.get("completed_at"), job.get("error"),
                 job.get("artifact_path"), job.get("artifact_sha256"), job.get("refusal"),
-                job.get("version_id"), job.get("notes") or "", job["id"],
+                job.get("version_id"), job.get("notes") or "",
+                job.get("target") or "local", job.get("remote_job_id"), job["id"],
             ),
         )
         return {"id": job["id"]}
@@ -238,6 +248,8 @@ class TrainingManager(BaseManager):
         kind: str | None = None,
         notes: str = "",
         task_id: str | None = None,
+        target: str = "local",
+        remote_job_id: str | None = None,
     ) -> TrainingJob:
         if method not in METHODS:
             raise ValidationError(
@@ -254,6 +266,8 @@ class TrainingManager(BaseManager):
             seed=int(seed),
             notes=notes,
             task_id=task_id,
+            target=target,
+            remote_job_id=remote_job_id,
             created_at=iso_now(),
         )
         self._write("training.job", {"job": job.to_dict()})
@@ -278,6 +292,8 @@ class TrainingManager(BaseManager):
         refusal: str | None = None,
         version_id: str | None = None,
         notes: str | None = None,
+        target: str | None = None,
+        remote_job_id: str | None = None,
     ) -> TrainingJob:
         current = self.get(job_id)
         if status not in STATUSES:
@@ -295,6 +311,8 @@ class TrainingManager(BaseManager):
             "refusal": refusal if refusal is not None else current.refusal,
             "version_id": version_id or current.version_id,
             "notes": current.notes if notes is None else notes,
+            "target": current.target if target is None else target,
+            "remote_job_id": remote_job_id or current.remote_job_id,
         })
         self._write("training.job_update", {"job": row})
         self.trace(

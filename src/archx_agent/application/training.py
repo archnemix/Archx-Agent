@@ -481,16 +481,23 @@ class TrainingService:
         label_source: str = "directory",
         notes: str = "",
         task_id: str | None = None,
+        target: str | None = None,
     ) -> dict[str, Any]:
         if method not in METHODS:
             raise ValidationError(
                 f"unknown method {method!r} (this build knows {', '.join(METHODS)})"
             )
+        where = (target or str(self.ws.config.get("training.target", "local") or "local")).strip()
+        if where not in ("local", "remote"):
+            raise ValidationError(
+                f"unknown training target {where!r}: a run happens on `local` (this CPU) or "
+                "`remote` (an M37 worker); a sandbox is for commands, not for a trainer"
+            )
         config = {"order": int(order), "smoothing": float(smoothing),
                   "label_source": label_source, "seed": int(seed)}
         job = self.manager.create(
             method=method, dataset_id=dataset, config=config, seed=seed,
-            base_model=None, notes=notes, task_id=task_id,
+            base_model=None, notes=notes, task_id=task_id, target=where,
         )
         if method in FINETUNE_METHODS:
             return self._refuse(job, method)
@@ -499,6 +506,11 @@ class TrainingService:
         if not preflight["runnable"]:
             return self._refuse(job, method, preflight=preflight)
         self.manager.update(job.id, status="running", preflight=preflight, started_at=iso_now())
+
+        if where == "remote":
+            return self._run_remote(
+                job, dataset, method, config, preflight=preflight, task_id=task_id
+            )
 
         try:
             result = self._train(job, dataset, method, config, task_id=task_id)
@@ -525,10 +537,65 @@ class TrainingService:
         )
         return self.view(finished.id)
 
-    def _refuse(
-        self, job: TrainingJob, method: str, *, preflight: dict[str, Any] | None = None
+    def _run_remote(
+        self, job: TrainingJob, dataset: str, method: str, config: dict[str, Any],
+        *, preflight: dict[str, Any], task_id: str | None = None,
     ) -> dict[str, Any]:
-        reasons = preflight["reasons"] if preflight else self.blockers(method)
+        """Train on a worker, and record the result as this run - because it *is* this run.
+
+        `--target remote` is the user asking, in one command, for the corpus to leave and the numbers
+        to come back, so the bundle is approved as ``user:train-run`` rather than making them approve
+        what they just asked for. What is never skipped is the check: the artifact is hashed here
+        before a metric from it is written into the ledger.
+        """
+        try:
+            exported = self.ws.remotes.export(
+                dataset, method=method, order=int(config["order"]),
+                smoothing=float(config["smoothing"]), seed=int(config["seed"]),
+                label_source=str(config.get("label_source") or "record"),
+            )
+        except (ValidationError, ToolError, PermissionDeniedError, ApprovalRequiredError) as exc:
+            return self._refuse(job, method, preflight=preflight, extra=str(exc))
+        self.ws.remotes.approve(exported["id"], by="train-run")
+        self.manager.update(job.id, status="running", remote_job_id=exported["id"])
+        sent = self.ws.remotes.dispatch(exported["id"])
+        if sent["status"] != "dispatched":
+            return self._refuse(
+                job, method, preflight=preflight,
+                extra=f"the dispatch did not happen: {'; '.join(sent.get('reasons') or [])}",
+            )
+        collected = self.ws.remotes.collect(exported["id"])
+        if collected["status"] != "verified":
+            failed = self.manager.update(
+                job.id, status="failed", completed_at=iso_now(),
+                error=f"the remote result did not verify: {collected.get('verify_note')}",
+                preflight=preflight,
+            )
+            return self.view(failed.id)
+
+        metrics = dict((collected.get("outputs") or {}).get("metrics") or {})
+        for split, values in metrics.items():
+            self.manager.record_metrics(job.id, values, split=split)
+        finished = self.manager.update(
+            job.id,
+            status="completed",
+            metrics=metrics,
+            completed_at=iso_now(),
+            artifact_path=collected.get("artifact_path"),
+            artifact_sha256=collected.get("received_sha256"),
+            preflight=preflight,
+            notes=f"trained on {collected.get('machine') or collected.get('endpoint')}"
+                  f" via {exported['id']}",
+        )
+        return self.view(finished.id)
+
+    def _refuse(
+        self, job: TrainingJob, method: str, *, preflight: dict[str, Any] | None = None,
+        extra: str | None = None,
+    ) -> dict[str, Any]:
+        reasons = list(preflight["reasons"] if preflight else self.blockers(method))
+        if extra:
+            reasons.append(extra)
         refused = self.manager.update(
             job.id,
             status="refused",
