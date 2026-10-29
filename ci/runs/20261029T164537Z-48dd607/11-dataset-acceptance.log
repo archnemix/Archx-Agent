@@ -1,0 +1,126 @@
+$ bash scripts/acceptance_m35.sh
+M35 acceptance on /tmp/archx-m35-zOvipi
+
+### the schema adopts the tables v8 reserved
+[ok]   datasets is a versioned migration = 1
+[ok]   the reserved tables were kept, not redefined = 7
+[ok]   records and the step ledger exist = 3
+[ok]   a fresh home has no datasets = 0
+
+### a dataset records where it came from, and an unstated license is not guessed
+[ok]   the dataset is a row = 1
+[ok]   it starts as a draft = draft
+[ok]   the license is the one declared = CC-BY-4.0
+[ok]   an unstated license is written as unknown = unknown
+[ok]   and the record says nobody declared it = True
+[ok]   a dataset with no sources is refused = 2
+
+### scanning measures every candidate, through the tool layer
+[ok]   the scan needs fs.read = 1
+[ok]   it names the approval to approve = 1
+[ok]   the scan succeeds once the grant exists = 0
+[ok]   every file is a candidate = 9
+[ok]   the binary with a text suffix was measured and shelved = dropped
+[ok]   and the reason names the refusal, not the name = 1
+[ok]   the empty file is dropped with its reason = the file is empty
+[ok]   a png is shelved as binary rather than skipped = not a text file this build can parse
+[ok]   the scan is a step in the ledger = 1
+[ok]   the ledger says what it took in and gave back = 9
+[ok]   the tool layer saw the reads = 9
+
+### the same text resaved is visible, because the exact hash cannot see it
+[ok]   a.txt and resaved.txt have different bytes = differ
+[ok]   but one normalised hash = True
+
+### cleaning removes, and every removal keeps its reason
+[ok]   cleaning succeeds = 0
+[ok]   the byte-identical copy is dropped, naming the path it duplicates = 1
+[ok]   the tiny file records the comparison = fewer characters than the min_chars rule allows (5 < 10)
+[ok]   a dropped record is still a row = 5
+[ok]   the clean step reports each rule's count = {
+  "rules": {
+    "min_chars": 10,
+    "dedupe": true,
+    "normalize": false,
+    "drop_empty": true,
+    "strip": true,
+    "require_license": false
+  },
+  "removed": {
+    "drop_empty": 1,
+    "drop_binary": 2,
+    "min_chars": 1,
+    "dedupe": 1,
+    "license": 0
+  },
+  "kept": 4,
+  "dropped": 5
+}
+[ok]   explain answers from the record = True
+
+### a resaved document cannot sit in two splits
+[ok]   the split is refused = 2
+[ok]   and says what it saw = 1
+[ok]   and names the pair that crosses = 1
+[ok]   and names the fix = 1
+[ok]   no split was written = 0
+
+### normalising the dedupe closes the leak and the split goes through
+[ok]   the resaved copy is dropped, naming the original = 1
+[ok]   three records survive = 3
+[ok]   the split succeeds = 0
+[ok]   every kept record has a split = 0
+[ok]   no content hash is in two splits = 0
+
+### the split follows from the record, so a new file does not move the old ones
+[ok]   the earlier records kept their splits = [('corpus/a.txt', 'train'), ('corpus/c.md', 'train'), ('corpus/sub/b.md', 'train')]
+[ok]   the new file was assigned one = True
+[ok]   the same seed reproduces the same split = {'train': 4}
+[ok]   the ratios must add up = 2
+
+### the manifest is a claim you can check
+[ok]   the build succeeds = 0
+[ok]   a manifest hash was recorded = 64
+[ok]   the export was written through fs.write = 1
+[ok]   the export file exists where the record says = yes
+[ok]   the export has one line per kept record = 4
+[ok]   verify agrees with an untouched corpus = True
+[ok]   and reports the same hash twice = True
+[ok]   an edited file makes verify disagree = False
+[ok]   the two hashes are printed and differ = True
+[ok]   the changed path is named = ['corpus/c.md']
+[ok]   the CLI exits 3 (degraded), not 1: nothing broke = 3
+[ok]   a deleted file is a difference too = ['missing']
+
+### require_license refuses rather than inventing one
+[ok]   cleaning an undeclared dataset with require_license exits 2 = 2
+[ok]   and says why = 1
+
+### the counters agree with the rows
+[ok]   datasets = 2
+[ok]   candidates = 19
+[ok]   kept = 10
+$ archx-agent dataset show ds_0001m649g14r0000000038c21678ef1f372c
+ds_0001m649g14r0000000038c21678ef1f372c  'corpus'  (built)
+  license   CC-BY-4.0  (declared by the user: CC-BY-4.0)
+  sources   corpus
+  records   4 kept, 6 dropped
+  splits    train 4
+  seed      m35
+  manifest  2e7e990dc79afc9f4a1cdc997bc9d9bf88f49f033eea2dd2cccc1cb233de8440
+  export    corpus.jsonl
+
+  ledger:
+    1. scan    0 -> 9  2026-10-29T16:57:08.547Z
+    2. clean   9 -> 4  2026-10-29T16:57:09.280Z
+    3. clean   9 -> 3  2026-10-29T16:57:10.257Z
+    4. split   3 -> 3  2026-10-29T16:57:10.847Z
+    5. scan    9 -> 10  2026-10-29T16:57:11.499Z
+    6. clean   10 -> 4  2026-10-29T16:57:11.792Z
+    7. split   4 -> 4  2026-10-29T16:57:12.077Z
+    8. split   4 -> 4  2026-10-29T16:57:12.928Z
+    9. split   4 -> 4  2026-10-29T16:57:13.220Z
+    10. build   4 -> 4  2026-10-29T16:57:13.797Z
+[exit 0]
+
+### the page is a client of the same service
