@@ -22,8 +22,8 @@ This file records what is **not** true yet. If a feature is not listed as verifi
 
 ## Not built yet
 
-Milestones M36-M40 are not implemented: training, remote compute, Blender/3D, automations and
-release hardening. M17-M35 are implemented and verified (see [PROGRESS.md](PROGRESS.md)); M33 (Play
+Milestones M37-M40 are not implemented: remote compute, Blender/3D, automations and release
+hardening. M17-M35 are implemented and verified (see [PROGRESS.md](PROGRESS.md)); M33 (Play
 Mode), M34 (Voice and media) and M35 (Dataset preparation) are deliberately small - three board games
 and one simulation; four container formats, three tables and a refusal chain; text corpora with a
 ledger - and none of them claims the "sandboxed tinkering", "voice in and out" or "training data
@@ -44,6 +44,11 @@ items**. Both are marked `partial` in PLAN.md rather than `done`.
   rating; both are recorded (`graded_by = exact` / `self`). There is no rubric marking, no
   partial credit and no model judgement, so "how well did I explain it" is not measured - only
   "did it match". Media items, generated exercises and multiple choice are not built.
+* **Training cannot fine-tune a transformer.** Two CPU trainers really run (n-gram perplexity,
+  nearest-centroid accuracy) and their numbers were measured; `lora`/`qlora`/`full` are refused with
+  a computed chain, and nothing here loads weights, uses a GPU, or estimates what such a run would
+  cost. There is no serving path either - an artifact can be scored with `train predict` and that is
+  all.
 * **Datasets are text only and stop at the export.** No training, no tokenisation, no chat-format
   templating, no image or audio records beyond counting them as shelved candidates, no cross-dataset
   dedupe, and no upload or publishing path anywhere in the build. A manifest records the source

@@ -154,7 +154,8 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 | Provider runtime boundary: llama.cpp in-process, OpenAI-compatible HTTP, tested error classification | verified for HTTP; llama.cpp needs the optional dependency and a model file |
 | CLI | verified end-to-end |
 | Datasets: candidates measured, cleaning that keeps its reasons, splits that do not move, a manifest that can fail | verified (M35) |
-| Training, remote compute, Blender, automations | **not built yet** (M36–M40, see PLAN.md) |
+| Training: two CPU trainers with real metrics and hashed artifacts; fine-tuning refused by name | verified, scoped (M36) |
+| Remote compute, Blender, automations | **not built yet** (M37–M40, see PLAN.md) |
 
 ## Design principles (enforced, not aspirational)
 
@@ -184,6 +185,7 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 * [docs/PLAY.md](docs/PLAY.md) - the rules as the only authority, refused moves kept, simulations that replay
 * [docs/VOICE.md](docs/VOICE.md) - media measured from the bytes, transcripts that name their author, speech refused by name
 * [docs/DATASETS.md](docs/DATASETS.md) - every removal keeps its reason, the split follows from the record, the manifest can fail
+* [docs/TRAINING.md](docs/TRAINING.md) - two trainers that really run, metrics as rows, fine-tuning refused by name
 * [docs/SIMPLE_MODE.md](docs/SIMPLE_MODE.md) - unified search, its ranking, and every Simple Mode intent
 * [docs/AGENTS.md](docs/AGENTS.md) - workflow definitions, step kinds, approval gates and budgets
 * [docs/SCHEDULER.md](docs/SCHEDULER.md) - durable jobs, deadlines, concurrency, pause/resume, crash recovery

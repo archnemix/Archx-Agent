@@ -12,6 +12,29 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
   if the read is not allowed, records the diff as partial with the reason. (`docs/GUI.md` already
   promised one request; now the code does too.)
 
+### Added - M36, Training and model modification
+- **Two trainers that really run**, both dependency-free and deterministic: an n-gram language model
+  with add-k smoothing scored by **perplexity** per split, and a nearest-centroid classifier over
+  hashed bag-of-words scored by **accuracy**. Neither is a stand-in for something else.
+- **An unseen word is scored, as `<unk>`, rather than skipped** - skipping is how a language model
+  reports a number no text could produce. The counts and the smoothing are in the artifact, so
+  anyone can recompute the perplexity; the acceptance script does exactly that with an independent
+  implementation and fails on a disagreement above 1e-9.
+- **Fine-tuning is refused by name.** `lora`, `qlora` and `full` walk a computed chain - the switch,
+  the base model, the weights directory, the library, the GPU, the adapter - report every missing
+  link in order, and store the refusal as a row (exit 3). A refused run has no artifact.
+- **Nothing runs until the dataset can support it**: `train preflight` checks the split, the
+  validation records, the build and M35's manifest, so a corpus that drifted after its build cannot
+  produce a number.
+- Metrics are rows (`training_metrics`), so a comparison is a query, an empty split is absent, and
+  a metric that could not be measured is null rather than zero. `train compare` names a winner only
+  when every run used one method and every one produced the metric.
+- The artifact is written through `fs.write`, hashed into the row and registered as a version;
+  `train predict` re-reads it from disk.
+- Schema v26 adopts v8's reserved `training_jobs` with `ALTER TABLE` and adds `training_metrics`.
+- The GUI grew a sixteenth panel: run a trainer, read the metrics, and see the refusal card with
+  every missing link.
+
 ### Added - M35, Dataset preparation
 - **Every candidate is a row.** A file removed by a cleaning rule keeps `status = 'dropped'`, the
   rule that removed it and the reason; `dataset explain` answers "why is this not in my dataset"

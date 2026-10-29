@@ -76,6 +76,7 @@ from archx_agent.managers.providers import ProviderManager, is_loopback_url
 from archx_agent.managers.reproduction import ReproductionManager
 from archx_agent.managers.research import ResearchManager
 from archx_agent.managers.tasks import TaskManager
+from archx_agent.managers.training import TrainingManager
 from archx_agent.managers.tools import ToolManager
 from archx_agent.managers.versions import VersionManager
 from archx_agent.managers.workflows import WorkflowManager
@@ -115,6 +116,7 @@ class Workspace:
     play: PlayManager | None = None
     media: MediaManager | None = None
     datasets: DatasetManager | None = None
+    training: TrainingManager | None = None
     reproduction: ReproductionManager | None = None
     router: Any = None
     context: ContextManager | None = None
@@ -354,6 +356,7 @@ class Workspace:
         ws.play = PlayManager(store, coordinator, events=events)
         ws.media = MediaManager(store, coordinator, events=events)
         ws.datasets = DatasetManager(store, coordinator, events=events)
+        ws.training = TrainingManager(store, coordinator, events=events)
         ws.research = ResearchManager(
             store, coordinator, events=events, config=config
         )
@@ -463,6 +466,13 @@ class Workspace:
         from .datasets import DatasetService
 
         return DatasetService(self)
+
+    @property
+    def trainer(self):
+        """The training service (imported lazily to keep the composition root acyclic)."""
+        from .training import TrainingService
+
+        return TrainingService(self)
 
     @property
     def play_mode(self):

@@ -88,6 +88,7 @@ HttpOnly session cookie, and never keeps the token itself.
 | **Play** | start a game, play it (move box, legal moves as buttons, engine move, engine ×5, resign), read the board as text and the move log *with the refusals and their reasons*; run a simulation and replay its hash | `PlayService` - the same `move`/`engine_move`/`simulate`/`replay` calls the CLI makes |
 | **Voice** | measure a file (probe), read what the bytes say *and* what the name claimed, ask for words or speech and read the refusal with every missing link named, record the words you typed, and read the attempts table - refusals included | `VoiceService` - the same `probe`/`transcribe`/`say`/`add_transcript` calls the CLI makes; a missing `fs.read` grant is the same 403 and the same approval id |
 | **Data** | create a dataset over source paths, scan, clean, split, build and verify, and read the record table *including the dropped rows with the rule that dropped them* | `DatasetService` - the same `scan`/`clean`/`split`/`build`/`verify` calls the CLI makes, with the same refusals (a leak across splits, a manifest that moved) |
+| **Train** | run an n-gram or centroid trainer, read the metrics per split, see the artifact hash - and read the fine-tune refusal as a card with every missing link listed | `TrainingService` - the same `run`/`view`/`metrics`/`preflight` calls the CLI makes; a refusal is `200` with the reasons, not an error |
 
 There are no placeholder controls. If a panel would need something this build does not have,
 the panel is not drawn: there is no "Settings" tab that pretends, no disabled "Train" button,
@@ -333,6 +334,14 @@ permission centre, a task, an artifact, and rows. A refusal is `403 approval_req
 approval in the Access panel; a parameter that would not survive the shell is a `400 validation`
 and nothing starts. `compare` never hides a row: the card prints the notes, including the runs it
 could not rank and why.
+
+### The Train panel, and the refusal that is a card
+
+The panel is a run list, a run form (method, dataset, seed) and a detail column. The detail column
+is the same three things the CLI prints: the metrics grouped by split, the preflight checks as rows
+with `yes`/`no`, and - when the run was refused - a card headed *Refused, and why* listing every
+missing link in order. There is no spinner, no greyed-out button and no progress bar for a training
+job that cannot start.
 
 ### The Data panel, and the rows that are not in the dataset
 

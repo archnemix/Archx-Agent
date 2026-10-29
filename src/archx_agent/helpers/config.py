@@ -271,6 +271,10 @@ SPEC: dict[str, tuple[type, Any, Validator, str]] = {
     "play.default_game": (str, "tictactoe", _one_of("tictactoe", "connect4", "nim"), "First built-in game."),
     # ---- training / remote / blender
     "training.max_hours": (int, 12, _range(1, 720, integer=True), "Training job ceiling."),
+    "training.enabled": (bool, False, _bool, "Allow training runs (fine-tuning still refuses)."),
+    "training.base_model": (str, "", _str, "Model a fine-tune would start from (none exists here)."),
+    "training.weights_dir": (str, "", _str, "Local checkpoint directory, if you have one."),
+    "training.ngram_max_order": (int, 5, _range(2, 5, integer=True), "Ceiling for the n-gram order."),
     "remote.require_approval": (bool, True, _bool, "Every remote dispatch needs approval."),
     "blender.executable": (str, "", _str, "Path to the Blender binary (empty = not installed)."),
     "blender.preview_resolution": (int, 480, _range(64, 4096, integer=True), "Preview render resolution."),

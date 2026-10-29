@@ -46,6 +46,10 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg>
         <span>Data</span>
       </button>
+      <button class="tab" data-view="train" type="button" title="Train">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17V9m5 8V5m5 12v-6m5 6V7"/></svg>
+        <span>Train</span>
+      </button>
       <button class="tab" data-view="search" type="button" title="Search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m19 19-4-4"/></svg>
         <span>Search</span>
@@ -350,6 +354,57 @@
             <div class="detail">
               <div id="data-detail" class="stack">
                 <p class="dim small">Pick a dataset, or create one. Every step is a row: what went in, what came out, and why.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ───────────── train ───────────── -->
+      <section class="page" id="view-train" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Training</h1>
+            <p>Two trainers that actually run here - an n-gram language model scored by perplexity, and a nearest-centroid classifier scored by accuracy - and a fine-tune that is <em>refused by name</em>: no weights, no GPU, no library. Nothing on this page predicts a metric it did not measure.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="train-refresh" class="icon-btn" type="button" title="Reload runs" aria-label="Reload runs">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body flush">
+          <div class="split">
+            <aside class="picker">
+              <div id="train-stats" class="stats"></div>
+              <ul id="train-runs" class="list"></ul>
+              <form id="train-run-form" class="card">
+                <div class="card-head"><h3>Run a trainer</h3><p class="hint">On a built dataset with a split. A fine-tune method is accepted and then refused, with every reason listed.</p></div>
+                <label class="field">Method
+                  <select id="train-method">
+                    <option value="ngram">ngram - perplexity</option>
+                    <option value="centroid">centroid - accuracy</option>
+                    <option value="lora">lora - refused here</option>
+                    <option value="qlora">qlora - refused here</option>
+                    <option value="full">full - refused here</option>
+                  </select>
+                </label>
+                <label class="field">Dataset
+                  <input id="train-dataset" type="text" placeholder="ds_… or a dataset name" required>
+                </label>
+                <label class="field">Seed
+                  <input id="train-seed" type="number" value="0">
+                </label>
+                <div class="row between">
+                  <button type="submit" class="btn primary">Run</button>
+                  <span id="train-run-status" class="hint"></span>
+                </div>
+              </form>
+            </aside>
+            <div class="detail">
+              <div id="train-detail" class="stack">
+                <p class="dim small">Pick a run. The metrics are rows, the artifact is a file with a hash, and a refusal is a row too.</p>
               </div>
             </div>
           </div>

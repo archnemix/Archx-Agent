@@ -64,6 +64,11 @@
       sub: "candidates measured, removals kept with their reason, splits that do not move · the manifest is a claim you can re-check",
       tools: ["fs.read", "manifest", "splits"],
     },
+    train: {
+      title: "Train",
+      sub: "two trainers that run here · metrics as rows · a fine-tune refused by name, never faked",
+      tools: ["fs.read", "metrics", "artifact"],
+    },
     experiments: {
       title: "Experiments",
       sub: "declared commands, declared parameters, and a comparison that says what it could not rank",
@@ -2184,6 +2189,109 @@
       document.getElementById("data-sources").value = "";
       document.getElementById("data-license").value = "";
       await openDataset(dataset.id);
+    } catch (error) {
+      report(status, error);
+    }
+  });
+
+  // ------------------------------------------------------------------- train
+  // The honest half of this page is the refusal card: a fine-tune does not get a spinner or a
+  // greyed-out button, it gets every missing link listed in order and a row in the table.
+  async function loadTraining() {
+    state.train = state.train || {};
+    const payload = await api("GET", "/api/training/runs");
+    const stats = payload.stats || {};
+    const summary = clear(document.getElementById("train-stats"));
+    summary.append(el("p", { class: "small", text: (stats.jobs || 0) + " run(s) · " + (stats.metrics || 0) + " metric row(s)" }));
+    summary.append(el("p", { class: "small dim", text: "can fine-tune: " + (stats.can_finetune ? "yes" : "no") + " · runnable: " + (stats.runnable || []).join(", ") }));
+
+    const list = clear(document.getElementById("train-runs"));
+    if (!payload.runs.length) list.append(el("li", { class: "dim small", text: "no runs yet" }));
+    for (const run of payload.runs) {
+      const button = el("button", { type: "button", class: "list-item" + (state.train.id === run.id ? " active" : "") }, [
+        el("span", { class: "t", text: run.method }),
+        el("span", { class: "s", text: run.status + " · " + shortId(run.id) }),
+      ]);
+      button.addEventListener("click", () => openRun(run.id).catch((error) => report(document.getElementById("train-detail"), error)));
+      list.append(el("li", {}, [button]));
+    }
+    return payload;
+  }
+
+  function metricRows(metrics) {
+    const rows = [];
+    for (const [split, values] of Object.entries(metrics || {})) {
+      for (const [name, value] of Object.entries(values)) {
+        rows.push([split, name, value === null ? "not measurable" : String(value)]);
+      }
+    }
+    return rows;
+  }
+
+  async function openRun(jobId) {
+    const panel = clear(document.getElementById("train-detail"));
+    state.train = state.train || {};
+    state.train.id = jobId;
+    const run = await api("GET", "/api/training/runs/" + jobId);
+
+    panel.append(el("div", { class: "row between" }, [
+      el("h2", { text: run.method + " · " + shortId(run.id) }),
+      statusBadge(run.status),
+    ]));
+    panel.append(el("p", { class: "small", text: run.sentence }));
+
+    const chips = el("div", { class: "row" }, [
+      toolChip("dataset", run.dataset_id ? shortId(run.dataset_id) : "–"),
+      toolChip("seed", String(run.seed)),
+    ]);
+    if (run.artifact_sha256) chips.append(toolChip("artifact", String(run.artifact_sha256).slice(0, 12) + "…"));
+    panel.append(chips);
+
+    if ((run.reasons || []).length) {
+      const card = el("div", { class: "card" });
+      card.append(el("div", { class: "card-head" }, [
+        el("h3", { text: "Refused, and why" }),
+        el("p", { class: "hint", text: "Nothing was trained. Each link below is missing on this machine." }),
+      ]));
+      for (const reason of run.reasons) card.append(el("p", { class: "small", text: "· " + reason }));
+      panel.append(card);
+    }
+
+    const rows = metricRows(run.metrics);
+    if (rows.length) panel.append(table(["split", "metric", "value"], rows));
+    else if (run.status === "completed") panel.append(el("p", { class: "small dim", text: "this run recorded no metrics" }));
+
+    const checks = (run.preflight && run.preflight.checks) || [];
+    if (checks.length) {
+      panel.append(table(["check", "ok", "detail"], checks.map((check) => [
+        check.check, check.ok ? "yes" : "no", check.detail,
+      ])));
+    }
+  }
+
+  loaders.train = async () => {
+    await loadTraining();
+    if (state.train && state.train.id) await openRun(state.train.id);
+  };
+
+  document.getElementById("train-refresh").addEventListener("click", () => {
+    loaders.train().catch((error) => report(document.getElementById("train-detail"), error));
+  });
+
+  document.getElementById("train-run-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const status = document.getElementById("train-run-status");
+    status.textContent = "";
+    try {
+      const run = await api("POST", "/api/training/runs", {
+        method: document.getElementById("train-method").value,
+        dataset: document.getElementById("train-dataset").value.trim(),
+        seed: Number(document.getElementById("train-seed").value || 0),
+      });
+      status.textContent = run.status === "completed"
+        ? "completed; the metrics are rows"
+        : run.status + ": " + ((run.reasons || []).length) + " reason(s), recorded";
+      await openRun(run.id);
     } catch (error) {
       report(status, error);
     }

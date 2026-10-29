@@ -226,6 +226,46 @@ const routes = {
     described: "wav audio, 100 ms, 8000 Hz 1 ch 16-bit, 1644 bytes",
   },
   // the mock matches routes by prefix, so the specific paths are listed before the collection
+  "GET /api/training/runs/tj_demo": {
+    id: "tj_demo", method: "ngram", kind: "ngram", status: "completed", base_model: null,
+    dataset_id: "ds_demo", config: { order: 2, seed: 0 }, preflight: { checks: [
+      { check: "dataset", ok: true, detail: "dataset 'ds_demo' exists" },
+      { check: "manifest", ok: true, detail: "the files on disk still produce the recorded manifest" },
+    ] },
+    metrics: { train: { perplexity: 2.5811, records: 3 }, val: { perplexity: 6.5897, records: 3 } },
+    checkpoints: [], seed: 0, artifact_path: "tj_demo.model.json",
+    artifact_sha256: "0a93cbd8ece429dc51055e4f0a42570ccfefec0b3d13583f800688ed029c7516",
+    refusal: null, version_id: "v1", notes: "", started_at: "2026-10-28T10:00:00Z",
+    completed_at: "2026-10-28T10:00:00Z", error: null, task_id: null,
+    created_at: "2026-10-28T10:00:00Z", metric_rows: [], reasons: [],
+    sentence: "ngram trained on ds_demo and wrote tj_demo.model.json",
+  },
+  "GET /api/training/runs": {
+    runs: [
+      { id: "tj_demo", method: "ngram", kind: "ngram", status: "completed", base_model: null,
+        dataset_id: "ds_demo", config: {}, preflight: {}, metrics: {}, checkpoints: [], seed: 0,
+        artifact_path: "tj_demo.model.json", artifact_sha256: "0a93", refusal: null,
+        version_id: "v1", notes: "", started_at: null, completed_at: null, error: null,
+        task_id: null, created_at: "2026-10-28T10:00:00Z" },
+      { id: "tj_refused", method: "lora", kind: "lora", status: "refused", base_model: null,
+        dataset_id: "ds_demo", config: {}, preflight: {}, metrics: {}, checkpoints: [], seed: 0,
+        artifact_path: null, artifact_sha256: null,
+        refusal: "training is off: `archx-agent config set training.enabled true`; no adapter in this build can fine-tune anything",
+        version_id: null, notes: "", started_at: null, completed_at: null, error: null,
+        task_id: null, created_at: "2026-10-28T10:00:00Z" },
+    ],
+    stats: { jobs: 2, by_status: { completed: 1, refused: 1 }, metrics: 6,
+             methods: ["ngram", "centroid", "lora", "qlora", "full"],
+             runnable: ["ngram", "centroid"], finetune: ["lora", "qlora", "full"],
+             can_finetune: false },
+    methods: ["ngram", "centroid", "lora", "qlora", "full"],
+  },
+  "POST /api/training/runs": {
+    id: "tj_new", method: "ngram", status: "refused",
+    reasons: ["training is off", "no adapter in this build can fine-tune anything"],
+    sentence: "ngram was refused before it started",
+  },
+  // the mock matches routes by prefix, so the specific paths are listed before the collection
   "GET /api/datasets/ds_demo/records?limit=100": {
     dataset_id: "ds_demo",
     records: [
@@ -330,12 +370,13 @@ function assert(condition, message) {
 }
 
 // the shell
-assert(doc.querySelectorAll(".tab").length === 15, "expected fifteen mode tabs");
+assert(doc.querySelectorAll(".tab").length === 16, "expected sixteen mode tabs");
 assert(doc.getElementById("view-code"), "the coding view is missing");
 assert(doc.getElementById("view-experiments"), "the experiments view is missing");
 assert(doc.getElementById("view-play"), "the play view is missing");
 assert(doc.getElementById("view-voice"), "the voice view is missing");
 assert(doc.getElementById("view-data"), "the datasets view is missing");
+assert(doc.getElementById("view-train"), "the training view is missing");
 assert(doc.getElementById("view-chat"), "chat view is missing");
 
 // every refresh button answers a click without throwing
@@ -496,6 +537,31 @@ await tick();
 await tick();
 assert(calls.includes("POST /api/datasets"), `the create form never posted: ${JSON.stringify(calls.slice(-4))}`);
 
+// train: the metrics are shown, and the refusal is a card rather than a disabled button
+doc.querySelector('[data-view="train"]').click();
+await tick();
+await tick();
+assert(doc.querySelectorAll("#train-runs .list-item").length === 2, "the run list did not render");
+assert(doc.getElementById("train-stats").textContent.includes("2 run"), "the run stats did not render");
+doc.querySelector("#train-runs .list-item").click();
+await tick();
+await tick();
+await tick();
+assert(calls.includes("GET /api/training/runs/tj_demo"), `the run was never opened: ${JSON.stringify(calls.slice(-4))}`);
+const trainPanel = doc.getElementById("train-detail").textContent;
+assert(trainPanel.includes("perplexity"), "the metric name is not shown");
+assert(trainPanel.includes("6.5897"), "the validation value is not shown");
+assert(trainPanel.includes("the files on disk still produce the recorded manifest"), "the preflight checks are not shown");
+
+doc.getElementById("train-method").value = "lora";
+doc.getElementById("train-dataset").value = "ds_demo";
+doc.getElementById("train-run-form").dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
+await tick();
+await tick();
+await tick();
+assert(calls.includes("POST /api/training/runs"), `the run form never posted: ${JSON.stringify(calls.slice(-4))}`);
+assert(doc.getElementById("train-run-status").textContent.includes("refused"), "a refusal must be reported as one");
+
 // no inline style attributes were produced, and no inline handlers leaked into the markup
 assert(!/style="/.test(doc.body.innerHTML), "inline style attribute produced");
 assert(!/onclick="/.test(doc.body.innerHTML), "inline handler produced");
@@ -507,4 +573,4 @@ if (problems.length) {
   for (const problem of problems) console.error(" - " + problem);
   process.exit(1);
 }
-console.log("smoke ok: 15 tabs, 4 gate rows, code, experiment, play, voice and dataset panels render, forms post, no page errors");
+console.log("smoke ok: 16 tabs, 4 gate rows, code, experiment, play, voice, dataset and training panels render, forms post, no page errors");

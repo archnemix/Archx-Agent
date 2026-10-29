@@ -1099,3 +1099,36 @@ sorts route patterns and `(?P<dataset_id>…)` sorts before the literal `stats`,
 would swallow it and the stats route would never run - a route in the table that cannot be reached
 is worse than no route at all. The counts ride on the collection response instead, and the comment
 in the code says why.
+
+**D172. When the hardware cannot run the milestone, split it at the line where the numbers stop
+being checked.** M34 was scoped that way for speech, and M36 is the same shape: "training" here
+means two trainers small enough that a reader can redo the arithmetic - an n-gram model whose
+perplexity can be recomputed from the artifact's own counts, and a centroid classifier whose
+cosine arithmetic fits on a page. The alternative - a `train` command that shells out to something
+absent and prints a curve - would pass a demo and teach a reader something false. `scripts/
+acceptance_m36.sh` therefore contains a second, independent perplexity implementation and fails if
+the two disagree by more than 1e-9: the metric is checked against arithmetic, not against itself.
+
+**D173. An unseen word is scored, not skipped.** The tempting optimisation when computing perplexity
+is to ignore evaluation tokens the model has never seen. It looks harmless and it inverts the
+number's meaning: the less the model knows, the better it appears, because the tokens it would have
+paid most for are the ones quietly dropped. So an unknown token is scored as `<unk>`, the fallback is
+`1/(|V|+1)`, and the tests compare two perplexities to prove the unknown token costs something.
+
+**D174. A training run must not start on a corpus that cannot produce a number.** `train preflight`
+is not a formality: it checks the split *and* the validation records *and* the build *and* M35's
+manifest. The last check is the one worth the typing - a corpus whose files drifted after the build
+would still train, and the metric would be about a dataset that no longer exists. Preflight failure
+is a **refused** run, stored as a row, not an exception thrown at the user.
+
+**D175. Metrics are rows, and an unmeasured metric is null.** `training_metrics(job_id, split, name,
+value)` means a comparison is a query, a missing split is a missing row rather than a zero that
+drags an average down, and a classifier evaluated on nothing records `NULL` instead of `0.0`. The
+same instinct as D164 (a refusal is a result) applied to numbers: "no number" and "the number zero"
+are different claims and must not share a representation.
+
+**D176. A comparison names a winner only when the comparison is legitimate.** `train compare` returns
+`best: null` whenever the runs used different methods, or when any run in the set has no value for
+the metric - even if exactly one run *does* have one. A winner among a class of one is not a
+comparison, it is a wish. The notes then say which condition failed, so the reader learns why rather
+than assuming the tool could not make up its mind.

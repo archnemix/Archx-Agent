@@ -42,7 +42,7 @@ there is no code.
 | M33 | **Play Mode** | done | three small games the rules referee, and simulations that replay from their parameters (see §2.4) |
 | M34 | **Voice and media** | **partial** | media measured from its own bytes, transcripts with provenance, speech refused by name - no microphone and no speech model exist here (see §3.4) |
 | M35 | **Dataset preparation** | **partial** | candidates kept and dropped with reasons, splits that do not move, a manifest that can fail; text corpora only - no training, no tokenisation, no upload (see §2.6) |
-| M36 | Training and model modification | not built | LoRA/fine-tune — no weights or GPU reachable here |
+| M36 | **Training and model modification** | **partial** | two CPU trainers that really run (perplexity, accuracy), metrics as rows, artifacts hashed and versioned; fine-tuning refused by name - no weights, no GPU, no library here (see §3.5) |
 | M37 | Remote compute | not built | hand work to another machine, portably |
 | M38 | Blender and 3D workflows | not built | scene scripting through the tool layer |
 | M39 | Automations and scheduled tasks | not built | triggers, watches, recurring work |
@@ -199,6 +199,23 @@ What it does not claim: that it trains anything, tokenises anything, or sends th
 The license is recorded per dataset and an unstated one is written as `unknown`; `--require-license`
 refuses rather than inventing permission.
 
+### 2.7 Training, and the line between a model and a mock-up
+
+This machine has no GPU, no transformer weights and no fine-tuning library, so the milestone is cut
+along the line between what is true here and what is not. Two trainers really run and are checked
+against arithmetic a reader can redo: an n-gram model scored by perplexity (with unseen words
+*scored*, not skipped) and a nearest-centroid classifier scored by accuracy (labels from the record
+or its parent directory, with the rule written into the run's config). Both are deterministic, both
+finish in seconds, and both write an artifact that is hashed, versioned and re-read when it is used.
+
+Fine-tuning is refused by name. The chain is computed from the machine - the switch, the base
+model, the weights directory, the library, the GPU, the adapter - so it shortens when the machine
+changes, and its last line never goes away: a chat runtime is not a trainer.
+
+Nothing trains on a dataset that cannot support a run: `train preflight` checks the split, the
+validation records, the build and the manifest, and a corpus that drifted after its build cannot
+produce a number.
+
 ## 3. What "done" does not mean (the honest gaps)
 
 ### 3.1 Research Mode is marked `partial`, not done
@@ -240,7 +257,7 @@ answers them; deleting stays a CLI act.
 
 ### 3.3 The GUI is a client, not a product surface for everything
 
-Fifteen panels, all wired, nothing decorative. The shell is one page with a sidebar, a top bar
+Sixteen panels, all wired, nothing decorative. The shell is one page with a sidebar, a top bar
 carrying each mode's live tool chips, three themes and a chat transcript with markdown,
 copy buttons and confirmations for anything that cannot be undone. Workflow authoring, streaming tokens, files, a
 multi-user story and TLS are not there; they are listed in `GAPS.md` and `docs/GUI.md` rather
@@ -254,12 +271,21 @@ synthesis, video and OCR are not implemented in any form - not stubbed, not simu
 "coming soon". This machine has no microphone and no speech weights, and building an adapter for
 weights nobody can run would be a claim this repository could not verify.
 
+### 3.5 Training is marked `partial`, not done
+
+A completed `ngram` or `centroid` run is a real training run and its numbers were measured. What
+does not exist, in any form, is training a transformer: no LoRA, no adapters, no checkpoint loaded
+from a hub, no GPU arithmetic, no memory or throughput estimate. `docs/TRAINING.md` §8 lists the
+whole boundary. The milestone is `partial` in `PLAN.md` for that reason, not because the two
+trainers are shy about their size - a 2.58 training perplexity on a three-file corpus is a small
+model being honest, and the docs say so.
+
 ## 4. Where this leaves the roadmap
 
-Built: M01–M35 (with the four honest `partial`s above), plus the Research completion model
-(§3.1). Next: **M36 Training and model modification**, which is the second milestone this machine
-cannot finish honestly - no weights and no GPU are reachable here - so it will be scoped the way M34
-was. The Research gaps in §3.1
+Built: M01–M36 (with the five honest `partial`s above), plus the Research completion model
+(§3.1). Next: **M37 Remote compute and portability**, which needs nothing this machine lacks - the
+careful part is that a remote result is recorded as someone else's result, with the endpoint, the
+machine and the time it came from. The Research gaps in §3.1
 remain the most valuable repair, and they no longer have an excuse: the runner and the record
 they needed now exist in the coding workspace, which can be reused rather than invented.
 

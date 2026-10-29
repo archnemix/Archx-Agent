@@ -200,6 +200,12 @@ jobs:
       - name: dataset acceptance
         run: run.sh dataset-acceptance bash scripts/acceptance_m35.sh
 
+      # Training: two trainers that really run are checked against an independent implementation
+      # of the same arithmetic, and the fine-tune chain is shortened one link at a time. A refusal
+      # is a row, and a refused run has no artifact to predict from.
+      - name: training acceptance
+        run: run.sh training-acceptance bash scripts/acceptance_m36.sh
+
       - name: sdk catalogue
         run: run.sh sdks archx-agent models sdks
 

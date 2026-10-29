@@ -611,7 +611,16 @@ class DatasetService:
                     "fs.probe", {"path": record.path},
                     self._context(f"dataset verify {record.path}"),
                 )
-            except (ToolError, PermissionDeniedError, ApprovalRequiredError) as exc:
+            except (PermissionDeniedError, ApprovalRequiredError) as exc:
+                # A file this run was not allowed to read is *not* a file that changed. Saying so
+                # keeps a permission problem from being reported as a corpus problem.
+                differences.append({
+                    "path": record.path,
+                    "kind": "unreadable",
+                    "detail": getattr(exc, "message", None) or str(exc),
+                })
+                continue
+            except ToolError as exc:
                 differences.append(
                     {"path": record.path, "kind": "missing", "detail": str(exc)}
                 )
@@ -634,13 +643,18 @@ class DatasetService:
         recomputed = _sha("\n".join(lines))
         stored = dataset.checksum or ""
         agrees = bool(stored) and recomputed == stored and not differences
-        note = (
-            "the files on disk still produce the recorded manifest"
-            if agrees
-            else "the dataset no longer matches its manifest: "
-            + ("no manifest was recorded (run `dataset build`)" if not stored else
-               f"{len(differences)} records differ")
-        )
+        unreadable = [item for item in differences if item["kind"] == "unreadable"]
+        if agrees:
+            note = "the files on disk still produce the recorded manifest"
+        elif not stored:
+            note = "no manifest was recorded (run `dataset build`)"
+        elif unreadable:
+            note = (
+                f"{len(unreadable)} of {len(records)} records could not be read, so this check "
+                f"cannot pass yet: {unreadable[0]['detail']}"
+            )
+        else:
+            note = f"the dataset no longer matches its manifest: {len(differences)} records differ"
         return {
             "dataset_id": dataset.id,
             "name": dataset.name,

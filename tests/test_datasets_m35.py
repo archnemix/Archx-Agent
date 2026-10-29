@@ -95,7 +95,7 @@ def by_path(rows, name):
 # --------------------------------------------------------------------------
 class TestTheSchema:
     def test_v25_adopts_the_tables_v8_reserved(self, ws):
-        assert SCHEMA_VERSION == 25
+        assert SCHEMA_VERSION >= 25
         assert ws.store.table_exists("datasets")
         assert ws.store.table_exists("dataset_transforms")
         assert ws.store.table_exists("dataset_records")
