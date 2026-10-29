@@ -1,2 +1,4 @@
 $ python -m pytest tests/test_stress.py tests/test_edge_cases.py -o addopts= -q
-...........
+........................................................................ [ 79%]
+...................                                                      [100%]
+91 passed in 46.59s

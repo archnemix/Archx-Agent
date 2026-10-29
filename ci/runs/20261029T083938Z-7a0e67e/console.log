@@ -294,4 +294,9 @@ tests/test_sdk_m22.py::TestPaths::test_the_requested_path[cohere--/v2/chat]
 1774 passed, 2 warnings in 470.77s (0:07:50)
 === stress-edge ===============================================
 $ python -m pytest tests/test_stress.py tests/test_edge_cases.py -o addopts= -q
-...........
+........................................................................ [ 79%]
+...................                                                      [100%]
+91 passed in 46.59s
+=== integration ===============================================
+$ python -m pytest tests/test_integration.py -o addopts= -q
+.....
