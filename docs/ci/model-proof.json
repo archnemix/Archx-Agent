@@ -1,9 +1,9 @@
 {
-  "text": "A tunnel is a deep, narrow passageway through solid rock or earth, often used for archaeological excavation, tunnel construction, or transportation of materials.",
+  "text": "A tunnel is a narrow, usually dark, passageway through the earth that can be used for transportation, such as beneath the surface of the earth.",
   "usage": {
-    "completion_tokens": 30,
+    "completion_tokens": 31,
     "prompt_tokens": 40,
-    "total_tokens": 70,
+    "total_tokens": 71,
     "prompt_tokens_details": {
       "cached_tokens": 0
     }

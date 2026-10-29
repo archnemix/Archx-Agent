@@ -1,18 +1,19 @@
-# run 20261029T110209Z-ee4dcc6
+# run 20261029T125336Z-a63016d
 
 step	status	seconds
-install	ok	22
-pytest	ok	521
-stress-edge	ok	50
+install	ok	21
+pytest	ok	530
+stress-edge	ok	49
 integration	ok	20
 coding-acceptance	ok	16
 experiment-acceptance	ok	11
 play-acceptance	ok	14
 voice-acceptance	ok	14
 dataset-acceptance	ok	13
-training-acceptance	ok	14
-remote-acceptance	ok	13
+training-acceptance	ok	13
+remote-acceptance	ok	14
 execution-acceptance	ok	15
+scenes-acceptance	ok	7
 sdks	ok	3
 llama-cpp	ok	1
 model-download	ok	1
@@ -20,4 +21,4 @@ serve	ok	1
 completion	ok	1
 sdk-matrix	ok	16
 ollama	ok	48
-tunnel	ok	10
+tunnel	ok	8

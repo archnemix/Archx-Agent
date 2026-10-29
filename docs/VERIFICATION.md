@@ -4860,6 +4860,11 @@ run #16 20261028T181313Z-e098a06   all 17 steps ok; 1720 tests in 320 s, 91 stre
                                   88/88, 72/72). The dataset acceptance writes its corpus on the
                                   runner, so every hash it checks is arithmetic on content the run
                                   chose - and the manifest is then broken by an edit and a delete
+run #22 20261029T125336Z-a63016d   all 21 steps ok; 1894 tests in 529 s, 91 stress/edge, 11
+                                  integration, nine acceptances (48/48, 53/53, 69/69, 88/88,
+                                  72/72, 57/57, 71/71, 65/65, 49/49). M39 scene GUI/API and
+                                  CLI/export foundation; the stand-in Blender proves invocation,
+                                  not a real render. GitHub run 40877049444.
 run #21 20261029T110209Z-ee4dcc6   all 20 steps ok; 1868 tests in 520 s, 91 stress/edge, 11
                                   integration, and eight acceptances (48/48, 53/53, 69/69,
                                   88/88, 72/72, 57/57, 71/71, 65/65) - the commit that carries
@@ -5051,4 +5056,5 @@ hashes independently, corrupts an export to make verification fail, repairs it, 
 creation preserves the scene, and runs a stand-in Blender from a path containing spaces. The
 stand-in records its received argv and exits zero without producing a PNG; that must be a failed
 render, not a success. This is invocation evidence, **not evidence of an actual Blender render**.
-The workflow now runs this acceptance as `scenes-acceptance`; CI evidence is pending.
+The workflow runs this acceptance as `scenes-acceptance`; run #22 is green (21 steps), with
+1894 tests on the runner and 49/49 scene checks. Evidence is in `docs/ci/`.
