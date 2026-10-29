@@ -43,7 +43,9 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
   print when that is what is missing.
 - **WSL is labelled *not a boundary*** in the probe table itself - `/mnt/c` is your own disk - and
   **Windows Sandbox records `detached`** rather than an invented exit code, with the generated `.wsb`
-  naming the log file the guest writes.
+  naming the log file the guest writes, a `--read-only` mount option, and networking off unless asked
+  for (`--network none` is a string, and a string is truthy: read as a boolean it switched the
+  sandbox's networking *on* for the one value that means off).
 - **`train run --target local|remote`.** One row either way (`training_jobs.target`,
   `remote_job_id`), and a remote run's perplexity is *equal* to a local run's because the worker calls
   the same `train_records()`. A sandbox is refused as a training target by name: a trainer needs its

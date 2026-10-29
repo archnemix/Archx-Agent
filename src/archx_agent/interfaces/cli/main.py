@@ -1077,6 +1077,8 @@ def build_parser() -> argparse.ArgumentParser:
     ex_add.add_argument("--distro", default=None, help="for wsl")
     ex_add.add_argument("--user", default=None)
     ex_add.add_argument("--network", default=None, help="docker network (default none)")
+    ex_add.add_argument("--read-only", dest="read_only", action="store_true",
+                        help="windows-sandbox: mount the folder read-only")
     ex_sub.add_parser("targets-list", help="the recorded targets")
     ex_run = ex_sub.add_parser("run", help="run one command on a target and record where it ran")
     # `command` is the top-level dest for the subcommand name, so this positional must not be
@@ -4079,6 +4081,8 @@ def cmd_exec(args: argparse.Namespace) -> int:
                     spec["user"] = args.user
                 if getattr(args, "network", None):
                     spec["network"] = args.network
+                if getattr(args, "read_only", False):
+                    spec["read_only"] = True
                 target = service.ensure(
                     args.kind, name=args.name, endpoint=args.endpoint, spec=spec
                 )

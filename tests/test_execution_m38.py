@@ -251,6 +251,30 @@ class TestTheInvocation:
         assert "&amp;&amp;" in config  # XML-escaped, not a literal &&
         assert "python --version" in config
 
+    def test_network_none_is_off_and_a_bridge_is_on(self, execution):
+        # `--network none` is a string, and a string is truthy: reading it as a boolean turned the
+        # sandbox's networking *on* for the exact value that means "off".
+        default = execution.ensure("windows-sandbox", name="sb-default")
+        assert "<Networking>Disable</Networking>" in sandbox_config(
+            default, "x", host_dir="C:\\p"
+        )
+        bridged = execution.ensure(
+            "windows-sandbox", name="sb-bridged", spec={"network": "bridge"}
+        )
+        assert "<Networking>Enable</Networking>" in sandbox_config(bridged, "x", host_dir="C:\\p")
+        explicit_off = execution.ensure(
+            "windows-sandbox", name="sb-off", spec={"network": "none"}
+        )
+        assert "<Networking>Disable</Networking>" in sandbox_config(
+            explicit_off, "x", host_dir="C:\\p"
+        )
+
+    def test_a_read_only_mount_says_so(self, execution):
+        target = execution.ensure(
+            "windows-sandbox", name="sb-read-only", spec={"read_only": True}
+        )
+        assert "<ReadOnly>true</ReadOnly>" in sandbox_config(target, "x", host_dir="C:\\p")
+
     def test_the_wsb_escapes_output_to_the_mapped_folder(self, execution):
         target = self._target(execution, "windows-sandbox")
         config = sandbox_config(target, "x", host_dir="C:\\p")

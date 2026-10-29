@@ -280,7 +280,11 @@ def sandbox_config(target: ExecutionTarget, command: str, *, host_dir: str,
     at all, so it should be readable and tested rather than assembled in place.
     """
     spec = target.spec or {}
-    networking = "Enable" if spec.get("network") else "Disable"
+    # `--network none` is a *string*, and a string is truthy: reading it as a boolean turned the
+    # sandbox's networking on for the exact value that means "off". Only an explicit opt-out of
+    # "none" enables it.
+    network = str(spec.get("network") or "none").strip().lower()
+    networking = "Disable" if network in ("", "none", "off", "false", "0") else "Enable"
     readonly = "true" if spec.get("read_only") else "false"
     log = str(spec.get("log_file") or "archx-exec.log")
     return (

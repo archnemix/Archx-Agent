@@ -3583,13 +3583,13 @@ M38 acceptance: 65 checks passed, 0 failed
 
 ```text
 $ .venv/bin/python -m pytest tests/test_execution_m38.py -o addopts="" -q
-47 passed
+49 passed
 
 $ .venv/bin/python -m pytest -q         # whole suite, this environment
-1866 tests collected, all passed (exit 0)
+1868 tests collected, all passed (exit 0)
 ```
 
-The 47 tests cover the parts a shell script cannot reach cheaply: `build_invocation` for every
+The 49 tests cover the parts a shell script cannot reach cheaply: `build_invocation` for every
 backend (including the `.wsb` document Windows Sandbox needs and the `vmrun`/`VBoxManage` shapes), the
 workdir jail on the worker, a target whose binary appears *after* it was recorded as refused (the
 probe is authoritative, not the stored refusal), a `ValidationError` from a malformed spec becoming a
