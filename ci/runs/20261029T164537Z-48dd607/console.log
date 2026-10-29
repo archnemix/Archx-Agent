@@ -938,3 +938,348 @@ ds_0001m649g14r0000000038c21678ef1f372c  'corpus'  (built)
 [exit 0]
 
 ### the page is a client of the same service
+[ok]   the page lists the datasets the CLI wrote = 2
+[ok]   the stats ride with the collection = 2
+[ok]   a dataset created in the page is a row the CLI reads = 1
+[ok]   scanning from the page measures the same files = True
+[ok]   dropped records are visible over HTTP with their reason = True
+[ok]   an unknown dataset is a 404 = 404
+[ok]   a bad filter is a 400 = 400
+[ok]   an unauthenticated call is refused = 401
+[ok]   the verify disagreement over HTTP is a 200 with agrees false = False
+
+### the record survives a restart
+[ok]   the manifest hash is still the one built = 2e7e990dc79afc9f4a1cdc997bc9d9bf88f49f033eea2dd2cccc1cb233de8440
+[ok]   the dropped reasons are still there = True
+[ok]   and the ledger still has every step = True
+
+M35 acceptance: 72 checks passed, 0 failed
+=== training-acceptance ===============================================
+$ bash scripts/acceptance_m36.sh
+M36 acceptance on /tmp/archx-m36-PP1XuU
+
+### the schema adopts the table v8 reserved
+[ok]   training is a versioned migration = 1
+[ok]   jobs and metrics are tables = 2
+[ok]   the reserved columns survive the adoption = 8
+[ok]   a fresh home has run nothing = 0
+[ok]   and says plainly it cannot fine-tune = False
+
+### a run is not attempted until the dataset can support one
+[ok]   an unsplit dataset is not runnable = False
+[ok]   and the reason names the missing split = True
+[ok]   the preflight exits 3 (cannot), not 0 = 3
+[ok]   a split but unbuilt dataset still fails = False
+[ok]   and the reason names the build = True
+[ok]   a built, split, verified dataset is runnable = True
+[ok]   every check is a row = True
+[ok]   including the manifest = True
+
+### an n-gram model is trained here, and its perplexity is arithmetic
+[ok]   the run completed = completed
+[ok]   it trained on the dataset it names = ds_0001m649gf6w00000000dd166fb35bd864c3
+[ok]   train, val and test were each scored = 3
+[ok]   perplexity is recorded per split = 3
+[ok]   the metrics are rows, not a blob = 9
+[ok]   the artifact is a file on disk = yes
+[ok]   its recorded hash is the file's hash = cfb644e82abd310bbf1a99fb811a182da497104defe33a8c8ac306a993a6a4c1
+[ok]   the artifact says what it is = ngram
+[ok]   the artifact is versioned = versioned
+[ok]   an independent implementation gets the same perplexity = True
+
+### a classifier is trained here, and predicts a label this script knows
+[ok]   the classifier completed = completed
+[ok]   it labelled from the directory and said so = 1
+[ok]   it saw two labels = 2.0
+[ok]   accuracy is a fraction between 0 and 1 = True
+[ok]   a rust-shaped document predicts rust = rust
+[ok]   a python-shaped document predicts python = python
+
+### fine-tuning is refused with every missing link, in order
+[ok]   asking for a fine-tune exits 3 = 3
+[ok]   the refusal is a row = refused
+[ok]   the first reason is the switch = True
+[ok]   the last is the missing adapter = True
+[ok]   turning training on removes exactly one reason = 1
+[ok]   and the switch is no longer the first reason = False
+[ok]   the library and the GPU are named = True
+[ok]   a refused run has no artifact = 0
+[ok]   and cannot be predicted from = 2
+
+### a comparison names what it could not rank
+[ok]   two n-gram runs rank on val perplexity = True
+[ok]   a mixed comparison names no winner = None
+[ok]   and says why = True
+[ok]   a refused run is listed with its status = True
+
+### the counters agree with the rows
+[ok]   jobs = 5
+[ok]   completed = 3
+[ok]   metrics = 27
+$ archx-agent train list
+id                                       method    status     dataset                                  artifact                                            created                 
+---------------------------------------  --------  ---------  ---------------------------------------  --------------------------------------------------  ------------------------
+tj_0001m649gp1r0000000078805fc7f7016079  ngram     completed  ds_0001m649gf6w00000000dd166fb35bd864c3  tj_0001m649gp1r0000000078805fc7f7016079.model.json  2026-10-29T16:57:27.864Z
+tj_0001m649gmxv00000000c484e976aa3eb952  qlora     refused    ds_0001m649gf6w00000000dd166fb35bd864c3  -                                                   2026-10-29T16:57:26.715Z
+tj_0001m649gkr8000000007bc7259687aabf58  lora      refused    ds_0001m649gf6w00000000dd166fb35bd864c3  -                                                   2026-10-29T16:57:25.512Z
+tj_0001m649gjr500000000c3ca72e6f4c2151b  centroid  completed  ds_0001m649gf6w00000000dd166fb35bd864c3  tj_0001m649gjr500000000c3ca72e6f4c2151b.model.json  2026-10-29T16:57:24.485Z
+tj_0001m649ghxp00000000e847d6f851d4bc79  ngram     completed  ds_0001m649gf6w00000000dd166fb35bd864c3  tj_0001m649ghxp00000000e847d6f851d4bc79.model.json  2026-10-29T16:57:23.638Z
+[exit 0]
+
+### the page is a client of the same service
+[ok]   the page lists the runs the CLI made = 5
+[ok]   the page says it cannot fine-tune = False
+[ok]   a run started in the page is a row the CLI reads = 1
+[ok]   the metrics endpoint returns the same numbers = True
+[ok]   a refusal over HTTP is a 200 with the reasons = True
+[ok]   an unknown run is a 404 = 404
+[ok]   an unauthenticated call is refused = 401
+[ok]   the preflight route answers the same question = False
+
+### the record survives a restart
+[ok]   the completed run is still completed = completed
+[ok]   the metrics are still the ones measured = ['test', 'train', 'val']
+[ok]   the artifact path is still recorded = yes
+[ok]   and the refusal is still a refusal = refused
+
+M36 acceptance: 57 checks passed, 0 failed
+=== remote-acceptance ===============================================
+$ bash scripts/acceptance_m37.sh
+M37 acceptance on /tmp/archx-m37-pPthdu
+
+### the schema adopts the table v8 reserved, and adds what makes a result checkable
+[ok]   remote is a versioned migration = 1
+[ok]   jobs and attempts are tables = 2
+[ok]   the reserved columns survive the adoption = 8
+[ok]   and the two hashes are separate columns = 2
+[ok]   a fresh home has dispatched nothing = 0
+[ok]   and says why nothing could be = True
+[ok]   the protocol is named = archx-remote/1
+
+### a bundle cannot be made from a dataset nobody built
+[ok]   an unbuilt dataset exits 2 (usage), not 0 = 2
+[ok]   and the reason asks for a build = 1
+
+### a bundle identifies its input down to two digests per record
+[ok]   the bundle is a file on disk = yes
+[ok]   its hash is the hash of its bytes = 0146a1098b44a6d4fee677014f49ed1266109fbca5957ea02b1255d2d0f51c0c
+[ok]   it carries every kept record = 8
+[ok]   with a file digest and a text digest that differ = True
+[ok]   the text digest is the digest of the text = True
+[ok]   the manifest checksum is the dataset's own = 50e360ad023211260a93bc1a6cf0ac3f5566ac2182e5eeecf94eb9be25ebd697
+[ok]   the run is declared in the bundle = 2
+
+### nothing leaves the machine until the switch, an endpoint and an approval all say yes
+$ archx-agent remote dispatch rj_0001m649gy8t000000048d3779f5b91782c0
+refused rj_0001m649gy8t000000048d3779f5b91782c0
+  nothing was sent: remote.require_approval is on and rj_0001m649gy8t000000048d3779f5b91782c0 has not been approved: `archx-agent remote approve rj_0001m649gy8t000000048d3779f5b91782c0`; remote compute is off: `archx-agent config set remote.enabled true`; no cloud provider is reachable from this build: a worker is a second machine (or a second process) running `archx-agent remote worker`, and nothing here talks to a vendor's compute service
+  - remote.require_approval is on and rj_0001m649gy8t000000048d3779f5b91782c0 has not been approved: `archx-agent remote approve rj_0001m649gy8t000000048d3779f5b91782c0`
+  - remote compute is off: `archx-agent config set remote.enabled true`
+  - no cloud provider is reachable from this build: a worker is a second machine (or a second process) running `archx-agent remote worker`, and nothing here talks to a vendor's compute service
+[exit 3]
+[ok]   a dispatch without approval is refused = refused
+[ok]   and says which approval is missing = 1
+[ok]   the refusal is an attempt row = 1
+[ok]   the approval is on the job = user:user
+[ok]   a dispatch with the switch off is still refused = 3
+[ok]   and it names the switch = yes
+[ok]   no dispatch succeeded while the switch was off = 0
+
+### a dispatch to a port nobody is listening on is a row, not a crash
+[ok]   an unreachable endpoint exits 3 = 3
+[ok]   the job is failed, not verified = failed
+[ok]   the failed attempt is in the log = 1
+[ok]   and the error is stored, not printed at the user = 1
+
+### a worker checks a bundle against itself before it computes anything
+[ok]   the worker is up and says which protocol it speaks = archx-remote/1
+[ok]   the worker is a separate process with no database = 1
+
+### an approved bundle is dispatched, computed, collected and verified
+[ok]   the dispatch is recorded against the endpoint = http://127.0.0.1:52015
+[ok]   the worker's machine is recorded = acceptance-box
+[ok]   the worker named its own job id = 1
+[ok]   collecting exits 0 only when the hash agrees = 0
+[ok]   the job is verified = verified
+[ok]   what the worker claimed and what this machine measured agree = True
+[ok]   and the claim is not empty = 64
+[ok]   the artifact is a file on disk = yes
+[ok]   the file hashes to what was stored = 7a2d23731239cfdb7e42ee44e070fefe14c52ebec65181992c95a4294fc6640e
+[ok]   a second verify still agrees = 1
+[ok]   the verification time is recorded = 1
+
+### the numbers are a local run's numbers, because it is the same trainer
+[ok]   the remote train perplexity equals the local one = 2.892797183739609
+[ok]   each split agrees exactly = True
+[ok]   the artifact holds the same counts as the local run's = True
+[ok]   the worker says who computed it = worker:acceptance-box
+
+### a worker that misreports its hash produces a disagreement, not a result
+[ok]   a claimed hash that does not match is not verified = received
+[ok]   the two hashes are stored separately = True
+[ok]   the note names both = True
+[ok]   nothing wrote a verification time = none
+[ok]   the attempt is recorded as a mismatch = mismatch
+[ok]   re-verifying cannot rescue it = 3
+[ok]   and the job stays received = received
+[ok]   the stats count it as unverified = 1
+
+### a worker speaking another protocol is refused by both names
+[ok]   a protocol mismatch exits 3 = 3
+[ok]   the job is refused, not dispatched = refused
+[ok]   and both versions are named = 1
+
+### a corpus edited after the build cannot become a bundle
+[ok]   a drifted corpus exits 2 = 2
+[ok]   and the file is named with the reason = 1
+[ok]   no job was created for it = 0
+[ok]   restoring the file makes the dataset verify again = True
+
+### the page is a client of the same service, over a real socket
+[ok]   the remote route needs a token = 401
+[ok]   with a token it answers = 200
+[ok]   an unknown job is a 404 = 404
+[ok]   an unknown status is a 400 = 400
+[ok]   the page counts the same jobs the CLI does = 4
+[ok]   the page can write a bundle = 1
+[ok]   and approve it = user:gui
+[ok]   and dispatch it to the configured endpoint = dispatched
+[ok]   and collect a verified result = verified
+[ok]   the detail shows both hashes = True
+
+### the record survives the process that wrote it
+[ok]   every job is still there after five more processes = 5
+[ok]   and the attempts were never overwritten = 3
+
+M37 acceptance: 71 checks passed, 0 failed
+=== execution-acceptance ===============================================
+$ bash scripts/acceptance_m38.sh
+M38 acceptance on /tmp/archx-m38-RlywOu
+
+### the schema records where a command ran, and what crossed the boundary
+[ok]   execution is a versioned migration = 1
+[ok]   targets, runs and files are tables = 3
+[ok]   a run keeps the invocation, not just the command = 4
+[ok]   a training run names its machine = 2
+[ok]   a fresh home has run nothing = 0
+[ok]   and execution is off = False
+
+### every backend is named with a reason or a way to enable it
+[ok]   seven backends are listed = 7
+[ok]   each unusable one has a reason and a hint = True
+[ok]   a backend that is here has no refusal attached = True
+[ok]   windows sandbox is named as Windows-only = True
+[ok]   local is available = True
+[ok]   the isolation is stated, not implied = True
+
+### nothing runs before the switch
+[ok]   a run with execution off exits 3 = 3
+[ok]   and says which setting = yes
+[ok]   the refusal is a row = refused
+[ok]   a local run exits 0 = 0
+[ok]   it records the backend it ran on = local
+[ok]   its output is kept = hello-from-local
+[ok]   and kept as a file too = yes
+
+### a command that fails is a row with its exit code, not a crash
+[ok]   a non-zero exit exits 1 = 1
+[ok]   and the code is recorded = 7
+
+### an unusable backend refuses with the reason the probe gives
+[ok]   the target is recorded as refused = refused
+[ok]   running on it exits 3 = 3
+[ok]   and the reason names docker = yes
+
+### the wrapper really is what executes (a stand-in binary proves the argv)
+[ok]   the target becomes available when a docker appears on PATH = True
+[ok]   a docker run goes through the wrapper = 0
+[ok]   the invocation is on the row = True
+[ok]   the disposable flag reached the binary = 1
+[ok]   the network really was disabled = 1
+[ok]   the image was passed = 1
+[ok]   the command was passed to the shell inside = 1
+[ok]   the stand-in's output is the run's output = True
+
+### another machine is a real machine, and it says no until its operator says yes
+[ok]   a worker without --allow-exec refuses the command = 3
+[ok]   and names the flag = yes
+[ok]   the worker reports execution is on = 1
+[ok]   a remote run exits 0 = 0
+[ok]   it names the machine that computed it = ran on exec-box
+[ok]   the output came from the worker's work directory = True
+[ok]   not from this one = True
+[ok]   a wrong token is refused, not run = refused
+[ok]   and the refusal names the token = True
+[ok]   a timeout is a timeout, not a failure = timeout
+
+### the project goes there, is edited there, and comes back
+[ok]   two files were pushed = 2
+[ok]   both hashes are recorded = 2
+[ok]   and the hashes agreed = 2
+[ok]   the edited file came back = ['main.py']
+[ok]   and it is what the worker wrote = print(2)
+
+### a file changed on both sides is a conflict, not a silent overwrite
+[ok]   a conflict exits 3 = 3
+[ok]   the conflict is named = 1
+[ok]   the local file was not overwritten = print('edited here')
+[ok]   the conflict is in the ledger = conflict
+[ok]   with --force the worker's version wins = print('edited there')
+
+### training can run here or there, and the numbers are the same numbers
+[ok]   a local training run names this CPU = local
+[ok]   a remote training run completes = completed
+[ok]   and names the worker = remote
+[ok]   and records the remote job it came from = True
+[ok]   both runs are rows in one ledger = 2
+[ok]   the remote metrics equal the local metrics exactly = True
+[ok]   the remote artifact was hashed here = 64
+[ok]   an unknown training target is refused by name = 2
+[ok]   and the parser names the choices it accepts = 1
+
+### the ledger answers the question the milestone exists for
+[ok]   runs are counted per backend = True
+[ok]   the conflict is counted = 1
+[ok]   every run row names a target = 0
+[ok]   each run's command is exactly what was typed = 1
+
+M38 acceptance: 65 checks passed, 0 failed
+=== scenes-acceptance ===============================================
+$ bash scripts/acceptance_m39.sh
+$ archx-agent permissions grant fs.read --subject * --duration persistent --confirm [exit 0]
+[ok] expected CLI exit
+$ archx-agent permissions grant fs.write --subject * --duration persistent --confirm [exit 0]
+[ok] expected CLI exit
+$ archx-agent permissions grant shell.run --subject * --duration persistent --confirm [exit 0]
+[ok] expected CLI exit
+$ archx-agent config set blender.executable  [exit 0]
+[ok] expected CLI exit
+$ archx-agent scene create demo [exit 0]
+[ok] expected CLI exit
+$ archx-agent scene add demo cube --params {"size":2} [exit 0]
+[ok] expected CLI exit
+[ok] measured cube area
+[ok] measured cube volume
+[ok] measured cube triangles
+[ok] cube has closed edge incidence
+$ archx-agent scene export demo obj [exit 0]
+[ok] expected CLI exit
+[ok] obj recorded byte count
+[ok] obj recorded hash
+[ok] OBJ vertices really written
+$ archx-agent scene export demo stl [exit 0]
+[ok] expected CLI exit
+[ok] stl recorded byte count
+[ok] stl recorded hash
+[ok] STL triangle count from binary header
+[ok] STL byte layout
+$ archx-agent scene export demo svg [exit 0]
+[ok] expected CLI exit
+[ok] svg recorded byte count
+[ok] svg recorded hash
+[ok] SVG labelled not a render
+$ archx-agent scene export demo script [exit 0]
+[ok] expected CLI exit
+[ok] script recorded byte count
+[ok] script recorded hash
+[ok] script uses OBJ import

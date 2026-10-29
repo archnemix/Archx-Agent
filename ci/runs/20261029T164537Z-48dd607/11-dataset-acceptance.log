@@ -124,3 +124,19 @@ ds_0001m649g14r0000000038c21678ef1f372c  'corpus'  (built)
 [exit 0]
 
 ### the page is a client of the same service
+[ok]   the page lists the datasets the CLI wrote = 2
+[ok]   the stats ride with the collection = 2
+[ok]   a dataset created in the page is a row the CLI reads = 1
+[ok]   scanning from the page measures the same files = True
+[ok]   dropped records are visible over HTTP with their reason = True
+[ok]   an unknown dataset is a 404 = 404
+[ok]   a bad filter is a 400 = 400
+[ok]   an unauthenticated call is refused = 401
+[ok]   the verify disagreement over HTTP is a 200 with agrees false = False
+
+### the record survives a restart
+[ok]   the manifest hash is still the one built = 2e7e990dc79afc9f4a1cdc997bc9d9bf88f49f033eea2dd2cccc1cb233de8440
+[ok]   the dropped reasons are still there = True
+[ok]   and the ledger still has every step = True
+
+M35 acceptance: 72 checks passed, 0 failed
