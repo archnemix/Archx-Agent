@@ -15,3 +15,10 @@ remote-acceptance	ok	11
 execution-acceptance	ok	11
 scenes-acceptance	ok	6
 automation-acceptance	ok	4
+blender-real	ok	25
+sdks	ok	2
+llama-cpp	ok	2
+model-download	ok	1
+serve	ok	1
+completion	ok	0
+sdk-matrix	ok	11

@@ -5,3 +5,4 @@ $ bash -c
   "$RUNNER_TEMP/blender-env/bin/pip" install -q -e . bpy==4.2.0 "numpy<2"
   "$RUNNER_TEMP/blender-env/bin/python" scripts/blender_real_check.py
 
+{"png_bytes": 4897, "renderer": "official bpy 4.2 / Cycles CPU", "resolution": [64, 64], "sha256": "c157d34edbb959f8194117dc220b515b6bd5f750154ea5cb39337c34cd509570", "status": "verified"}

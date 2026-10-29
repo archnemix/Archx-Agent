@@ -1378,3 +1378,291 @@ $ bash -c
   "$RUNNER_TEMP/blender-env/bin/pip" install -q -e . bpy==4.2.0 "numpy<2"
   "$RUNNER_TEMP/blender-env/bin/python" scripts/blender_real_check.py
 
+{"png_bytes": 4897, "renderer": "official bpy 4.2 / Cycles CPU", "resolution": [64, 64], "sha256": "c157d34edbb959f8194117dc220b515b6bd5f750154ea5cb39337c34cd509570", "status": "verified"}
+=== sdks ===============================================
+$ archx-agent models sdks
+openai     OpenAI           installed  openai         key from OPENAI_API_KEY
+anthropic  Anthropic        installed  anthropic      key from ANTHROPIC_API_KEY
+google     Google Gemini    installed  google-genai   key from GEMINI_API_KEY
+mistral    Mistral          installed  mistralai      key from MISTRAL_API_KEY
+groq       Groq             installed  groq           key from GROQ_API_KEY
+together   Together         installed  together       key from TOGETHER_API_KEY
+cohere     Cohere           installed  cohere         key from COHERE_API_KEY
+ollama     Ollama           installed  ollama         key from OLLAMA_API_KEY
+=== llama-cpp ===============================================
+$ bash -c 
+  set -u
+  mkdir -p "$HOME/llama"; server=""
+  for page in 1 2; do
+    asset="$(gh api "repos/ggml-org/llama.cpp/releases?per_page=10&page=$page" \
+      --jq ".[].assets[].browser_download_url" 2>/dev/null \
+      | grep -E "/llama-b[0-9]+-bin-ubuntu-x64\.tar\.gz$" | head -1 || true)"
+    [ -n "$asset" ] && break
+  done
+  if [ -n "${asset:-}" ]; then
+    echo "prebuilt: $asset"
+    curl -fsSL "$asset" -o /tmp/llama.tar.gz && tar -xzf /tmp/llama.tar.gz -C "$HOME/llama" || true
+    server="$(find "$HOME/llama" -name llama-server -type f | head -1)"
+  fi
+  if [ -z "$server" ]; then
+    echo "no prebuilt binary; building from source"
+    git clone --depth 1 https://github.com/ggml-org/llama.cpp /tmp/llama-src
+    cmake -S /tmp/llama-src -B /tmp/llama-src/build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF
+    cmake --build /tmp/llama-src/build --target llama-server -j "$(nproc)"
+    server=/tmp/llama-src/build/bin/llama-server
+  fi
+  [ -x "$server" ] || { echo "no llama-server binary"; exit 1; }
+  chmod +x "$server"; "$server" --version
+  echo "LLAMA_SERVER=$server" >> "$GITHUB_ENV"
+
+prebuilt: https://github.com/ggml-org/llama.cpp/releases/download/b11982/llama-b11982-bin-ubuntu-x64.tar.gz
+version: 0.8.0-dev (build 11982, commit 8a199ad31)
+built with GNU 11.4.0 for Linux x86_64
+=== model-download ===============================================
+$ bash -c 
+  mkdir -p "$HOME/model"
+  target="$HOME/model/$MODEL_FILE"
+  if [ ! -s "$target" ]; then
+    curl -fL --retry 3 -o "$target.part" \
+      "https://huggingface.co/$MODEL_REPO/resolve/main/$MODEL_FILE"
+    mv "$target.part" "$target"
+  fi
+  ls -lh "$target"
+  head -c 4 "$target" | grep -q GGUF || { echo "not a GGUF file"; exit 1; }
+  echo "MODEL_PATH=$target" >> "$GITHUB_ENV"
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  1116  100  1116    0     0   8551      0 --:--:-- --:--:-- --:--:--  8584
+  4  100M    4 4679k    0     0  4901k      0  0:00:21 --:--:--  0:00:21 4901k100  100M  100  100M    0     0  63.5M      0  0:00:01  0:00:01 --:--:--  152M
+-rw-r--r-- 1 runner runner 101M Oct 29 16:41 /home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf
+=== serve ===============================================
+$ bash -c 
+  # Detach *all three* descriptors. A backgrounded server that inherits the closing
+  # pipeline keeps the tee pipe open, so run.sh waits forever even after the check
+  # here is done - the first run of this workflow hung on exactly this line.
+  setsid "$LLAMA_SERVER" --model "$MODEL_PATH" --host 127.0.0.1 --port "$PORT" \
+    --ctx-size 512 --n-gpu-layers 0 --threads 2 --parallel 1 \
+    --no-warmup --log-file "$RUNNER_TEMP/llama.log" \
+    > "$RUNNER_TEMP/llama.out" 2>&1 < /dev/null &
+  echo $! > "$RUNNER_TEMP/llama.pid"
+  for i in $(seq 1 180); do
+    curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 && { echo "up after ${i}s"; exit 0; }
+    sleep 1
+  done
+  tail -40 "$RUNNER_TEMP/llama.log"; exit 1
+
+up after 2s
+=== completion ===============================================
+$ bash -c 
+  curl -sS -H "Content-Type: application/json" --max-time 120 \
+    -d "{\"model\":\"local\",\"messages\":[{\"role\":\"user\",\"content\":\"In one short sentence, what is a tunnel?\"}],\"max_tokens\":48}" \
+    "http://127.0.0.1:$PORT/v1/chat/completions" > "$LOGDIR/completion.json"
+  python - <<PY
+import json, os, pathlib
+data = json.loads(pathlib.Path(os.environ["LOGDIR"], "completion.json").read_text())
+text = data["choices"][0]["message"]["content"].strip()
+usage = data.get("usage", {})
+print("text:", text)
+print("usage:", usage)
+assert text, "empty reply"
+pathlib.Path(os.environ["LOGDIR"], "model-proof.json").write_text(json.dumps({"text": text, "usage": usage}, indent=2))
+PY
+
+text: A tunnel is a passage or passageway through which a material flows or moves, often through a solid or liquid body.
+usage: {'completion_tokens': 25, 'prompt_tokens': 40, 'total_tokens': 65, 'prompt_tokens_details': {'cached_tokens': 0}}
+=== sdk-matrix ===============================================
+$ ./scripts/remote_model.sh http://127.0.0.1:8080
+### endpoint
+http://127.0.0.1:8080
+curl /health      -> 200
+curl /v1/models   -> 200
+the server says: {"models":[{"name":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","model":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","modified_at":"","size":"","digest":"","type":"model","description":"","tags":[""],"capabilities":["completion"],"parameters":"","details":{"parent_model":"","form
+
+### the same endpoint through each official SDK
+
+--- openai
+OK    'Hello, welcome to my little corner of the internet!'
+      tokens in/out 36/12  finish stop
+      base http://127.0.0.1:8080/v1  ->  /chat/completions
+      streamed 4 chunk(s), 15 chars: 'Count to three.'
+
+--- anthropic
+OK    'Hello, welcome to my little corner of the internet!'
+      tokens in/out 12/12  finish stop
+      base http://127.0.0.1:8080  ->  /v1/messages
+      streamed 2 chunk(s), 6 chars: 'Three.'
+
+--- google
+SKIP  the google client speaks :generateContent; this endpoint does not
+
+--- mistral
+OK    'Hello, welcome to my little corner of the internet.'
+      tokens in/out 36/12  finish stop
+      base http://127.0.0.1:8080  ->  /v1/chat/completions
+      streamed 6 chunk(s), 22 chars: "I'm counting to three."
+
+--- groq
+SKIP  groq requests /openai/v1/chat/completions; this endpoint answers 404 there (model not found: Error code: 404 - {'error': {'message': 'File Not Found', 'type)
+
+--- together
+OK    'Hello, welcome to my humble abode of wisdom and knowledge.'
+      tokens in/out 36/13  finish stop
+      base http://127.0.0.1:8080  ->  /v1/chat/completions
+      streamed 6 chunk(s), 22 chars: "I'm counting to three."
+
+--- cohere
+SKIP  no /v2/chat here; the cohere client has nothing to talk to
+
+--- ollama
+SKIP  no /api/tags here; the ollama client has nothing to talk to
+
+### summary
+4 SDK(s) completed a turn, 0 failed
+
+### and through Archx itself (the app, not just the SDK)
+home /tmp/archx-remote-0N6cM0
+
+$ archx-agent models add-sdk --name remote-openai --sdk openai --model local --base-url http://127.0.0.1:8080
+  registered remote-openai (mdl_0001m648jss0000000009d5cfd0b2e1be2e1) provider=openai runtime=sdk
+    sdk      openai (`openai`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/OPENAI_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/OPENAI_API_KEY could not be resolved: secret reference secret://env/OPENAI_API_KEY not found in environment (OPENAI_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/OPENAI_API_KEY not found in environment (OPENAI_API_KEY)
+
+$ archx-agent models add-sdk --name remote-anthropic --sdk anthropic --model local --base-url http://127.0.0.1:8080
+  registered remote-anthropic (mdl_0001m648jtee0000000005a68117d0201977) provider=anthropic runtime=sdk
+    sdk      anthropic (`anthropic`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/ANTHROPIC_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/ANTHROPIC_API_KEY could not be resolved: secret reference secret://env/ANTHROPIC_API_KEY not found in environment (ANTHROPIC_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/ANTHROPIC_API_KEY not found in environment (ANTHROPIC_API_KEY)
+
+$ archx-agent models add-sdk --name remote-google --sdk google --model local --base-url http://127.0.0.1:8080
+  registered remote-google (mdl_0001m648jvhc00000000e397f0cf5c32bdf3) provider=google runtime=sdk
+    sdk      google-genai (`google.genai`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/GEMINI_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/GEMINI_API_KEY could not be resolved: secret reference secret://env/GEMINI_API_KEY not found in environment (GEMINI_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/GEMINI_API_KEY not found in environment (GEMINI_API_KEY)
+
+$ archx-agent models add-sdk --name remote-mistral --sdk mistral --model local --base-url http://127.0.0.1:8080
+  registered remote-mistral (mdl_0001m648jw82000000005dabf888bb298152) provider=mistral runtime=sdk
+    sdk      mistralai (`mistralai.client`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/MISTRAL_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/MISTRAL_API_KEY could not be resolved: secret reference secret://env/MISTRAL_API_KEY not found in environment (MISTRAL_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/MISTRAL_API_KEY not found in environment (MISTRAL_API_KEY)
+
+$ archx-agent models add-sdk --name remote-groq --sdk groq --model local --base-url http://127.0.0.1:8080
+  registered remote-groq (mdl_0001m648jwtq000000001d1b0cb9d0f86a7b) provider=groq runtime=sdk
+    sdk      groq (`groq`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/GROQ_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/GROQ_API_KEY could not be resolved: secret reference secret://env/GROQ_API_KEY not found in environment (GROQ_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/GROQ_API_KEY not found in environment (GROQ_API_KEY)
+
+$ archx-agent models add-sdk --name remote-together --sdk together --model local --base-url http://127.0.0.1:8080
+  registered remote-together (mdl_0001m648jxck000000009d01cb8f82431ad7) provider=together runtime=sdk
+    sdk      together (`together`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/TOGETHER_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/TOGETHER_API_KEY could not be resolved: secret reference secret://env/TOGETHER_API_KEY not found in environment (TOGETHER_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/TOGETHER_API_KEY not found in environment (TOGETHER_API_KEY)
+
+$ archx-agent models add-sdk --name remote-cohere --sdk cohere --model local --base-url http://127.0.0.1:8080
+  registered remote-cohere (mdl_0001m648jy0b00000000be23daaf0b502aca) provider=cohere runtime=sdk
+    sdk      cohere (`cohere`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/COHERE_API_KEY (never stored)
+    sdk      installed
+    runtime  not ready - the secret reference secret://env/COHERE_API_KEY could not be resolved: secret reference secret://env/COHERE_API_KEY not found in environment (COHERE_API_KEY)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    error: secret reference secret://env/COHERE_API_KEY not found in environment (COHERE_API_KEY)
+
+$ archx-agent models add-sdk --name remote-ollama --sdk ollama --model local --base-url http://127.0.0.1:8080
+  registered remote-ollama (mdl_0001m648jyc80000000047238cff8be1d73b) provider=ollama runtime=sdk
+    sdk      ollama (`ollama`)
+    model    local
+    endpoint http://127.0.0.1:8080
+    key      read at use time from secret://env/OLLAMA_API_KEY (never stored)
+    sdk      installed
+    runtime  ready - ready: a local Ollama needs no key (no data leaves this machine)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    chat: failed  (ModelNotFoundError: model not found: {'message': 'File Not Found', 'type': 'not_found_error', 'code': 404} (status code: 404))
+      latency 156.1 ms
+      state now unsupported (probe failed)
+      this drove the runtime; the result is recorded and the router will use it
+=== ollama ===============================================
+$ bash -c 
+  set -u
+  docker run -d --name ollama -p 11434:11434 ollama/ollama:latest || exit 1
+  for i in $(seq 1 90); do
+    curl -fsS http://127.0.0.1:11434/api/tags >/dev/null 2>&1 && break
+    sleep 2
+  done
+  docker exec ollama ollama pull smollm2:135m || exit 1
+  curl -sS http://127.0.0.1:11434/api/tags
+  # the ollama client against a real daemon; smollm2 is the name the daemon knows
+  REMOTE_MODEL=smollm2:135m ./scripts/remote_model.sh http://127.0.0.1:11434 --sdk ollama \
+    | tee -a "$LOGDIR/console.log"
+  # and through Archx itself: a keyless local daemon is the one case where a model
+  # is ready with no credential, so this also proves that rule on a real daemon.
+  export ARCHX_PATHS_HOME="$RUNNER_TEMP/archx-ollama"
+  archx-agent init >/dev/null
+  archx-agent models add-sdk --name ollama-local --sdk ollama \
+    --model smollm2:135m --base-url http://127.0.0.1:11434
+  archx-agent models probe ollama-local --capability chat
+  archx-agent chat --stream --message "Name one colour." --model ollama-local
+
+Unable to find image 'ollama/ollama:latest' locally
+latest: Pulling from ollama/ollama
+7a48b8f0e5c7: Pulling fs layer
+ca35e959b662: Pulling fs layer
+1929caaeecb0: Pulling fs layer
+1b00b80b926b: Pulling fs layer
+1b00b80b926b: Waiting
+1929caaeecb0: Verifying Checksum
+1929caaeecb0: Download complete
+7a48b8f0e5c7: Verifying Checksum
+7a48b8f0e5c7: Download complete
+ca35e959b662: Verifying Checksum
+ca35e959b662: Download complete
+7a48b8f0e5c7: Pull complete
+ca35e959b662: Pull complete
