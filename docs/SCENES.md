@@ -1,8 +1,8 @@
 # Scenes and Blender — M39 foundation
 
-**In progress, not milestone-complete.** This checkpoint adds the geometry engine, persistence,
-service and CLI. There is no scene GUI yet, no M39 acceptance script in CI, and no real Blender
-render has been validated in this environment.
+**In progress, not milestone-complete.** Geometry, persistence, CLI, the Scenes GUI tab and a
+self-checking acceptance script are implemented. The script is wired into CI; the current run's
+result must be checked separately. No real Blender render has been validated in this environment.
 
 ## CLI
 
@@ -81,12 +81,35 @@ produce a recorded refusal and exit 3, not a fabricated preview/render.
 
 A local Blender script is code with your machine's authority. The local target is not a sandbox.
 Remote rendering, task/job lifecycle integration, materials, animation, arbitrary imported geometry,
-GUI integration and actual renderer compatibility validation remain follow-up work.
+actual renderer compatibility validation remain follow-up work.
 
 ## Checkpoint evidence
 
-- `tests/test_scenes_m39.py`: **24 passed** (geometry, topology, export bytes/hashes, drift, duplicate
+- `tests/test_scenes_m39.py`: **26 passed** (geometry, topology, export bytes/hashes, drift, duplicate
   paths, refusal recording, no-PNG zero-exit failure, CLI, binary dry run and root escape refusal).
-- Full suite after implementation: **1892 passed in 520.79 seconds**.
+- Full suite after GUI/API integration: **1894 passed in 506.58 seconds**.
 - Focused M38/tool/scene regression run before four additional scene tests: **151 passed**.
-- No real Blender render and no new CI result claimed for this checkpoint.
+- `bash scripts/acceptance_m39.sh`: **49 checks passed, 0 failed**, using the shipped CLI,
+  reading export bytes independently, corrupting a file and recording a stand-in's argv.
+- GUI smoke: **19 tabs**, including scene list, add, wireframe image and render refusal.
+- No real Blender render and no new CI success claimed for this checkpoint.
+
+## GUI and API
+
+The **Scenes** tab lists scenes, creates a named scene, adds/removes primitive objects, displays
+measured geometry and recorded outputs, exports files, verifies hashes and requests a local render.
+The measurement button explicitly accepts the document as a new baseline. The preview is displayed
+in an image context rather than injecting SVG into the page DOM. Parameters are JSON; transforms
+are available through the CLI/API rather than dedicated GUI controls.
+
+Authenticated routes share `SceneService` and its tool permissions:
+
+- `GET /api/scenes`: scene list and stats.
+- `POST /api/scenes`: create with `name`.
+- `GET /api/scenes/{scene_id}`: document, measurements, object detail and outputs.
+- `POST /api/scenes/{scene_id}/{action}`: `add`, `remove`, `export`, `preview`, `verify`,
+  `measure` or `render`. Add accepts `primitive`, optional `name`, object-valued `params` and
+  `transform`; export accepts `kind`; remove accepts `name`.
+
+A render refusal is an application result, not a transport error. Its recorded reason is displayed
+in the status area. The GUI does not auto-enable execution or bypass capability approval.

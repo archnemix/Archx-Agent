@@ -162,3 +162,36 @@ def test_binary_permission_and_root_boundary(ws, tmp_path):
     with pytest.raises(ArchxError):
         ws.tools.execute("fs.write_bytes", {"path": str(tmp_path / "outside.bin"), "content_base64": payload})
     assert not (tmp_path / "outside.bin").exists()
+
+
+def test_scene_api(ws):
+    from archx_agent.interfaces.gui.server import GuiApi, Request
+    api = GuiApi(ws, token="scene-token")
+
+    def call(method, path, body=None, token="scene-token"):
+        return api.dispatch(Request(method=method, path=path, query={},
+            headers={"x-archx-token": token}, body=body))
+
+    assert call("POST", "/api/scenes", {"name": "demo"}, token="wrong").status == 401
+    created = call("POST", "/api/scenes", {"name": "demo"})
+    assert created.status == 200
+    scene_id = created.payload["data"]["id"]
+    base = f"/api/scenes/{scene_id}"
+    assert call("POST", base + "/add", {"primitive": "cube", "params": []}).status == 400
+    added = call("POST", base + "/add", {"primitive": "cube"})
+    assert added.payload["data"]["measured"]["volume"] == 8
+    assert call("GET", base).payload["data"]["measured"]["triangles"] == 12
+    assert call("POST", base + "/preview", {}).payload["data"]["svg"].startswith("<svg")
+    assert call("POST", base + "/export", {"kind": "stl"}).status == 200
+    assert call("POST", base + "/verify", {}).payload["data"]["ok"]
+    ws.config.set("blender.executable", "")
+    assert call("POST", base + "/render", {}).payload["data"]["status"] == "refused"
+    assert call("POST", base + "/unknown", {}).status == 400
+    assert len(call("GET", "/api/scenes").payload["data"]["scenes"]) == 1
+
+
+def test_cli_validation_exit_is_two(tmp_path, capsys):
+    from archx_agent.interfaces.cli.main import main
+    home = str(tmp_path / "home")
+    assert main(["--home", home, "scene", "add", "missing", "cube", "--params", "["]) == 2
+    assert "error" in capsys.readouterr().err.lower()

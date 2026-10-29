@@ -6,6 +6,11 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 ## [Unreleased]
 
 ### Added
+- **M39 GUI and acceptance checkpoint:** the nineteenth tab exposes scene creation, primitive
+  edits, measurements, wireframe preview, exports, hash verification and recorded render refusals.
+  Authenticated API routes reuse `SceneService`; 49 CLI acceptance checks are wired into CI.
+  Full suite: 1894 passed; scene tests: 26; GUI smoke: 19 tabs. Real Blender compatibility and
+  task/job integration review remain pending.
 - **M39 foundation (in progress):** dependency-free mesh primitives and measurements, schema v29
   scene/object/output ledgers, `scene` CLI, OBJ/binary STL/SVG/Blender-script exports, hash checks
   and local rendering through M38 with recorded refusals. Binary file output uses permissioned

@@ -54,6 +54,10 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></svg>
         <span>Remote</span>
       </button>
+      <button class="tab" data-view="scenes" type="button" title="Scenes">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5v9l-9 5-9-5V8Zm0 10 9-5M12 13 3 8m9 5v9"/></svg>
+        <span>Scenes</span>
+      </button>
       <button class="tab" data-view="exec" type="button" title="Exec">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></svg>
         <span>Exec</span>
@@ -456,6 +460,27 @@
                 <p class="dim small">Pick a job. The bundle hash is recorded before the dispatch, and the artifact is hashed twice on the way back.</p>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="view-scenes" hidden>
+        <header class="page-head"><div><h1>Scenes</h1><p class="dim">Measured meshes. Wireframe previews are not Blender renders.</p></div>
+          <button id="scenes-refresh" type="button" class="icon-btn" aria-label="Refresh scenes">Refresh</button></header>
+        <div class="split">
+          <div class="stack">
+            <form id="scene-create-form" class="card"><label>Scene name<input id="scene-name" required></label><button type="submit">Create scene</button></form>
+            <p id="scenes-status" role="status" class="hint"></p>
+            <ul id="scenes-list" class="list"></ul>
+          </div>
+          <div class="stack">
+            <div id="scene-detail" class="card"><p>Select a scene to inspect its geometry.</p></div>
+            <form id="scene-add-form" class="card" hidden>
+              <label>Primitive<select id="scene-primitive"><option>cube</option><option>plane</option><option>uv_sphere</option><option>cylinder</option><option>cone</option><option>torus</option></select></label>
+              <label>Object name<input id="scene-object-name" placeholder="defaults to primitive name"></label>
+              <label>Parameters (JSON)<input id="scene-params" value="{}"></label>
+              <button type="submit">Add object</button>
+            </form>
           </div>
         </div>
       </section>

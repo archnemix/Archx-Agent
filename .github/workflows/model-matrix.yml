@@ -218,6 +218,11 @@ jobs:
       - name: execution acceptance
         run: run.sh execution-acceptance bash scripts/acceptance_m38.sh
 
+      # Scene geometry is generated here and export bytes are inspected independently. A stand-in
+      # Blender proves argv transport but produces no PNG: zero exit must not become render success.
+      - name: scenes acceptance
+        run: run.sh scenes-acceptance bash scripts/acceptance_m39.sh
+
       - name: sdk catalogue
         run: run.sh sdks archx-agent models sdks
 

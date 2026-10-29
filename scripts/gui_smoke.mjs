@@ -297,6 +297,13 @@ const routes = {
     task_id: null, started_at: "2026-10-29T10:00:00Z", ended_at: "2026-10-29T10:00:00Z",
     sentence: "`echo hello` ran on this machine and exited 0", reasons: [],
   },
+  "GET /api/scenes/sc_demo": { id: "sc_demo", name: "demo", measured: { triangles: 12, volume: 8 },
+    objects_detail: [{ name: "cube", primitive: "cube", triangles: 12, watertight: true }], outputs: [], drifted: false },
+  "GET /api/scenes": { scenes: [{ id: "sc_demo", name: "demo", triangles: 12 }], stats: {} },
+  "POST /api/scenes/sc_demo/add": { id: "sc_demo", name: "demo" },
+  "POST /api/scenes/sc_demo/preview": { svg: '<svg xmlns="http://www.w3.org/2000/svg"></svg>' },
+  "POST /api/scenes/sc_demo/render": { status: "refused", reasons: ["no Blender binary configured"] },
+  "POST /api/scenes": { id: "sc_demo", name: "demo" },
   "GET /api/exec/runs": {
     runs: [
       { id: "xr_demo", kind: "local", command: "echo hello", status: "ok", exit_code: 0,
@@ -450,7 +457,7 @@ function assert(condition, message) {
 }
 
 // the shell
-assert(doc.querySelectorAll(".tab").length === 18, "expected eighteen mode tabs");
+assert(doc.querySelectorAll(".tab").length === 19, "expected nineteen mode tabs");
 assert(doc.getElementById("view-code"), "the coding view is missing");
 assert(doc.getElementById("view-experiments"), "the experiments view is missing");
 assert(doc.getElementById("view-play"), "the play view is missing");
@@ -696,6 +703,23 @@ await tick();
 assert(calls.includes("POST /api/exec/runs"), `the exec form never posted: ${JSON.stringify(calls.slice(-4))}`);
 assert(doc.getElementById("exec-run-status").textContent.includes("exit"), "the exit code is not reported");
 
+// Scene UI: measured geometry, safe image preview, edits and recorded renderer refusal.
+doc.querySelector('[data-view="scenes"]').click();
+await tick(); await tick();
+assert(doc.querySelectorAll("#scenes-list .list-item").length === 1, "scene list did not render");
+doc.querySelector("#scenes-list .list-item").click();
+await tick(); await tick();
+assert(doc.getElementById("scene-detail").textContent.includes("12"), "scene metrics missing");
+doc.getElementById("scene-add-form").dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
+await tick(); await tick(); await tick();
+assert(calls.includes("POST /api/scenes/sc_demo/add"), "scene add did not post");
+Array.from(doc.querySelectorAll("#scene-detail button")).find(button => button.textContent === "preview").click();
+await tick(); await tick(); await tick();
+assert(doc.querySelector("#scene-detail img"), "wireframe image missing");
+Array.from(doc.querySelectorAll("#scene-detail button")).find(button => button.textContent === "render").click();
+await tick(); await tick(); await tick();
+assert(doc.getElementById("scenes-status").textContent.includes("refused"), "render refusal hidden");
+
 // no inline style attributes were produced, and no inline handlers leaked into the markup
 assert(!/style="/.test(doc.body.innerHTML), "inline style attribute produced");
 assert(!/onclick="/.test(doc.body.innerHTML), "inline handler produced");
@@ -707,4 +731,4 @@ if (problems.length) {
   for (const problem of problems) console.error(" - " + problem);
   process.exit(1);
 }
-console.log("smoke ok: 18 tabs, 4 gate rows, code, experiment, play, voice, dataset, training, remote and exec panels render, forms post, no page errors");
+console.log("smoke ok: 19 tabs, 4 gate rows, code, experiment, play, voice, dataset, training, remote and exec panels render, forms post, no page errors");

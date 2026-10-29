@@ -5033,3 +5033,22 @@ and a model that answers in prose while a tool is on the table:
 tools: failed  (MalformedOutputError: the model answered without calling the tool
                 (reply: 'I would rather talk.'); tool use is not proven)
 ```
+
+
+## M39 GUI/acceptance checkpoint (not milestone completion)
+
+Local results after adding the Scenes tab and authenticated API:
+
+```text
+pytest: 1894 passed in 506.58s
+tests/test_scenes_m39.py: 26 passed
+acceptance_m39.sh: 49 checks passed, 0 failed
+gui_smoke.mjs: 19 tabs, including Scenes; forms post; no page errors
+```
+
+The acceptance script invokes the installed CLI, inspects OBJ/STL/SVG/script output bytes and
+hashes independently, corrupts an export to make verification fail, repairs it, checks duplicate
+creation preserves the scene, and runs a stand-in Blender from a path containing spaces. The
+stand-in records its received argv and exits zero without producing a PNG; that must be a failed
+render, not a success. This is invocation evidence, **not evidence of an actual Blender render**.
+The workflow now runs this acceptance as `scenes-acceptance`; CI evidence is pending.

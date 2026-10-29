@@ -466,3 +466,12 @@ scheduled).
   other machines; a process that can read your home can read the database and the token file.
 * **No HTTP/2, no TLS.** Terminate TLS in front of it if you expose it beyond loopback; the
   GUI says so rather than pretending a bare `http://` is safe on a network.
+
+
+## M39 Scenes tab (in progress)
+
+The nineteenth tab uses the same `SceneService` as `scene` in the CLI: create, add/remove primitives,
+measure, export, verify and request a local Blender render. A wireframe preview is explicitly not
+a render; a missing Blender or disabled execution is shown as a recorded refusal. File and process
+capabilities still go through the permission centre. The page embeds preview SVG only as an image,
+not as live page markup. Routes, scope and remaining M39 work: `docs/SCENES.md`.

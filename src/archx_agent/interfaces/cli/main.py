@@ -4101,11 +4101,9 @@ def cmd_scene(args: argparse.Namespace) -> int:
                 return EXIT_DEGRADED if result.get("status") == "refused" else 1
             return EXIT_OK
     except (ValueError, ValidationError) as exc:
-        emit(str(exc), err=True)
-        return EXIT_USAGE
+        return fail(str(exc), EXIT_USAGE)
     except (ToolError, PermissionDeniedError, NotFoundError) as exc:
-        emit(str(exc), err=True)
-        return EXIT_ERROR
+        return fail(str(exc), EXIT_ERROR)
 
 
 def cmd_exec(args: argparse.Namespace) -> int:

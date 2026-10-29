@@ -74,6 +74,11 @@
       sub: "a bundle with digests · an endpoint that computed it · a hash re-checked on arrival",
       tools: ["fs.write", "bundle_sha256", "verified"],
     },
+    scenes: {
+      title: "Scenes",
+      sub: "Build and measure meshes. A wireframe is not a Blender render.",
+      tools: ["Create scene", "Add/remove primitive", "Measure", "Verify hashes", "Export OBJ/STL/SVG/script", "Local Blender render"],
+    },
     exec: {
       title: "Exec",
       sub: "a command, the environment it ran in, and a hash per file that crossed the boundary",
@@ -2428,6 +2433,87 @@
     } catch (error) {
       report(status, error);
     }
+  });
+
+  // -------------------------------------------------------------------- scenes
+  let selectedScene = null;
+  const sceneStatus = () => document.getElementById("scenes-status");
+  async function loadScenes() {
+    const data = await api("GET", "/api/scenes");
+    const list = clear(document.getElementById("scenes-list"));
+    for (const scene of data.scenes) {
+      const button = el("button", { type: "button", class: "list-item", text: scene.name + " · " + scene.triangles + " triangles" });
+      button.addEventListener("click", () => openScene(scene.id).catch(error => report(sceneStatus(), error)));
+      list.append(el("li", {}, [button]));
+    }
+  }
+  async function sceneAction(action, payload = {}) {
+    const result = await api("POST", "/api/scenes/" + encodeURIComponent(selectedScene) + "/" + action, payload);
+    await loadScenes();
+    await openScene(selectedScene);
+    sceneStatus().textContent = JSON.stringify(result, null, 2);
+    return result;
+  }
+  async function openScene(id) {
+    const data = await api("GET", "/api/scenes/" + encodeURIComponent(id));
+    selectedScene = id;
+    const panel = clear(document.getElementById("scene-detail"));
+    panel.append(el("h2", { text: data.name }));
+    panel.append(el("p", { text: "Wireframe only · local rendering requires Blender and execution permissions." }));
+    panel.append(el("pre", { text: JSON.stringify(data.measured, null, 2) }));
+    if (data.drifted) panel.append(el("p", { class: "hint", text: "Document changed since measurement. Verify before accepting a new baseline." }));
+    for (const object of data.objects_detail) {
+      const row = el("div", { class: "card" }, [el("p", { text: object.name + " · " + object.primitive + " · " + object.triangles + " triangles · " + (object.watertight ? "closed edges" : "open edges") })]);
+      const remove = el("button", { type: "button", text: "Remove " + object.name });
+      remove.addEventListener("click", () => sceneAction("remove", { name: object.name }).catch(error => report(sceneStatus(), error)));
+      row.append(remove);
+      panel.append(row);
+    }
+    for (const action of ["preview", "verify", "measure", "render"]) {
+      const button = el("button", { type: "button", text: action === "measure" ? "Accept measurement baseline" : action });
+      button.addEventListener("click", async () => {
+        button.disabled = true;
+        try {
+          const result = await sceneAction(action);
+          if (action === "preview") {
+            // Image context, not inline SVG markup: scene content cannot create page scripts.
+            document.getElementById("scene-detail").append(el("img", {
+              src: "data:image/svg+xml;charset=utf-8," + encodeURIComponent(result.svg),
+              alt: "Perspective wireframe, not a render", width: "480", height: "480"
+            }));
+          }
+        } catch (error) { report(sceneStatus(), error); }
+        finally { button.disabled = false; }
+      });
+      panel.append(button);
+    }
+    for (const kind of ["obj", "stl", "svg", "script"]) {
+      const button = el("button", { type: "button", text: "Export " + kind });
+      button.addEventListener("click", () => sceneAction("export", { kind }).catch(error => report(sceneStatus(), error)));
+      panel.append(button);
+    }
+    panel.append(el("pre", { text: JSON.stringify(data.outputs, null, 2) }));
+    document.getElementById("scene-add-form").hidden = false;
+  }
+  loaders.scenes = loadScenes;
+  document.getElementById("scenes-refresh").addEventListener("click", () => loadScenes().catch(error => report(sceneStatus(), error)));
+  document.getElementById("scene-create-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    try {
+      const data = await api("POST", "/api/scenes", { name: document.getElementById("scene-name").value.trim() });
+      await loadScenes();
+      await openScene(data.id);
+    } catch (error) { report(sceneStatus(), error); }
+  });
+  document.getElementById("scene-add-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    try {
+      await sceneAction("add", {
+        primitive: document.getElementById("scene-primitive").value,
+        name: document.getElementById("scene-object-name").value.trim() || undefined,
+        params: JSON.parse(document.getElementById("scene-params").value)
+      });
+    } catch (error) { report(sceneStatus(), error); }
   });
 
   // -------------------------------------------------------------------- exec
