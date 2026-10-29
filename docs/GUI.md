@@ -475,3 +475,7 @@ measure, export, verify and request a local Blender render. A wireframe preview 
 a render; a missing Blender or disabled execution is shown as a recorded refusal. File and process
 capabilities still go through the permission centre. The page embeds preview SVG only as an image,
 not as live page markup. Routes, scope and remaining M39 work: `docs/SCENES.md`.
+
+Scene creation also accepts an optional existing task ID. Linked scenes and exports appear in
+the task's artifacts, while render attempts appear on its timeline. This does not complete or
+fail the parent task, nor create a background scheduler job.

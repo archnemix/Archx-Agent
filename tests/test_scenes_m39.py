@@ -265,3 +265,83 @@ def test_corrupt_document_api_returns_validation_error(ws):
     response = api.dispatch(Request(method="GET", path="/api/scenes/" + scene["id"],
         query={}, headers={"x-archx-token": "token"}))
     assert response.status == 400
+
+
+def test_scene_outputs_attach_to_task_without_completing_it(ws):
+    task = ws.tasks.create("tool", "Model a component", start=True, manual=True)
+    svc = ws.scene_workflow
+    scene = svc.create("linked", task_id=task.id)
+    assert scene["artifact_id"]
+    svc.add("linked", "cube")
+    output = svc.export("linked", "stl")
+    assert output["task_id"] == task.id and output["artifact_id"]
+    artifacts = ws.tasks.artifacts(task.id)
+    assert {item.kind for item in artifacts} == {"scene", "scene.stl"}
+    stl = next(item for item in artifacts if item.kind == "scene.stl")
+    assert stl.checksum == output["sha256"]
+    assert ws.tasks.get(task.id).status == "running"
+
+
+def test_unknown_task_refused_before_scene_write(ws):
+    from archx_agent.helpers.exceptions import NotFoundError
+    with pytest.raises(NotFoundError):
+        ws.scene_workflow.create("bad-task", task_id="missing")
+    assert not ws.tools.runtime.resolve("scenes/bad-task.json").exists()
+    assert not ws.scenes.scenes()
+
+
+def test_render_refusal_logs_task_but_does_not_fail_it(ws):
+    task = ws.tasks.create("tool", "Scene work", start=True, manual=True)
+    ws.scene_workflow.create("linked", task_id=task.id)
+    ws.scene_workflow.add("linked", "cube")
+    result = ws.scene_workflow.render("linked")
+    assert result["task_id"] == task.id
+    assert result["status"] == "refused"
+    assert any(row["kind"] == "scene.render" for row in ws.tasks.timeline(task.id))
+    assert ws.tasks.get(task.id).status == "running"
+
+
+def test_attachment_failure_preserves_output_and_reports_error(ws, monkeypatch):
+    from archx_agent.helpers.exceptions import ToolError
+    task = ws.tasks.create("tool", "Scene work")
+    svc = ws.scene_workflow
+    svc.create("linked", task_id=task.id)
+    svc.add("linked", "cube")
+
+    def broken(*args, **kwargs):
+        raise ToolError("artifact store unavailable")
+
+    monkeypatch.setattr(ws.tasks, "attach_artifact", broken)
+    output = svc.export("linked", "obj")
+    assert output["status"] == "written"
+    assert "artifact store unavailable" in output["artifact_error"]
+    assert svc.outputs("linked")[0]["id"] == output["id"]
+    assert ws.tools.runtime.resolve(output["path"]).is_file()
+
+
+def test_stand_in_render_links_execution_and_artifact(ws, tmp_path):
+    # A controlled writer tests task bookkeeping, NOT Blender compatibility.
+    import sys
+    binary = tmp_path / "stand-in-renderer"
+    binary.write_text("#!" + sys.executable + '''
+import ast, pathlib, sys
+module = ast.parse(pathlib.Path(sys.argv[-1]).read_text())
+for node in module.body:
+    if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "RENDER_PATH" for t in node.targets):
+        pathlib.Path(ast.literal_eval(node.value)).write_bytes(bytes.fromhex("89504e470d0a1a0a") + b"stand-in")
+''')
+    binary.chmod(0o755)
+    ws.permissions.grant("shell.run", subject="*", duration="persistent", confirm=True)
+    ws.config.set("execution.enabled", True)
+    ws.config.set("blender.executable", str(binary))
+    task = ws.tasks.create("tool", "Scene work", start=True, manual=True)
+    svc = ws.scene_workflow
+    svc.create("linked", task_id=task.id)
+    svc.add("linked", "cube")
+    result = svc.render("linked")
+    assert result["status"] == "written"
+    assert result["task_id"] == task.id
+    assert result["run"]["task_id"] == task.id
+    assert result["artifact_id"]
+    assert any(item.kind == "scene.render" and item.checksum == result["sha256"] for item in ws.tasks.artifacts(task.id))
+    assert ws.tasks.get(task.id).status == "running"

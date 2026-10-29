@@ -1,9 +1,9 @@
 {
-  "text": "A tunnel is a narrow, usually dark, passageway through the earth that can be used for transportation, such as beneath the surface of the earth.",
+  "text": "A tunnel is a narrow, often invisible, passageway that allows light to pass through a solid object, such as a tunnel, tunnel system, or tunnel tube.",
   "usage": {
-    "completion_tokens": 31,
+    "completion_tokens": 34,
     "prompt_tokens": 40,
-    "total_tokens": 71,
+    "total_tokens": 74,
     "prompt_tokens_details": {
       "cached_tokens": 0
     }

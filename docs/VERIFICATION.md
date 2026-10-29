@@ -4860,6 +4860,10 @@ run #16 20261028T181313Z-e098a06   all 17 steps ok; 1720 tests in 320 s, 91 stre
                                   88/88, 72/72). The dataset acceptance writes its corpus on the
                                   runner, so every hash it checks is arithmetic on content the run
                                   chose - and the manifest is then broken by an edit and a delete
+run #23 20261029T133321Z-17a4253   all 21 steps ok; 1921 tests in 406 s, 91 stress/edge, 11
+                                  integration, and all nine acceptances (scene checks 49/49).
+                                  Scene validation runs before allocation/writes. GitHub run
+                                  40882983460; this predates task artifact linkage.
 run #22 20261029T125336Z-a63016d   all 21 steps ok; 1894 tests in 529 s, 91 stress/edge, 11
                                   integration, nine acceptances (48/48, 53/53, 69/69, 88/88,
                                   72/72, 57/57, 71/71, 65/65, 49/49). M39 scene GUI/API and
@@ -5066,3 +5070,21 @@ Local full suite: **1921 passed in 506.96 seconds**. Scene tests: **53 passed**;
 remains **49 checks passed, 0 failed**. Added cases cover corrupt document shape, numeric types,
 camera degeneracy, invalid primitive additions with unchanged file/rows, and geometry budgets
 validated without generating meshes. This code follows green CI #22; its own CI result is pending.
+
+
+### M39 task linkage checkpoint
+
+Validation CI #23 (`17a4253`) is green: **1921 tests, 21 steps**, including 49 scene acceptance
+checks; evidence refreshed in `docs/ci/`. Task linkage was added after that run:
+
+```text
+full suite: 1926 passed in 463.12s
+scene tests: 58 passed
+M39 acceptance: 59 checks passed, 0 failed
+GUI smoke: 19 tabs, forms post, no page errors
+```
+
+New tests check document/export artifact hashes, missing-task refusal before file creation,
+render-refusal timeline entries without changing parent task state, attachment failure preserving
+the output ledger, and a stand-in writer's output attached to the same task as the execution run.
+The stand-in is not evidence of a real Blender render. Task-linkage CI result is pending.

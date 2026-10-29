@@ -2500,7 +2500,7 @@
   document.getElementById("scene-create-form").addEventListener("submit", async event => {
     event.preventDefault();
     try {
-      const data = await api("POST", "/api/scenes", { name: document.getElementById("scene-name").value.trim() });
+      const data = await api("POST", "/api/scenes", { name: document.getElementById("scene-name").value.trim(), task_id: document.getElementById("scene-task").value.trim() || undefined });
       await loadScenes();
       await openScene(data.id);
     } catch (error) { report(sceneStatus(), error); }

@@ -36,6 +36,7 @@ from typing import Any
 from archx_agent.application import geometry
 from archx_agent.application.scene_validation import validate_document
 from archx_agent.helpers.exceptions import (
+    ArchxError,
     ApprovalRequiredError,
     NotFoundError,
     PermissionDeniedError,
@@ -103,6 +104,32 @@ class SceneService:
         if run.status == "failed":
             raise ToolError(run.error or f"{name} failed")
         return run
+
+    def _attach(self, task_id: str | None, path: str, kind: str) -> dict[str, Any]:
+        """Task artifacts are bookkeeping, not authority to read another path.
+
+        The file must still be in a tool root. Failure to attach is reported without losing the
+        already-written output ledger row. Never finish an existing task on behalf of its owner.
+        """
+        if not task_id:
+            return {}
+        try:
+            resolved = self.ws.tools.runtime.resolve(path)
+            artifact = self.ws.tasks.attach_artifact(
+                task_id, str(resolved), kind=kind, name=resolved.name,
+            )
+            return {"task_id": task_id, "artifact_id": artifact.id}
+        except (ArchxError, OSError) as exc:
+            return {"task_id": task_id, "artifact_error": str(exc)}
+
+    def _render_event(self, task_id: str | None, data: dict[str, Any]) -> dict[str, Any]:
+        if task_id:
+            data["task_id"] = task_id
+            try:
+                self.ws.tasks.log(task_id, "scene.render", detail=str(data.get("note") or data["status"]))
+            except (ArchxError, OSError) as exc:
+                data["task_log_error"] = str(exc)
+        return data
 
     def _dir(self) -> str:
         return "scenes"
@@ -182,6 +209,8 @@ class SceneService:
     def create(
         self, name: str, *, camera: dict[str, Any] | None = None, task_id: str | None = None
     ) -> dict[str, Any]:
+        if task_id:
+            self.ws.tasks.get(task_id)
         name = (name or "").strip()
         if not name:
             raise ValidationError("a scene needs a name")
@@ -198,7 +227,9 @@ class SceneService:
             name=name, path=path, checksum=checksum, camera=document["camera"],
             metrics=self._totals([]), task_id=task_id,
         )
-        return self.view(scene.id)
+        result = self.view(scene.id)
+        result.update(self._attach(task_id, path, "scene"))
+        return result
 
     def list(self) -> list[dict[str, Any]]:
         return [scene.to_dict() for scene in self.manager.scenes()]
@@ -376,6 +407,7 @@ class SceneService:
         data = output.to_dict()
         data["note"] = data["note"] or note
         data["scene"] = scene.name
+        data.update(self._attach(scene.task_id, written["path"], "scene." + kind))
         return data
 
     def outputs(self, wanted: str) -> list[dict[str, Any]]:
@@ -494,6 +526,9 @@ class SceneService:
     ) -> dict[str, Any]:
         """Generate the script, then run Blender through M38's execution service - or refuse."""
         scene = self.scene(wanted)
+        task_id = task_id or scene.task_id
+        if task_id:
+            self.ws.tasks.get(task_id)
         document, _checksum = self._read_document(scene)
         reasons = self.render_blockers(scene, document)
         if target not in (None, "local"):
@@ -504,7 +539,7 @@ class SceneService:
             )
             data = output.to_dict()
             data["reasons"] = reasons
-            return data
+            return self._render_event(task_id, data)
 
         # The script and the OBJ are written first: a render whose input does not exist is a command
         # that fails for a reason nobody can see.
@@ -548,7 +583,9 @@ class SceneService:
         data["argv"] = argv
         data["script"] = script["path"]
         data["obj"] = obj["path"]
-        return data
+        if status == "written":
+            data.update(self._attach(task_id, render_path, "scene.render"))
+        return self._render_event(task_id, data)
 
     def renders(self, wanted: str | None = None) -> list[dict[str, Any]]:
         if wanted:

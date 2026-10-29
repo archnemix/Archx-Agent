@@ -1068,6 +1068,7 @@ def build_parser() -> argparse.ArgumentParser:
     scene_sub.add_parser("stats")
     sc_create = scene_sub.add_parser("create")
     sc_create.add_argument("name")
+    sc_create.add_argument("--task", default=None, help="attach scene and exports to an existing task")
     for action in ("show", "measure", "verify", "preview", "outputs", "render"):
         leaf = scene_sub.add_parser(action)
         leaf.add_argument("scene")
@@ -4072,7 +4073,7 @@ def cmd_scene(args: argparse.Namespace) -> int:
             svc = ws.scene_workflow
             action = args.scene_command
             if action == "create":
-                result = svc.create(args.name)
+                result = svc.create(args.name, task_id=args.task)
             elif action == "list":
                 result = svc.list()
             elif action == "stats":

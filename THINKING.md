@@ -1259,3 +1259,10 @@ reads and candidate writes. Aggregate geometry budgets must be checked before al
 building the meshes to count them. Refusing an invalid addition before file writes keeps the last
 valid document and its ledger intact. Tests exercise corrupt documents and verify that rejected
 mutations change neither files nor object rows.
+
+
+**D193. An output does not own its parent task's lifecycle.** A scene can belong to a broader task.
+Attach documents and exports through the existing versioned artifact service, pass the task into
+execution, and log refusal as an attempt. Do not mark the whole task complete or failed for one
+render. Report artifact bookkeeping failures separately from output production so an attachment
+problem cannot erase a successful output ledger row. Synchronous execution is not a resumable job.

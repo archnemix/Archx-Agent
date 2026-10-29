@@ -6,6 +6,11 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 ## [Unreleased]
 
 ### Added
+- **M39 task artifact linkage:** scene creation accepts an existing task through CLI/API/GUI;
+  documents and exports attach as versioned task artifacts, render attempts log to the task timeline,
+  and execution runs inherit the task. Parent task status is never changed by a render attempt.
+  Attachment errors are reported without losing output records. Full suite: 1926 passed; scene
+  tests: 58; acceptance: 59/59; GUI smoke: 19 tabs. Validation CI #23 is green independently.
 - **M39 GUI and acceptance checkpoint:** the nineteenth tab exposes scene creation, primitive
   edits, measurements, wireframe preview, exports, hash verification and recorded render refusals.
   Authenticated API routes reuse `SceneService`; 49 CLI acceptance checks are wired into CI.

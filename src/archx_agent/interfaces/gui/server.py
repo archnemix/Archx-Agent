@@ -1801,7 +1801,8 @@ class GuiApi:
 
     @route("POST", "/api/scenes", "Create an empty scene through the tool layer.")
     def post_scene(self, request: Request, match: re.Match[str]) -> dict[str, Any]:
-        return self.ws.scene_workflow.create(request.text("name", required=True) or "")
+        return self.ws.scene_workflow.create(request.text("name", required=True) or "",
+                                             task_id=request.text("task_id", required=False))
 
     @route("GET", "/api/scenes/{scene_id}", "Measured geometry and outputs for one scene.")
     def get_scene(self, request: Request, match: re.Match[str]) -> dict[str, Any]:

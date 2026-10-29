@@ -1,7 +1,7 @@
 # Scenes and Blender — M39 foundation
 
 **In progress, not milestone-complete.** Geometry, persistence, CLI, the Scenes GUI tab and a
-self-checking acceptance script are implemented. The GUI/API checkpoint is green in CI run #22 (21 steps). Document validation
+self-checking acceptance script are implemented. Document validation is green in CI run #23 (21 steps). Task artifact linkage
 was added afterward and its new CI result must be checked separately. No real Blender render has been validated in this environment.
 
 ## CLI
@@ -80,20 +80,20 @@ Successful output records its byte count and SHA-256. Missing configuration and 
 produce a recorded refusal and exit 3, not a fabricated preview/render.
 
 A local Blender script is code with your machine's authority. The local target is not a sandbox.
-Remote rendering, task/job lifecycle integration, materials, animation, arbitrary imported geometry,
+Remote rendering, asynchronous render jobs, materials, animation, arbitrary imported geometry,
 actual renderer compatibility validation remain follow-up work.
 
 ## Checkpoint evidence
 
-- `tests/test_scenes_m39.py`: **53 passed** (geometry, topology, export bytes/hashes, drift, duplicate
+- `tests/test_scenes_m39.py`: **58 passed** (geometry, topology, export bytes/hashes, drift, duplicate
   paths, refusal recording, no-PNG zero-exit failure, CLI, binary dry run and root escape refusal).
-- Full suite after GUI/API integration: **1921 passed in 506.96 seconds**.
+- Full suite after task linkage: **1926 passed in 463.12 seconds**.
 - Focused M38/tool/scene regression run before four additional scene tests: **151 passed**.
-- `bash scripts/acceptance_m39.sh`: **49 checks passed, 0 failed**, using the shipped CLI,
+- `bash scripts/acceptance_m39.sh`: **59 checks passed, 0 failed**, using the shipped CLI,
   reading export bytes independently, corrupting a file and recording a stand-in's argv.
 - GUI smoke: **19 tabs**, including scene list, add, wireframe image and render refusal.
-- CI run #22 on `a63016d`: **21 steps green**, **1894 tests**, **49 scene checks**.
-  This predates the additional validation tests. No real Blender render is claimed.
+- CI run #23 on `17a4253`: **21 steps green**, **1921 tests**, **49 scene checks**.
+  This predates task linkage. No real Blender render is claimed.
 
 ## GUI and API
 
@@ -130,3 +130,25 @@ and 400,000 triangles, checked without allocating those meshes. Bad candidate ad
 rejected before file writes or object-row insertion. These limits bound the built-in workflow;
 they do not make a Blender subprocess a security sandbox. Zero scale remains allowed as a
 degenerate mesh; the topology flag alone does not imply useful solid geometry.
+
+
+## Task artifacts and execution scope
+
+`scene create NAME --task TASK_ID` links a scene to an existing task. The API accepts `task_id`
+on scene creation; the GUI offers an optional existing-task field. Unknown task IDs are rejected
+before scene file creation. The document is attached as a `scene` artifact; subsequent exports
+attach as `scene.obj`, `scene.stl`, `scene.svg` or `scene.script`, with hashes and content versions
+provided by the existing task/artifact service. Outputs return `artifact_id`; attachment errors
+return `artifact_error` while retaining the file and scene output ledger row.
+
+Renders inherit the scene task unless the service caller explicitly supplies another task ID.
+Execution runs receive that task ID; render attempts append `scene.render` timeline events, and
+successful output is attached as a render artifact. Finishing or refusing a render never changes
+the parent task's status: the task may contain other work, so the caller owns its lifecycle.
+Render input exports use the scene's task association. Files remain at their original paths;
+artifacts are references with versions, not an immutable render-input bundle.
+
+Job integration review: rendering is currently synchronous, locally executed, with a 600-second
+execution timeout. It does not register a background scheduler job and does not promise restart
+recovery or queued rendering. Those features are explicitly deferred rather than exposing a job
+row that cannot resume. Actual Blender compatibility validation remains the main M39 open item.
