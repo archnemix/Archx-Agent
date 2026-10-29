@@ -5,6 +5,13 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 
 ## [Unreleased]
 
+### Added
+- **M39 foundation (in progress):** dependency-free mesh primitives and measurements, schema v29
+  scene/object/output ledgers, `scene` CLI, OBJ/binary STL/SVG/Blender-script exports, hash checks
+  and local rendering through M38 with recorded refusals. Binary file output uses permissioned
+  `fs.write_bytes`. 24 scene tests; full suite 1892 passed. GUI, acceptance/CI and real Blender
+  validation remain pending; see `docs/SCENES.md`.
+
 ### Fixed
 - **The M38 tests no longer assume docker is absent.** Two unit tests and four acceptance checks
   asserted that this machine has no docker CLI, which is true here and false on a CI runner - the

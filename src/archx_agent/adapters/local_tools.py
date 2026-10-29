@@ -218,6 +218,59 @@ class LocalToolRuntime:
         }
 
     # -- write ------------------------------------------------------------
+    def write_bytes(
+        self,
+        path: str,
+        payload: bytes,
+        *,
+        create_parents: bool = True,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        """Write bytes exactly as given.
+
+        ``write_text`` encodes its argument as UTF-8, which is right for a document and wrong for a
+        container: a binary STL is 80 header bytes, a count and 50 bytes per triangle, and turning it
+        into text produces a different file with the same name. Same resolution rules, same size
+        limit, same dry-run - only the encoding step is gone.
+        """
+        target = self.resolve(path)
+        if target.exists() and target.is_dir():
+            raise ToolError(f"{self.relative(target)} is a directory")
+        if len(payload) > self.max_file_bytes:
+            raise ToolError(
+                f"refusing to write {len(payload)} bytes; tools.max_file_bytes is "
+                f"{self.max_file_bytes}"
+            )
+        existed = target.exists()
+        previous_bytes = 0
+        previous_sha = None
+        if existed:
+            previous = target.read_bytes()
+            previous_bytes = len(previous)
+            previous_sha = sha256_bytes(previous)
+        parent = target.parent
+        if not parent.is_dir():
+            if not create_parents:
+                raise ToolError(f"parent directory does not exist: {self.relative(parent)}")
+            if not dry_run:
+                parent.mkdir(parents=True, exist_ok=True)
+        digest = sha256_bytes(payload)
+        if not dry_run:
+            target.write_bytes(payload)
+            final_size = target.stat().st_size
+        else:
+            final_size = len(payload)
+        return {
+            "path": self.relative(target),
+            "bytes_written": len(payload),
+            "bytes_after": final_size,
+            "sha256": digest,
+            "existed": existed,
+            "previous_bytes": previous_bytes,
+            "previous_sha256": previous_sha,
+            "dry_run": dry_run,
+        }
+
     def write_text(
         self,
         path: str,

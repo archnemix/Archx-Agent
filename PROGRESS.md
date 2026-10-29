@@ -171,10 +171,12 @@ onward), with the reason each one is open and what would close it.
 
 ## Next steps (in order)
 
-1. M39: Blender and 3D workflows - the brief's next milestone, and the first one that needs software
-   this machine does not have. It will be scoped like M34/M36/M37: scene scripting through the tool
-   layer where a binary exists, and a named refusal (with the chain of missing links) where it does
-   not. M38's wrapper is what a renderer will run through.
+1. M39 in progress: geometry, schema v29 scene ledger, scene service and CLI implemented.
+   Six primitives, measured meshes, OBJ/STL/SVG/script exports, hash verification, and local Blender
+   command/refusal paths. `tests/test_scenes_m39.py`: 24 passed; full suite: 1892 passed in 520.79 s.
+   This is a foundation checkpoint, **not M39 completion**. Next: GUI, acceptance script/CI coverage,
+   task/job integration review, stronger document validation and real Blender compatibility checks.
+   No real Blender render has been validated here. Scope and limitations: `docs/SCENES.md`.
 2. M40-M41 per PLAN.md (automations, then hardening).
 
 ## Known breakage

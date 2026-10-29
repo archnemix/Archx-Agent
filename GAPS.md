@@ -22,7 +22,7 @@ This file records what is **not** true yet. If a feature is not listed as verifi
 
 ## Not built yet
 
-Milestones M39-M41 are not implemented: Blender/3D, automations and release hardening. M17-M38 are
+M39 Blender/3D is in progress: geometry, scene persistence and CLI are implemented; GUI, acceptance/CI and real renderer validation remain pending (`docs/SCENES.md`). M40-M41 automations and release hardening are not implemented. M17-M38 are
 implemented and verified (see [PROGRESS.md](PROGRESS.md)); M33 (Play Mode), M34 (Voice and media),
 M35 (Dataset preparation), M36 (Training), M37 (Remote compute) and M38 (Execution environments) are
 deliberately small - three board games and one simulation; four container formats, three tables and

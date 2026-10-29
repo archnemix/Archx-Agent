@@ -26,6 +26,7 @@ Execution order is fixed and observable:
 
 from __future__ import annotations
 
+import base64
 import json
 from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping
@@ -129,6 +130,21 @@ BUILTIN_SPECS: tuple[ToolSpec, ...] = (
         },
         required=("path", "content"),
         types={"path": "str", "content": "str", "create_parents": "bool", "append": "bool"},
+        supports_dry_run=True,
+        side_effects="writes a file",
+    ),
+    ToolSpec(
+        name="fs.write_bytes",
+        summary="write bytes exactly as given (a container, not a document) inside the tool roots",
+        capability="fs.write",
+        risk="medium",
+        inputs={
+            "path": "file path inside a tool root",
+            "content_base64": "the bytes, base64-encoded (JSON has no byte string)",
+            "create_parents": "create missing parent directories",
+        },
+        required=("path", "content_base64"),
+        types={"path": "str", "content_base64": "str", "create_parents": "bool"},
         supports_dry_run=True,
         side_effects="writes a file",
     ),
@@ -734,7 +750,7 @@ class ToolManager(BaseManager):
     def _record_file_change(
         self, spec: ToolSpec, args: dict[str, Any], run: ToolRun, context: ToolContext
     ) -> None:
-        if spec.name not in {"fs.write", "fs.delete"}:
+        if spec.name not in {"fs.write", "fs.write_bytes", "fs.delete"}:
             return
         if run.status != "succeeded" or run.dry_run or not run.result:
             return
@@ -778,6 +794,16 @@ class ToolManager(BaseManager):
                 args["content"],
                 create_parents=bool(args.get("create_parents", True)),
                 append=bool(args.get("append", False)),
+                dry_run=dry_run,
+            )
+        if spec.name == "fs.write_bytes":
+            try:
+                payload = base64.b64decode(args["content_base64"], validate=True)
+            except (ValueError, TypeError) as exc:
+                raise ToolValidationError(f"content_base64 is not valid base64: {exc}") from exc
+            return runtime.write_bytes(
+                args["path"], payload,
+                create_parents=bool(args.get("create_parents", True)),
                 dry_run=dry_run,
             )
         if spec.name == "fs.delete":

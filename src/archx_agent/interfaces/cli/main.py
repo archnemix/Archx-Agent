@@ -1061,6 +1061,30 @@ def build_parser() -> argparse.ArgumentParser:
     rm_worker.add_argument("--workdir", default=None,
                            help="directory commands and pushed files live in (default: a temp dir)")
 
+    # -- scenes ----------------------------------------------------------
+    scene = sub.add_parser("scene", help="Build and measure 3D scenes, export meshes and render with Blender")
+    scene_sub = scene.add_subparsers(dest="scene_command", required=True)
+    scene_sub.add_parser("list")
+    scene_sub.add_parser("stats")
+    sc_create = scene_sub.add_parser("create")
+    sc_create.add_argument("name")
+    for action in ("show", "measure", "verify", "preview", "outputs", "render"):
+        leaf = scene_sub.add_parser(action)
+        leaf.add_argument("scene")
+    sc_add = scene_sub.add_parser("add")
+    sc_add.add_argument("scene")
+    sc_add.add_argument("primitive", choices=["cube", "plane", "uv_sphere", "cylinder", "cone", "torus"])
+    sc_add.add_argument("--name")
+    sc_add.add_argument("--params", default="{}", help="primitive parameters as a JSON object")
+    for field in ("location", "rotation", "scale"):
+        sc_add.add_argument("--" + field, nargs=3, type=float)
+    sc_remove = scene_sub.add_parser("remove")
+    sc_remove.add_argument("scene")
+    sc_remove.add_argument("name")
+    sc_export = scene_sub.add_parser("export")
+    sc_export.add_argument("scene")
+    sc_export.add_argument("kind", choices=["obj", "stl", "svg", "script"])
+
     # -- execution -------------------------------------------------------
     exe = sub.add_parser(
         "exec", help="Execution targets: run a command in a container, a VM, another machine"
@@ -4041,6 +4065,49 @@ def cmd_remote(args: argparse.Namespace) -> int:
     return fail(f"unknown remote command: {command}", EXIT_USAGE)
 
 
+def cmd_scene(args: argparse.Namespace) -> int:
+    """Geometry without Blender; rendering only with an explicitly configured binary."""
+    try:
+        with _workspace(args) as ws:
+            svc = ws.scene_workflow
+            action = args.scene_command
+            if action == "create":
+                result = svc.create(args.name)
+            elif action == "list":
+                result = svc.list()
+            elif action == "stats":
+                result = svc.stats()
+            elif action == "add":
+                params = json.loads(args.params)
+                if not isinstance(params, dict):
+                    raise ValidationError("--params must be a JSON object")
+                transform = {key: getattr(args, key) for key in ("location", "rotation", "scale")
+                             if getattr(args, key) is not None}
+                result = svc.add(args.scene, args.primitive, name=args.name, params=params, transform=transform)
+            elif action == "remove":
+                result = svc.remove(args.scene, args.name)
+            elif action == "export":
+                result = svc.export(args.scene, args.kind)
+            else:
+                method = svc.view if action == "show" else getattr(svc, action)
+                result = method(args.scene)
+            if action == "preview" and not args.json:
+                emit(result["svg"])
+            else:
+                emit_json(result)
+            if action == "verify" and not result["ok"]:
+                return EXIT_DEGRADED
+            if action == "render" and result.get("status") != "written":
+                return EXIT_DEGRADED if result.get("status") == "refused" else 1
+            return EXIT_OK
+    except (ValueError, ValidationError) as exc:
+        emit(str(exc), err=True)
+        return EXIT_USAGE
+    except (ToolError, PermissionDeniedError, NotFoundError) as exc:
+        emit(str(exc), err=True)
+        return EXIT_ERROR
+
+
 def cmd_exec(args: argparse.Namespace) -> int:
     """`exec ...` - run a command in a chosen environment, and keep what it changed.
 
@@ -6658,6 +6725,7 @@ HANDLERS = {
     "train": cmd_training,
     "remote": cmd_remote,
     "exec": cmd_exec,
+    "scene": cmd_scene,
     "gui": cmd_gui,
     "tasks": cmd_tasks,
     "versions": cmd_versions,
