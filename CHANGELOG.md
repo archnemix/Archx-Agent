@@ -6,6 +6,11 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
 ## [Unreleased]
 
 ### Fixed
+- **The M38 tests no longer assume docker is absent.** Two unit tests and four acceptance checks
+  asserted that this machine has no docker CLI, which is true here and false on a CI runner - the
+  first CI run failed on exactly that. Absence is now manufactured (`_which` is monkeypatched in the
+  tests; the script uses an empty directory as `PATH`), and the stand-in-binary tests build their own
+  first-on-`PATH` directory instead of writing into whatever `PATH` began with.
 - **One save is one approval request.** `code write` reads the previous content to build a diff;
   when `fs.read` was not granted that read created a *second* pending approval for a file the
   user had only asked to write. It now asks the permission centre without opening a request and,

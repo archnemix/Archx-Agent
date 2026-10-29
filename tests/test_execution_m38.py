@@ -167,10 +167,16 @@ class TestTheProbe:
                 assert probe["why_not"], kind
                 assert probe["enable"], kind
 
-    def test_a_backend_that_is_not_here_says_why(self, ws):
+    def test_a_backend_that_is_not_here_says_why(self, ws, monkeypatch):
+        # A CI runner *does* have docker, so "docker is absent" is a fact about this machine, not
+        # about the code. Hide one binary and the refusal is testable anywhere.
+        from archx_agent.application import execution as execution_module
+
+        monkeypatch.setattr(execution_module, "_which", lambda name: None)
         docker = ws.exec_env.probe("docker")
         assert docker["available"] is False
         assert any("docker" in reason for reason in docker["why_not"])
+        assert docker["enable"]
 
     def test_wsl_and_windows_sandbox_are_named_as_windows_only(self, ws):
         if sys.platform == "win32":  # pragma: no cover - this sandbox is Linux
@@ -285,18 +291,31 @@ class TestTheInvocation:
 # --------------------------------------------------------------------------
 # 4. a backend this repository can actually drive (with a stand-in binary)
 # --------------------------------------------------------------------------
+@pytest.fixture()
+def stand_in(monkeypatch, tmp_path, ws) -> Path:
+    """A directory that is the first thing on PATH, so a stand-in binary is what gets found.
+
+    Not `PATH.split(os.pathsep)[0]`: that is whatever the machine running the tests put there, and
+    writing a file named `docker` into it would be a property of the runner, not of the code. Asked
+    for by name, the directory is ours.
+    """
+    directory = tmp_path / "stand-in-bin"
+    directory.mkdir()
+    monkeypatch.setenv("PATH", f"{directory}{os.pathsep}{os.environ.get('PATH', '')}")
+    return directory
+
+
 class TestFakeBinariesOnPath:
-    def test_docker_is_discovered_when_it_appears(self, ws, lab, execution, tmp_path):
-        empty = Path(os.environ["PATH"].split(os.pathsep)[0])
-        log = tmp_path / "docker.argv"
-        fake_binary(empty, "docker", log)
+    def test_docker_is_discovered_when_it_appears(self, stand_in, execution, tmp_path):
+        fake_binary(stand_in, "docker", tmp_path / "docker.argv")
         probe = execution.probe("docker")
         assert probe["available"] is True
 
-    def test_the_wrapper_the_run_builds_is_the_one_that_executes(self, ws, lab, execution, tmp_path):
-        empty = Path(os.environ["PATH"].split(os.pathsep)[0])
+    def test_the_wrapper_the_run_builds_is_the_one_that_executes(
+        self, stand_in, lab, execution, tmp_path
+    ):
         log = tmp_path / "docker.argv"
-        fake_binary(empty, "docker", log)
+        fake_binary(stand_in, "docker", log)
         target = execution.ensure("docker", name="docker-box", spec={"image": "debian:12"})
         run = execution.run("echo inside", target="docker-box", cwd=str(lab / "proj"))
         assert run["status"] == "ok", run
@@ -307,17 +326,17 @@ class TestFakeBinariesOnPath:
         assert "debian:12" in recorded
         assert recorded[-1] == "echo inside"
 
-    def test_the_stand_in_output_is_the_runs_output(self, ws, lab, execution, tmp_path):
-        empty = Path(os.environ["PATH"].split(os.pathsep)[0])
-        fake_binary(empty, "docker", tmp_path / "docker.argv")
+    def test_the_stand_in_output_is_the_runs_output(self, stand_in, lab, execution, tmp_path):
+        fake_binary(stand_in, "docker", tmp_path / "docker.argv")
         execution.ensure("docker", name="docker-box", spec={"image": "alpine"})
         run = execution.run("true", target="docker-box", cwd=str(lab / "proj"))
         assert "fake-sandbox says hello" in run["stdout"]
         assert run["stdout_path"], "the output must be kept as an artifact"
 
-    def test_a_non_zero_exit_from_the_wrapper_is_a_failed_run(self, ws, lab, execution, tmp_path):
-        empty = Path(os.environ["PATH"].split(os.pathsep)[0])
-        path = empty / "docker"
+    def test_a_non_zero_exit_from_the_wrapper_is_a_failed_run(
+        self, stand_in, lab, execution, tmp_path
+    ):
+        path = stand_in / "docker"
         path.write_text("#!/bin/sh\necho nope >&2\nexit 125\n", encoding="utf-8")
         path.chmod(0o755)
         execution.ensure("docker", name="docker-broken", spec={"image": "alpine"})
@@ -350,7 +369,12 @@ class TestTheBoundary:
         assert any("execution is off" in reason for reason in run["reasons"])
         assert ws.execution.runs()[0].status == "refused"
 
-    def test_an_unusable_backend_refuses_with_its_reason(self, ws, execution, lab):
+    def test_an_unusable_backend_refuses_with_its_reason(
+        self, ws, execution, lab, monkeypatch
+    ):
+        from archx_agent.application import execution as execution_module
+
+        monkeypatch.setattr(execution_module, "_which", lambda name: None)
         target = execution.ensure("docker", name="no-docker", spec={"image": "alpine"})
         assert target.status == "refused"
         run = execution.run("echo hi", target="no-docker", cwd=str(lab))

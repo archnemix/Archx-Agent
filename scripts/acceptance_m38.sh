@@ -22,7 +22,7 @@ HOME_DIR="$WORK/home"
 LAB="$WORK/lab"
 export ARCHX_PATHS_HOME="$HOME_DIR"
 export ARCHX_TOOLS_ROOTS="$LAB"
-mkdir -p "$HOME_DIR" "$LAB" "$LAB/proj" "$LAB/bin"
+mkdir -p "$HOME_DIR" "$LAB" "$LAB/proj" "$LAB/bin" "$WORK/nobin"
 free_port() {
   "$PY" -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()'
 }
@@ -96,8 +96,11 @@ say "every backend is named with a reason or a way to enable it"
 check "seven backends are listed" "$(jq_ "len(d)" < "$WORK/targets.json")" "7"
 check "each unusable one has a reason and a hint" \
   "$(jq_ "all((p['available'] or (p['why_not'] and p['enable'])) for p in d)" < "$WORK/targets.json")" "True"
-check "docker is not here, and says so" \
-  "$(jq_ "any(p['kind'] == 'docker' and not p['available'] and any('docker CLI' in r for r in p['why_not']) for p in d)" < "$WORK/targets.json")" "True"
+# A CI runner has docker, this machine does not, so "docker is absent" cannot be asserted about
+# *this* machine. What can be asserted is the shape of the answer: a backend is either available or
+# it explains itself, and it never claims both.
+check "a backend that is here has no refusal attached" \
+  "$(jq_ "all(not p['why_not'] for p in d if p['available'])" < "$WORK/targets.json")" "True"
 check "windows sandbox is named as Windows-only" \
   "$(jq_ "any(p['kind'] == 'windows-sandbox' and not p['available'] and any('Windows' in r for r in p['why_not']) for p in d)" < "$WORK/targets.json")" "True"
 check "local is available" "$(jq_ "[p['available'] for p in d if p['kind'] == 'local'][0]" < "$WORK/targets.json")" "True"
@@ -123,10 +126,12 @@ say "a command that fails is a row with its exit code, not a crash"
 check "a non-zero exit exits 1" "$?" "1"
 check "and the code is recorded" "$(dbq "SELECT exit_code FROM execution_runs ORDER BY rowid DESC LIMIT 1")" "7"
 
-say "an unusable backend refuses with the reason it was already given"
-"$CLI" exec add docker --image debian:12 >"$WORK/docker.out" 2>&1
+say "an unusable backend refuses with the reason the probe gives"
+# `nobin` is an empty directory used as the whole PATH, so "no docker here" is a fact this script
+# created rather than one it hopes the machine has (a CI runner does have docker).
+PATH="$WORK/nobin" "$CLI" exec add docker --image debian:12 >"$WORK/docker.out" 2>&1
 check "the target is recorded as refused" "$(dbq "SELECT status FROM execution_targets WHERE kind = 'docker'")" "refused"
-"$CLI" exec run "python3 -V" --target docker >"$WORK/dockerrun.out" 2>&1
+PATH="$WORK/nobin" "$CLI" exec run "python3 -V" --target docker >"$WORK/dockerrun.out" 2>&1
 check "running on it exits 3" "$?" "3"
 check "and the reason names docker" "$(grep -q 'docker CLI is not on PATH' "$WORK/dockerrun.out" && echo yes)" "yes"
 
@@ -140,10 +145,13 @@ echo "stand-in sandbox ran"
 exit 0
 SH
 chmod +x "$LAB/bin/docker"
-PATH="$LAB/bin:$PATH" "$CLI" --json exec targets > "$WORK/targets2.json"
-check "docker becomes available when the binary appears" \
+# The stand-in is the only `docker` on this PATH (`nobin` is empty), so "available" can only mean
+# the stand-in was found - on a runner that has the real docker too.
+PATH="$LAB/bin:$WORK/nobin" "$CLI" --json exec targets > "$WORK/targets2.json"
+check "the target becomes available when a docker appears on PATH" \
   "$(jq_ "[p['available'] for p in d if p['kind'] == 'docker'][0]" < "$WORK/targets2.json")" "True"
-PATH="$LAB/bin:$PATH" "$CLI" --json exec run "echo inside" --target docker > "$WORK/dockerexec.json"
+PATH="$LAB/bin:$WORK/nobin" "$CLI" exec add docker --image debian:12 --name stand-in >"$WORK/standin.out" 2>&1
+PATH="$LAB/bin:$WORK/nobin" "$CLI" --json exec run "echo inside" --target stand-in > "$WORK/dockerexec.json"
 check "a docker run goes through the wrapper" "$?" "0"
 check "the invocation is on the row" \
   "$(jq_ "d['invocation'].startswith('docker run --rm --network none')" < "$WORK/dockerexec.json")" "True"

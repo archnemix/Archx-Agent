@@ -1232,3 +1232,22 @@ default to off/open respectively *in code* - the worker refuses `/exec` with the
 operator turns it on - because the person who starts a worker is the person whose files a command can
 delete, and a default that assumes trust is a default that moves work onto them. `/jobs` (training)
 keeps working without either: a corpus is data, a command is not.
+
+**D190. A test that asserts a tool is absent is testing the runner.** Ten of M38's checks passed here
+and failed on CI, for the best possible reason: the GitHub runner ships docker and this machine does
+not, so "the docker CLI is not on PATH here" was an assertion about the machine the tests happened to
+run on. Two unit tests asserted `probe("docker")["available"] is False`; the acceptance script asserted
+`docker is not here, and says so`. The fix is to *create* the absence instead of assuming it:
+`_which()` was already an indirection in `execution.py`, so the tests monkeypatch it to return `None`;
+the script runs the refusal path with `PATH=<an empty directory>` and runs the stand-in path with a
+two-entry PATH (`<lab/bin>:<empty>`), so "available" there can only mean the stand-in was found - on a
+runner that also has the real docker. The general lesson is that any test whose truth depends on what
+is installed is a test of the build machine: either make the condition, or do not assert it. (The
+"each unusable backend explains itself" check is the shape that survives both machines, and it stayed.)
+
+**D191. Never write a stand-in binary into `PATH.split(os.pathsep)[0]`.** The stand-in tests needed a
+directory that comes first on `PATH`, and took the first entry they found. That is the environment's
+directory, not the test's: run the suite with a `docker` earlier on `PATH` and the test writes over a
+real binary. A `stand_in` fixture now makes its own directory and prepends *that*, and depends on the
+workspace fixture so the prepend is the last word on `PATH`. A test that writes files should own the
+directory it writes into.
