@@ -1,0 +1,9 @@
+$ bash scripts/acceptance_m36.sh
+M36 acceptance on /tmp/archx-m36-ScqLP7
+
+### the schema adopts the table v8 reserved
+[ok]   training is a versioned migration = 1
+[ok]   jobs and metrics are tables = 2
+[ok]   the reserved columns survive the adoption = 8
+[ok]   a fresh home has run nothing = 0
+[ok]   and says plainly it cannot fine-tune = False
