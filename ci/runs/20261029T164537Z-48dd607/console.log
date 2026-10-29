@@ -1,234 +1,4 @@
-ns-0.66b1-py3-none-any.whl.metadata (2.4 kB)
-Collecting python-dateutil>=2.8.2 (from mistralai>=1->archx-agent==0.30.0)
-  Downloading python_dateutil-3.0.0-py2.py3-none-any.whl.metadata (8.2 kB)
-Collecting pyasn1<0.7.0,>=0.6.1 (from pyasn1-modules>=0.2.1->google-auth<3.0.0,>=2.56.0->google-auth[requests]<3.0.0,>=2.56.0->google-genai>=1->archx-agent==0.30.0)
-  Downloading pyasn1-0.6.5-py3-none-any.whl.metadata (8.4 kB)
-Collecting iniconfig>=2 (from pytest>=8->archx-agent==0.30.0)
-  Downloading iniconfig-2.3.1-py3-none-any.whl.metadata (2.8 kB)
-Collecting pluggy<2,>=1.6 (from pytest>=8->archx-agent==0.30.0)
-  Downloading pluggy-1.7.0-py3-none-any.whl.metadata (5.0 kB)
-Collecting pygments>=2.15 (from pytest>=8->archx-agent==0.30.0)
-  Downloading pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)
-Collecting coverage>=7.10.6 (from coverage[toml]>=7.10.6->pytest-cov>=4->archx-agent==0.30.0)
-  Downloading coverage-7.17.0-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (8.1 kB)
-Collecting six>=1.6 (from python-dateutil>=2.8.2->mistralai>=1->archx-agent==0.30.0)
-  Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
-Collecting tzdata (from python-dateutil>=2.8.2->mistralai>=1->archx-agent==0.30.0)
-  Downloading tzdata-2026.6-py2.py3-none-any.whl.metadata (1.4 kB)
-Collecting cyclopts<5,>=4.6.0 (from together>=1->archx-agent==0.30.0)
-  Downloading cyclopts-4.25.3-py3-none-any.whl.metadata (12 kB)
-Collecting detect-agent<1,>=0.6.0 (from together>=1->archx-agent==0.30.0)
-  Downloading detect_agent-0.6.0-py3-none-any.whl.metadata (4.6 kB)
-Collecting filelock>=3.10.0 (from huggingface-hub<3.0,>=0.16.4->tokenizers<1,>=0.15->cohere>=5.11->archx-agent==0.30.0)
-  Downloading filelock-3.32.7-py3-none-any.whl.metadata (2.0 kB)
-Collecting rich<15,>=14.2.0 (from together>=1->archx-agent==0.30.0)
-  Downloading rich-14.3.4-py3-none-any.whl.metadata (18 kB)
-Collecting types-pyyaml>=6.0.12.20250915 (from together>=1->archx-agent==0.30.0)
-  Downloading types_pyyaml-6.0.12.20260906-py3-none-any.whl.metadata (1.8 kB)
-Collecting attrs>=23.1.0 (from cyclopts<5,>=4.6.0->together>=1->archx-agent==0.30.0)
-  Downloading attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
-Collecting rich-rst<3.0.0,>=1.3.1 (from cyclopts<5,>=4.6.0->together>=1->archx-agent==0.30.0)
-  Downloading rich_rst-2.2.0-py3-none-any.whl.metadata (5.0 kB)
-Collecting markdown-it-py>=2.2.0 (from rich<15,>=14.2.0->together>=1->archx-agent==0.30.0)
-  Downloading markdown_it_py-4.2.0-py3-none-any.whl.metadata (7.4 kB)
-Collecting mdurl~=0.1 (from markdown-it-py>=2.2.0->rich<15,>=14.2.0->together>=1->archx-agent==0.30.0)
-  Downloading mdurl-0.1.2-py3-none-any.whl.metadata (1.6 kB)
-Downloading anthropic-2.3.0-py3-none-any.whl (2.2 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.2/2.2 MB 77.3 MB/s  0:00:00
-Downloading anyio-4.15.1-py3-none-any.whl (132 kB)
-Downloading docstring_parser-0.18.0-py3-none-any.whl (22 kB)
-Downloading httpx2-2.16.0-py3-none-any.whl (97 kB)
-Downloading httpcore2-2.16.0-py3-none-any.whl (85 kB)
-Downloading jiter-0.18.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (337 kB)
-Downloading opentelemetry_api-1.45.1-py3-none-any.whl (60 kB)
-Downloading pydantic-2.14.2-py3-none-any.whl (490 kB)
-Downloading pydantic_core-2.50.2-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (2.2 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.2/2.2 MB 146.9 MB/s  0:00:00
-Downloading sniffio-1.3.1-py3-none-any.whl (10 kB)
-Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
-Downloading annotated_types-0.8.0-py3-none-any.whl (13 kB)
-Downloading cohere-7.3.0-py3-none-any.whl (373 kB)
-Downloading fastavro-1.13.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (3.6 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.6/3.6 MB 29.0 MB/s  0:00:00
-Downloading requests-2.34.2-py3-none-any.whl (73 kB)
-Downloading charset_normalizer-3.5.2-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (269 kB)
-Downloading idna-3.20-py3-none-any.whl (69 kB)
-Downloading tokenizers-0.23.3-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3.4 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.4/3.4 MB 264.6 MB/s  0:00:00
-Downloading huggingface_hub-2.4.0-py3-none-any.whl (857 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 857.0/857.0 kB 146.0 MB/s  0:00:00
-Downloading click-8.5.0-py3-none-any.whl (125 kB)
-Downloading hf_xet-1.7.1-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (4.2 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.2/4.2 MB 278.5 MB/s  0:00:00
-Downloading types_requests-2.33.0.20261006-py3-none-any.whl (21 kB)
-Downloading urllib3-2.8.0-py3-none-any.whl (135 kB)
-Downloading certifi-2026.10.23-py3-none-any.whl (135 kB)
-Downloading fsspec-2026.9.0-py3-none-any.whl (221 kB)
-Downloading google_genai-2.34.0-py3-none-any.whl (1.3 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 205.8 MB/s  0:00:00
-Downloading distro-1.9.0-py3-none-any.whl (20 kB)
-Downloading google_auth-2.62.0-py3-none-any.whl (267 kB)
-Downloading httpx-0.28.1-py3-none-any.whl (73 kB)
-Downloading httpcore-1.0.9-py3-none-any.whl (78 kB)
-Downloading tenacity-9.1.4-py3-none-any.whl (28 kB)
-Downloading websockets-17.3-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (225 kB)
-Downloading cryptography-50.0.2-cp311-abi3-manylinux_2_34_x86_64.whl (4.8 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.8/4.8 MB 205.7 MB/s  0:00:00
-Downloading cffi-2.1.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (217 kB)
-Downloading groq-1.7.0-py3-none-any.whl (143 kB)
-Downloading h11-0.16.0-py3-none-any.whl (37 kB)
-Downloading mistralai-3.6.0-py3-none-any.whl (1.8 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 197.4 MB/s  0:00:00
-Downloading eval_type_backport-0.4.0-py3-none-any.whl (6.4 kB)
-Downloading jsonpath_python-1.1.6-py3-none-any.whl (14 kB)
-Downloading ollama-0.6.3-py3-none-any.whl (16 kB)
-Downloading openai-3.41.0-py3-none-any.whl (2.4 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.4/2.4 MB 110.2 MB/s  0:00:00
-Downloading opentelemetry_semantic_conventions-0.66b1-py3-none-any.whl (206 kB)
-Downloading packaging-26.3-py3-none-any.whl (129 kB)
-Downloading pyasn1_modules-0.4.2-py3-none-any.whl (181 kB)
-Downloading pyasn1-0.6.5-py3-none-any.whl (84 kB)
-Downloading pytest-9.2.0-py3-none-any.whl (411 kB)
-Downloading pluggy-1.7.0-py3-none-any.whl (27 kB)
-Downloading iniconfig-2.3.1-py3-none-any.whl (7.6 kB)
-Downloading pygments-2.21.0-py3-none-any.whl (1.3 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 188.1 MB/s  0:00:00
-Downloading pytest_cov-7.1.0-py3-none-any.whl (22 kB)
-Downloading coverage-7.17.0-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (260 kB)
-Downloading python_dateutil-3.0.0-py2.py3-none-any.whl (94 kB)
-Downloading pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (806 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 806.6/806.6 kB 146.5 MB/s  0:00:00
-Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
-Downloading together-3.0.0-py3-none-any.whl (929 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 929.5/929.5 kB 184.0 MB/s  0:00:00
-Downloading cyclopts-4.25.3-py3-none-any.whl (242 kB)
-Downloading detect_agent-0.6.0-py3-none-any.whl (11 kB)
-Downloading filelock-3.32.7-py3-none-any.whl (100 kB)
-Downloading rich-14.3.4-py3-none-any.whl (310 kB)
-Downloading rich_rst-2.2.0-py3-none-any.whl (279 kB)
-Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
-Downloading markdown_it_py-4.2.0-py3-none-any.whl (91 kB)
-Downloading mdurl-0.1.2-py3-none-any.whl (10.0 kB)
-Downloading tqdm-4.70.1-py3-none-any.whl (80 kB)
-Downloading truststore-0.10.5-py3-none-any.whl (19 kB)
-Downloading types_pyyaml-6.0.12.20260906-py3-none-any.whl (21 kB)
-Downloading typing_inspection-0.4.4-py3-none-any.whl (14 kB)
-Downloading pycparser-3.12-py3-none-any.whl (62 kB)
-Downloading tzdata-2026.6-py2.py3-none-any.whl (348 kB)
-Building wheels for collected packages: archx-agent
-  Building editable for archx-agent (pyproject.toml): started
-  Building editable for archx-agent (pyproject.toml): finished with status 'done'
-  Created wheel for archx-agent: filename=archx_agent-0.30.0-0.editable-py3-none-any.whl size=8222 sha256=a128135f746132475297081fd19518a3db2da558647c777f664334e9d32b0a61
-  Stored in directory: /tmp/pip-ephem-wheel-cache-zjgcnfu_/wheels/e0/0b/ff/834bc1179a941034c00bb356b3dfbdf1a298a920b356567830
-Successfully built archx-agent
-Installing collected packages: websockets, urllib3, tzdata, typing-extensions, types-pyyaml, truststore, tqdm, tenacity, sniffio, six, pyyaml, pygments, pycparser, pyasn1, pluggy, packaging, mdurl, jsonpath-python, jiter, iniconfig, idna, hf-xet, h11, fsspec, filelock, fastavro, eval-type-backport, docstring-parser, distro, detect-agent, coverage, click, charset_normalizer, certifi, attrs, archx-agent, annotated-types, typing-inspection, types-requests, requests, python-dateutil, pytest, pydantic-core, pyasn1-modules, opentelemetry-api, markdown-it-py, httpcore2, httpcore, cffi, anyio, rich, pytest-cov, pydantic, opentelemetry-semantic-conventions, httpx2, httpx, cryptography, rich-rst, openai, ollama, mistralai, huggingface-hub, groq, google-auth, anthropic, tokenizers, cyclopts, together, google-genai, cohere
-
-Successfully installed annotated-types-0.8.0 anthropic-2.3.0 anyio-4.15.1 archx-agent-0.30.0 attrs-26.1.0 certifi-2026.10.23 cffi-2.1.1 charset_normalizer-3.5.2 click-8.5.0 cohere-7.3.0 coverage-7.17.0 cryptography-50.0.2 cyclopts-4.25.3 detect-agent-0.6.0 distro-1.9.0 docstring-parser-0.18.0 eval-type-backport-0.4.0 fastavro-1.13.1 filelock-3.32.7 fsspec-2026.9.0 google-auth-2.62.0 google-genai-2.34.0 groq-1.7.0 h11-0.16.0 hf-xet-1.7.1 httpcore-1.0.9 httpcore2-2.16.0 httpx-0.28.1 httpx2-2.16.0 huggingface-hub-2.4.0 idna-3.20 iniconfig-2.3.1 jiter-0.18.0 jsonpath-python-1.1.6 markdown-it-py-4.2.0 mdurl-0.1.2 mistralai-3.6.0 ollama-0.6.3 openai-3.41.0 opentelemetry-api-1.45.1 opentelemetry-semantic-conventions-0.66b1 packaging-26.3 pluggy-1.7.0 pyasn1-0.6.5 pyasn1-modules-0.4.2 pycparser-3.12 pydantic-2.14.2 pydantic-core-2.50.2 pygments-2.21.0 pytest-9.2.0 pytest-cov-7.1.0 python-dateutil-3.0.0 pyyaml-6.0.3 requests-2.34.2 rich-14.3.4 rich-rst-2.2.0 six-1.17.0 sniffio-1.3.1 tenacity-9.1.4 together-3.0.0 tokenizers-0.23.3 tqdm-4.70.1 truststore-0.10.5 types-pyyaml-6.0.12.20260906 types-requests-2.33.0.20261006 typing-extensions-4.16.0 typing-inspection-0.4.4 tzdata-2026.6 urllib3-2.8.0 websockets-17.3
-all eight clients import
-=== pytest ===============================================
-$ python -m pytest -o addopts= -q
-........................................................................ [  3%]
-........................................................................ [  7%]
-........................................................................ [ 11%]
-........................................................................ [ 14%]
-........................................................................ [ 18%]
-........................................................................ [ 22%]
-........................................................................ [ 25%]
-........................................................................ [ 29%]
-........................................................................ [ 33%]
-........................................................................ [ 36%]
-........................................................................ [ 40%]
-........................................................................ [ 44%]
-........................................................................ [ 47%]
-........................................................................ [ 51%]
-........................................................................ [ 55%]
-........................................................................ [ 59%]
-........................................................................ [ 62%]
-........................................................................ [ 66%]
-........................................................................ [ 70%]
-........................................................................ [ 73%]
-........................................................................ [ 77%]
-........................................................................ [ 81%]
-........................................................................ [ 84%]
-........................................................................ [ 88%]
-........................................................................ [ 92%]
-........................................................................ [ 95%]
-........................................................................ [ 99%]
-.......                                                                  [100%]
-=============================== warnings summary ===============================
-tests/test_sdk_m22.py::TestCohere::test_the_v2_chat_shape_is_parsed
-tests/test_sdk_m22.py::TestPaths::test_the_requested_path[cohere--/v2/chat]
-  /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/cohere/core/unchecked_base_model.py:328: PydanticDeprecatedSince20: The `__fields__` attribute is deprecated, use the `model_fields` class property instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
-    if inner_type.__fields__[metadata.discriminant].default == objects_discriminant:
-
--- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-1951 passed, 2 warnings in 536.36s (0:08:56)
-=== stress-edge ===============================================
-$ python -m pytest tests/test_stress.py tests/test_edge_cases.py -o addopts= -q
-........................................................................ [ 79%]
-...................                                                      [100%]
-91 passed in 47.20s
-=== integration ===============================================
-$ python -m pytest tests/test_integration.py -o addopts= -q
-...........                                                              [100%]
-11 passed in 19.87s
-=== coding-acceptance ===============================================
-$ bash scripts/acceptance_m31.sh
-M31 acceptance on /tmp/archx-m31-zPuMOm
-
-### a session is a directory, a task and a row
-$ archx-agent code list
-cs_0001m649eax300000001a8c351c923c2b413  open    second session  /tmp/archx-m31-zPuMOm/project
-cs_0001m649eam3000000008a62838b7ad26fb3  open    fix the greeting  /tmp/archx-m31-zPuMOm/project
-[ok]   the session is a database row = 1
-[ok]   the session binds the directory = /tmp/archx-m31-zPuMOm/project
-[ok]   the session owns a coding task = coding
-[ok]   the schema grew, it did not reuse a table = code_changes
-
-### nothing happens without a grant
-[ok]   a write without fs.write exits 4 = 4
-[ok]   the file is untouched = 4579e386b95ec1ff0f24c9bedca59bf7efb6c657
-[ok]   the refusal names the approval = 2
-[ok]   the refusal created a pending request = True
-[ok]   the refused edit did not become a change row = 0
-error: fs.write: fs.write is not granted for 'fs.write'; approval ap_0001m649ebhs000000015e2776376fb92f66 is pending (archx-agent approvals approve ap_0001m649ebhs000000015e2776376fb92f66)
-approve it with: archx-agent approvals approve ap_0001m649ebhs000000015e2776376fb92f66
-
-### approving is what makes it possible, and the write then lands
-$ archx-agent code write cs_0001m649eam3000000008a62838b7ad26fb3 hello.py --file /tmp/archx-m31-zPuMOm/new_hello.py
-modify hello.py  +1/-1
-  diff     ar_0001m649edgq0000000050811b5dae218f1c
-[exit 0]
-[ok]   the file really changed = 1
-[ok]   the change is a row with a diff = modify
-[ok]   the diff mentions the old and the new line = 2
-[ok]   the edit is attached to the task as an artifact = True
-
-### the runner records every command
-$ archx-agent code run cs_0001m649eam3000000008a62838b7ad26fb3 "python3 try_it.py"
-hello archx
-[run passed: exit 0 in 13 ms]
-[output saved as ar_0001m649eecj000000009dc5c0d431b8c38a]
-[ok]   the command passed = passed
-[ok]   the exit code is recorded = 0
-[ok]   the argv that ran is recorded, not just the string = ['python3', 'try_it.py']
-[ok]   a failing command exits 1 = 1
-[ok]   the failure is a failed row with its exit code = failed/1
-[ok]   the failure asked a question on the task = True
-[ok]   a timeout is a timeout, not a failure = timeout
-
-### a refusal is in the ledger too
-[ok]   a refused command is recorded as refused = refused
-
-### checks come from the project, and run as the project
-$ archx-agent code checks
-2 check(s) from archx.checks.json
-  test       /opt/hostedtoolcache/Python/3.11.17/x64/bin/python -m pytest -q test_hello.py  (120s)
-  compile    /opt/hostedtoolcache/Python/3.11.17/x64/bin/python -m compileall -q hello.py
-[ok]   two checks are declared = 2
-[ok]   the project's own test fails before the fix = 1
-[ok]   the failure is recorded under the check's name = test/failed
-$ archx-agent code test cs_0001m649eam3000000008a62838b7ad26fb3
+62838b7ad26fb3
 .                                                                        [100%]
 1 passed in 0.00s
 [check test passed: exit 0 in 259 ms]
@@ -2123,3 +1893,229 @@ ca35e959b662: Pull complete
 1b00b80b926b: Verifying Checksum
 1b00b80b926b: Download complete
 1929caaeecb0: Pull complete
+1b00b80b926b: Pull complete
+Digest: sha256:b2f0122c476bc9fe7ce679d8bb4bd555351e25e2554eefb156f61cb0a89cf429
+Status: Downloaded newer image for ollama/ollama:latest
+dea4f84ed5380c1842a8c1ed253b6afd4c458addee5c0aad582e2234227734ba
+[?2026h[?25l[1Gpulling manifest ⠋ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠙ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠹ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠼ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠼ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠴ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠦ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠧ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠇ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠏ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠋ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠙ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠹ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠸ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest [K
+pulling f535f83ec568:   2% ▕                  ▏ 5.6 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:   8% ▕█                 ▏  21 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:   9% ▕█                 ▏  24 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  12% ▕██                ▏  32 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  19% ▕███               ▏  50 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  21% ▕███               ▏  55 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  24% ▕████              ▏  63 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  30% ▕█████             ▏  81 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  32% ▕█████             ▏  85 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  36% ▕██████            ▏  98 MB/270 MB                  [K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  42% ▕███████           ▏ 112 MB/270 MB  107 MB/s      1s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  43% ▕███████           ▏ 116 MB/270 MB  107 MB/s      1s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  49% ▕████████          ▏ 132 MB/270 MB  107 MB/s      1s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  55% ▕█████████         ▏ 149 MB/270 MB  107 MB/s      1s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  56% ▕██████████        ▏ 151 MB/270 MB  107 MB/s      1s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  60% ▕██████████        ▏ 163 MB/270 MB  107 MB/s      1s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  66% ▕███████████       ▏ 179 MB/270 MB  107 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  67% ▕████████████      ▏ 182 MB/270 MB  107 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  69% ▕████████████      ▏ 187 MB/270 MB  107 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  73% ▕█████████████     ▏ 197 MB/270 MB  107 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  74% ▕█████████████     ▏ 200 MB/270 MB  107 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  77% ▕█████████████     ▏ 207 MB/270 MB   99 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  79% ▕██████████████    ▏ 213 MB/270 MB   99 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  81% ▕██████████████    ▏ 218 MB/270 MB   99 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  85% ▕███████████████   ▏ 229 MB/270 MB   99 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  88% ▕███████████████   ▏ 237 MB/270 MB   99 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  88% ▕███████████████   ▏ 239 MB/270 MB   99 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  92% ▕████████████████  ▏ 247 MB/270 MB   99 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  96% ▕█████████████████ ▏ 259 MB/270 MB   99 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  96% ▕█████████████████ ▏ 260 MB/270 MB   99 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  96% ▕█████████████████ ▏ 260 MB/270 MB   99 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  97% ▕█████████████████ ▏ 261 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  98% ▕█████████████████ ▏ 264 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K[?25h[?2026l[?2026h[?25l[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K
+pulling b0f58c4c1a3c: 100% ▕██████████████████▏  561 B                         [K
+verifying sha256 digest ⠋ [K[?25h[?2026l[?2026h[?25l[A[A[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K
+pulling b0f58c4c1a3c: 100% ▕██████████████████▏  561 B                         [K
+verifying sha256 digest ⠙ [K[?25h[?2026l[?2026h[?25l[A[A[A[1Gpulling manifest [K
+pulling f535f83ec568:  99% ▕█████████████████ ▏ 268 MB/270 MB   85 MB/s      0s[K
+pulling b0f58c4c1a3c: 100% ▕██████████████████▏  561 B                         [K
+verifying sha256 digest [K
+writing manifest [K
+success [K[?25h[?2026l
+{"models":[{"name":"smollm2:135m","model":"smollm2:135m","modified_at":"2026-10-29T17:00:07.781516809Z","size":270898672,"digest":"9077fe9d2ae1a4a41a868836b56b8163731a8fe16621397028c2c76f838c6907","details":{"parent_model":"/Users/administrator/.ollama/models/blobs/sha256-f535f83ec568d040f88ddc04a199fa6da90923bbb41d4dcaed02caa924d6ef57","format":"gguf","family":"llama","families":["llama"],"parameter_size":"134.52M","quantization_level":"F16","context_length":8192,"embedding_length":576,"runner":"ggml"},"capabilities":["completion"]}]}### endpoint
+http://127.0.0.1:11434
+### endpoint
+http://127.0.0.1:11434
+curl /health      -> 404
+curl /health      -> 404
+curl /v1/models   -> 200
+curl /v1/models   -> 200
+the server says: {"object":"list","data":[{"id":"smollm2:135m","object":"model","created":1793293207,"owned_by":"library"}]}
+the server says: {"object":"list","data":[{"id":"smollm2:135m","object":"model","created":1793293207,"owned_by":"library"}]}
+
+### the same endpoint through each official SDK
+
+### the same endpoint through each official SDK
+
+--- ollama
+
+--- ollama
+OK    'Hello, welcome to my little corner of the internet.'
+      tokens in/out 36/12  finish stop
+      base http://127.0.0.1:11434  ->  /api/chat
+      streamed 6 chunk(s), 22 chars: "I'm counting to three."
+OK    'Hello, welcome to my little corner of the internet.'
+      tokens in/out 36/12  finish stop
+      base http://127.0.0.1:11434  ->  /api/chat
+      streamed 6 chunk(s), 22 chars: "I'm counting to three."
+
+### summary
+
+### summary
+1 SDK(s) completed a turn, 0 failed
+1 SDK(s) completed a turn, 0 failed
+
+### and through Archx itself (the app, not just the SDK)
+
+### and through Archx itself (the app, not just the SDK)
+home /tmp/archx-remote-vUIiWD
+home /tmp/archx-remote-vUIiWD
+
+$ archx-agent models add-sdk --name remote-ollama --sdk ollama --model local --base-url http://127.0.0.1:11434
+
+$ archx-agent models add-sdk --name remote-ollama --sdk ollama --model local --base-url http://127.0.0.1:11434
+  registered remote-ollama (mdl_0001m649nm030000000061085b1026f1aef0) provider=ollama runtime=sdk
+    sdk      ollama (`ollama`)
+    model    local
+    endpoint http://127.0.0.1:11434
+    key      read at use time from secret://env/OLLAMA_API_KEY (never stored)
+    sdk      installed
+    runtime  ready - ready: a local Ollama needs no key (no data leaves this machine)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  registered remote-ollama (mdl_0001m649nm030000000061085b1026f1aef0) provider=ollama runtime=sdk
+    sdk      ollama (`ollama`)
+    model    local
+    endpoint http://127.0.0.1:11434
+    key      read at use time from secret://env/OLLAMA_API_KEY (never stored)
+    sdk      installed
+    runtime  ready - ready: a local Ollama needs no key (no data leaves this machine)
+  note: capabilities are claims until measured with `archx-agent models probe`
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+  (remote: the four consent rungs apply before chat will send anything)
+  probe:
+    chat: failed  (ModelNotFoundError: model not found: model 'local' not found (status code: 404))
+      latency 229.2 ms
+      state now unsupported (probe failed)
+      this drove the runtime; the result is recorded and the router will use it
+    chat: failed  (ModelNotFoundError: model not found: model 'local' not found (status code: 404))
+      latency 229.2 ms
+      state now unsupported (probe failed)
+      this drove the runtime; the result is recorded and the router will use it
+registered ollama-local (mdl_0001m649nndc0000000010ca732b04d41e37) provider=ollama runtime=sdk
+  sdk      ollama (`ollama`)
+  model    smollm2:135m
+  endpoint http://127.0.0.1:11434
+  key      read at use time from secret://env/OLLAMA_API_KEY (never stored)
+  sdk      installed
+  runtime  ready - ready: a local Ollama needs no key (no data leaves this machine)
+note: capabilities are claims until measured with `archx-agent models probe`
+chat: passed  (40 chars, finish_reason=stop)
+  latency 357.7 ms
+  state now verified (probe passed)
+  this drove the runtime; the result is recorded and the router will use it
+One colour is blue.
+
+[model ollama-local (ollama) | 206ms | context 52/130304 tokens | strategy oldest_first]
+[warning] no embedding index is configured; semantic search is unavailable and results are keyword-only
+=== tunnel ===============================================
+$ bash -c 
+  set -u
+  curl -fsSL -o "$RUNNER_TEMP/cloudflared" \
+    https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+  chmod +x "$RUNNER_TEMP/cloudflared"
+  "$RUNNER_TEMP/cloudflared" tunnel --no-autoupdate --url "http://127.0.0.1:$PORT" \
+    > "$RUNNER_TEMP/tunnel.log" 2>&1 &
+  echo $! > "$RUNNER_TEMP/tunnel.pid"
+  url=""
+  for i in $(seq 1 90); do
+    url="$(grep -oE "https://[a-z0-9-]+\.trycloudflare\.com" "$RUNNER_TEMP/tunnel.log" | head -1 || true)"
+    [ -n "$url" ] && break; sleep 1
+  done
+  [ -n "$url" ] || { tail -40 "$RUNNER_TEMP/tunnel.log"; exit 1; }
+  echo "url=$url" | tee "$LOGDIR/tunnel-url.txt"
+  for i in $(seq 1 60); do
+    curl -fsS --max-time 5 "$url/health" >/dev/null 2>&1 && break; sleep 2
+  done
+  code="$(curl -sS --max-time 60 -o "$LOGDIR/public.json" -w "%{http_code}" \
+    -H "Content-Type: application/json" \
+    -d "{\"model\":\"local\",\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}],\"max_tokens\":16}" \
+    "$url/v1/chat/completions")"
+  echo "public chat HTTP $code"; head -c 400 "$LOGDIR/public.json"
+  [ "$code" = "200" ] || exit 1
+  # and through a vendor SDK, over the public URL, from this runner
+  python - "$url" <<PY
+import sys
+from openai import OpenAI
+client = OpenAI(api_key="local-model-no-key", base_url=sys.argv[1] + "/v1")
+reply = client.chat.completions.create(
+    model="local", messages=[{"role": "user", "content": "Say hi in three words."}],
+    max_tokens=24, timeout=90,
+)
+print("openai SDK via the public URL:", reply.choices[0].message.content.strip())
+PY
+
+url=https://trigger-crew-billing-dependent.trycloudflare.com
+public chat HTTP 200
+{"choices":[{"finish_reason":"length","index":0,"message":{"role":"assistant","content":"Ping is a chatbot designed to provide assistance, answer queries, and offer"}}],"created":1793293220,"model":"/home/runner/model/SmolLM2-135M-Instruct-Q4_K_M.gguf","system_fingerprint":"b11982-8a199ad31","object":"chat.completion","usage":{"completion_tokens":16,"prompt_tokens":31,"total_tokens":47,"prompt_tokopenai SDK via the public URL: "The Great Gatsby."
+
+### steps
+# run 20261029T164537Z-48dd607
+
+step	status	seconds
+install	ok	21
+pytest	ok	538
+stress-edge	ok	47
+integration	ok	20
+coding-acceptance	ok	17
+experiment-acceptance	ok	11
+play-acceptance	ok	14
+voice-acceptance	ok	14
+dataset-acceptance	ok	13
+training-acceptance	ok	13
+remote-acceptance	ok	14
+execution-acceptance	ok	15
+scenes-acceptance	ok	8
+automation-acceptance	ok	6
+blender-real	ok	33
+release-check	ok	9
+sdks	ok	3
+llama-cpp	ok	2
+model-download	ok	1
+serve	ok	1
+completion	ok	1
+sdk-matrix	ok	16
+ollama	ok	51
+tunnel	ok	8
+failed=0
