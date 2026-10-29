@@ -1,0 +1,54 @@
+$ bash scripts/acceptance_m36.sh
+M36 acceptance on /tmp/archx-m36-cMdIQB
+
+### the schema adopts the table v8 reserved
+[ok]   training is a versioned migration = 1
+[ok]   jobs and metrics are tables = 2
+[ok]   the reserved columns survive the adoption = 8
+[ok]   a fresh home has run nothing = 0
+[ok]   and says plainly it cannot fine-tune = False
+
+### a run is not attempted until the dataset can support one
+[ok]   an unsplit dataset is not runnable = False
+[ok]   and the reason names the missing split = True
+[ok]   the preflight exits 3 (cannot), not 0 = 3
+[ok]   a split but unbuilt dataset still fails = False
+[ok]   and the reason names the build = True
+[ok]   a built, split, verified dataset is runnable = True
+[ok]   every check is a row = True
+[ok]   including the manifest = True
+
+### an n-gram model is trained here, and its perplexity is arithmetic
+[ok]   the run completed = completed
+[ok]   it trained on the dataset it names = ds_0001m63kbvj20000000083a0b0f20ab78ceb
+[ok]   train, val and test were each scored = 3
+[ok]   perplexity is recorded per split = 3
+[ok]   the metrics are rows, not a blob = 9
+[ok]   the artifact is a file on disk = yes
+[ok]   its recorded hash is the file's hash = 4f3befc34408d6906484b33259e59b9e0f64961d4f068c0f82895c12cf4a513c
+[ok]   the artifact says what it is = ngram
+[ok]   the artifact is versioned = versioned
+[ok]   an independent implementation gets the same perplexity = True
+
+### a classifier is trained here, and predicts a label this script knows
+[ok]   the classifier completed = completed
+[ok]   it labelled from the directory and said so = 1
+[ok]   it saw two labels = 2.0
+[ok]   accuracy is a fraction between 0 and 1 = True
+[ok]   a rust-shaped document predicts rust = rust
+[ok]   a python-shaped document predicts python = python
+
+### fine-tuning is refused with every missing link, in order
+[ok]   asking for a fine-tune exits 3 = 3
+[ok]   the refusal is a row = refused
+[ok]   the first reason is the switch = True
+[ok]   the last is the missing adapter = True
+[ok]   turning training on removes exactly one reason = 1
+[ok]   and the switch is no longer the first reason = False
+[ok]   the library and the GPU are named = True
+[ok]   a refused run has no artifact = 0
+[ok]   and cannot be predicted from = 2
+
+### a comparison names what it could not rank
+[ok]   two n-gram runs rank on val perplexity = True
+[ok]   a mixed comparison names no winner = None
