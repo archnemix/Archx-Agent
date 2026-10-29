@@ -21,4 +21,49 @@ $ python -m pytest -o addopts= -q
 ........................................................................ [ 77%]
 ........................................................................ [ 81%]
 ........................................................................ [ 84%]
-.......................................................................
+........................................................................ [ 88%]
+........................................................................ [ 92%]
+........................................................................ [ 96%]
+..................................................................       [100%]
+=================================== FAILURES ===================================
+____________ TestTheProbe.test_a_backend_that_is_not_here_says_why _____________
+
+self = <test_execution_m38.TestTheProbe object at 0x7febd80d7a50>
+ws = Workspace(config=Config(values={'general.brand': 'Archx Agent', 'general.profile': 'local', 'paths.home': '/tmp/pytest...50>, embeddings=<archx_agent.managers.embeddings.EmbeddingManager object at 0x7febd272cc10>, warnings=[], _runtimes={})
+
+    def test_a_backend_that_is_not_here_says_why(self, ws):
+        docker = ws.exec_env.probe("docker")
+>       assert docker["available"] is False
+E       assert True is False
+
+tests/test_execution_m38.py:172: AssertionError
+_______ TestTheBoundary.test_an_unusable_backend_refuses_with_its_reason _______
+
+self = <test_execution_m38.TestTheBoundary object at 0x7febd80ec650>
+ws = Workspace(config=Config(values={'general.brand': 'Archx Agent', 'general.profile': 'local', 'paths.home': '/tmp/pytest...50>, embeddings=<archx_agent.managers.embeddings.EmbeddingManager object at 0x7febd2779910>, warnings=[], _runtimes={})
+execution = <archx_agent.application.execution.ExecutionService object at 0x7febd2b3fad0>
+lab = PosixPath('/tmp/pytest-of-runner/pytest-0/test_an_unusable_backend_refus0/lab')
+
+    def test_an_unusable_backend_refuses_with_its_reason(self, ws, execution, lab):
+        target = execution.ensure("docker", name="no-docker", spec={"image": "alpine"})
+>       assert target.status == "refused"
+E       AssertionError: assert 'probed' == 'refused'
+E         
+E         - refused
+E         + probed
+
+tests/test_execution_m38.py:331: AssertionError
+=============================== warnings summary ===============================
+tests/test_sdk_m22.py::TestCohere::test_the_v2_chat_shape_is_parsed
+tests/test_sdk_m22.py::TestPaths::test_the_requested_path[cohere--/v2/chat]
+  /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/cohere/core/unchecked_base_model.py:328: PydanticDeprecatedSince20: The `__fields__` attribute is deprecated, use the `model_fields` class property instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    if inner_type.__fields__[metadata.discriminant].default == objects_discriminant:
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_execution_m38.py::TestTheProbe::test_a_backend_that_is_not_here_says_why - assert True is False
+FAILED tests/test_execution_m38.py::TestTheBoundary::test_an_unusable_backend_refuses_with_its_reason - AssertionError: assert 'probed' == 'refused'
+  
+  - refused
+  + probed
+2 failed, 1864 passed, 2 warnings in 521.08s (0:08:41)
