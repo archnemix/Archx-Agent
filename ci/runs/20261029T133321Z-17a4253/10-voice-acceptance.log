@@ -1,0 +1,133 @@
+$ bash scripts/acceptance_m34.sh
+M34 acceptance on /tmp/archx-m34-Nm8eUy
+
+### the schema keeps a measurement and a claim apart
+[ok]   media is a versioned migration = 1
+[ok]   assets, attempts and transcripts are tables = 3
+[ok]   an asset row can hold the name's claim and the mismatch = 2
+[ok]   a fresh home has measured nothing = 0
+
+### measuring needs the grant, and the refusal is a row
+[ok]   probe without fs.read exits 1 = 1
+[ok]   and names the approval to approve = 1
+[ok]   the refusal was recorded = 1
+[ok]   and nothing was measured = 0
+
+### a media fact is measured from the bytes
+[ok]   the png is a row = 1
+[ok]   its kind is image = image
+[ok]   its format came from the signature = png
+[ok]   its width came from the IHDR = 12
+[ok]   its height came from the IHDR = 8
+[ok]   the hash is a sha256 of the bytes = 64
+[ok]   the size matches the file on disk = 76
+[ok]   the honest name is not a mismatch = 1
+
+### a jpeg's size is in its frame header, not its name
+[ok]   the jpeg is 40 wide = 40
+[ok]   the jpeg is 30 high = 30
+[ok]   and it says jpeg, not jpg = jpeg
+
+### audio carries the sample format and the duration arithmetic
+[ok]   the wav is audio = audio
+[ok]   the rate is the one in the fmt chunk = 8000
+[ok]   the channels are the ones declared = 1
+[ok]   the bit depth is declared, not assumed = 16
+[ok]   800 frames at 8 kHz is 100 ms = 100
+[ok]   16000 frames at 16 kHz is 1000 ms = 1000
+
+### the name is a claim, and disagreement is a finding
+[ok]   a png named .jpg is stored as png = png
+[ok]   the name's claim is kept = jpg
+[ok]   the disagreement is a column = the name says 'jpg' but the bytes are png
+[ok]   stats counts it = 1
+[ok]   and the record still holds what the bytes said = 4
+
+### the same bytes are one asset, however they are named
+[ok]   the second probe says duplicate = True
+[ok]   and points at the same row = ma_0001m63yatjb000000037ee8b1c658365a8e
+
+### an unmeasurable file is refused with the bytes it began with
+[ok]   an unknown container exits 2 = 2
+[ok]   the reason includes the head = 1
+[ok]   and names what is measured = 1
+[ok]   nothing was stored for it = 0
+[ok]   an empty file exits 2 = 2
+
+### words are refused on the record, with every missing link named
+[ok]   asking for words exits 3 (not a break, not a success) = 3
+[ok]   the attempt is a row = 1
+[ok]   with the asset attached = ma_0001m63yav4600000002e8f1e8b4e242adac
+[ok]   three reasons, in the order found = 3
+[ok]   the first is the voice switch = True
+[ok]   the second is the missing model = True
+[ok]   the third is the missing adapter = True
+[ok]   nothing pretended to be a transcript = 0
+[ok]   stats says plainly it cannot hear = False
+
+### the reasons are computed, not printed
+[ok]   turning voice on removes exactly that reason = 2
+[ok]   and the switch is no longer mentioned = False
+[ok]   a model that is not registered is named = True
+
+### speech is refused the same way, with the length kept
+[ok]   asking for speech exits 3 = 3
+[ok]   the length asked for is recorded = 15
+[ok]   the attempt is a row with no asset = 1
+[ok]   nothing was written anywhere = 0
+
+### the one transcript this build can keep is one a person wrote
+[ok]   the source is human = human
+[ok]   the words are kept as typed = the words a person typed
+[ok]   the attempt that produced it is completed, not refused = 1
+[ok]   and says who produced it = human
+[ok]   words can come from a file, through fs.read = the words a person typed
+[ok]   and the file is recorded = words.txt
+[ok]   two transcripts for one recording = 2
+[ok]   empty words are refused = 2
+[ok]   a non-human source cannot be written even by hand = refused
+[ok]   so there are still two = 2
+
+### keeping the bytes is a decision, not a default
+[ok]   retaining without the setting exits 2 = 2
+[ok]   and says what to set = 1
+[ok]   with the setting on the bytes are copied = yes
+[ok]   under the file's own hash = 1
+[ok]   and the copy is byte-identical = same
+
+### the counts agree with the rows
+[ok]   assets = 6
+[ok]   audio = 3
+[ok]   transcripts = 2
+[ok]   refused attempts = 7
+$ archx-agent voice stats
+assets      6 (3 image, 3 audio, 1200 ms of audio)
+mislabelled 1 (the name disagrees with the bytes)
+transcripts 2 (all written by a person)
+attempts    9 (7 refused)
+voice       on; stt none, tts none
+can hear    no
+can speak   no
+[exit 0]
+
+### the page is a client of the same service
+[ok]   the page lists what was measured = 6
+[ok]   a probe in the page is the row the CLI reads = 1
+[ok]   a mislabelled file says so over HTTP = True
+[ok]   an unmeasurable file is a 400 = 400
+[ok]   asking for words is a 200 refusal, not an error = refused
+[ok]   and the refusal is in the same table the CLI reads = 4
+[ok]   a transcript typed in the page is a row = human
+[ok]   empty words are a 400 = 400
+[ok]   the stats endpoint says it cannot hear = False
+[ok]   the reasons travel with the stats = True
+[ok]   an unauthenticated call is refused = 401
+[ok]   an unknown asset is a 404 = 404
+
+### the record survives a restart
+[ok]   the measurement is still there = 12
+[ok]   the mismatch is still a mismatch = True
+[ok]   the words are still attributed = human
+[ok]   and it still cannot hear = False
+
+M34 acceptance: 88 checks passed, 0 failed

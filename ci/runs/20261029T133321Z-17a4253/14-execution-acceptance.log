@@ -1,0 +1,39 @@
+$ bash scripts/acceptance_m38.sh
+M38 acceptance on /tmp/archx-m38-mM7ulz
+
+### the schema records where a command ran, and what crossed the boundary
+[ok]   execution is a versioned migration = 1
+[ok]   targets, runs and files are tables = 3
+[ok]   a run keeps the invocation, not just the command = 4
+[ok]   a training run names its machine = 2
+[ok]   a fresh home has run nothing = 0
+[ok]   and execution is off = False
+
+### every backend is named with a reason or a way to enable it
+[ok]   seven backends are listed = 7
+[ok]   each unusable one has a reason and a hint = True
+[ok]   a backend that is here has no refusal attached = True
+[ok]   windows sandbox is named as Windows-only = True
+[ok]   local is available = True
+[ok]   the isolation is stated, not implied = True
+
+### nothing runs before the switch
+[ok]   a run with execution off exits 3 = 3
+[ok]   and says which setting = yes
+[ok]   the refusal is a row = refused
+[ok]   a local run exits 0 = 0
+[ok]   it records the backend it ran on = local
+[ok]   its output is kept = hello-from-local
+[ok]   and kept as a file too = yes
+
+### a command that fails is a row with its exit code, not a crash
+[ok]   a non-zero exit exits 1 = 1
+[ok]   and the code is recorded = 7
+
+### an unusable backend refuses with the reason the probe gives
+[ok]   the target is recorded as refused = refused
+[ok]   running on it exits 3 = 3
+[ok]   and the reason names docker = yes
+
+### the wrapper really is what executes (a stand-in binary proves the argv)
+[ok]   the target becomes available when a docker appears on PATH = True

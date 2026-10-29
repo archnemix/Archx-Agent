@@ -7,3 +7,8 @@ stress-edge	ok	46
 integration	ok	14
 coding-acceptance	ok	11
 experiment-acceptance	ok	7
+play-acceptance	ok	9
+voice-acceptance	ok	9
+dataset-acceptance	ok	9
+training-acceptance	ok	8
+remote-acceptance	ok	10

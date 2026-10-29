@@ -594,3 +594,600 @@ M33 acceptance on /tmp/archx-m33-SVkc5Y
 [ok]   with the reason = square 5 is taken
 [ok]   the refusal is numbered from the move count, not from the log = 2
 [ok]   the move count did not advance = 1
+[ok]   history counts the refusal = 1
+[ok]   history counts the acceptance = 1
+
+### a finished game is finished
+[ok]   the game is finished = finished
+[ok]   and it names the winner = X
+[ok]   a move after the end is refused = 2
+[ok]   and is not logged = 0
+
+### the engine may only choose from the legal moves
+[ok]   connect four starts with seven columns = 7
+$ archx-agent play engine gm_0001m63yakhv00000000411826d8a9a385ec
+[ok]   the engine move was accepted = True
+[ok]   it is in the log as a legal move = 1
+[ok]   playing it out finishes the game = finished
+[ok]   no engine move was ever refused = 0
+[ok]   the game ended inside the board = 15
+
+### the engine is checked against the rules, not against an opinion
+[ok]   60 games of engine play, no illegal move = 0
+[ok]   and plenty of moves were actually checked = 1
+
+### nim's strategy is the one it claims
+[ok]   after the engine's first move the heaps XOR to zero = 0
+
+### a game can be abandoned without losing its moves
+[ok]   resign sets the status = abandoned
+[ok]   and the winner it was told = O
+[ok]   the move is still readable = 1
+
+### an unknown game is refused with the list
+[ok]   unknown game exits 2 = 2
+[ok]   and names what is built in = 1
+
+### a simulation records the parameters and the hash
+[ok]   the simulation is a row = 1
+[ok]   it kept the seed = 3
+[ok]   it kept the steps = 6
+[ok]   its hash is a sha256 = 64
+[ok]   the series has one entry per step plus the start = 7
+[ok]   the same seed gives the same hash = c7a1c58f58a7ebc62d52ba40355b78c87430863de2bc0c43831b7a607f8243cd
+[ok]   replay reproduces it = 0
+
+### a doctored record fails its own replay
+[ok]   a hash that does not reproduce exits 1 = 1
+[ok]   and the page says which hash is different = 1
+[ok]   and it reproduces again once restored = 0
+
+### absurd simulation parameters are refused, not clipped
+[ok]   too many steps exits 2 = 2
+[ok]   a zero width exits 2 = 2
+[ok]   a density above one exits 2 = 2
+
+### the counts agree with the rows
+$ archx-agent play stats
+games       4 (1 open, 2 finished)
+moves       23 (1 refused by the rules)
+sims        2
+built in    connect4, nim, tictactoe  (default: tictactoe)
+[exit 0]
+[ok]   games = 4
+[ok]   moves = 23
+[ok]   refusals = 1
+[ok]   simulations = 2
+
+### the page is a client of the same service
+[ok]   the page lists the games = 4
+[ok]   a game started in the page is a row = 1
+[ok]   a move from the page is accepted = True
+[ok]   a refused move is a 200 with the reason, not an error = 200
+[ok]   and the refusal is in the log the CLI reads = 1
+[ok]   a simulation run in the page reproduces = True
+[ok]   an unknown game is a 400 over HTTP = 400
+[ok]   an unauthenticated call is refused = 401
+[ok]   the stats endpoint agrees with the rows = 3
+
+### the record survives a restart
+[ok]   the finished game is still finished = finished
+[ok]   the refused moves are still refused = 1
+[ok]   the simulation still reproduces = 0
+
+M33 acceptance: 69 checks passed, 0 failed
+=== voice-acceptance ===============================================
+$ bash scripts/acceptance_m34.sh
+M34 acceptance on /tmp/archx-m34-Nm8eUy
+
+### the schema keeps a measurement and a claim apart
+[ok]   media is a versioned migration = 1
+[ok]   assets, attempts and transcripts are tables = 3
+[ok]   an asset row can hold the name's claim and the mismatch = 2
+[ok]   a fresh home has measured nothing = 0
+
+### measuring needs the grant, and the refusal is a row
+[ok]   probe without fs.read exits 1 = 1
+[ok]   and names the approval to approve = 1
+[ok]   the refusal was recorded = 1
+[ok]   and nothing was measured = 0
+
+### a media fact is measured from the bytes
+[ok]   the png is a row = 1
+[ok]   its kind is image = image
+[ok]   its format came from the signature = png
+[ok]   its width came from the IHDR = 12
+[ok]   its height came from the IHDR = 8
+[ok]   the hash is a sha256 of the bytes = 64
+[ok]   the size matches the file on disk = 76
+[ok]   the honest name is not a mismatch = 1
+
+### a jpeg's size is in its frame header, not its name
+[ok]   the jpeg is 40 wide = 40
+[ok]   the jpeg is 30 high = 30
+[ok]   and it says jpeg, not jpg = jpeg
+
+### audio carries the sample format and the duration arithmetic
+[ok]   the wav is audio = audio
+[ok]   the rate is the one in the fmt chunk = 8000
+[ok]   the channels are the ones declared = 1
+[ok]   the bit depth is declared, not assumed = 16
+[ok]   800 frames at 8 kHz is 100 ms = 100
+[ok]   16000 frames at 16 kHz is 1000 ms = 1000
+
+### the name is a claim, and disagreement is a finding
+[ok]   a png named .jpg is stored as png = png
+[ok]   the name's claim is kept = jpg
+[ok]   the disagreement is a column = the name says 'jpg' but the bytes are png
+[ok]   stats counts it = 1
+[ok]   and the record still holds what the bytes said = 4
+
+### the same bytes are one asset, however they are named
+[ok]   the second probe says duplicate = True
+[ok]   and points at the same row = ma_0001m63yatjb000000037ee8b1c658365a8e
+
+### an unmeasurable file is refused with the bytes it began with
+[ok]   an unknown container exits 2 = 2
+[ok]   the reason includes the head = 1
+[ok]   and names what is measured = 1
+[ok]   nothing was stored for it = 0
+[ok]   an empty file exits 2 = 2
+
+### words are refused on the record, with every missing link named
+[ok]   asking for words exits 3 (not a break, not a success) = 3
+[ok]   the attempt is a row = 1
+[ok]   with the asset attached = ma_0001m63yav4600000002e8f1e8b4e242adac
+[ok]   three reasons, in the order found = 3
+[ok]   the first is the voice switch = True
+[ok]   the second is the missing model = True
+[ok]   the third is the missing adapter = True
+[ok]   nothing pretended to be a transcript = 0
+[ok]   stats says plainly it cannot hear = False
+
+### the reasons are computed, not printed
+[ok]   turning voice on removes exactly that reason = 2
+[ok]   and the switch is no longer mentioned = False
+[ok]   a model that is not registered is named = True
+
+### speech is refused the same way, with the length kept
+[ok]   asking for speech exits 3 = 3
+[ok]   the length asked for is recorded = 15
+[ok]   the attempt is a row with no asset = 1
+[ok]   nothing was written anywhere = 0
+
+### the one transcript this build can keep is one a person wrote
+[ok]   the source is human = human
+[ok]   the words are kept as typed = the words a person typed
+[ok]   the attempt that produced it is completed, not refused = 1
+[ok]   and says who produced it = human
+[ok]   words can come from a file, through fs.read = the words a person typed
+[ok]   and the file is recorded = words.txt
+[ok]   two transcripts for one recording = 2
+[ok]   empty words are refused = 2
+[ok]   a non-human source cannot be written even by hand = refused
+[ok]   so there are still two = 2
+
+### keeping the bytes is a decision, not a default
+[ok]   retaining without the setting exits 2 = 2
+[ok]   and says what to set = 1
+[ok]   with the setting on the bytes are copied = yes
+[ok]   under the file's own hash = 1
+[ok]   and the copy is byte-identical = same
+
+### the counts agree with the rows
+[ok]   assets = 6
+[ok]   audio = 3
+[ok]   transcripts = 2
+[ok]   refused attempts = 7
+$ archx-agent voice stats
+assets      6 (3 image, 3 audio, 1200 ms of audio)
+mislabelled 1 (the name disagrees with the bytes)
+transcripts 2 (all written by a person)
+attempts    9 (7 refused)
+voice       on; stt none, tts none
+can hear    no
+can speak   no
+[exit 0]
+
+### the page is a client of the same service
+[ok]   the page lists what was measured = 6
+[ok]   a probe in the page is the row the CLI reads = 1
+[ok]   a mislabelled file says so over HTTP = True
+[ok]   an unmeasurable file is a 400 = 400
+[ok]   asking for words is a 200 refusal, not an error = refused
+[ok]   and the refusal is in the same table the CLI reads = 4
+[ok]   a transcript typed in the page is a row = human
+[ok]   empty words are a 400 = 400
+[ok]   the stats endpoint says it cannot hear = False
+[ok]   the reasons travel with the stats = True
+[ok]   an unauthenticated call is refused = 401
+[ok]   an unknown asset is a 404 = 404
+
+### the record survives a restart
+[ok]   the measurement is still there = 12
+[ok]   the mismatch is still a mismatch = True
+[ok]   the words are still attributed = human
+[ok]   and it still cannot hear = False
+
+M34 acceptance: 88 checks passed, 0 failed
+=== dataset-acceptance ===============================================
+$ bash scripts/acceptance_m35.sh
+M35 acceptance on /tmp/archx-m35-bdGuJ3
+
+### the schema adopts the tables v8 reserved
+[ok]   datasets is a versioned migration = 1
+[ok]   the reserved tables were kept, not redefined = 7
+[ok]   records and the step ledger exist = 3
+[ok]   a fresh home has no datasets = 0
+
+### a dataset records where it came from, and an unstated license is not guessed
+[ok]   the dataset is a row = 1
+[ok]   it starts as a draft = draft
+[ok]   the license is the one declared = CC-BY-4.0
+[ok]   an unstated license is written as unknown = unknown
+[ok]   and the record says nobody declared it = True
+[ok]   a dataset with no sources is refused = 2
+
+### scanning measures every candidate, through the tool layer
+[ok]   the scan needs fs.read = 1
+[ok]   it names the approval to approve = 1
+[ok]   the scan succeeds once the grant exists = 0
+[ok]   every file is a candidate = 9
+[ok]   the binary with a text suffix was measured and shelved = dropped
+[ok]   and the reason names the refusal, not the name = 1
+[ok]   the empty file is dropped with its reason = the file is empty
+[ok]   a png is shelved as binary rather than skipped = not a text file this build can parse
+[ok]   the scan is a step in the ledger = 1
+[ok]   the ledger says what it took in and gave back = 9
+[ok]   the tool layer saw the reads = 9
+
+### the same text resaved is visible, because the exact hash cannot see it
+[ok]   a.txt and resaved.txt have different bytes = differ
+[ok]   but one normalised hash = True
+
+### cleaning removes, and every removal keeps its reason
+[ok]   cleaning succeeds = 0
+[ok]   the byte-identical copy is dropped, naming the path it duplicates = 1
+[ok]   the tiny file records the comparison = fewer characters than the min_chars rule allows (5 < 10)
+[ok]   a dropped record is still a row = 5
+[ok]   the clean step reports each rule's count = {
+  "rules": {
+    "min_chars": 10,
+    "dedupe": true,
+    "normalize": false,
+    "drop_empty": true,
+    "strip": true,
+    "require_license": false
+  },
+  "removed": {
+    "drop_empty": 1,
+    "drop_binary": 2,
+    "min_chars": 1,
+    "dedupe": 1,
+    "license": 0
+  },
+  "kept": 4,
+  "dropped": 5
+}
+[ok]   explain answers from the record = True
+
+### a resaved document cannot sit in two splits
+[ok]   the split is refused = 2
+[ok]   and says what it saw = 1
+[ok]   and names the pair that crosses = 1
+[ok]   and names the fix = 1
+[ok]   no split was written = 0
+
+### normalising the dedupe closes the leak and the split goes through
+[ok]   the resaved copy is dropped, naming the original = 1
+[ok]   three records survive = 3
+[ok]   the split succeeds = 0
+[ok]   every kept record has a split = 0
+[ok]   no content hash is in two splits = 0
+
+### the split follows from the record, so a new file does not move the old ones
+[ok]   the earlier records kept their splits = [('corpus/a.txt', 'train'), ('corpus/c.md', 'train'), ('corpus/sub/b.md', 'train')]
+[ok]   the new file was assigned one = True
+[ok]   the same seed reproduces the same split = {'train': 4}
+[ok]   the ratios must add up = 2
+
+### the manifest is a claim you can check
+[ok]   the build succeeds = 0
+[ok]   a manifest hash was recorded = 64
+[ok]   the export was written through fs.write = 1
+[ok]   the export file exists where the record says = yes
+[ok]   the export has one line per kept record = 4
+[ok]   verify agrees with an untouched corpus = True
+[ok]   and reports the same hash twice = True
+[ok]   an edited file makes verify disagree = False
+[ok]   the two hashes are printed and differ = True
+[ok]   the changed path is named = ['corpus/c.md']
+[ok]   the CLI exits 3 (degraded), not 1: nothing broke = 3
+[ok]   a deleted file is a difference too = ['missing']
+
+### require_license refuses rather than inventing one
+[ok]   cleaning an undeclared dataset with require_license exits 2 = 2
+[ok]   and says why = 1
+
+### the counters agree with the rows
+[ok]   datasets = 2
+[ok]   candidates = 19
+[ok]   kept = 10
+$ archx-agent dataset show ds_0001m63yb2td0000000088f5b6b842381ddc
+ds_0001m63yb2td0000000088f5b6b842381ddc  'corpus'  (built)
+  license   CC-BY-4.0  (declared by the user: CC-BY-4.0)
+  sources   corpus
+  records   4 kept, 6 dropped
+  splits    train 4
+  seed      m35
+  manifest  2e7e990dc79afc9f4a1cdc997bc9d9bf88f49f033eea2dd2cccc1cb233de8440
+  export    corpus.jsonl
+
+  ledger:
+    1. scan    0 -> 9  2026-10-29T13:42:11.382Z
+    2. clean   9 -> 4  2026-10-29T13:42:11.868Z
+    3. clean   9 -> 3  2026-10-29T13:42:12.511Z
+    4. split   3 -> 3  2026-10-29T13:42:12.882Z
+    5. scan    9 -> 10  2026-10-29T13:42:13.310Z
+    6. clean   10 -> 4  2026-10-29T13:42:13.505Z
+    7. split   4 -> 4  2026-10-29T13:42:13.726Z
+    8. split   4 -> 4  2026-10-29T13:42:14.272Z
+    9. split   4 -> 4  2026-10-29T13:42:14.461Z
+    10. build   4 -> 4  2026-10-29T13:42:14.841Z
+[exit 0]
+
+### the page is a client of the same service
+[ok]   the page lists the datasets the CLI wrote = 2
+[ok]   the stats ride with the collection = 2
+[ok]   a dataset created in the page is a row the CLI reads = 1
+[ok]   scanning from the page measures the same files = True
+[ok]   dropped records are visible over HTTP with their reason = True
+[ok]   an unknown dataset is a 404 = 404
+[ok]   a bad filter is a 400 = 400
+[ok]   an unauthenticated call is refused = 401
+[ok]   the verify disagreement over HTTP is a 200 with agrees false = False
+
+### the record survives a restart
+[ok]   the manifest hash is still the one built = 2e7e990dc79afc9f4a1cdc997bc9d9bf88f49f033eea2dd2cccc1cb233de8440
+[ok]   the dropped reasons are still there = True
+[ok]   and the ledger still has every step = True
+
+M35 acceptance: 72 checks passed, 0 failed
+=== training-acceptance ===============================================
+$ bash scripts/acceptance_m36.sh
+M36 acceptance on /tmp/archx-m36-JqfsCL
+
+### the schema adopts the table v8 reserved
+[ok]   training is a versioned migration = 1
+[ok]   jobs and metrics are tables = 2
+[ok]   the reserved columns survive the adoption = 8
+[ok]   a fresh home has run nothing = 0
+[ok]   and says plainly it cannot fine-tune = False
+
+### a run is not attempted until the dataset can support one
+[ok]   an unsplit dataset is not runnable = False
+[ok]   and the reason names the missing split = True
+[ok]   the preflight exits 3 (cannot), not 0 = 3
+[ok]   a split but unbuilt dataset still fails = False
+[ok]   and the reason names the build = True
+[ok]   a built, split, verified dataset is runnable = True
+[ok]   every check is a row = True
+[ok]   including the manifest = True
+
+### an n-gram model is trained here, and its perplexity is arithmetic
+[ok]   the run completed = completed
+[ok]   it trained on the dataset it names = ds_0001m63ybc2n0000000004cec0bcf19c1751
+[ok]   train, val and test were each scored = 3
+[ok]   perplexity is recorded per split = 3
+[ok]   the metrics are rows, not a blob = 9
+[ok]   the artifact is a file on disk = yes
+[ok]   its recorded hash is the file's hash = 4f1e434d9dd31153303d470c84cbca977afd092f4035fbab9909209f61ce80ce
+[ok]   the artifact says what it is = ngram
+[ok]   the artifact is versioned = versioned
+[ok]   an independent implementation gets the same perplexity = True
+
+### a classifier is trained here, and predicts a label this script knows
+[ok]   the classifier completed = completed
+[ok]   it labelled from the directory and said so = 1
+[ok]   it saw two labels = 2.0
+[ok]   accuracy is a fraction between 0 and 1 = True
+[ok]   a rust-shaped document predicts rust = rust
+[ok]   a python-shaped document predicts python = python
+
+### fine-tuning is refused with every missing link, in order
+[ok]   asking for a fine-tune exits 3 = 3
+[ok]   the refusal is a row = refused
+[ok]   the first reason is the switch = True
+[ok]   the last is the missing adapter = True
+[ok]   turning training on removes exactly one reason = 1
+[ok]   and the switch is no longer the first reason = False
+[ok]   the library and the GPU are named = True
+[ok]   a refused run has no artifact = 0
+[ok]   and cannot be predicted from = 2
+
+### a comparison names what it could not rank
+[ok]   two n-gram runs rank on val perplexity = True
+[ok]   a mixed comparison names no winner = None
+[ok]   and says why = True
+[ok]   a refused run is listed with its status = True
+
+### the counters agree with the rows
+[ok]   jobs = 5
+[ok]   completed = 3
+[ok]   metrics = 27
+$ archx-agent train list
+id                                       method    status     dataset                                  artifact                                            created                 
+---------------------------------------  --------  ---------  ---------------------------------------  --------------------------------------------------  ------------------------
+tj_0001m63ybgjz00000000106ac24bbf1ac4d5  ngram     completed  ds_0001m63ybc2n0000000004cec0bcf19c1751  tj_0001m63ybgjz00000000106ac24bbf1ac4d5.model.json  2026-10-29T13:42:24.095Z
+tj_0001m63ybfv200000000b6142dfd972df3e7  qlora     refused    ds_0001m63ybc2n0000000004cec0bcf19c1751  -                                                   2026-10-29T13:42:23.330Z
+tj_0001m63ybf20000000002e85c12fc41aaa62  lora      refused    ds_0001m63ybc2n0000000004cec0bcf19c1751  -                                                   2026-10-29T13:42:22.528Z
+tj_0001m63ybed400000000be1e08ffb3f2244e  centroid  completed  ds_0001m63ybc2n0000000004cec0bcf19c1751  tj_0001m63ybed400000000be1e08ffb3f2244e.model.json  2026-10-29T13:42:21.860Z
+tj_0001m63ybdve000000001f62d4a1830852b9  ngram     completed  ds_0001m63ybc2n0000000004cec0bcf19c1751  tj_0001m63ybdve000000001f62d4a1830852b9.model.json  2026-10-29T13:42:21.294Z
+[exit 0]
+
+### the page is a client of the same service
+[ok]   the page lists the runs the CLI made = 5
+[ok]   the page says it cannot fine-tune = False
+[ok]   a run started in the page is a row the CLI reads = 1
+[ok]   the metrics endpoint returns the same numbers = True
+[ok]   a refusal over HTTP is a 200 with the reasons = True
+[ok]   an unknown run is a 404 = 404
+[ok]   an unauthenticated call is refused = 401
+[ok]   the preflight route answers the same question = False
+
+### the record survives a restart
+[ok]   the completed run is still completed = completed
+[ok]   the metrics are still the ones measured = ['test', 'train', 'val']
+[ok]   the artifact path is still recorded = yes
+[ok]   and the refusal is still a refusal = refused
+
+M36 acceptance: 57 checks passed, 0 failed
+=== remote-acceptance ===============================================
+$ bash scripts/acceptance_m37.sh
+M37 acceptance on /tmp/archx-m37-VoPffC
+
+### the schema adopts the table v8 reserved, and adds what makes a result checkable
+[ok]   remote is a versioned migration = 1
+[ok]   jobs and attempts are tables = 2
+[ok]   the reserved columns survive the adoption = 8
+[ok]   and the two hashes are separate columns = 2
+[ok]   a fresh home has dispatched nothing = 0
+[ok]   and says why nothing could be = True
+[ok]   the protocol is named = archx-remote/1
+
+### a bundle cannot be made from a dataset nobody built
+[ok]   an unbuilt dataset exits 2 (usage), not 0 = 2
+[ok]   and the reason asks for a build = 1
+
+### a bundle identifies its input down to two digests per record
+[ok]   the bundle is a file on disk = yes
+[ok]   its hash is the hash of its bytes = fbb6e6a51a4d733dbf8f93ed07afd6f9f16a2545e576db46feea329410db139d
+[ok]   it carries every kept record = 8
+[ok]   with a file digest and a text digest that differ = True
+[ok]   the text digest is the digest of the text = True
+[ok]   the manifest checksum is the dataset's own = 50e360ad023211260a93bc1a6cf0ac3f5566ac2182e5eeecf94eb9be25ebd697
+[ok]   the run is declared in the bundle = 2
+
+### nothing leaves the machine until the switch, an endpoint and an approval all say yes
+$ archx-agent remote dispatch rj_0001m63ybnyy00000005060134aceec0915a
+refused rj_0001m63ybnyy00000005060134aceec0915a
+  nothing was sent: remote.require_approval is on and rj_0001m63ybnyy00000005060134aceec0915a has not been approved: `archx-agent remote approve rj_0001m63ybnyy00000005060134aceec0915a`; remote compute is off: `archx-agent config set remote.enabled true`; no cloud provider is reachable from this build: a worker is a second machine (or a second process) running `archx-agent remote worker`, and nothing here talks to a vendor's compute service
+  - remote.require_approval is on and rj_0001m63ybnyy00000005060134aceec0915a has not been approved: `archx-agent remote approve rj_0001m63ybnyy00000005060134aceec0915a`
+  - remote compute is off: `archx-agent config set remote.enabled true`
+  - no cloud provider is reachable from this build: a worker is a second machine (or a second process) running `archx-agent remote worker`, and nothing here talks to a vendor's compute service
+[exit 3]
+[ok]   a dispatch without approval is refused = refused
+[ok]   and says which approval is missing = 1
+[ok]   the refusal is an attempt row = 1
+[ok]   the approval is on the job = user:user
+[ok]   a dispatch with the switch off is still refused = 3
+[ok]   and it names the switch = yes
+[ok]   no dispatch succeeded while the switch was off = 0
+
+### a dispatch to a port nobody is listening on is a row, not a crash
+[ok]   an unreachable endpoint exits 3 = 3
+[ok]   the job is failed, not verified = failed
+[ok]   the failed attempt is in the log = 1
+[ok]   and the error is stored, not printed at the user = 1
+
+### a worker checks a bundle against itself before it computes anything
+[ok]   the worker is up and says which protocol it speaks = archx-remote/1
+[ok]   the worker is a separate process with no database = 1
+
+### an approved bundle is dispatched, computed, collected and verified
+[ok]   the dispatch is recorded against the endpoint = http://127.0.0.1:33755
+[ok]   the worker's machine is recorded = acceptance-box
+[ok]   the worker named its own job id = 1
+[ok]   collecting exits 0 only when the hash agrees = 0
+[ok]   the job is verified = verified
+[ok]   what the worker claimed and what this machine measured agree = True
+[ok]   and the claim is not empty = 64
+[ok]   the artifact is a file on disk = yes
+[ok]   the file hashes to what was stored = eb7e6d38a7402c1852db7e6cdaa45c7ff9b97b7f8e4fc1197649602fb31099fb
+[ok]   a second verify still agrees = 1
+[ok]   the verification time is recorded = 1
+
+### the numbers are a local run's numbers, because it is the same trainer
+[ok]   the remote train perplexity equals the local one = 2.892797183739609
+[ok]   each split agrees exactly = True
+[ok]   the artifact holds the same counts as the local run's = True
+[ok]   the worker says who computed it = worker:acceptance-box
+
+### a worker that misreports its hash produces a disagreement, not a result
+[ok]   a claimed hash that does not match is not verified = received
+[ok]   the two hashes are stored separately = True
+[ok]   the note names both = True
+[ok]   nothing wrote a verification time = none
+[ok]   the attempt is recorded as a mismatch = mismatch
+[ok]   re-verifying cannot rescue it = 3
+[ok]   and the job stays received = received
+[ok]   the stats count it as unverified = 1
+
+### a worker speaking another protocol is refused by both names
+[ok]   a protocol mismatch exits 3 = 3
+[ok]   the job is refused, not dispatched = refused
+[ok]   and both versions are named = 1
+
+### a corpus edited after the build cannot become a bundle
+[ok]   a drifted corpus exits 2 = 2
+[ok]   and the file is named with the reason = 1
+[ok]   no job was created for it = 0
+[ok]   restoring the file makes the dataset verify again = True
+
+### the page is a client of the same service, over a real socket
+[ok]   the remote route needs a token = 401
+[ok]   with a token it answers = 200
+[ok]   an unknown job is a 404 = 404
+[ok]   an unknown status is a 400 = 400
+[ok]   the page counts the same jobs the CLI does = 4
+[ok]   the page can write a bundle = 1
+[ok]   and approve it = user:gui
+[ok]   and dispatch it to the configured endpoint = dispatched
+[ok]   and collect a verified result = verified
+[ok]   the detail shows both hashes = True
+
+### the record survives the process that wrote it
+[ok]   every job is still there after five more processes = 5
+[ok]   and the attempts were never overwritten = 3
+
+M37 acceptance: 71 checks passed, 0 failed
+=== execution-acceptance ===============================================
+$ bash scripts/acceptance_m38.sh
+M38 acceptance on /tmp/archx-m38-mM7ulz
+
+### the schema records where a command ran, and what crossed the boundary
+[ok]   execution is a versioned migration = 1
+[ok]   targets, runs and files are tables = 3
+[ok]   a run keeps the invocation, not just the command = 4
+[ok]   a training run names its machine = 2
+[ok]   a fresh home has run nothing = 0
+[ok]   and execution is off = False
+
+### every backend is named with a reason or a way to enable it
+[ok]   seven backends are listed = 7
+[ok]   each unusable one has a reason and a hint = True
+[ok]   a backend that is here has no refusal attached = True
+[ok]   windows sandbox is named as Windows-only = True
+[ok]   local is available = True
+[ok]   the isolation is stated, not implied = True
+
+### nothing runs before the switch
+[ok]   a run with execution off exits 3 = 3
+[ok]   and says which setting = yes
+[ok]   the refusal is a row = refused
+[ok]   a local run exits 0 = 0
+[ok]   it records the backend it ran on = local
+[ok]   its output is kept = hello-from-local
+[ok]   and kept as a file too = yes
+
+### a command that fails is a row with its exit code, not a crash
+[ok]   a non-zero exit exits 1 = 1
+[ok]   and the code is recorded = 7
+
+### an unusable backend refuses with the reason the probe gives
+[ok]   the target is recorded as refused = refused
+[ok]   running on it exits 3 = 3
+[ok]   and the reason names docker = yes
+
+### the wrapper really is what executes (a stand-in binary proves the argv)
+[ok]   the target becomes available when a docker appears on PATH = True
