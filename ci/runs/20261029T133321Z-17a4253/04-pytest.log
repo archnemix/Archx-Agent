@@ -23,4 +23,14 @@ $ python -m pytest -o addopts= -q
 ........................................................................ [ 82%]
 ........................................................................ [ 86%]
 ........................................................................ [ 89%]
-....................................................................
+........................................................................ [ 93%]
+........................................................................ [ 97%]
+.................................................                        [100%]
+=============================== warnings summary ===============================
+tests/test_sdk_m22.py::TestCohere::test_the_v2_chat_shape_is_parsed
+tests/test_sdk_m22.py::TestPaths::test_the_requested_path[cohere--/v2/chat]
+  /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/cohere/core/unchecked_base_model.py:328: PydanticDeprecatedSince20: The `__fields__` attribute is deprecated, use the `model_fields` class property instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    if inner_type.__fields__[metadata.discriminant].default == objects_discriminant:
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1921 passed, 2 warnings in 406.49s (0:06:46)
