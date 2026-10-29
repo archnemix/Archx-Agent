@@ -1,0 +1,46 @@
+$ bash scripts/acceptance_m32.sh
+M32 acceptance on /tmp/archx-m32-SE1ZBN
+
+### an experiment is a declaration, and a bad one is refused
+experiment: ex_0001m649etmh00000000c9109b52a52fa55f
+[ok]   the declaration is a row = 1
+[ok]   it is open = open
+[ok]   the metrics source is stored as declared = {"kind": "stdout-json"}
+$ archx-agent experiment create broken --command "python bench.py {depth}"
+[ok]   an undeclared placeholder is refused = 2
+[ok]   and it is named = 1
+$ archx-agent experiment create unused --command "echo hi" --param unused=1
+[ok]   a parameter the command never uses is refused = 2
+$ archx-agent experiment create nometrics --command "echo hi" --metric-source vibes
+[ok]   an invented metrics source is refused = 2
+[ok]   no refused declaration was stored = 1
+
+### a run without a grant is recorded as refused, and runs nothing
+$ archx-agent experiment run ex_0001m649etmh00000000c9109b52a52fa55f
+[ok]   an ungranted run exits 4 = 4
+[ok]   the refusal names the approval to approve = yes
+[ok]   the refusal is a row, not an absence = refused
+[ok]   and it says why there are no numbers = the command was refused before it ran
+
+### with shell.run granted, the run is real
+run: xr_0001m649ewpw00000002b136242f69d8b837
+[ok]   the run passed = passed
+[ok]   the parameters it actually used are kept = {"n": "5"}
+[ok]   the resolved command is kept = python bench.py 5
+[ok]   the metrics are rows = 2
+[ok]   the size metric is the number the command printed = 5.0
+[ok]   the run belongs to a task = 1
+[ok]   and the task completed = completed
+[ok]   the output is an artifact = 1
+[ok]   the task timeline carries the metric = 1
+
+### two more runs, so there is something to compare
+$ archx-agent experiment compare ex_0001m649etmh00000000c9109b52a52fa55f --metric quality
+sizes: quality (highest wins, 4 run(s))
+  best  xr_0001m649exg2000000038b9957a90ceb627f  quality=4  n=40
+  xr_0001m649evth000000006245b726e13c7d53  refused  exit None
+  note: xr_0001m649evth000000006245b726e13c7d53 is not ranked: the command was refused before it ran
+  note: 3 of 4 run(s) have a value for quality
+  note: 1 run(s) did not pass; their metrics are shown but a failed run is not a result
+[ok]   the best run is the highest quality = 4.0
+[ok]   minimise flips the ranking = 0.5
