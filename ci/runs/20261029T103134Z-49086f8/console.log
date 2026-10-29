@@ -333,4 +333,291 @@ $ python -m pytest tests/test_stress.py tests/test_edge_cases.py -o addopts= -q
 91 passed in 47.94s
 === integration ===============================================
 $ python -m pytest tests/test_integration.py -o addopts= -q
-..
+...........                                                              [100%]
+11 passed in 19.88s
+=== coding-acceptance ===============================================
+$ bash scripts/acceptance_m31.sh
+M31 acceptance on /tmp/archx-m31-jAbD5u
+
+### a session is a directory, a task and a row
+$ archx-agent code list
+cs_0001m63m11da00000000f1a346db27697a0d  open    second session  /tmp/archx-m31-jAbD5u/project
+cs_0001m63m1148000000013fd9f566583eb9bc  open    fix the greeting  /tmp/archx-m31-jAbD5u/project
+[ok]   the session is a database row = 1
+[ok]   the session binds the directory = /tmp/archx-m31-jAbD5u/project
+[ok]   the session owns a coding task = coding
+[ok]   the schema grew, it did not reuse a table = code_changes
+
+### nothing happens without a grant
+[ok]   a write without fs.write exits 4 = 4
+[ok]   the file is untouched = 4579e386b95ec1ff0f24c9bedca59bf7efb6c657
+[ok]   the refusal names the approval = 2
+[ok]   the refusal created a pending request = True
+[ok]   the refused edit did not become a change row = 0
+error: fs.write: fs.write is not granted for 'fs.write'; approval ap_0001m63m121t000000007f665b81f35246c5 is pending (archx-agent approvals approve ap_0001m63m121t000000007f665b81f35246c5)
+approve it with: archx-agent approvals approve ap_0001m63m121t000000007f665b81f35246c5
+
+### approving is what makes it possible, and the write then lands
+$ archx-agent code write cs_0001m63m1148000000013fd9f566583eb9bc hello.py --file /tmp/archx-m31-jAbD5u/new_hello.py
+modify hello.py  +1/-1
+  diff     ar_0001m63m13zs00000004e9e49c561c86ce8e
+[exit 0]
+[ok]   the file really changed = 1
+[ok]   the change is a row with a diff = modify
+[ok]   the diff mentions the old and the new line = 2
+[ok]   the edit is attached to the task as an artifact = True
+
+### the runner records every command
+$ archx-agent code run cs_0001m63m1148000000013fd9f566583eb9bc "python3 try_it.py"
+hello archx
+[run passed: exit 0 in 13 ms]
+[output saved as ar_0001m63m14v8000000004f170d1abeb13813]
+[ok]   the command passed = passed
+[ok]   the exit code is recorded = 0
+[ok]   the argv that ran is recorded, not just the string = ['python3', 'try_it.py']
+[ok]   a failing command exits 1 = 1
+[ok]   the failure is a failed row with its exit code = failed/1
+[ok]   the failure asked a question on the task = True
+[ok]   a timeout is a timeout, not a failure = timeout
+
+### a refusal is in the ledger too
+[ok]   a refused command is recorded as refused = refused
+
+### checks come from the project, and run as the project
+$ archx-agent code checks
+2 check(s) from archx.checks.json
+  test       /opt/hostedtoolcache/Python/3.11.17/x64/bin/python -m pytest -q test_hello.py  (120s)
+  compile    /opt/hostedtoolcache/Python/3.11.17/x64/bin/python -m compileall -q hello.py
+[ok]   two checks are declared = 2
+[ok]   the project's own test fails before the fix = 1
+[ok]   the failure is recorded under the check's name = test/failed
+$ archx-agent code test cs_0001m63m1148000000013fd9f566583eb9bc
+.                                                                        [100%]
+1 passed in 0.00s
+[check test passed: exit 0 in 258 ms]
+[output saved as ar_0001m63m1a3f0000000264ca4ccbf03e69d9]
+[exit 0]
+[ok]   the same check passes after the edit = passed
+[ok]   the unknown-check message lists the declared ones = 1
+
+### the session is a patch you can read
+$ archx-agent code diff cs_0001m63m1148000000013fd9f566583eb9bc
+--- a/hello.py
++++ b/hello.py
+@@ -1,2 +1,2 @@
+ def greet(name):
+-    return "hi " + name
++    return "hello " + name
+--- a/hello.py
++++ b/hello.py
+@@ -1,2 +1,2 @@
+ def greet(name):
+-    return "hello " + name
++    return "hi " + name
+
+[1 file(s), +2/-2]
+[ok]   the patch covers the files the session edited = ['hello.py']
+[ok]   the patch is attached as an artifact = True
+
+### a session is reproducible
+[ok]   the reproducer reads the coding task = True
+[ok]   its plan contains the command that ran = True
+[ok]   a recorded run can be replayed = cr_0001m63m14vc00000000ef741f4848829417
+
+### the page is a client of the same service
+[ok]   the page lists the CLI's sessions = 2
+[ok]   the page knows the tool roots it may open = /tmp/archx-m31-jAbD5u/project
+[ok]   a session opened in the page is a CLI session = True
+[ok]   a read without fs.read is a 403 that names the tool = 403
+[ok]   the refusal is a code the page can branch on = approval_required
+[ok]   a write from the page is a file on disk = 200
+[ok]   the file the page wrote is really there = 1
+[ok]   the CLI sees the page's edit = made_in_the_page.py
+[ok]   a run from the page is in the same ledger = passed
+[ok]   and the CLI can read that run = from the page
+[ok]   a bad timeout is a 400, not a 500 = 400
+[ok]   closing a session in the page closes it for the CLI = 200
+[ok]   a closed session refuses later edits with a 400 = 400
+[ok]   the coding routes are in the route table = 14
+
+### a closed session keeps its record
+$ archx-agent code close cs_0001m63m1148000000013fd9f566583eb9bc --note shipped
+closed cs_0001m63m1148000000013fd9f566583eb9bc  fix the greeting
+  the edits and runs stay readable: archx-agent code show cs_0001m63m1148000000013fd9f566583eb9bc
+[exit 0]
+[ok]   the task is completed with the session = completed
+[ok]   the edits are still readable = True
+
+### stopping the server closes the port
+[ok]   the port is closed, not orphaned = 000
+
+### summary
+ok   | the session is a database row | 1
+ok   | the session binds the directory | /tmp/archx-m31-jAbD5u/project
+ok   | the session owns a coding task | coding
+ok   | the schema grew, it did not reuse a table | code_changes
+ok   | a write without fs.write exits 4 | 4
+ok   | the file is untouched | 4579e386b95ec1ff0f24c9bedca59bf7efb6c657
+ok   | the refusal names the approval | 2
+ok   | the refusal created a pending request | True
+ok   | the refused edit did not become a change row | 0
+ok   | the file really changed | 1
+ok   | the change is a row with a diff | modify
+ok   | the diff mentions the old and the new line | 2
+ok   | the edit is attached to the task as an artifact | True
+ok   | the command passed | passed
+ok   | the exit code is recorded | 0
+ok   | the argv that ran is recorded, not just the string | ['python3', 'try_it.py']
+ok   | a failing command exits 1 | 1
+ok   | the failure is a failed row with its exit code | failed/1
+ok   | the failure asked a question on the task | True
+ok   | a timeout is a timeout, not a failure | timeout
+ok   | a refused command is recorded as refused | refused
+ok   | two checks are declared | 2
+ok   | the project's own test fails before the fix | 1
+ok   | the failure is recorded under the check's name | test/failed
+ok   | the same check passes after the edit | passed
+ok   | the unknown-check message lists the declared ones | 1
+ok   | the patch covers the files the session edited | ['hello.py']
+ok   | the patch is attached as an artifact | True
+ok   | the reproducer reads the coding task | True
+ok   | its plan contains the command that ran | True
+ok   | a recorded run can be replayed | cr_0001m63m14vc00000000ef741f4848829417
+ok   | the page lists the CLI's sessions | 2
+ok   | the page knows the tool roots it may open | /tmp/archx-m31-jAbD5u/project
+ok   | a session opened in the page is a CLI session | True
+ok   | a read without fs.read is a 403 that names the tool | 403
+ok   | the refusal is a code the page can branch on | approval_required
+ok   | a write from the page is a file on disk | 200
+ok   | the file the page wrote is really there | 1
+ok   | the CLI sees the page's edit | made_in_the_page.py
+ok   | a run from the page is in the same ledger | passed
+ok   | and the CLI can read that run | from the page
+ok   | a bad timeout is a 400, not a 500 | 400
+ok   | closing a session in the page closes it for the CLI | 200
+ok   | a closed session refuses later edits with a 400 | 400
+ok   | the coding routes are in the route table | 14
+ok   | the task is completed with the session | completed
+ok   | the edits are still readable | True
+ok   | the port is closed, not orphaned | 000
+
+M31 acceptance: 48 checks passed
+=== experiment-acceptance ===============================================
+$ bash scripts/acceptance_m32.sh
+M32 acceptance on /tmp/archx-m32-M3uvwD
+
+### an experiment is a declaration, and a bad one is refused
+experiment: ex_0001m63m1gsc000000000d519746a9ef07d9
+[ok]   the declaration is a row = 1
+[ok]   it is open = open
+[ok]   the metrics source is stored as declared = {"kind": "stdout-json"}
+$ archx-agent experiment create broken --command "python bench.py {depth}"
+[ok]   an undeclared placeholder is refused = 2
+[ok]   and it is named = 1
+$ archx-agent experiment create unused --command "echo hi" --param unused=1
+[ok]   a parameter the command never uses is refused = 2
+$ archx-agent experiment create nometrics --command "echo hi" --metric-source vibes
+[ok]   an invented metrics source is refused = 2
+[ok]   no refused declaration was stored = 1
+
+### a run without a grant is recorded as refused, and runs nothing
+$ archx-agent experiment run ex_0001m63m1gsc000000000d519746a9ef07d9
+[ok]   an ungranted run exits 4 = 4
+[ok]   the refusal names the approval to approve = yes
+[ok]   the refusal is a row, not an absence = refused
+[ok]   and it says why there are no numbers = the command was refused before it ran
+
+### with shell.run granted, the run is real
+run: xr_0001m63m1jw10000000016ab2f88d03a6849
+[ok]   the run passed = passed
+[ok]   the parameters it actually used are kept = {"n": "5"}
+[ok]   the resolved command is kept = python bench.py 5
+[ok]   the metrics are rows = 2
+[ok]   the size metric is the number the command printed = 5.0
+[ok]   the run belongs to a task = 1
+[ok]   and the task completed = completed
+[ok]   the output is an artifact = 1
+[ok]   the task timeline carries the metric = 1
+
+### two more runs, so there is something to compare
+$ archx-agent experiment compare ex_0001m63m1gsc000000000d519746a9ef07d9 --metric quality
+sizes: quality (highest wins, 4 run(s))
+  best  xr_0001m63m1kn800000000286016e6126f50ab  quality=4  n=40
+  xr_0001m63m1hz400000001ad22395c28fff839  refused  exit None
+  note: xr_0001m63m1hz400000001ad22395c28fff839 is not ranked: the command was refused before it ran
+  note: 3 of 4 run(s) have a value for quality
+  note: 1 run(s) did not pass; their metrics are shown but a failed run is not a result
+[ok]   the best run is the highest quality = 4.0
+[ok]   minimise flips the ranking = 0.5
+[ok]   an unknown metric is refused with the known ones listed = 1
+[ok]   the runs are all in the ledger = 4
+
+### metrics are read from the declared source, or not at all
+[ok]   stdout that is not JSON leaves no metric = 0
+[ok]   and the run says why, in words = 1
+[ok]   a run with no metrics is still a run = passed
+$ archx-agent experiment create failed --command "python broken.py"
+[ok]   a failing command exits 1 = 1
+[ok]   and is recorded as failed with its exit code = failed:3
+$ archx-agent experiment create filed --command "python tofile.py" --metric-source file --metric-file metrics.json
+[ok]   a metrics file is read from the run's own directory = 0.91
+[ok]   a missing metrics file is named, not zeroed = 1
+
+### a parameter has to survive the shell it is substituted into
+$ archx-agent experiment run ex_0001m63m1gsc000000000d519746a9ef07d9 --set "n=5; rm -rf /"
+[ok]   an unsafe value is refused before it runs = 2
+[ok]   and nothing was added to the ledger = 4
+[ok]   the refusal explains the rule = 1
+[ok]   an unknown parameter is refused = 2
+
+### the record stays readable, and closing is not deleting
+[ok]   the experiment is closed = closed
+[ok]   a closed experiment cannot run = 2
+[ok]   its four runs are still there = 4
+[ok]   show still works on a closed experiment = 0
+[ok]   reopening is allowed = open
+
+### the GUI is a client of the same rows
+[ok]   the page lists the experiments = 5
+[ok]   the page shows a run's metrics = 4
+[ok]   the page compares on a named metric = 4.0
+[ok]   a bad parameter is a 400 over HTTP = 400
+[ok]   an unauthenticated call is refused = 401
+
+### deleting takes the runs and the numbers with it
+[ok]   delete without --yes is refused = 2
+[ok]   delete with --yes removes the experiment = 0
+[ok]   and its runs = 0
+[ok]   and its metrics = 0
+
+### the record survives a restart
+[ok]   listing still works = 0
+[ok]   the metrics are still queryable after reopening the home = 4.0
+[ok]   stats agree with the rows = 7
+
+M32 acceptance: 53 checks passed, 0 failed
+=== play-acceptance ===============================================
+$ bash scripts/acceptance_m33.sh
+M33 acceptance on /tmp/archx-m33-SYh0iC
+
+### the schema adopts the tables the earlier milestones reserved
+[ok]   play is a versioned migration = 1
+[ok]   games and game_moves exist = 2
+[ok]   simulations have their own table = 1
+[ok]   a fresh home has played nothing = 0
+
+### a game is a board the rules build
+[ok]   new game is a row = 1
+[ok]   new game is open = open
+[ok]   the default game comes from configuration = tictactoe
+[ok]   tic-tac-toe starts with nine legal moves = 9
+[ok]   and it is X to move = X
+
+### a legal move moves the board; the log says so
+[ok]   move accepted = 0
+[ok]   move is a row = 1
+[ok]   the row is legal = 1
+[ok]   the row carries a state hash = 16
+[ok]   the board holds the X in the centre = 1
+
+### a refused move is kept, and changes nothing
