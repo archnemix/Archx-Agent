@@ -293,3 +293,6 @@ tests/test_sdk_m22.py::TestPaths::test_the_requested_path[cohere--/v2/chat]
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 1894 passed, 2 warnings in 529.32s (0:08:49)
+=== stress-edge ===============================================
+$ python -m pytest tests/test_stress.py tests/test_edge_cases.py -o addopts= -q
+......................................................................
