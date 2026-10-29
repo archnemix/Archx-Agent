@@ -44,9 +44,10 @@ there is no code.
 | M35 | **Dataset preparation** | **partial** | candidates kept and dropped with reasons, splits that do not move, a manifest that can fail; text corpora only - no training, no tokenisation, no upload (see §2.6) |
 | M36 | **Training and model modification** | **partial** | two CPU trainers that really run (perplexity, accuracy), metrics as rows, artifacts hashed and versioned; fine-tuning refused by name - no weights, no GPU, no library here (see §3.5) |
 | M37 | **Remote compute and portability** | **partial** | a portable bundle with two digests per record, a worker that re-checks it and runs the same trainer, and a result hashed again on arrival; no cloud, no vendor SDK, no credentials (see §3.6) |
-| M38 | Blender and 3D workflows | not built | scene scripting through the tool layer |
-| M39 | Automations and scheduled tasks | not built | triggers, watches, recurring work |
-| M40 | Hardening and release | not built | packaging, upgrade path, audits |
+| M38 | **Execution environments** | **partial** | a recorded wrapper per backend (`local`, `remote`, `docker`, `wsl`, `windows-sandbox`, `vmware`, `virtualbox`), the invocation on the row, push/pull with a hash ledger; WSL is not a boundary, Windows Sandbox is detached, and nothing is pulled or snapshot (see §3.7) |
+| M39 | Blender and 3D workflows | not built | scene scripting through the tool layer |
+| M40 | Automations and scheduled tasks | not built | triggers, watches, recurring work |
+| M41 | Hardening and release | not built | packaging, upgrade path, audits |
 
 ## 2. Modes: same shell, different tools
 
@@ -82,9 +83,9 @@ were asked to do, and no button pretending they exist. Nothing below has code to
 |---|---------------|-------------------------|----------------------------|
 | M35 | Dataset preparation | collect, clean, split and version a corpus | versions, artifacts, tool roots, search |
 | M36 | Training and model modification | LoRA / fine-tune a model | none here: no weights and no GPU are reachable |
-| M38 | Blender and 3D workflows | script scenes through the tool layer | tools, jobs, artifacts |
-| M39 | Automations and scheduled tasks | triggers, watches, recurring work | scheduler, jobs, workflows |
-| M40 | Hardening and release | packaging, upgrade path, audits | migrations, backups, `doctor`, this acceptance corpus |
+| M39 | Blender and 3D workflows | script scenes through the tool layer | tools, jobs, artifacts, and the M38 wrapper (a renderer is a command that runs somewhere) |
+| M40 | Automations and scheduled tasks | triggers, watches, recurring work | scheduler, jobs, workflows |
+| M41 | Hardening and release | packaging, upgrade path, audits | migrations, backups, `doctor`, this acceptance corpus |
 
 Each of these follows the rule the built modes already follow: a mode is a shell plus a set of
 tools, and if the tools are not there the mode is not drawn. That is why the list above is
@@ -299,10 +300,40 @@ transfer; multi-machine training or aggregation; and any signature on a result b
 you named and the hash of the bytes it returned. `docs/REMOTE.md` §8 lists the boundary, and
 `remote stats` prints the standing reason.
 
+## 3.7 Execution: a sandbox you cannot point at is a claim, not a sandbox
+
+M38 answers a different question from M37. M37 moves *a training job* to another machine; M38 moves
+*a command* - and records where it ran. Seven backends are known by name (`local`, `remote`,
+`docker`, `wsl`, `windows-sandbox`, `vmware`, `virtualbox`), and the one thing they share is that the
+wrapper is built by one function, stored on the run row, and printed by `exec show`. A target named
+`docker` that quietly ran the command here would be worse than no target at all, so the acceptance
+script puts a stand-in `docker` on `PATH` that writes its own argv to a file: the flags are read
+back, not assumed. That is also why `wsl` says **not a boundary** in the probe table itself, and why
+Windows Sandbox records `detached` instead of inventing an exit code.
+
+The second half is the file ledger. `exec push` sends the project to a remote worker; `exec pull`
+brings it back and compares three hashes per path - what was pushed, what is here now, what is there
+now. A file changed on both sides is a **conflict**: the local file is left alone, the row says so,
+and `--force` is an explicit act. Sending the project somewhere else must not be a way to lose the
+hour you spent here.
+
+Training is the same split: `train run --target local|remote` writes one row either way
+(`training_jobs.target`, `remote_job_id`), and the acceptance script asserts a remote run's
+perplexity is *equal* to a local run's, because the worker calls the same trainer. A sandbox is not
+a training target - `--target docker` is refused by name - because a trainer needs its dataset and
+its artifact inside the sandbox, which is a different milestone's work.
+
+What does not exist: image management (nothing is pulled, built or pruned), snapshots or rollback of
+a VM, interactive sessions or streaming output, file sync into containers/WSL/VMs, and any transfer
+of the database. `docs/EXECUTION.md` §8 and `GAPS.md` §Execution environments list the whole
+boundary.
+
 ## 4. Where this leaves the roadmap
 
-Built: M01–M37 (with the six honest `partial`s above), plus the Research completion model
-(§3.1). Next: **M38 Blender and 3D workflows**, which needs a Blender binary this machine does not
+Built: M01–M38 (with the seven honest `partial`s above), plus the Research completion model
+(§3.1). M38 was executed as **execution environments** rather than the brief's Blender milestone,
+because M36 and M37 both end by needing one ("run it on that machine instead"); Blender moves to
+M39. Next: **M39 Blender and 3D workflows**, which needs a Blender binary this machine does not
 have - so it will be scoped the way M34, M36 and M37 were: what can be measured and scripted is
 built, and the renderer is refused by name. The Research gaps in §3.1 remain the most valuable
 repair, and they no longer have an excuse: the runner and the record they needed now exist in the

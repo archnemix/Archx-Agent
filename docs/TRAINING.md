@@ -137,7 +137,7 @@ one method with a missing number gets neither a winner nor a silent gap.
   one link at a time, and the GUI is driven through `GuiApi.dispatch` over a real socket.
 * `scripts/acceptance_m36.sh`: 57 checks, including an **independent** perplexity implementation
   that must agree with the run's number to 1e-9.
-* `scripts/gui_smoke.mjs`: 17 tabs; the Train panel shows the metrics and the refusal card.
+* `scripts/gui_smoke.mjs`: 18 tabs; the Train panel shows the metrics and the refusal card.
 
 ## 8. What this does not do
 

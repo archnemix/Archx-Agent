@@ -22,14 +22,43 @@ This file records what is **not** true yet. If a feature is not listed as verifi
 
 ## Not built yet
 
-Milestones M38-M40 are not implemented: Blender/3D, automations and release hardening. M17-M37 are
+Milestones M39-M41 are not implemented: Blender/3D, automations and release hardening. M17-M38 are
 implemented and verified (see [PROGRESS.md](PROGRESS.md)); M33 (Play Mode), M34 (Voice and media),
-M35 (Dataset preparation), M36 (Training) and M37 (Remote compute) are deliberately small - three board games
-and one simulation; four container formats, three tables and a refusal chain; text corpora with a
-ledger - and none of them claims the "sandboxed tinkering", "voice in and out" or "training data
-pipeline" its milestone name suggests.
+M35 (Dataset preparation), M36 (Training), M37 (Remote compute) and M38 (Execution environments) are
+deliberately small - three board games and one simulation; four container formats, three tables and
+a refusal chain; text corpora with a ledger; two CPU trainers; a bundle and a worker that re-checks
+it; and a wrapper that is recorded rather than assumed - and none of them claims the "sandboxed
+tinkering", "voice in and out" or "training data pipeline" its milestone name suggests.
 The database schema already reserves tables for the rest (versions 5-8) so they can be added
 without renumbering.
+
+## Execution environments: what the sandbox does not promise
+
+* **`local` is not a sandbox.** It runs `sh -lc '<command>'` on this machine; the only control is the
+  permission centre (`shell.run` is a grant or an approval). The note on every local run says so.
+* **`wsl` is not a boundary.** It is a second Linux environment whose `/mnt/c` is your own disk. The
+  probe says this in the `isolation` column, and the row's note repeats it; do not read "it ran in
+  WSL" as containment.
+* **Windows Sandbox is `detached`.** `WindowsSandbox.exe` returns immediately, so there is no exit
+  code, no stdout and no streamed output - only a `.wsb` naming a log file the guest writes. The row
+  says `detached` rather than inventing a `0`.
+* **A container is only as isolated as its flags.** `docker` is invoked as `run --rm --network none
+  -v <cwd>:/work -w /work <image> sh -lc '<cmd>'`; `--network none` is the default but
+  `exec add docker --network bridge` deliberately turns it off, and the mounted directory is
+  writable from inside. The busybox `sh` in a slim image is not a hardened image, and nothing here
+  pulls, builds or prunes images.
+* **`vmware` and `virtualbox` run a command in a guest you prepared.** No snapshots are taken or
+  reverted, no guest is started or stopped, and no file is copied in - the command has to already be
+  able to do its work in the guest's own filesystem.
+* **`exec push`/`exec pull` work only against a `remote` target.** A container, WSL distribution or
+  VM is refused by name instead of pretending to copy files into something this process cannot see.
+* **Nothing streams.** A command's output arrives when it finishes (or at `execution.timeout`,
+  default 60 s), clipped at the tool layer's limit; there is no pty and no stdin.
+* **`execution.enabled` is off by default.** A command in a sandbox is still a command: the switch,
+  plus the `shell.run` grant, is what makes `exec run` start anything at all.
+* **The worker's `/exec` is a shell on someone's machine.** `--allow-exec` and `--token` exist for
+  that reason; anyone who can reach an open port on a worker can run commands there, and the token is
+  a shared secret compared in constant time - not per-user authentication.
 
 ## Per-mode limits
 
@@ -77,7 +106,7 @@ items**. Both are marked `partial` in PLAN.md rather than `done`.
 
 
 * **`initialization` layer is empty.** Startup prerequisite checks currently live in
-  `application/workspace.py`. The layer must earn its place or be deleted at M40.
+  `application/workspace.py`. The layer must earn its place or be deleted at M41 (hardening).
 * **Retrieval embeddings are lexical in this environment.** The default offline provider
   is `archx-hash-v1` (deterministic feature hashing). It is *not semantic*; the
   evaluation numbers in `docs/RETRIEVAL_EVAL.md` are therefore an upper bound for
@@ -141,7 +170,7 @@ items**. Both are marked `partial` in PLAN.md rather than `done`.
   replaying work belongs to M25/M26. A record could therefore be right about the plan and
   still be stale about the world by the time someone follows it.
 * **No retention for task/version history.** It is append-only by design; pruning arrives
-  with M40.
+  with M41 (hardening).
 * **Version content is stored twice** (the row and the replayable write journal); a 1 MiB
   version costs about 2 MiB.
 * **A task's `tools` list is what it used, not a plan.** Declared plans arrive with M25.
@@ -189,7 +218,7 @@ items**. Both are marked `partial` in PLAN.md rather than `done`.
   process keeps running (it is in its own session) while the job is recovered and re-run.
   The scheduler does not try to adopt or reap a process it did not start.
 * **No cron or `not_before` scheduling yet.** Jobs run as soon as a worker drains the queue;
-  calendar scheduling arrives with M39 automations.
+  calendar scheduling arrives with M40 automations.
 * **Pause granularity is a workflow step.** A running `command` job refuses `pause`; there
   is no checkpoint inside a command's execution.
 * **Unified search is keyword-only outside memory.** Only the memory source has an

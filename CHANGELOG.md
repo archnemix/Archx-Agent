@@ -12,6 +12,59 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
   if the read is not allowed, records the diff as partial with the reason. (`docs/GUI.md` already
   promised one request; now the code does too.)
 
+### Changed
+- **The roadmap's M38 is now execution environments**, and Blender, the automations and hardening
+  moved to M39-M41. M36 and M37 both ended by needing a place to run work, and nothing had been
+  built for those three, so the shift costs nothing (`PLAN.md` §Note on the M38-M41 numbering).
+- **A `local` execution run goes through a shell.** `exec run "echo a && echo b"` used to be refused
+  as "command not found: echo a" because the local backend treated the string as one argv; it now
+  runs `sh -lc '<command>'` (or `cmd /c` on Windows) like every other backend, so a command line
+  means the same thing everywhere - and the note says the local target has no isolation.
+- **A `docker` mount is absolute.** The invocation says
+  `-v /abs/path:/work` rather than `-v .:/work`, which meant "wherever docker was started".
+- **A worker's HTTP refusal is a refusal, not a network failure.** A 401 from `/exec` used to be
+  reported as `failed` with a URL error; the body is now read and the run is recorded as `refused`
+  with the reason the worker gave.
+
+### Added - M38, Execution environments and sandboxing
+
+- **Seven backends, one wrapper builder.** `local`, `remote`, `docker`, `wsl`, `windows-sandbox`,
+  `vmware` and `virtualbox` are known by name; `build_invocation` is a pure function per kind, its
+  result is stored on the run row and printed by `exec show`. A target that cannot run here is
+  recorded as `refused` with the reason and the command that would enable it, so "I set it up and it
+  did not work" is a row, not a memory.
+- **The wrapper is verified by a stand-in binary.** The acceptance script plants a shell script named
+  `docker` on `PATH` that appends its own `argv` to a file, then asserts `--rm`, `--network none`, the
+  absolute host mount, the image and `sh -lc '<command>'` are all there. A target that quietly ran the
+  command on this machine would fail that check rather than pass silently.
+- **Three exit codes that mean three different things.** `0` the command ran and succeeded, `1` it ran
+  and failed, `3` nothing ran (execution off, backend unusable, target refused, wrong token, missing
+  `shell.run` grant). A refusal stores every reason, costs nothing, and returns the approval id to
+  print when that is what is missing.
+- **WSL is labelled *not a boundary*** in the probe table itself - `/mnt/c` is your own disk - and
+  **Windows Sandbox records `detached`** rather than an invented exit code, with the generated `.wsb`
+  naming the log file the guest writes.
+- **`train run --target local|remote`.** One row either way (`training_jobs.target`,
+  `remote_job_id`), and a remote run's perplexity is *equal* to a local run's because the worker calls
+  the same `train_records()`. A sandbox is refused as a training target by name: a trainer needs its
+  dataset and artifact inside it, which is a different milestone's work.
+- **`exec push` / `exec pull` keep a hash ledger.** Every path records `sha256_local` and
+  `sha256_remote`; a pull compares base, local-now and remote-now, so a file edited on both sides is a
+  **conflict** with the local copy untouched and exit 3 - `--force` is an explicit act. Unchanged
+  files are skipped; the ledger is queryable with `exec files`.
+- **A worker that runs commands only when its operator says so.** `remote worker --allow-exec
+  --token <secret> --workdir <dir>`: without the flag `/exec` answers 403 naming it (training still
+  works), with a token every route requires `Authorization: Bearer` (constant-time compare), and a
+  `cwd` that escapes the workdir is refused. A wrong token is a *refusal* - the command did not run -
+  not a failure.
+- Metrics, output and the file ledger are stored; stdout and stderr are also written through
+  `fs.write`, so the evidence outlives the terminal.
+- Schema v28 adds `execution_targets`, `execution_runs` and `execution_files`, and adds `target` and
+  `remote_job_id` to `training_jobs`.
+- `execution.enabled` defaults to **false**: a command in a sandbox is still a command.
+- The GUI grew an eighteenth panel: the probe table with reasons, a command box with a target
+  chooser, the run ledger, and a run's invocation, output and refusal reasons.
+
 ### Added - M37, Remote compute and portability
 - **A bundle that identifies its input.** `remote export` writes one JSON document carrying the
   corpus, the M35 manifest checksum and the declared run, then hashes it. Each record carries two

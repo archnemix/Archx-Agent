@@ -246,6 +246,19 @@ Approve button, and one that is `received` is offered `Verify again`, not `Dispa
 
 ---
 
+## 7.1 Executing commands there, rather than training there
+
+M38 adds `/exec` and `/files` to the same worker (`docs/EXECUTION.md` §4). Two flags gate it, and
+both are the operator's decision rather than a default: `--allow-exec` (without it `/exec` answers
+403 naming the flag, while `/jobs` keeps working) and `--token` (bearer auth on every route). Commands
+run inside `--workdir`, and a `cwd` that would escape it is refused. `exec push`/`exec pull` move the
+project back and forth through `/files`, with a hash ledger on this side that makes a file edited in
+both places a conflict rather than a silent overwrite.
+
+The distinction that matters: training a model is *data* (a bundle the worker re-checks), while
+executing a command is *code running as the worker's user*. That is why one needs an approval to
+leave and the other needs an operator to say yes on the far side.
+
 ## 8. What this does not do
 
 - **No cloud.** No provider SDK, no credential handling, no billing, no queue. A worker is a process
@@ -254,10 +267,15 @@ Approve button, and one that is `received` is offered `Verify again`, not `Dispa
   no chunking, no resume, no compression.
 - **No multi-machine training.** One bundle, one worker, one result. There is no sharding or
   aggregation, and nothing here claims otherwise.
-- **No authentication on the worker and no TLS.** A worker on loopback is who it says; a worker
-  across a network is identified by the endpoint you typed and by the hash of the bytes it returned.
-  There is no signing key and no shared secret, so an open worker port is an open endpoint - use an
-  SSH tunnel or a private network (§1.1 step 3) rather than a public port.
+- **No per-user authentication and no TLS.** A worker on loopback is who it says; a worker across a
+  network is identified by the endpoint you typed and by the hash of the bytes it returned. For
+  training there is no signing key and no shared secret at all, so an open port is an open endpoint -
+  use an SSH tunnel or a private network (§1.1 step 3) rather than a public port. The one exception is
+  M38's `/exec` and `/files`, which are a shell and a file write on the worker's machine: both are
+  **off unless the worker was started with `--allow-exec`**, and both (along with `/jobs` and
+  `/health`) require the optional `--token` bearer secret, matched against `remote.worker_token`
+  here. A token is a shared secret, not an identity - see
+  [EXECUTION.md](EXECUTION.md) §4 and §8.
 - **No retries.** A failed dispatch stays failed; the honest recovery is to dispatch again, which
   adds a second attempt row rather than erasing the first.
 - **The worker runs this build's trainers only.** `ngram` and `centroid`. A bundle asking for `lora`

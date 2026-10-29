@@ -90,6 +90,7 @@ HttpOnly session cookie, and never keeps the token itself.
 | **Data** | create a dataset over source paths, scan, clean, split, build and verify, and read the record table *including the dropped rows with the rule that dropped them* | `DatasetService` - the same `scan`/`clean`/`split`/`build`/`verify` calls the CLI makes, with the same refusals (a leak across splits, a manifest that moved) |
 | **Remote** | bundle a dataset, approve it, dispatch to a worker, collect the artifact and see the two hashes side by side; only the actions the row allows are offered | `RemoteService` - the same `export`/`approve`/`dispatch`/`collect`/`verify` calls the CLI makes; a refusal is `200` with every reason and an attempt row |
 | **Train** | run an n-gram or centroid trainer, read the metrics per split, see the artifact hash - and read the fine-tune refusal as a card with every missing link listed | `TrainingService` - the same `run`/`view`/`metrics`/`preflight` calls the CLI makes; a refusal is `200` with the reasons, not an error |
+| **Exec** | the probe table (`here` and why not, for all seven backends), a command box with a target chooser, the run ledger, and a run's *invocation*, its output and its refusal reasons | `ExecutionService` - the same `probes`/`run`/`runs`/`push`/`pull` calls the CLI makes; execution being off is a `200` refusal with the command that turns it on |
 
 There are no placeholder controls. If a panel would need something this build does not have,
 the panel is not drawn: there is no "Settings" tab that pretends, no disabled "Train" button,
@@ -355,6 +356,20 @@ is the same three things the CLI prints: the metrics grouped by split, the prefl
 with `yes`/`no`, and - when the run was refused - a card headed *Refused, and why* listing every
 missing link in order. There is no spinner, no greyed-out button and no progress bar for a training
 job that cannot start.
+
+### The Exec panel, and the invocation it will not hide
+
+The panel is a probe table, a command box with a target chooser, a run ledger and a detail column.
+The detail column's first line is the **invocation** - the exact command line that executed, including
+`docker run --rm --network none -v … /work` or `wsl.exe -e sh -lc …` - because the whole feature is
+the claim that the command ran *there* and not here. A refused run shows the reasons the same way the
+CLI prints them, with the setting or flag that would fix it. `execution.enabled` being off is not an
+error in the page: it is a refusal card, and the same refusal the CLI gives.
+
+Two things the panel deliberately does not have: a spinner while a command runs (the request returns
+when the command does, or at the timeout) and a "copy files to the container" button (`push`/`pull`
+refuse anything but a `remote` target by name). Both would be a claim about work this build does not
+do.
 
 ### The Data panel, and the rows that are not in the dataset
 

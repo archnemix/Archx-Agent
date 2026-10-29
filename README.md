@@ -156,7 +156,8 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 | Datasets: candidates measured, cleaning that keeps its reasons, splits that do not move, a manifest that can fail | verified (M35) |
 | Training: two CPU trainers with real metrics and hashed artifacts; fine-tuning refused by name | verified, scoped (M36) |
 | Remote compute: a portable bundle with two digests per record, a worker that re-checks it, and an artifact hashed again on arrival | verified, scoped (M37 - no cloud, no vendor SDK) |
-| Blender, automations | **not built yet** (M38–M40, see PLAN.md) |
+| Execution environments: seven backends behind one recorded wrapper, a refusal with its reason, and a push/pull hash ledger that keeps a both-sides edit as a conflict | verified, scoped (M38 - WSL is not a boundary, Windows Sandbox is detached) |
+| Blender, automations | **not built yet** (M39–M41, see PLAN.md) |
 
 ## Design principles (enforced, not aspirational)
 
@@ -192,6 +193,8 @@ downloading weights; it never stands in for a real model in acceptance evidence.
 * [docs/SCHEDULER.md](docs/SCHEDULER.md) - durable jobs, deadlines, concurrency, pause/resume, crash recovery
 * [docs/TASKS.md](docs/TASKS.md) - task history, content versions, and what "reproducible" means
 * [docs/MCP.md](docs/MCP.md) - MCP client/server, transports, extensions and their trust boundary
+* [docs/EXECUTION.md](docs/EXECUTION.md) - execution backends, the recorded wrapper, push/pull
+  conflicts, and what `execution.enabled` does not promise
 * [docs/TOOLS.md](docs/TOOLS.md) - tool registry, capabilities, grants, approvals, sandbox
 * [docs/ROUTING.md](docs/ROUTING.md) - capability states, eligibility, probes, fallback
 * [docs/PROVIDERS.md](docs/PROVIDERS.md) - provider catalogue, privacy metadata, consent gates

@@ -1174,3 +1174,61 @@ be "portable" exactly between two machines that already share a filesystem. Carr
 `remote.max_chars` limit (200 000, refused rather than truncated) and buys the property that matters:
 the worker needs nothing but the request. The limit is honest - a real corpus needs a transfer
 mechanism this build does not have, and `GAPS.md` says so.
+
+**D183. "It ran in a sandbox" is a claim about a wrapper, so the wrapper is the feature.** The
+failure mode is not a sandbox that leaks; it is a target called `docker` that quietly runs the
+command on this machine. Everything in M38 follows from making that impossible to do by accident:
+`build_invocation` is one pure function, its result is stored on the run row (`invocation`), printed
+by `exec show`, and - the part that decides whether the tests are real - **read back from a stand-in
+binary**. The acceptance script writes a shell script named `docker` into a scratch `bin` directory,
+puts it on `PATH`, and asserts the argv it was handed contains `--rm`, `--network none`, the absolute
+host mount, the image and the command given to `sh -lc`. If the wrapper were ever changed to shell out
+differently, or bypassed, the file would be empty and the test would fail on the machine that cannot
+run docker at all.
+
+**D184. Three exit codes, because "did not run" is not "failed".** A script wrapping `exec run` has to
+distinguish three outcomes: the command ran and succeeded (0), the command ran and failed (1), and
+nothing ran at all (3) - execution off, backend unusable, target refused, wrong token, missing grant.
+Two codes would force a caller to parse prose to tell a failing test suite from a machine that never
+started it. Exit 2 is reserved for input that made no sense. The refusal is also a **row**: a refused
+run costs nothing and records every reason, so "why did nothing happen" is a query rather than a
+scroll-back.
+
+**D185. WSL is not a sandbox, and the probe table says so in its own column.** The temptation is to
+list `wsl` next to `docker` as containment, because both are "not Windows". But `/mnt/c` is the
+user's own disk: a command in WSL can delete anything the user can. So the `isolation` column reads
+**not a boundary**, the run's note repeats it, and the docs put it in the table rather than a
+footnote. A second Linux environment is genuinely useful - different libc, different packages - and
+calling it what it is costs nothing and prevents a category error. Windows Sandbox gets the same
+treatment from the other direction: it *is* containment, it just cannot report an exit code, so its
+status is `detached` rather than a fabricated `0`.
+
+**D186. A stored refusal must not outlive the fact that caused it.** `exec add docker` on this
+machine records the target as `refused` with "the docker CLI is not on PATH here". The first version
+of `blockers()` trusted that column, so installing docker later left the target refused forever - a
+stale sentence standing in for a fact. The probe is now authoritative: every run re-probes, the
+stored refusal is only an echo, and the acceptance script proves it by planting the binary after the
+refusal was written. This is the M30 lesson again (a refusal chain is computed, never cached) in a
+place where caching was invisible until the environment changed.
+
+**D187. Push and pull need a base, or "changed" has no meaning.** A pull that overwrites local files
+is a data-loss bug; a pull that refuses whenever the file differs is useless. The only way to decide
+is to remember what was pushed: `execution_files` keeps `sha256_local` and `sha256_remote` per path,
+so a pull compares three things - the base, the local file now, the remote file now - and a file
+edited on *both* sides is a **conflict** with the local copy untouched, exit 3, and `--force` as an
+explicit act. The ledger is the feature; the copy is a side effect.
+
+**D188. A sandbox is not a training target, and saying so is cheaper than pretending.** It is
+tempting to accept `train run --target docker` and quietly run the trainer on the CPU - the numbers
+would even be right. But then the row would say `docker` about something that never entered a
+container, which is precisely the lie D183 exists to prevent. So the flag accepts `local|remote`
+only and the parser names the choices: a trainer needs its dataset and its artifact *inside* the
+sandbox, and that is a different milestone's work. The user's own CPU is a legitimate target; it is
+just the one that must not be mislabelled.
+
+**D189. A worker's `/exec` is a shell on someone else's machine, so it is two opt-ins.** `--allow-exec`
+answers the question "may this worker run commands at all", and `--token` answers "who may ask". Both
+default to off/open respectively *in code* - the worker refuses `/exec` with the flag named until the
+operator turns it on - because the person who starts a worker is the person whose files a command can
+delete, and a default that assumes trust is a default that moves work onto them. `/jobs` (training)
+keeps working without either: a corpus is data, a command is not.
