@@ -19,3 +19,5 @@ model-download	ok	1
 serve	ok	1
 completion	ok	1
 sdk-matrix	ok	16
+ollama	ok	48
+tunnel	ok	10
