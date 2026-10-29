@@ -1251,3 +1251,11 @@ directory, not the test's: run the suite with a `docker` earlier on `PATH` and t
 real binary. A `stand_in` fixture now makes its own directory and prepends *that*, and depends on the
 workspace fixture so the prepend is the last word on `PATH`. A test that writes files should own the
 directory it writes into.
+
+
+**D192. A JSON parser is not a scene validator.** An edited document can parse successfully yet
+contain a scalar camera, NaN dimensions or thousands of valid primitives. Validate both persisted
+reads and candidate writes. Aggregate geometry budgets must be checked before allocation, not by
+building the meshes to count them. Refusing an invalid addition before file writes keeps the last
+valid document and its ledger intact. Tests exercise corrupt documents and verify that rejected
+mutations change neither files nor object rows.

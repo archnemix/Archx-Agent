@@ -18,6 +18,10 @@ milestone block rather than semantic-release cadence, because M01-M20 are one de
   validation remain pending; see `docs/SCENES.md`.
 
 ### Fixed
+- **Scene JSON is validated before geometry allocation and document writes.** Reject malformed
+  types, non-finite numbers, invalid camera bases, duplicate names, and oversized object/geometry
+  budgets. Invalid additions preserve the file and object rows. 53 scene tests pass; full suite
+  1921 passed. GUI checkpoint CI #22 is independently green (1894 tests, 49 scene checks).
 - **The M38 tests no longer assume docker is absent.** Two unit tests and four acceptance checks
   asserted that this machine has no docker CLI, which is true here and false on a CI runner - the
   first CI run failed on exactly that. Absence is now manufactured (`_which` is monkeypatched in the

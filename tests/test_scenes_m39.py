@@ -195,3 +195,73 @@ def test_cli_validation_exit_is_two(tmp_path, capsys):
     home = str(tmp_path / "home")
     assert main(["--home", home, "scene", "add", "missing", "cube", "--params", "["]) == 2
     assert "error" in capsys.readouterr().err.lower()
+
+
+@pytest.mark.parametrize("field,value", [
+    ("camera", None), ("objects", {}), ("format", "unknown"), ("units", "feet"),
+    ("engine", "unknown"), ("name", "line\nbreak"),
+    ("camera.fov", 0), ("camera.fov", float("nan")), ("camera.fov", True),
+    ("camera.resolution", [0, 480]), ("camera.resolution", [480.5, 480]),
+    ("camera.location", [0, 0]), ("camera.location", [0, 0, 0]),
+    ("camera.up", [0, 0, 0]), ("camera.up", [4, -4, 3]),
+    ("light.energy", -1), ("light.location", [1e100, 0, 0]),
+])
+def test_malformed_document_rejected(field, value):
+    from archx_agent.application.scenes import empty_document
+    from archx_agent.application.scene_validation import validate_document
+    doc = empty_document("demo")
+    if "." in field:
+        parent, key = field.split(".")
+        doc[parent][key] = value
+    else:
+        doc[field] = value
+    with pytest.raises(ValidationError):
+        validate_document(doc)
+
+
+@pytest.mark.parametrize("params,transform", [
+    ({"size": True}, {}), ({"size": "2"}, {}), ({"size": 1e100}, {}),
+    ({}, {"scale": [True, 1, 1]}), ({}, {"scale": "111"}),
+    ({}, {"rotation": [0, float("inf"), 0]}), ({}, {"scale": None}),
+])
+def test_invalid_add_leaves_file_and_rows_unchanged(ws, params, transform):
+    svc = ws.scene_workflow
+    svc.create("demo")
+    path = ws.tools.runtime.resolve("scenes/demo.json")
+    original = path.read_bytes()
+    with pytest.raises(ValidationError):
+        svc.add("demo", "cube", params=params, transform=transform)
+    assert path.read_bytes() == original
+    assert ws.scenes.objects(svc.scene("demo").id) == []
+
+
+def test_scene_budget_checked_without_generating_mesh(monkeypatch):
+    from archx_agent.application.scenes import empty_document
+    from archx_agent.application.scene_validation import validate_document
+    doc = empty_document("demo")
+    doc["objects"] = [{"name": f"torus{i}", "primitive": "torus", "params": {
+        "major_segments": 256, "minor_segments": 256}, "transform": {}} for i in range(4)]
+    monkeypatch.setattr(g, "build", lambda *args: pytest.fail("must not allocate a mesh"))
+    with pytest.raises(ValidationError, match="budget"):
+        validate_document(doc)
+    doc["objects"] = [{}] * 129
+    with pytest.raises(ValidationError, match="at most"):
+        validate_document(doc)
+
+
+def test_invalid_camera_rejected_before_create(ws):
+    with pytest.raises(ValidationError, match="camera"):
+        ws.scene_workflow.create("bad", camera={"fov": 0})
+    assert not ws.tools.runtime.resolve("scenes/bad.json").exists()
+    assert ws.scenes.scenes() == []
+
+
+def test_corrupt_document_api_returns_validation_error(ws):
+    from archx_agent.interfaces.gui.server import GuiApi, Request
+    scene = ws.scene_workflow.create("demo")
+    path = ws.tools.runtime.resolve("scenes/demo.json")
+    path.write_text("[]")
+    api = GuiApi(ws, token="token")
+    response = api.dispatch(Request(method="GET", path="/api/scenes/" + scene["id"],
+        query={}, headers={"x-archx-token": "token"}))
+    assert response.status == 400

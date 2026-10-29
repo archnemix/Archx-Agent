@@ -173,10 +173,11 @@ onward), with the reason each one is open and what would close it.
 
 1. M39 in progress: geometry, schema v29 scene ledger, scene service, CLI and GUI implemented.
    Six primitives, measured meshes, OBJ/STL/SVG/script exports, hash verification, and local Blender
-   command/refusal paths. `tests/test_scenes_m39.py`: 26 passed; full suite: 1894 passed in 506.58 s.
+   command/refusal paths. `tests/test_scenes_m39.py`: 53 passed; full suite: 1921 passed in 506.96 s.
    This is a foundation checkpoint, **not M39 completion**. 49 acceptance checks pass and are wired into CI; GUI smoke passes with 19 tabs.
-   Next: collect CI evidence, task/job integration review, stronger document validation and real
-   Blender compatibility checks.
+   CI #22 is green (21 steps, 1894 tests, 49 scene checks); evidence is saved in docs/ci.
+   Stronger document validation is now implemented (27 added checks) and awaits its own CI run.
+   Next: task/job integration review and real Blender compatibility checks.
    No real Blender render has been validated here. Scope and limitations: `docs/SCENES.md`.
 2. M40-M41 per PLAN.md (automations, then hardening).
 

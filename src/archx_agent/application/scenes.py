@@ -30,11 +30,11 @@ from __future__ import annotations
 import hashlib
 import uuid
 import json
-import math
 import shlex
 from typing import Any
 
 from archx_agent.application import geometry
+from archx_agent.application.scene_validation import validate_document
 from archx_agent.helpers.exceptions import (
     ApprovalRequiredError,
     NotFoundError,
@@ -112,7 +112,8 @@ class SceneService:
 
     # -- read / write the document ---------------------------------------
     def _write_document(self, document: dict[str, Any], path: str) -> str:
-        body = json.dumps(document, indent=2, sort_keys=True) + "\n"
+        validate_document(document)
+        body = json.dumps(document, indent=2, sort_keys=True, allow_nan=False) + "\n"
         self._execute(
             "fs.write", {"path": path, "content": body, "create_parents": True},
             f"writing scene {document.get('name')}",
@@ -130,6 +131,7 @@ class SceneService:
             document = json.loads(text)
         except ValueError as exc:
             raise ValidationError(f"{scene.path} is not valid scene JSON: {exc}") from exc
+        validate_document(document)
         probe = self._execute("fs.probe", {"path": scene.path}, "hashing scene document").result or {}
         return document, str(probe.get("sha256") or "")
 
@@ -184,7 +186,9 @@ class SceneService:
         if not name:
             raise ValidationError("a scene needs a name")
         document = empty_document(name)
-        if camera:
+        if camera is not None:
+            if not isinstance(camera, dict):
+                raise ValidationError("camera must be a JSON object")
             document["camera"].update(camera)
         path = self._document_path(name)
         if any(item.name == name or item.path == path for item in self.manager.scenes()):
@@ -231,38 +235,19 @@ class SceneService:
     ) -> dict[str, Any]:
         scene = self.scene(wanted)
         document, _checksum = self._read_document(scene)
-        try:
-            mesh = geometry.build(primitive, params or {})
-        except ValueError as exc:
-            raise ValidationError(str(exc)) from exc
+        if not isinstance(primitive, str) or (name is not None and not isinstance(name, str)):
+            raise ValidationError("primitive and name must be strings")
         object_name = (name or primitive).strip()
-        if any((item.get("name") or "") == object_name for item in document.get("objects") or []):
-            raise ValidationError(
-                f"this scene already has an object called {object_name!r}; names are how an object "
-                "is referred to"
-            )
-        transform = dict(transform or {})
-        if set(transform) - {"location", "rotation", "scale"}:
-            raise ValidationError("unknown transform field")
-        for key in ("location", "rotation", "scale"):
-            value = transform.get(key)
-            if value is not None:
-                try:
-                    values = [float(v) for v in value]
-                except (TypeError, ValueError) as exc:
-                    raise ValidationError(f"transform.{key} takes three finite numbers") from exc
-                if len(values) != 3 or not all(math.isfinite(v) for v in values):
-                    raise ValidationError(f"transform.{key} takes three finite numbers")
-                transform[key] = values
+        transform = {} if transform is None else transform
+        params = {} if params is None else params
+        document["objects"].append({
+            "name": object_name, "primitive": primitive, "params": params, "transform": transform,
+        })
+        # Validate the complete candidate before generating any new mesh or changing disk/rows.
+        validate_document(document)
+        mesh = geometry.build(primitive, params)
         world = mesh.transformed(geometry.transform_matrix(transform))
         metrics = geometry.metrics(world)
-        document.setdefault("objects", []).append({
-            "name": object_name,
-            "primitive": primitive,
-            "params": {key: float(value) if isinstance(value, float) else value
-                       for key, value in (params or {}).items()},
-            "transform": transform,
-        })
         checksum = self._write_document(document, scene.path)
         self.manager.add_object(
             scene_id=scene.id, name=object_name, primitive=primitive,

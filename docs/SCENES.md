@@ -1,8 +1,8 @@
 # Scenes and Blender — M39 foundation
 
 **In progress, not milestone-complete.** Geometry, persistence, CLI, the Scenes GUI tab and a
-self-checking acceptance script are implemented. The script is wired into CI; the current run's
-result must be checked separately. No real Blender render has been validated in this environment.
+self-checking acceptance script are implemented. The GUI/API checkpoint is green in CI run #22 (21 steps). Document validation
+was added afterward and its new CI result must be checked separately. No real Blender render has been validated in this environment.
 
 ## CLI
 
@@ -85,14 +85,15 @@ actual renderer compatibility validation remain follow-up work.
 
 ## Checkpoint evidence
 
-- `tests/test_scenes_m39.py`: **26 passed** (geometry, topology, export bytes/hashes, drift, duplicate
+- `tests/test_scenes_m39.py`: **53 passed** (geometry, topology, export bytes/hashes, drift, duplicate
   paths, refusal recording, no-PNG zero-exit failure, CLI, binary dry run and root escape refusal).
-- Full suite after GUI/API integration: **1894 passed in 506.58 seconds**.
+- Full suite after GUI/API integration: **1921 passed in 506.96 seconds**.
 - Focused M38/tool/scene regression run before four additional scene tests: **151 passed**.
 - `bash scripts/acceptance_m39.sh`: **49 checks passed, 0 failed**, using the shipped CLI,
   reading export bytes independently, corrupting a file and recording a stand-in's argv.
 - GUI smoke: **19 tabs**, including scene list, add, wireframe image and render refusal.
-- No real Blender render and no new CI success claimed for this checkpoint.
+- CI run #22 on `a63016d`: **21 steps green**, **1894 tests**, **49 scene checks**.
+  This predates the additional validation tests. No real Blender render is claimed.
 
 ## GUI and API
 
@@ -113,3 +114,19 @@ Authenticated routes share `SceneService` and its tool permissions:
 
 A render refusal is an application result, not a transport error. Its recorded reason is displayed
 in the status area. The GUI does not auto-enable execution or bypass capability approval.
+
+
+## Document validation
+
+Both persisted JSON reads and candidate writes validate scene format, units, names, primitive
+parameters, transforms, camera, resolution, light and engine. Malformed externally edited JSON
+returns a domain validation error rather than reaching geometry generation or producing a GUI 500.
+Numeric fields must be actual finite numbers (not booleans or numeric strings), with magnitude at
+most 1,000,000. Camera field of view is 1–179 degrees and resolution is two integers of 64–4096.
+The camera must have distinct location/target and a nonzero, nonparallel up-vector.
+
+A document permits at most 128 objects, with a conservative aggregate budget of 200,000 vertices
+and 400,000 triangles, checked without allocating those meshes. Bad candidate additions are
+rejected before file writes or object-row insertion. These limits bound the built-in workflow;
+they do not make a Blender subprocess a security sandbox. Zero scale remains allowed as a
+degenerate mesh; the topology flag alone does not imply useful solid geometry.

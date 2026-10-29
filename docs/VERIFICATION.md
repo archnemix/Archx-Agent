@@ -5058,3 +5058,11 @@ stand-in records its received argv and exits zero without producing a PNG; that 
 render, not a success. This is invocation evidence, **not evidence of an actual Blender render**.
 The workflow runs this acceptance as `scenes-acceptance`; run #22 is green (21 steps), with
 1894 tests on the runner and 49/49 scene checks. Evidence is in `docs/ci/`.
+
+
+### M39 document validation follow-up
+
+Local full suite: **1921 passed in 506.96 seconds**. Scene tests: **53 passed**; CLI acceptance
+remains **49 checks passed, 0 failed**. Added cases cover corrupt document shape, numeric types,
+camera degeneracy, invalid primitive additions with unchanged file/rows, and geometry budgets
+validated without generating meshes. This code follows green CI #22; its own CI result is pending.
