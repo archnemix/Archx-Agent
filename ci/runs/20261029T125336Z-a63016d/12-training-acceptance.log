@@ -7,3 +7,82 @@ M36 acceptance on /tmp/archx-m36-ScqLP7
 [ok]   the reserved columns survive the adoption = 8
 [ok]   a fresh home has run nothing = 0
 [ok]   and says plainly it cannot fine-tune = False
+
+### a run is not attempted until the dataset can support one
+[ok]   an unsplit dataset is not runnable = False
+[ok]   and the reason names the missing split = True
+[ok]   the preflight exits 3 (cannot), not 0 = 3
+[ok]   a split but unbuilt dataset still fails = False
+[ok]   and the reason names the build = True
+[ok]   a built, split, verified dataset is runnable = True
+[ok]   every check is a row = True
+[ok]   including the manifest = True
+
+### an n-gram model is trained here, and its perplexity is arithmetic
+[ok]   the run completed = completed
+[ok]   it trained on the dataset it names = ds_0001m63w7e7e000000006df539406883697e
+[ok]   train, val and test were each scored = 3
+[ok]   perplexity is recorded per split = 3
+[ok]   the metrics are rows, not a blob = 9
+[ok]   the artifact is a file on disk = yes
+[ok]   its recorded hash is the file's hash = 6292e50b4193a51c6029db444cba87d481ef0917380ae35a41e88c1b4ae2087e
+[ok]   the artifact says what it is = ngram
+[ok]   the artifact is versioned = versioned
+[ok]   an independent implementation gets the same perplexity = True
+
+### a classifier is trained here, and predicts a label this script knows
+[ok]   the classifier completed = completed
+[ok]   it labelled from the directory and said so = 1
+[ok]   it saw two labels = 2.0
+[ok]   accuracy is a fraction between 0 and 1 = True
+[ok]   a rust-shaped document predicts rust = rust
+[ok]   a python-shaped document predicts python = python
+
+### fine-tuning is refused with every missing link, in order
+[ok]   asking for a fine-tune exits 3 = 3
+[ok]   the refusal is a row = refused
+[ok]   the first reason is the switch = True
+[ok]   the last is the missing adapter = True
+[ok]   turning training on removes exactly one reason = 1
+[ok]   and the switch is no longer the first reason = False
+[ok]   the library and the GPU are named = True
+[ok]   a refused run has no artifact = 0
+[ok]   and cannot be predicted from = 2
+
+### a comparison names what it could not rank
+[ok]   two n-gram runs rank on val perplexity = True
+[ok]   a mixed comparison names no winner = None
+[ok]   and says why = True
+[ok]   a refused run is listed with its status = True
+
+### the counters agree with the rows
+[ok]   jobs = 5
+[ok]   completed = 3
+[ok]   metrics = 27
+$ archx-agent train list
+id                                       method    status     dataset                                  artifact                                            created                 
+---------------------------------------  --------  ---------  ---------------------------------------  --------------------------------------------------  ------------------------
+tj_0001m63w7myt000000008a9acf751cd9fb32  ngram     completed  ds_0001m63w7e7e000000006df539406883697e  tj_0001m63w7myt000000008a9acf751cd9fb32.model.json  2026-10-29T13:05:20.346Z
+tj_0001m63w7kv600000000433490c6a39c04e6  qlora     refused    ds_0001m63w7e7e000000006df539406883697e  -                                                   2026-10-29T13:05:19.206Z
+tj_0001m63w7jpc00000000f89f3463d7a6d7ca  lora      refused    ds_0001m63w7e7e000000006df539406883697e  -                                                   2026-10-29T13:05:18.029Z
+tj_0001m63w7hq200000000abbfc37d06f7e9f5  centroid  completed  ds_0001m63w7e7e000000006df539406883697e  tj_0001m63w7hq200000000abbfc37d06f7e9f5.model.json  2026-10-29T13:05:17.026Z
+tj_0001m63w7gx500000000c16fbca71fca4433  ngram     completed  ds_0001m63w7e7e000000006df539406883697e  tj_0001m63w7gx500000000c16fbca71fca4433.model.json  2026-10-29T13:05:16.197Z
+[exit 0]
+
+### the page is a client of the same service
+[ok]   the page lists the runs the CLI made = 5
+[ok]   the page says it cannot fine-tune = False
+[ok]   a run started in the page is a row the CLI reads = 1
+[ok]   the metrics endpoint returns the same numbers = True
+[ok]   a refusal over HTTP is a 200 with the reasons = True
+[ok]   an unknown run is a 404 = 404
+[ok]   an unauthenticated call is refused = 401
+[ok]   the preflight route answers the same question = False
+
+### the record survives a restart
+[ok]   the completed run is still completed = completed
+[ok]   the metrics are still the ones measured = ['test', 'train', 'val']
+[ok]   the artifact path is still recorded = yes
+[ok]   and the refusal is still a refusal = refused
+
+M36 acceptance: 57 checks passed, 0 failed
