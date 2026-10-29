@@ -1,10 +1,11 @@
 # Progress
 
 Last updated: M38 complete and scoped (Execution environments and sandboxing), 1868 tests, eight
-acceptances. Before that: M37 (Remote compute and portability, scoped, CI run #18 green with 19
-steps), M36 (Training and model modification, scoped), M35 (Dataset preparation), M34 (Voice and
-media, scoped), M33 (Play Mode), M32 (Experimental Mode), M31 (Coding workspace), M30 (Learning
-Mode), research completion, eight vendor SDKs and a second wire protocol (Gemini). Next: M39.
+acceptances, CI run #21 green with 20 steps. Before that: M37 (Remote compute and portability,
+scoped, CI run #18 green with 19 steps), M36 (Training and model modification, scoped), M35
+(Dataset preparation), M34 (Voice and media, scoped), M33 (Play Mode), M32 (Experimental Mode), M31
+(Coding workspace), M30 (Learning Mode), research completion, eight vendor SDKs and a second wire
+protocol (Gemini). Next: M39.
 
 ## Verified in this session
 

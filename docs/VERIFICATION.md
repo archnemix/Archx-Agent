@@ -4860,6 +4860,20 @@ run #16 20261028T181313Z-e098a06   all 17 steps ok; 1720 tests in 320 s, 91 stre
                                   88/88, 72/72). The dataset acceptance writes its corpus on the
                                   runner, so every hash it checks is arithmetic on content the run
                                   chose - and the manifest is then broken by an edit and a delete
+run #21 20261029T110209Z-ee4dcc6   all 20 steps ok; 1868 tests in 520 s, 91 stress/edge, 11
+                                  integration, and eight acceptances (48/48, 53/53, 69/69,
+                                  88/88, 72/72, 57/57, 71/71, 65/65) - the commit that carries
+                                  M38. The execution acceptance plants a stand-in `docker` on a
+                                  two-entry PATH and reads the recorded argv back, so the wrapper
+                                  is checked on a runner that has a *real* docker too
+run #20 20261029T103134Z-49086f8   **2 failed, 1866 passed**, and the execution acceptance failed
+                                  three checks: this was the first M38 run, and ten checks
+                                  assumed this machine has no docker CLI. The runner ships
+                                  docker. Fixed by manufacturing the absence instead of
+                                  asserting it (`THINKING.md` D190) - the failed run is kept here
+                                  because that is what it is evidence of
+run #19 20261029T101851Z-4b4ec37   cancelled by the trigger push that started #20 (the same
+                                  concurrency rule as #7, #9 and #11)
 run #18 20261029T090730Z-cce5eef   all 19 steps ok; 1819 tests in 461 s, 91 stress/edge, 11
                                   integration, and seven acceptances (48/48, 53/53, 69/69, 88/88,
                                   72/72, 57/57, 71/71) - the commit that carries M37. The remote
