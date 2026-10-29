@@ -1,0 +1,34 @@
+$ bash scripts/acceptance_m33.sh
+M33 acceptance on /tmp/archx-m33-TZAVWU
+
+### the schema adopts the tables the earlier milestones reserved
+[ok]   play is a versioned migration = 1
+[ok]   games and game_moves exist = 2
+[ok]   simulations have their own table = 1
+[ok]   a fresh home has played nothing = 0
+
+### a game is a board the rules build
+[ok]   new game is a row = 1
+[ok]   new game is open = open
+[ok]   the default game comes from configuration = tictactoe
+[ok]   tic-tac-toe starts with nine legal moves = 9
+[ok]   and it is X to move = X
+
+### a legal move moves the board; the log says so
+[ok]   move accepted = 0
+[ok]   move is a row = 1
+[ok]   the row is legal = 1
+[ok]   the row carries a state hash = 16
+[ok]   the board holds the X in the centre = 1
+
+### a refused move is kept, and changes nothing
+[ok]   the refused move exits 2 = 2
+[ok]   it says the square is taken = square 5 is taken
+[ok]   it is written down as illegal = 0
+[ok]   with the reason = square 5 is taken
+[ok]   the refusal is numbered from the move count, not from the log = 2
+[ok]   the move count did not advance = 1
+[ok]   history counts the refusal = 1
+[ok]   history counts the acceptance = 1
+
+### a finished game is finished

@@ -4,3 +4,6 @@ step	status	seconds
 install	ok	23
 pytest	FAIL(1)	523
 stress-edge	ok	48
+integration	ok	21
+coding-acceptance	ok	15
+experiment-acceptance	ok	12
