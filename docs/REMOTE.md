@@ -19,8 +19,8 @@ There is no vendor SDK in this build, no credentials, and nothing that will bill
 is a second process - on this machine or another one - running:
 
 ```text
-archx-agent remote worker --port 9001 --name box2
-archx-agent remote worker --port 9001 --bind 0.0.0.0     # explicitly, if you mean it
+archx-agent remote worker --port 9001 --name box2                    # loopback only (default)
+archx-agent remote worker --host 0.0.0.0 --port 9001 --name box2      # reachable from elsewhere
 ```
 
 The worker has no database, no tools, no permissions and no workspace. Everything it needs is in the
@@ -34,6 +34,71 @@ sentence; "the cloud computed this" would not be.
 no cloud provider is reachable from this build: a worker is a second machine (or a second
 process) running `archx-agent remote worker`, and nothing here talks to a vendor's compute service
 ```
+
+### 1.1 Adding a machine that is not this one
+
+This is the case people mean by "remote": a VM, a rented box, a machine on the LAN. The recipe is
+four steps, and the third is the one that decides whether it is safe.
+
+**1. Put this build on the machine.** The worker needs Python 3.11 and this package - nothing else.
+No GPU, no torch, no database, no `archx-agent init`, no home directory:
+
+```bash
+git clone <this repo> && cd Archx-Agent && ./scripts/bootstrap.sh
+# or, into an existing environment:
+python -m pip install -e .
+```
+
+**2. Start the worker there**, bound to the interface you want it reachable on:
+
+```bash
+archx-agent remote worker --host 0.0.0.0 --port 9001 --name render-box-1
+# archx worker render-box-1 on http://0.0.0.0:9001 speaking archx-remote/1
+```
+
+**3. Make the port reachable - preferably through a tunnel, not a hole.** The worker has **no
+authentication and no TLS**: anyone who can reach that port can submit a bundle and make the machine
+work. So the honest options, best first:
+
+```bash
+# a. SSH tunnel from this machine; the port never opens to the world
+ssh -N -L 9001:127.0.0.1:9001 user@vm.example.com     # then endpoint = http://127.0.0.1:9001
+
+# b. a private network (WireGuard, tailscale, a VPC) and an allowlist in the cloud firewall
+
+# c. a public port, which only makes sense behind your own reverse proxy doing TLS + auth
+```
+
+Option (a) is what this build's own acceptance run does in spirit: the client talks HTTP to a port
+that only it can reach. Nothing in the protocol requires the worker to be local.
+
+**4. Point this machine at it and run the lifecycle:**
+
+```bash
+archx-agent config set remote.enabled true
+archx-agent config set remote.endpoint http://127.0.0.1:9001
+archx-agent remote export DATASET --order 3
+archx-agent remote approve rj_…
+archx-agent remote dispatch rj_…          # --endpoint URL overrides remote.endpoint for one job
+archx-agent remote collect rj_…
+```
+
+The record then says `endpoint http://… computed this`, with the machine name the worker reported
+(`--name`), the protocol, and both hashes - so a result is traceable to *which* box produced it.
+
+### 1.2 What actually executes over there
+
+`train_records()` on the bundle: an `ngram` or `centroid` run over the records the bundle carried.
+That is the whole vocabulary. There is **no way to run a shell command on the remote machine** -
+`shell.run`, jobs and workflows all execute locally, in this process's sandbox, through the
+permission centre. "Remote execution" here means *remote training on a bundle you hashed*, not
+"send my job somewhere else and get my own code back". A bundle asking for `lora` is refused by the
+worker for the same reason the local command refuses it: the trainer does not exist in this build.
+
+What that costs you today: the corpus has to fit in `remote.max_chars` (200 000 characters), the
+transfer is one JSON document with no resume, and there is no queue on the far side - a worker that
+dies mid-run leaves the job `dispatched` until you dispatch again (which adds an attempt row rather
+than erasing the first).
 
 ---
 
@@ -189,9 +254,10 @@ Approve button, and one that is `received` is offered `Verify again`, not `Dispa
   no chunking, no resume, no compression.
 - **No multi-machine training.** One bundle, one worker, one result. There is no sharding or
   aggregation, and nothing here claims otherwise.
-- **No authentication of the worker beyond its address.** A worker on loopback is who it says; a
-  worker across a network is identified by the endpoint you typed and by the hash of the bytes it
-  returned. There is no signing key.
+- **No authentication on the worker and no TLS.** A worker on loopback is who it says; a worker
+  across a network is identified by the endpoint you typed and by the hash of the bytes it returned.
+  There is no signing key and no shared secret, so an open worker port is an open endpoint - use an
+  SSH tunnel or a private network (§1.1 step 3) rather than a public port.
 - **No retries.** A failed dispatch stays failed; the honest recovery is to dispatch again, which
   adds a second attempt row rather than erasing the first.
 - **The worker runs this build's trainers only.** `ngram` and `centroid`. A bundle asking for `lora`
