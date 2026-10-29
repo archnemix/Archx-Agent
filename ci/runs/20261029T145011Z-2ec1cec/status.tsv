@@ -6,3 +6,7 @@ pytest	ok	529
 stress-edge	ok	49
 integration	ok	20
 coding-acceptance	ok	17
+experiment-acceptance	ok	11
+play-acceptance	ok	14
+voice-acceptance	ok	14
+dataset-acceptance	ok	13
