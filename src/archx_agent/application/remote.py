@@ -56,11 +56,6 @@ def _sha(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def canonical(payload: dict[str, Any]) -> str:
-    """A stable serialisation, so the bundle's hash does not depend on key order."""
-    return json.dumps(payload, sort_keys=True, separators=(",", ":"))
-
-
 class RemoteService:
     """Export a portable bundle, dispatch it, and check what comes back."""
 

@@ -105,16 +105,6 @@ def endpoint(port: int) -> str:
     return f"http://127.0.0.1:{port}"
 
 
-class LyingWorker:
-    """A worker that answers with an artifact whose hash it misreports."""
-
-    def __init__(self) -> None:
-        self.requests: list[dict] = []
-
-    def stamp(self, job_id: str, bundle_sha256: str) -> None:  # pragma: no cover - unused
-        pass
-
-
 # --------------------------------------------------------------------------
 # 1. the ledger
 # --------------------------------------------------------------------------
@@ -436,12 +426,6 @@ class TestWhatAResultIsWorth:
     def liar(self):
         """A worker that returns a correct artifact but a *wrong* hash for it."""
         worker = Worker(name="liarbox")
-
-        class Handler:
-            pass
-
-        worker.liar = True  # marker read by the patched result below
-
         server = make_server(worker, port=0)
         original = worker.result
 
