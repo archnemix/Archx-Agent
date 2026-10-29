@@ -1,0 +1,8 @@
+$ bash -c 
+  sudo apt-get update -qq
+  sudo apt-get install -y -qq libxrender1 libxxf86vm1 libxfixes3 libxi6 libxkbcommon0 libsm6 libice6 libgl1
+  python -m venv "$RUNNER_TEMP/blender-env"
+  "$RUNNER_TEMP/blender-env/bin/pip" install -q -e . bpy==4.2.0 "numpy<2"
+  "$RUNNER_TEMP/blender-env/bin/python" scripts/blender_real_check.py
+
+{"png_bytes": 4883, "renderer": "official bpy 4.2 / Cycles CPU", "resolution": [64, 64], "sha256": "ffe179acb67b8ab98b66feee3e6012151ea3a03292fa2e394e82ec87ea215e1f", "status": "verified"}

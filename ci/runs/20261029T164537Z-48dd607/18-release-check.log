@@ -1,0 +1,5 @@
+$ bash -c 
+  python -m pip install -q build wheel "setuptools>=68"
+  bash scripts/release_check.sh
+
+* Getting build dependencies for sdist...

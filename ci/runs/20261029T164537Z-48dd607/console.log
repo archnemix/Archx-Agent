@@ -1283,3 +1283,106 @@ $ archx-agent scene export demo script [exit 0]
 [ok] script recorded byte count
 [ok] script recorded hash
 [ok] script uses OBJ import
+$ archx-agent scene verify demo [exit 0]
+[ok] expected CLI exit
+[ok] fresh scene verifies
+$ archx-agent scene verify demo [exit 3]
+[ok] expected CLI exit
+[ok] modified export fails verification
+$ archx-agent scene export demo obj [exit 0]
+[ok] expected CLI exit
+$ archx-agent scene verify demo [exit 0]
+[ok] expected CLI exit
+[ok] latest export is verification baseline
+$ archx-agent scene render demo [exit 3]
+[ok] expected CLI exit
+[ok] missing Blender is a recorded refusal
+$ archx-agent scene create demo [exit 2]
+[ok] expected CLI exit
+$ archx-agent scene show demo [exit 0]
+[ok] expected CLI exit
+[ok] duplicate create leaves objects intact
+$ archx-agent config set blender.executable /tmp/archx-m39-hUUmo6/scene-case-3cv9tkcl/fake blender [exit 0]
+[ok] expected CLI exit
+$ archx-agent config set execution.enabled true [exit 0]
+[ok] expected CLI exit
+$ archx-agent scene render demo [exit 1]
+[ok] expected CLI exit
+[ok] stand-in was executed
+[ok] zero exit without a PNG is not success
+[ok] Blender flags reached binary
+[ok] script path is absolute and exists
+$ archx-agent scene remove demo cube [exit 0]
+[ok] expected CLI exit
+$ archx-agent scene show demo [exit 0]
+[ok] expected CLI exit
+[ok] remove recomputes totals
+$ archx-agent tasks start --type tool --title Scene acceptance [exit 0]
+[ok] expected CLI exit
+$ archx-agent scene create linked --task tk_0001m649hx3v000000007a26c2e9dda2f92d [exit 0]
+[ok] expected CLI exit
+[ok] scene has task artifact
+$ archx-agent scene add linked cube [exit 0]
+[ok] expected CLI exit
+$ archx-agent scene export linked obj [exit 0]
+[ok] expected CLI exit
+[ok] export attached to same task
+$ archx-agent tasks artifacts tk_0001m649hx3v000000007a26c2e9dda2f92d [exit 0]
+[ok] expected CLI exit
+[ok] task lists document and mesh artifacts
+$ archx-agent scene create invalid-task --task missing [exit 1]
+[ok] expected CLI exit
+[ok] unknown task left no scene document
+M39 acceptance: 59 checks passed, 0 failed
+=== automation-acceptance ===============================================
+$ bash scripts/acceptance_m40.sh
+[ok] exit for automation add
+[ok] starts disabled
+[ok] exit for automation tick
+[ok] disabled tick enqueues nothing
+[ok] exit for automation enable
+[ok] exit for automation tick
+[ok] one occurrence enqueued
+[ok] tick does not execute
+[ok] exit for automation serve
+[ok] no execution without grant
+[ok] exit for automation runs
+[ok] refusal observed from job
+[ok] exit for permissions grant
+[ok] exit for automation add
+[ok] exit for automation enable
+[ok] exit for automation serve
+[ok] real command side effect
+[ok] exit for automation runs
+[ok] completion is observed
+[ok] exit for automation tick
+[ok] one-shot does not repeat
+[ok] exit for automation add
+[ok] exit for permissions grant
+[ok] exit for automation add
+[ok] exit for automation enable
+[ok] exit for automation tick
+[ok] unchanged watch quiet
+[ok] exit for automation tick
+[ok] changed watch enqueues
+[ok] exit for automation tick
+[ok] unchanged hash not repeated
+[ok] exit for automation disable
+[ok] exit for automation show
+[ok] disable persists
+M40 acceptance: 34 checks passed, 0 failed
+=== blender-real ===============================================
+$ bash -c 
+  sudo apt-get update -qq
+  sudo apt-get install -y -qq libxrender1 libxxf86vm1 libxfixes3 libxi6 libxkbcommon0 libsm6 libice6 libgl1
+  python -m venv "$RUNNER_TEMP/blender-env"
+  "$RUNNER_TEMP/blender-env/bin/pip" install -q -e . bpy==4.2.0 "numpy<2"
+  "$RUNNER_TEMP/blender-env/bin/python" scripts/blender_real_check.py
+
+{"png_bytes": 4883, "renderer": "official bpy 4.2 / Cycles CPU", "resolution": [64, 64], "sha256": "ffe179acb67b8ab98b66feee3e6012151ea3a03292fa2e394e82ec87ea215e1f", "status": "verified"}
+=== release-check ===============================================
+$ bash -c 
+  python -m pip install -q build wheel "setuptools>=68"
+  bash scripts/release_check.sh
+
+* Getting build dependencies for sdist...

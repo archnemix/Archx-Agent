@@ -13,3 +13,6 @@ dataset-acceptance	ok	13
 training-acceptance	ok	13
 remote-acceptance	ok	14
 execution-acceptance	ok	15
+scenes-acceptance	ok	8
+automation-acceptance	ok	6
+blender-real	ok	33
