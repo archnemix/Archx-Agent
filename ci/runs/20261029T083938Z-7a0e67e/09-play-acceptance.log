@@ -1,0 +1,61 @@
+$ bash scripts/acceptance_m33.sh
+M33 acceptance on /tmp/archx-m33-SxW9VQ
+
+### the schema adopts the tables the earlier milestones reserved
+[ok]   play is a versioned migration = 1
+[ok]   games and game_moves exist = 2
+[ok]   simulations have their own table = 1
+[ok]   a fresh home has played nothing = 0
+
+### a game is a board the rules build
+[ok]   new game is a row = 1
+[ok]   new game is open = open
+[ok]   the default game comes from configuration = tictactoe
+[ok]   tic-tac-toe starts with nine legal moves = 9
+[ok]   and it is X to move = X
+
+### a legal move moves the board; the log says so
+[ok]   move accepted = 0
+[ok]   move is a row = 1
+[ok]   the row is legal = 1
+[ok]   the row carries a state hash = 16
+[ok]   the board holds the X in the centre = 1
+
+### a refused move is kept, and changes nothing
+[ok]   the refused move exits 2 = 2
+[ok]   it says the square is taken = square 5 is taken
+[ok]   it is written down as illegal = 0
+[ok]   with the reason = square 5 is taken
+[ok]   the refusal is numbered from the move count, not from the log = 2
+[ok]   the move count did not advance = 1
+[ok]   history counts the refusal = 1
+[ok]   history counts the acceptance = 1
+
+### a finished game is finished
+[ok]   the game is finished = finished
+[ok]   and it names the winner = X
+[ok]   a move after the end is refused = 2
+[ok]   and is not logged = 0
+
+### the engine may only choose from the legal moves
+[ok]   connect four starts with seven columns = 7
+$ archx-agent play engine gm_0001m63dkd8y00000000fc1d044dcc1bd784
+[ok]   the engine move was accepted = True
+[ok]   it is in the log as a legal move = 1
+[ok]   playing it out finishes the game = finished
+[ok]   no engine move was ever refused = 0
+[ok]   the game ended inside the board = 15
+
+### the engine is checked against the rules, not against an opinion
+[ok]   60 games of engine play, no illegal move = 0
+[ok]   and plenty of moves were actually checked = 1
+
+### nim's strategy is the one it claims
+[ok]   after the engine's first move the heaps XOR to zero = 0
+
+### a game can be abandoned without losing its moves
+[ok]   resign sets the status = abandoned
+[ok]   and the winner it was told = O
+[ok]   the move is still readable = 1
+
+### an unknown game is refused with the list
