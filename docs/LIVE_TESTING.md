@@ -9,11 +9,21 @@ because that URL was created by GitHub Actions.
 
 ## Current session
 
-The 4-bit session is starting in
-[GitHub run 41206423857](https://github.com/archnemix/Archx-Agent/actions/runs/41206423857).
-It publishes its link only after real inference checks and an actual streamed browser
-conversation, follow-up, saved-history reload and verification-chat cleanup pass.
-The prior Q6 session is superseded, not the requested current model.
+The verified 4-bit session is running in
+[GitHub run 41207241054](https://github.com/archnemix/Archx-Agent/actions/runs/41207241054).
+[Download the current preview link](https://github.com/archnemix/Archx-Agent/actions/runs/41207241054/artifacts/13045360924),
+open `preview-link.txt` in the ZIP, then open its authenticated Cloudflare link.
+The small model is preselected; no API key is needed. Use this runner-hosted app,
+not the normal sandbox preview, for real inference.
+
+The session started around 13:51 UTC on 31 October 2026 and stays up for 90 minutes
+unless cancelled. It is disposable shared test hosting, not a permanent endpoint.
+[Real-model evidence](https://github.com/archnemix/Archx-Agent/actions/runs/41207241054/artifacts/13044539980)
+contains loaded quantization metadata, the actual two-turn conversation and a browser
+screenshot. Real inference, streamed browser replies, final-save acknowledgement,
+persisted reload and test-chat cleanup passed before publishing the link. The
+transcript is evidence of returned answers, not a claim that the tiny model's
+reasoning or recall is high-quality. Prior session links are superseded.
 
 ## Temporary real-model session
 

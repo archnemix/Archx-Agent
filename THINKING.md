@@ -51,3 +51,7 @@ returned by an async browser predicate. Reproduce failures with a bounded local
 fixture first; do not rerun large downloads blindly. The app now flushes at reply
 completion, and the runner gate observes the final persistence response before
 reload. This does not certify model answer quality merely because text was returned.
+
+The corrected Q4 gate passed with real weights on the runner. Keep evidence and
+quantization metadata separate from model-quality claims. Give the user the current
+link, state its expiry and shared-session privacy limits, and keep acceptance open.

@@ -87,3 +87,11 @@ Node. Completed replies also flush saves immediately rather than waiting for the
 normal debounce. The fixture reproduction and all 33 regressions pass. A fresh
 real-model run will verify the correction before publishing a session link; its
 startup gate also checks Ollama reports exactly Q4_K_M, not just a filename claim.
+
+Q4 result: **run 41207241054 passed** loaded-Q4_K_M metadata, real inference and the
+actual browser chat/follow-up/save/reload/cleanup gate. The link and evidence artifacts
+are recorded in the live-testing guide. The runner remains active for the user's
+90-minute test window. Local Memory/chat browser checks also passed again with zero
+page errors; all 33 Node regressions pass. No extra duplicate regression suite was
+added, and no full feature is marked user-accepted. The earlier failed runs remain
+recorded as failures, not counted as usable sessions.

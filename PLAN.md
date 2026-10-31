@@ -43,3 +43,6 @@ Q4 handoff verification: confirm actual quantization metadata, both real-model
 answers through the UI, save acknowledgement, reload, and clean test-chat removal.
 Do not publish a failed session as ready. Continue checking locally as well as
 waiting for user feedback; the user's acceptance remains the final feature gate.
+
+Q4 handoff gate passed in run 41207241054. Keep testing independently and address
+user feedback on this feature; do not require the user to find every defect first.
