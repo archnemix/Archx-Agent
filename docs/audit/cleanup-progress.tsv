@@ -1,0 +1,37 @@
+original_file	baseline_accepted	current_state	evidence
+managers/memory.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+managers/context.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+managers/learning.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+managers/providers.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+application/researcher.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+application/workspace.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+managers/tasks.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+managers/permissions.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+managers/jobs.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+managers/tools.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+managers/workflows.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+adapters/sdk_transport.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+application/execution.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+application/training.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+application/datasets.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+application/coding.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+managers/models.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+managers/conversation.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+adapters/http_runtime.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+adapters/local_tools.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+application/geometry.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+application/remote_worker.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+adapters/mcp_client.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+managers/mcp.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+managers/extensions.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+managers/reproduction.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+interfaces/mcp_server.py	yes	accepted historical checkpoint	refactor-contracts.tsv; historical gates retained in AUDIT.md
+application/agent.py	no	accepted final local gate	orchestration-contracts.json; final full regression, acceptances, architecture and wheel pass; provenance limitations in AUDIT.md
+application/experiments.py	no	accepted final local gate	orchestration-contracts.json; final full regression, acceptances, architecture and wheel pass; provenance limitations in AUDIT.md
+application/learning.py	no	accepted final local gate	orchestration-contracts.json; final full regression, acceptances, architecture and wheel pass; provenance limitations in AUDIT.md
+application/router.py	no	accepted final local gate	orchestration-contracts.json; final full regression, acceptances, architecture and wheel pass; provenance limitations in AUDIT.md
+application/scenes.py	no	accepted final local gate	orchestration-contracts.json; final full regression, acceptances, architecture and wheel pass; provenance limitations in AUDIT.md
+interfaces/cli/commands/learning.py	no	accepted final local gate	orchestration-contracts.json; final full regression, acceptances, architecture and wheel pass; provenance limitations in AUDIT.md
+interfaces/cli/commands/models.py	no	accepted final local gate	orchestration-contracts.json; final full regression, acceptances, architecture and wheel pass; provenance limitations in AUDIT.md
+interfaces/gui/server.py	no	accepted final local gate	orchestration-contracts.json; final full regression, acceptances, architecture and wheel pass; provenance limitations in AUDIT.md
+managers/research.py	no	accepted final local gate	orchestration-contracts.json; final full regression, acceptances, architecture and wheel pass; provenance limitations in AUDIT.md

@@ -1,0 +1,433 @@
+name: model matrix
+
+# Runs a real, tiny, 4-bit model on a runner and drives every vendor SDK Archx supports
+# against it - then publishes **its own logs back into the repository**, so the run can be
+# read with nothing but `git fetch`.
+#
+# Why a push trigger instead of workflow_dispatch: dispatching through the API needs an
+# `actions: write` token, and this project's automation only has `contents`. A push is
+# something we can always do. Change `.ci/trigger` and the run happens.
+#
+# Why logs are committed: the same token cannot read the Actions API, but it can read `git`.
+# Every step writes `$LOGDIR/NN-name.log`; a background publisher pushes the folder to the
+# `ci-logs` branch every ~45 s while the job runs, and a final publisher runs even on failure.
+# Read a run with:
+#
+#   git fetch origin ci-logs && git show FETCH_HEAD:ci/runs/<run-id>/status.tsv
+#   ./scripts/ci_logs.sh                 # the same thing, with a summary
+#
+# Cost: one ~15 minute job per trigger. Change the trigger file, not the source, to re-run.
+
+on:
+  push:
+    paths:
+      - ".ci/trigger"
+      - ".github/workflows/model-matrix.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write      # to push the logs branch
+  actions: read
+
+# One run at a time, newest wins. The first run of this workflow hung on the serve step for nine
+# minutes (a backgrounded server held the step's pipe open), which is exactly the case a cancel
+# is for: the next push should free the runner, not queue behind it.
+concurrency:
+  group: model-matrix
+  cancel-in-progress: true
+
+env:
+  # the automatic token is not exported by default, and the log publisher needs it to push
+  GITHUB_TOKEN: ${{ github.token }}
+  PYTHONUNBUFFERED: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  LOG_BRANCH: ci-logs
+  MODEL_REPO: bartowski/SmolLM2-135M-Instruct-GGUF
+  MODEL_FILE: SmolLM2-135M-Instruct-Q4_K_M.gguf
+  PORT: "8080"
+
+jobs:
+  matrix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # ---------------------------------------------------------------- logging
+      - name: set up the log folder
+        run: |
+          RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-${GITHUB_SHA:0:7}"
+          echo "RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
+          LOGDIR="$RUNNER_TEMP/logs"
+          mkdir -p "$LOGDIR"
+          echo "LOGDIR=$LOGDIR" >> "$GITHUB_ENV"
+          printf 'run\t%s\ncommit\t%s\nbranch\t%s\nstarted\t%s\n' \
+            "$RUN_ID" "$GITHUB_SHA" "$GITHUB_REF_NAME" "$(date -u +%FT%TZ)" > "$LOGDIR/meta.tsv"
+          printf '# run %s\n\nstep\tstatus\tseconds\n' "$RUN_ID" > "$LOGDIR/status.tsv"
+          cat "$LOGDIR/meta.tsv"
+
+      # every step goes through this: it logs, it records the exit code, and it keeps going.
+      # A run that stops at the first failure answers one question; a run that finishes
+      # answers all of them.
+      - name: define the step runner
+        run: |
+          cat > "$RUNNER_TEMP/run.sh" <<'SH'
+          #!/usr/bin/env bash
+          # usage: run.sh <name> <command...>
+          name="$1"; shift
+          log="$LOGDIR/$(printf '%02d' "$(wc -l < "$LOGDIR/status.tsv")")-$name.log"
+          started=$(date +%s)
+          echo "=== $name ===============================================" >> "$LOGDIR/console.log"
+          # a cap per step: without it a hung command waits for the 50-minute job limit, and the
+          # log folder stops updating, which looks identical to a slow step.
+          { echo "\$ $*"; timeout "${STEP_TIMEOUT:-900}" "$@" 2>&1; } | tee -a "$log" "$LOGDIR/console.log"
+          code=${PIPESTATUS[0]}
+          took=$(( $(date +%s) - started ))
+          printf '%s\t%s\t%s\n' "$name" "$([ "$code" -eq 0 ] && echo ok || echo "FAIL($code)")" "$took" >> "$LOGDIR/status.tsv"
+          echo "[$name] exit $code in ${took}s"
+          # exit 0 on purpose: a failed check is recorded, not fatal, so one run reports
+          # every problem instead of only the first. The `verdict` step fails the job.
+          exit 0
+          SH
+          chmod +x "$RUNNER_TEMP/run.sh"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      # ------------------------------------------------------------ the publisher
+      - name: define the publisher
+        run: |
+          cat > "$RUNNER_TEMP/publish.sh" <<'SH'
+          #!/usr/bin/env bash
+          # Push the current log folder to $LOG_BRANCH. Best effort: a failed publish must never
+          # fail the job, and a concurrent publish must never interleave commits (hence the lock).
+          set -u
+          [ -d "$LOGDIR" ] || exit 0
+          for _ in $(seq 1 30); do mkdir /tmp/publish.lock 2>/dev/null && break; sleep 1; done
+          trap 'rmdir /tmp/publish.lock 2>/dev/null' EXIT
+          # per-job scratch: a reused runner must not inherit another run's clone
+          work="${RUNNER_TEMP:-/tmp}/archx-publish"
+          if [ ! -d "$work/.git" ]; then
+            rm -rf "$work"; mkdir -p "$work"; cd "$work" || exit 0
+            git init -q -b "$LOG_BRANCH"
+            git config user.email "ci@archx.local"
+            git config user.name "Archx CI"
+            git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+            git fetch -q --depth 1 origin "$LOG_BRANCH" 2>/dev/null && \
+              git checkout -q -B "$LOG_BRANCH" FETCH_HEAD
+          fi
+          cd "$work" || exit 0
+          mkdir -p "ci/runs/$RUN_ID"
+          # keep the tree small: a log is evidence, not an archive
+          for f in "$LOGDIR"/*.log "$LOGDIR"/*.tsv "$LOGDIR"/*.txt "$LOGDIR"/*.json; do
+            [ -f "$f" ] || continue
+            tail -c 120000 "$f" > "ci/runs/$RUN_ID/$(basename "$f")"
+          done
+          cp "$LOGDIR/status.tsv" "ci/runs/$RUN_ID/status.tsv" 2>/dev/null
+          # a heartbeat each cycle: a stale timestamp is how a stuck run looks from outside
+          date -u +%FT%TZ > "ci/runs/$RUN_ID/heartbeat.txt"
+          git add -A ci/runs >/dev/null 2>&1
+          git commit -q -m "ci: ${RUN_ID} ${1:-update}" >/dev/null 2>&1 || exit 0
+          git push -q origin "$LOG_BRANCH" >/dev/null 2>&1 || exit 0
+          exit 0
+          SH
+          chmod +x "$RUNNER_TEMP/publish.sh"
+          # watch it live: a copy lands in the repo about every 45 seconds
+          ( while true; do sleep 45; "$RUNNER_TEMP/publish.sh" "live" ; done ) &
+          echo "PUBLISHER_PID=$!" >> "$GITHUB_ENV"
+
+      # ------------------------------------------------------------------ checks
+      - name: install
+        run: |
+          run.sh install bash -c '
+            python -m pip install -e ".[dev,sdks]" || exit 1
+            # name the one that is missing instead of a bare ModuleNotFoundError
+            python - <<PY
+          import importlib
+          missing = []
+          for name in ("archx_agent", "openai", "anthropic", "google.genai", "mistralai",
+                       "groq", "together", "cohere", "ollama"):
+              try:
+                  importlib.import_module(name)
+              except Exception as exc:
+                  missing.append(f"{name}: {type(exc).__name__}")
+          print("all eight clients import" if not missing else "MISSING " + ", ".join(missing))
+          raise SystemExit(1 if missing else 0)
+          PY
+          '
+
+      - name: unit tests
+        run: run.sh pytest python -m pytest -o addopts="" -q
+
+      # The three suites below are the ones that need something the others do not: raw sockets
+      # and threads (stress), a hostile client (edge cases), and a real subprocess doing a real
+      # round trip (integration). They are separate steps so their timings are legible on the
+      # runner; a 400-second "unit tests" row hides a suite that took half of it.
+      - name: stress and the hostile client
+        run: run.sh stress-edge python -m pytest tests/system/test_stress.py tests/system/test_edge_cases.py -o addopts="" -q
+
+      - name: end to end across the cli, the gui and sqlite
+        run: run.sh integration python -m pytest tests/system/test_integration.py -o addopts="" -q
+
+      # The coding workspace, driven the way a person would use it: a real project, a real
+      # pytest run that fails and then passes, and the page writing a file the CLI then reads.
+      - name: coding workspace acceptance
+        run: run.sh coding-acceptance bash scripts/acceptance_m31.sh
+
+      # Experimental Mode: declared commands and parameters, real runs, a comparison that names
+      # the runs it could not rank. The metrics are read from the declared source or not at all.
+      - name: experimental mode acceptance
+        run: run.sh experiment-acceptance bash scripts/acceptance_m32.sh
+
+      # Play Mode: games the rules referee and simulations that can be replayed. The engine is
+      # checked by asking the rules on sixty games, and a doctored hash is made to fail its own
+      # replay rather than be believed.
+      - name: play mode acceptance
+        run: run.sh play-acceptance bash scripts/acceptance_m33.sh
+
+      # Voice and media: the containers are generated on the runner one byte at a time, so the
+      # widths, sample rates and durations are read back from headers this run wrote. The refusal
+      # chain is checked by flipping the switch and counting the reasons; a transcript claiming a
+      # source other than a person is refused by the database itself.
+      - name: voice and media acceptance
+        run: run.sh voice-acceptance bash scripts/acceptance_m34.sh
+
+      # Dataset preparation: the corpus is written on the runner, so the hashes are arithmetic on
+      # content the run chose. A resaved document is refused across splits, a manifest is broken by
+      # an edit and by a delete, and the page drives the same pipeline over HTTP.
+      - name: dataset acceptance
+        run: run.sh dataset-acceptance bash scripts/acceptance_m35.sh
+
+      # Training: two trainers that really run are checked against an independent implementation
+      # of the same arithmetic, and the fine-tune chain is shortened one link at a time. A refusal
+      # is a row, and a refused run has no artifact to predict from.
+      - name: training acceptance
+        run: run.sh training-acceptance bash scripts/acceptance_m36.sh
+
+      # Remote: a bundle whose hash is the hash of its bytes, three refusals before anything leaves,
+      # a real worker on a loopback port, and a lying worker whose result must not verify.
+      - name: remote acceptance
+        run: run.sh remote-acceptance bash scripts/acceptance_m37.sh
+
+      # Execution: `exec run` must really change where a command runs, so every unusable backend is
+      # refused by name, a stand-in `docker` on PATH records the argv it was handed (proving the
+      # wrapper is there), a worker refuses without `--allow-exec` and refuses a wrong token, and a
+      # file edited on both sides is a conflict rather than a silent overwrite.
+      - name: execution acceptance
+        run: run.sh execution-acceptance bash scripts/acceptance_m38.sh
+
+      # Scene geometry is generated here and export bytes are inspected independently. A stand-in
+      # Blender proves argv transport but produces no PNG: zero exit must not become render success.
+      - name: scenes acceptance
+        run: run.sh scenes-acceptance bash scripts/acceptance_m39.sh
+
+      - name: automation acceptance
+        run: run.sh automation-acceptance bash scripts/acceptance_m40.sh
+
+      - name: real Blender CPU render
+        run: |
+          run.sh blender-real bash -c '
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq libxrender1 libxxf86vm1 libxfixes3 libxi6 libxkbcommon0 libsm6 libice6 libgl1
+            python -m venv "$RUNNER_TEMP/blender-env"
+            "$RUNNER_TEMP/blender-env/bin/pip" install -q -e . bpy==4.2.0 "numpy<2"
+            "$RUNNER_TEMP/blender-env/bin/python" scripts/blender_real_check.py
+          '
+
+      - name: clean wheel release check
+        run: |
+          run.sh release-check bash -c '
+            python -m pip install -q build wheel "setuptools>=68"
+            bash scripts/release_check.sh
+          '
+
+      - name: sdk catalogue
+        run: run.sh sdks archx-agent models sdks
+
+      - name: install llama.cpp
+        run: |
+          run.sh llama-cpp bash -c '
+            set -u
+            mkdir -p "$HOME/llama"; server=""
+            for page in 1 2; do
+              asset="$(gh api "repos/ggml-org/llama.cpp/releases?per_page=10&page=$page" \
+                --jq ".[].assets[].browser_download_url" 2>/dev/null \
+                | grep -E "/llama-b[0-9]+-bin-ubuntu-x64\.tar\.gz$" | head -1 || true)"
+              [ -n "$asset" ] && break
+            done
+            if [ -n "${asset:-}" ]; then
+              echo "prebuilt: $asset"
+              curl -fsSL "$asset" -o /tmp/llama.tar.gz && tar -xzf /tmp/llama.tar.gz -C "$HOME/llama" || true
+              server="$(find "$HOME/llama" -name llama-server -type f | head -1)"
+            fi
+            if [ -z "$server" ]; then
+              echo "no prebuilt binary; building from source"
+              git clone --depth 1 https://github.com/ggml-org/llama.cpp /tmp/llama-src
+              cmake -S /tmp/llama-src -B /tmp/llama-src/build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF
+              cmake --build /tmp/llama-src/build --target llama-server -j "$(nproc)"
+              server=/tmp/llama-src/build/bin/llama-server
+            fi
+            [ -x "$server" ] || { echo "no llama-server binary"; exit 1; }
+            chmod +x "$server"; "$server" --version
+            echo "LLAMA_SERVER=$server" >> "$GITHUB_ENV"
+          '
+
+      - name: fetch the model
+        run: |
+          run.sh model-download bash -c '
+            mkdir -p "$HOME/model"
+            target="$HOME/model/$MODEL_FILE"
+            if [ ! -s "$target" ]; then
+              curl -fL --retry 3 -o "$target.part" \
+                "https://huggingface.co/$MODEL_REPO/resolve/main/$MODEL_FILE"
+              mv "$target.part" "$target"
+            fi
+            ls -lh "$target"
+            head -c 4 "$target" | grep -q GGUF || { echo "not a GGUF file"; exit 1; }
+            echo "MODEL_PATH=$target" >> "$GITHUB_ENV"
+          '
+
+      - name: serve it
+        run: |
+          run.sh serve bash -c '
+            # Detach *all three* descriptors. A backgrounded server that inherits the closing
+            # pipeline keeps the tee pipe open, so run.sh waits forever even after the check
+            # here is done - the first run of this workflow hung on exactly this line.
+            setsid "$LLAMA_SERVER" --model "$MODEL_PATH" --host 127.0.0.1 --port "$PORT" \
+              --ctx-size 512 --n-gpu-layers 0 --threads 2 --parallel 1 \
+              --no-warmup --log-file "$RUNNER_TEMP/llama.log" \
+              > "$RUNNER_TEMP/llama.out" 2>&1 < /dev/null &
+            echo $! > "$RUNNER_TEMP/llama.pid"
+            for i in $(seq 1 180); do
+              curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 && { echo "up after ${i}s"; exit 0; }
+              sleep 1
+            done
+            tail -40 "$RUNNER_TEMP/llama.log"; exit 1
+          '
+
+      - name: the model really answers
+        run: |
+          run.sh completion bash -c '
+            curl -sS -H "Content-Type: application/json" --max-time 120 \
+              -d "{\"model\":\"local\",\"messages\":[{\"role\":\"user\",\"content\":\"In one short sentence, what is a tunnel?\"}],\"max_tokens\":48}" \
+              "http://127.0.0.1:$PORT/v1/chat/completions" > "$LOGDIR/completion.json"
+            python - <<PY
+          import json, os, pathlib
+          data = json.loads(pathlib.Path(os.environ["LOGDIR"], "completion.json").read_text())
+          text = data["choices"][0]["message"]["content"].strip()
+          usage = data.get("usage", {})
+          print("text:", text)
+          print("usage:", usage)
+          assert text, "empty reply"
+          pathlib.Path(os.environ["LOGDIR"], "model-proof.json").write_text(json.dumps({"text": text, "usage": usage}, indent=2))
+          PY
+          '
+
+      - name: every SDK against that model
+        run: |
+          run.sh sdk-matrix ./scripts/remote_model.sh "http://127.0.0.1:${PORT}"
+
+      - name: a real Ollama daemon (its own client needs its own protocol)
+        # an image pull plus a model pull is legitimately slow; the step cap is raised, not removed
+        env:
+          STEP_TIMEOUT: "1500"
+        run: |
+          run.sh ollama bash -c '
+            set -u
+            docker run -d --name ollama -p 11434:11434 ollama/ollama:latest || exit 1
+            for i in $(seq 1 90); do
+              curl -fsS http://127.0.0.1:11434/api/tags >/dev/null 2>&1 && break
+              sleep 2
+            done
+            docker exec ollama ollama pull smollm2:135m || exit 1
+            curl -sS http://127.0.0.1:11434/api/tags
+            # the ollama client against a real daemon; smollm2 is the name the daemon knows
+            REMOTE_MODEL=smollm2:135m ./scripts/remote_model.sh http://127.0.0.1:11434 --sdk ollama \
+              | tee -a "$LOGDIR/console.log"
+            # and through Archx itself: a keyless local daemon is the one case where a model
+            # is ready with no credential, so this also proves that rule on a real daemon.
+            export ARCHX_PATHS_HOME="$RUNNER_TEMP/archx-ollama"
+            archx-agent init >/dev/null
+            archx-agent models add-sdk --name ollama-local --sdk ollama \
+              --model smollm2:135m --base-url http://127.0.0.1:11434
+            archx-agent models probe ollama-local --capability chat
+            archx-agent chat --stream --message "Name one colour." --model ollama-local
+          '
+
+      - name: a public URL through Cloudflare
+        env:
+          STEP_TIMEOUT: "900"
+        run: |
+          run.sh tunnel bash -c '
+            set -u
+            curl -fsSL -o "$RUNNER_TEMP/cloudflared" \
+              https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+            chmod +x "$RUNNER_TEMP/cloudflared"
+            "$RUNNER_TEMP/cloudflared" tunnel --no-autoupdate --url "http://127.0.0.1:$PORT" \
+              > "$RUNNER_TEMP/tunnel.log" 2>&1 &
+            echo $! > "$RUNNER_TEMP/tunnel.pid"
+            url=""
+            for i in $(seq 1 90); do
+              url="$(grep -oE "https://[a-z0-9-]+\.trycloudflare\.com" "$RUNNER_TEMP/tunnel.log" | head -1 || true)"
+              [ -n "$url" ] && break; sleep 1
+            done
+            [ -n "$url" ] || { tail -40 "$RUNNER_TEMP/tunnel.log"; exit 1; }
+            echo "url=$url" | tee "$LOGDIR/tunnel-url.txt"
+            for i in $(seq 1 60); do
+              curl -fsS --max-time 5 "$url/health" >/dev/null 2>&1 && break; sleep 2
+            done
+            code="$(curl -sS --max-time 60 -o "$LOGDIR/public.json" -w "%{http_code}" \
+              -H "Content-Type: application/json" \
+              -d "{\"model\":\"local\",\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}],\"max_tokens\":16}" \
+              "$url/v1/chat/completions")"
+            echo "public chat HTTP $code"; head -c 400 "$LOGDIR/public.json"
+            [ "$code" = "200" ] || exit 1
+            # and through a vendor SDK, over the public URL, from this runner
+            python - "$url" <<PY
+          import sys
+          from openai import OpenAI
+          client = OpenAI(api_key="local-model-no-key", base_url=sys.argv[1] + "/v1")
+          reply = client.chat.completions.create(
+              model="local", messages=[{"role": "user", "content": "Say hi in three words."}],
+              max_tokens=24, timeout=90,
+          )
+          print("openai SDK via the public URL:", reply.choices[0].message.content.strip())
+          PY
+          '
+
+      - name: verdict
+        run: |
+          # count only rows that carry a verdict; the file has a comment line and a header
+          fail="$(awk -F'\t' '$2 ~ /^(ok|FAIL)/ && $2 != "ok" {n++} END {print n+0}' "$LOGDIR/status.tsv")"
+          printf '\n### steps\n' >> "$LOGDIR/console.log"
+          cat "$LOGDIR/status.tsv" | tee -a "$LOGDIR/console.log"
+          echo "failed=$fail" >> "$LOGDIR/console.log"
+          if [ "$fail" -gt 0 ]; then
+            echo "::error::$fail step(s) failed; read ci/runs/$RUN_ID/status.tsv"
+            echo "FAILED=$fail" >> "$GITHUB_ENV"
+          else
+            echo "all steps passed"
+          fi
+
+      - name: publish the logs
+        if: always()
+        run: |
+          kill "$PUBLISHER_PID" 2>/dev/null || true
+          rm -rf /tmp/publish.lock
+          printf 'finished\t%s\nfailed\t%s\n' "$(date -u +%FT%TZ)" "${FAILED:-0}" >> "$LOGDIR/meta.tsv"
+          "$RUNNER_TEMP/publish.sh" "final" || true
+          {
+            echo "## model matrix ${RUN_ID}"
+            echo ""
+            echo '```'
+            cat "$LOGDIR/status.tsv"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: fail the job if a step failed
+        if: always() && env.FAILED != ''
+        run: |
+          echo "::error::$FAILED step(s) failed"
+          exit 1

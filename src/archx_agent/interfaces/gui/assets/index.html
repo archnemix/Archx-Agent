@@ -1,0 +1,986 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Archx Agent</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23000'/%3E%3Cpath d='M16 5 26 26h-5.2l-1.9-4.3h-5.8L11.2 26H6Zm0 8.6-2 4.6h4Z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/chat.css">
+</head>
+<body>
+
+<div class="app" id="app">
+  <aside class="sidebar">
+    <div class="side-top">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><rect width="32" height="32" rx="8"/><path d="M16 5 26 26h-5.2l-1.9-4.3h-5.8L11.2 26H6Zm0 8.6-2 4.6h4Z"/></svg>
+        <span class="brand-name">Archx Agent<span class="tiny dim" id="version">–</span></span>
+      </div>
+      <button id="rail-toggle" class="icon-btn" type="button" title="Close sidebar" aria-label="Close sidebar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h16"/></svg>
+      </button>
+    </div>
+
+    <button id="chat-new" class="btn new-chat" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> New chat</button>
+    <nav id="tabs" class="page-nav" aria-label="Workspaces">
+      <button class="tab" data-view="chat" type="button" title="Chat">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
+        <span>Chat</span>
+      </button>
+      <button class="tab" data-view="search" type="button" title="Search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m19 19-4-4"/></svg>
+        <span>Search</span>
+      </button>
+      <button class="tab" data-view="models" type="button" title="Models">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+        <span>Models</span>
+      </button>
+      <details class="workspace-menu" id="workspace-menu">
+        <summary>Tools &amp; workspaces <span>⌄</span></summary>
+        <div class="workspace-items">
+      <button class="tab" data-view="research" type="button" title="Reports from supplied sources; autonomous web chat is not implemented">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.3-4.3"/></svg>
+        <span>Research reports</span>
+      </button>
+      <button class="tab" data-view="learning" type="button" title="Learning">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h6a3 3 0 0 1 3 3v11a3 3 0 0 0-3-3H4z"/><path d="M20 5h-2a3 3 0 0 0-3 3v11"/></svg>
+        <span>Learning</span>
+      </button>
+      <button class="tab" data-view="voice" type="button" title="Voice">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        <span>Voice</span>
+      </button>
+      <button class="tab" data-view="data" type="button" title="Data">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg>
+        <span>Data</span>
+      </button>
+      <button class="tab" data-view="train" type="button" title="Train">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17V9m5 8V5m5 12v-6m5 6V7"/></svg>
+        <span>Train</span>
+      </button>
+      <button class="tab" data-view="remote" type="button" title="Remote">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></svg>
+        <span>Remote</span>
+      </button>
+      <button class="tab" data-view="automations" type="button" title="Automations">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><span>Automations</span>
+      </button>
+      <button class="tab" data-view="scenes" type="button" title="Scenes">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5v9l-9 5-9-5V8Zm0 10 9-5M12 13 3 8m9 5v9"/></svg>
+        <span>Scenes</span>
+      </button>
+      <button class="tab" data-view="exec" type="button" title="Exec">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></svg>
+        <span>Exec</span>
+      </button>
+      <button class="tab" data-view="code" type="button" title="Code">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 8-4 4 4 4M15 8l4 4-4 4"/></svg>
+        <span>Code</span>
+      </button>
+      <button class="tab" data-view="experiments" type="button" title="Experiments">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6.5L5.5 18a2 2 0 0 0 1.8 3h9.4a2 2 0 0 0 1.8-3L14 9.5V3"/><path d="M7.5 15h9"/></svg>
+        <span>Experiments</span>
+      </button>
+      <button class="tab" data-view="play" type="button" title="Play">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 4v16"/></svg>
+        <span>Play</span>
+      </button>
+      <button class="tab" data-view="tasks" type="button" title="Tasks">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1.6 1.6L8.4 4.8M4 12l1.6 1.6L8.4 10.8M4 18l1.6 1.6L8.4 16.8"/></svg>
+        <span>Tasks</span>
+      </button>
+      <button class="tab" data-view="jobs" type="button" title="Jobs">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+        <span>Jobs</span>
+      </button>
+      <button class="tab" data-view="access" type="button" title="Access">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        <span>Access</span>
+      </button>
+      <button class="tab" data-view="memory" type="button" title="Memory">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4c-3.3 0-5.5 2-5.5 4.2S8.5 11 8.5 12s-2 1.6-2 3.8S8.7 20 12 20s5.5-2 5.5-4.2-2-2.6-2-3.8 2-1.6 2-3.8S15.3 4 12 4Z"/><path d="M12 4v16"/></svg>
+        <span>Memory</span>
+      </button>
+      <button class="tab" data-view="status" type="button" title="Status">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l4.5-5.5 3.2 3.2L16 8l4 9"/></svg>
+        <span>Status</span>
+      </button>
+        </div>
+      </details>
+    </nav>
+
+            <section class="conversation-history" aria-label="Conversation history">
+              <div class="picker-head">
+                <span class="picker-label">Conversations</span>
+                <button id="chat-conv-refresh" class="icon-btn" type="button" title="Refresh the conversation list" aria-label="Refresh the conversation list">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+                </button>
+              </div>
+              <ul id="chat-conversations" class="list"></ul>
+            </section>
+    <div class="side-foot">
+      <div class="foot-row">
+        <button id="theme-toggle" class="icon-btn" type="button" title="Switch theme" aria-label="Switch between dark, light and soft themes">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+        </button>
+        <span id="conn" class="conn-state">starting</span>
+      </div>
+      <div class="privacy-note">
+        <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        <span id="footer-note">local only · this page talks to nothing but this server</span>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <button id="workspace-sidebar-toggle" class="icon-btn" type="button" aria-label="Show workspaces and conversations" aria-expanded="false">☰</button>
+      <span class="crumb">Archx / <b id="crumb-view">Chat</b></span>
+      <span class="topbar-sep" aria-hidden="true"></span>
+      <div id="mode-tools" class="tools" aria-label="What this mode can do"></div>
+      <div class="top-actions">
+        <button id="reload-view" class="icon-btn" type="button" title="Reload this view" aria-label="Reload this view">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <main id="views">
+      <!-- ───────────── chat ───────────── -->
+      <section class="page" id="view-chat">
+        <header class="page-head chat-header">
+          <button id="chat-sidebar-toggle" class="icon-btn" type="button" aria-label="Show conversations" aria-expanded="false">☰</button>
+          <label class="model-picker" for="chat-model">Model <select id="chat-model" aria-label="Chat model"><option value="">Automatic routing</option></select></label>
+          <span class="chat-local-note">Your workspace · your models</span>
+        </header>
+        <div class="page-body flush">
+          <div class="chat-layout">
+
+            <div class="chat-main">
+              <div id="chat-log" class="messages" role="log" aria-label="Conversation"></div>
+              <div class="composer-wrap">
+                <form id="chat-form" class="composer">
+                  <textarea id="chat-input" rows="1" maxlength="8000" aria-label="Message Archx" placeholder="Message Archx…"></textarea>
+                  <div class="composer-bar">
+                    <span id="chat-routing-status" class="comp-meta">Enter to send · Shift+Enter for a new line</span>
+                    <div class="comp-actions">
+                      <button type="submit" class="send-btn" title="Send" aria-label="Send message">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+                <details id="chat-diagnostics" class="chat-diagnostics" hidden>
+                  <summary>Conversation details</summary>
+                  <div id="chat-warnings"></div>
+                </details>
+                <p class="composer-note">Check important information. Model thinking is shown only when the provider returns it.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ───────────── research ───────────── -->
+      <section class="page" id="view-research" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Research</h1>
+            <p>A plan that names its author, sources it actually read, citations it re-checks. No crawler and no web search: it reads the URLs you give it.</p>
+          </div>
+          <div class="ph-actions">
+            <span id="research-status" class="hint"></span>
+          </div>
+        </header>
+        <div class="page-body">
+          <form id="research-form" class="card research-form">
+            <div class="card-head">
+              <h3>New research run</h3>
+              <p class="hint">Archx does not crawl and has no web search: it reads the URLs you paste here (through <code>net.fetch</code>, which needs a grant) and documents in your tool roots. No experiments run in this mode — that is M32.</p>
+            </div>
+            <label class="field">Question
+              <input id="research-question" type="text" required placeholder="how does sqlite locking work">
+            </label>
+            <div class="grid2">
+              <label class="field">Where to look
+                <select id="research-mode" class="sel">
+                  <option value="local">local — your own documents</option>
+                  <option value="mixed">mixed — local + the URLs you give</option>
+                  <option value="web">web — only the URLs you give</option>
+                </select>
+              </label>
+              <label class="field">Options
+                <span class="check check-top"><input id="research-nomodel" type="checkbox"> no model — extractive only, no token cost</span>
+              </label>
+            </div>
+            <div class="grid2">
+              <label class="field">Seed URLs, one per line
+                <textarea id="research-urls" rows="3" placeholder="one URL per line"></textarea>
+              </label>
+              <label class="field">Your own subquestions, one per line (optional)
+                <textarea id="research-subquestions" rows="3"></textarea>
+              </label>
+            </div>
+            <div class="row between">
+              <span class="hint">A web run asks for <code>net.fetch</code>; refusing it fails the run honestly.</span>
+              <button type="submit" class="btn primary">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                Run research
+              </button>
+            </div>
+          </form>
+
+          <div class="section-head">
+            <div><h2>Runs</h2><p>Every run keeps its sources, including the ones that failed.</p></div>
+          </div>
+          <ul id="research-list" class="run-strip"></ul>
+          <div id="research-detail" class="stack">
+            <p class="dim small">Pick a run to read its report, its sources and the citations it re-checked.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ───────────── learning ───────────── -->
+      <section class="page" id="view-learning" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Learning</h1>
+            <p>Goals with criteria, a hint ladder you have to climb, and a schedule that shows its arithmetic.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="learning-refresh" class="icon-btn" type="button" title="Reload goals" aria-label="Reload goals">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body flush">
+          <div class="split">
+            <aside class="picker">
+              <ul id="learning-goals" class="list"></ul>
+              <form id="learning-goal-form" class="card">
+                <div class="card-head"><h3>New goal</h3></div>
+                <label class="field">What are you learning?
+                  <input id="learning-title" type="text" required placeholder="Rust ownership">
+                </label>
+                <label class="field">Done when (optional)
+                  <input id="learning-criteria" type="text" placeholder="explain a borrow error">
+                </label>
+                <div class="row between">
+                  <button type="submit" class="btn primary">Create goal</button>
+                  <span id="learning-goal-status" class="hint"></span>
+                </div>
+              </form>
+            </aside>
+            <div class="detail">
+              <div id="learning-detail" class="stack">
+                <p class="dim small">Pick a goal, or create one. A goal is a record: its items, attempts and sessions are rows the CLI reads too.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ───────────── voice ───────────── -->
+      <section class="page" id="view-voice" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Voice and media</h1>
+            <p>What a file <em>is</em>, measured from its own bytes. The name is kept as a claim, and a <code>.png</code> that is really a JPEG is recorded as both. This build has no speech model, so asking it to hear or speak is refused with every reason named.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="voice-refresh" class="icon-btn" type="button" title="Reload media" aria-label="Reload media">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body flush">
+          <div class="split">
+            <aside class="picker">
+              <div id="voice-stats" class="stats"></div>
+              <ul id="voice-assets" class="list"></ul>
+              <form id="voice-probe-form" class="card">
+                <div class="card-head"><h3>Measure a file</h3><p class="hint">A path inside the tool roots. Reads the header and hashes the bytes; needs <code>fs.read</code>.</p></div>
+                <label class="field">Path
+                  <input id="voice-path" type="text" placeholder="photos/holiday.jpg">
+                </label>
+                <div class="row between">
+                  <button type="submit" class="btn primary">Measure</button>
+                  <span id="voice-probe-status" class="hint"></span>
+                </div>
+              </form>
+              <form id="voice-say-form" class="card">
+                <div class="card-head"><h3>Say something</h3><p class="hint">Asks for speech. This build answers with the reasons it cannot, and records the attempt.</p></div>
+                <label class="field">Text
+                  <input id="voice-say-text" type="text" placeholder="read this aloud">
+                </label>
+                <div class="row between">
+                  <button type="submit" class="btn">Ask</button>
+                  <span id="voice-say-status" class="hint"></span>
+                </div>
+              </form>
+            </aside>
+            <div class="detail">
+              <div id="voice-detail" class="stack">
+                <p class="dim small">Pick a file, or measure one. The numbers here are read from the file's bytes; a transcript says who wrote it.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ───────────── data ───────────── -->
+      <section class="page" id="view-data" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Datasets</h1>
+            <p>Candidates measured, cleaning that keeps its reasons, splits that do not move, and a manifest you can re-check. A file removed by a rule stays on the record with the rule named.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="data-refresh" class="icon-btn" type="button" title="Reload datasets" aria-label="Reload datasets">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body flush">
+          <div class="split">
+            <aside class="picker">
+              <div id="data-stats" class="stats"></div>
+              <ul id="data-list" class="list"></ul>
+              <form id="data-create-form" class="card">
+                <div class="card-head"><h3>Create a dataset</h3><p class="hint">One source path per line, inside the tool roots. An unstated license is recorded as unknown.</p></div>
+                <label class="field">Name
+                  <input id="data-name" type="text" placeholder="corpus" required>
+                </label>
+                <label class="field">Sources
+                  <textarea id="data-sources" rows="3" placeholder="corpus/&#10;notes/"></textarea>
+                </label>
+                <label class="field">License
+                  <input id="data-license" type="text" placeholder="CC-BY-4.0 (leave empty if you do not know)">
+                </label>
+                <div class="row between">
+                  <button type="submit" class="btn primary">Create</button>
+                  <span id="data-create-status" class="hint"></span>
+                </div>
+              </form>
+            </aside>
+            <div class="detail">
+              <div id="data-detail" class="stack">
+                <p class="dim small">Pick a dataset, or create one. Every step is a row: what went in, what came out, and why.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ───────────── train ───────────── -->
+      <section class="page" id="view-train" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Training</h1>
+            <p>Two trainers that actually run here - an n-gram language model scored by perplexity, and a nearest-centroid classifier scored by accuracy - and a fine-tune that is <em>refused by name</em>: no weights, no GPU, no library. Nothing on this page predicts a metric it did not measure.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="train-refresh" class="icon-btn" type="button" title="Reload runs" aria-label="Reload runs">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body flush">
+          <div class="split">
+            <aside class="picker">
+              <div id="train-stats" class="stats"></div>
+              <ul id="train-runs" class="list"></ul>
+              <form id="train-run-form" class="card">
+                <div class="card-head"><h3>Run a trainer</h3><p class="hint">On a built dataset with a split. A fine-tune method is accepted and then refused, with every reason listed.</p></div>
+                <label class="field">Method
+                  <select id="train-method">
+                    <option value="ngram">ngram - perplexity</option>
+                    <option value="centroid">centroid - accuracy</option>
+                    <option value="lora">lora - refused here</option>
+                    <option value="qlora">qlora - refused here</option>
+                    <option value="full">full - refused here</option>
+                  </select>
+                </label>
+                <label class="field">Dataset
+                  <input id="train-dataset" type="text" placeholder="ds_… or a dataset name" required>
+                </label>
+                <label class="field">Seed
+                  <input id="train-seed" type="number" value="0">
+                </label>
+                <div class="row between">
+                  <button type="submit" class="btn primary">Run</button>
+                  <span id="train-run-status" class="hint"></span>
+                </div>
+              </form>
+            </aside>
+            <div class="detail">
+              <div id="train-detail" class="stack">
+                <p class="dim small">Pick a run. The metrics are rows, the artifact is a file with a hash, and a refusal is a row too.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ───────────── remote ───────────── -->
+      <section class="page" id="view-remote" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Remote</h1>
+            <p>A bundle carries the corpus and its digests, an endpoint computes a result, and the artifact's hash is <em>re-checked here</em> before anything calls it verified. Nothing leaves this machine until the job is approved, and a dispatch that never arrived is a row, not a stack trace.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="remote-refresh" class="icon-btn" type="button" title="Reload remote jobs" aria-label="Reload remote jobs">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body flush">
+          <div class="split">
+            <aside class="picker">
+              <div id="remote-stats" class="stats"></div>
+              <ul id="remote-jobs" class="list"></ul>
+              <form id="remote-export-form" class="card">
+                <div class="card-head"><h3>Bundle a dataset</h3><p class="hint">One JSON document: the records, their digests, the manifest checksum and the declared run.</p></div>
+                <label class="field">Dataset
+                  <input id="remote-dataset" type="text" placeholder="ds_… or a dataset name" required>
+                </label>
+                <label class="field">Order
+                  <input id="remote-order" type="number" value="2" min="2" max="5">
+                </label>
+                <div class="row between">
+                  <button type="submit" class="btn primary">Export</button>
+                  <span id="remote-export-status" class="hint"></span>
+                </div>
+              </form>
+            </aside>
+            <div class="detail">
+              <div id="remote-detail" class="stack">
+                <p class="dim small">Pick a job. The bundle hash is recorded before the dispatch, and the artifact is hashed twice on the way back.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="view-automations" hidden>
+        <header class="page-head"><div><h1>Automations</h1><p class="dim">Explicit ticks enqueue jobs. Schedules are not execution grants.</p></div>
+          <button id="automations-refresh" class="icon-btn" type="button">Refresh</button></header>
+        <div class="stack">
+          <form id="automation-create-form" class="card">
+            <label>Name<input id="automation-name" required></label>
+            <label>Command argv (JSON array)<input id="automation-command" required placeholder='["python3","script.py"]'></label>
+            <label>Trigger<select id="automation-mode"><option value="interval">Interval seconds</option><option value="at">Once at ISO timestamp</option><option value="watch">Watch file path</option></select></label>
+            <label>Trigger value<input id="automation-trigger" required value="60"></label>
+            <button type="submit">Create disabled schedule</button>
+          </form>
+          <button id="automations-tick" type="button">Enqueue due occurrences</button>
+          <p id="automations-status" class="hint" role="status"></p>
+          <div id="automations-list" class="stack"></div>
+          <pre id="automations-runs"></pre>
+        </div>
+      </section>
+
+      <section class="page" id="view-scenes" hidden>
+        <header class="page-head"><div><h1>Scenes</h1><p class="dim">Measured meshes. Wireframe previews are not Blender renders.</p></div>
+          <button id="scenes-refresh" type="button" class="icon-btn" aria-label="Refresh scenes">Refresh</button></header>
+        <div class="split">
+          <div class="stack">
+            <form id="scene-create-form" class="card"><label>Scene name<input id="scene-name" required></label><label>Existing task ID (optional)<input id="scene-task" placeholder="Attach scene and exports to a task"></label><button type="submit">Create scene</button></form>
+            <p id="scenes-status" role="status" class="hint"></p>
+            <ul id="scenes-list" class="list"></ul>
+          </div>
+          <div class="stack">
+            <div id="scene-detail" class="card"><p>Select a scene to inspect its geometry.</p></div>
+            <form id="scene-add-form" class="card" hidden>
+              <label>Primitive<select id="scene-primitive"><option>cube</option><option>plane</option><option>uv_sphere</option><option>cylinder</option><option>cone</option><option>torus</option></select></label>
+              <label>Object name<input id="scene-object-name" placeholder="defaults to primitive name"></label>
+              <label>Parameters (JSON)<input id="scene-params" value="{}"></label>
+              <button type="submit">Add object</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- ───────────── exec ───────────── -->
+      <section class="page" id="view-exec" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Execution</h1>
+            <p>Run a command in a container, in WSL, in a VM or on another machine - and see, on every row, <em>where</em> it ran. A backend that this machine cannot use is listed with the reason rather than hidden, and the project can be sent there and pulled back with a hash per file.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="exec-refresh" class="icon-btn" type="button" title="Reload targets and runs" aria-label="Reload execution targets and runs">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body flush">
+          <div class="split">
+            <aside class="picker">
+              <div id="exec-stats" class="stats"></div>
+              <div id="exec-probes" class="stack"></div>
+              <ul id="exec-runs" class="list"></ul>
+              <form id="exec-run-form" class="card">
+                <div class="card-head"><h3>Run a command</h3><p class="hint">On the chosen target. A backend that cannot run here refuses and records why.</p></div>
+                <label class="field">Command
+                  <input id="exec-cmdline" type="text" placeholder="python3 -c 'print(1)'" required>
+                </label>
+                <label class="field">Target
+                  <select id="exec-target"></select>
+                </label>
+                <div class="row between">
+                  <button type="submit" class="btn primary">Run</button>
+                  <span id="exec-run-status" class="hint"></span>
+                </div>
+              </form>
+            </aside>
+            <div class="detail">
+              <div id="exec-detail" class="stack">
+                <p class="dim small">Pick a run. The invocation that executed is on the row, not just the command you typed.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ───────────── search ───────────── -->
+      <section class="page" id="view-search" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Search</h1>
+            <p>One query across conversations, memory, tasks, workflows, projects, artifacts, tools and files.</p>
+          </div>
+        </header>
+        <div class="page-body">
+          <form id="search-form" class="searchbar">
+            <input id="search-query" placeholder="database locks" required aria-label="Search query">
+            <label class="check"><input id="search-files" type="checkbox" checked> files</label>
+            <button type="submit" class="btn primary">Search</button>
+          </form>
+          <div id="search-notes" class="warnings"></div>
+          <div id="search-results" class="stack"></div>
+        </div>
+      </section>
+
+      <!-- ───────────── code ───────────── -->
+      <section class="page" id="view-code" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Code</h1>
+            <p>Edit, run and test a directory. Every read, write and command goes through the permission centre, and the runner keeps the ledger.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="code-refresh" class="icon-btn" type="button" title="Reload sessions" aria-label="Reload sessions">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body flush">
+          <div class="split">
+            <aside class="picker">
+              <ul id="code-sessions" class="list"></ul>
+              <form id="code-open-form" class="card">
+                <div class="card-head"><h3>Open a session</h3><p class="hint">A session is a directory inside the tool roots. Leave the path empty for the first root.</p></div>
+                <label class="field">Directory
+                  <input id="code-root" type="text" placeholder="/path/inside/the/tool/roots">
+                </label>
+                <label class="field">What is it for?
+                  <input id="code-title" type="text" placeholder="fix the greeting">
+                </label>
+                <div class="row between">
+                  <button type="submit" class="btn primary">Open</button>
+                  <span id="code-open-status" class="hint"></span>
+                </div>
+              </form>
+            </aside>
+            <div class="detail">
+              <div id="code-detail" class="stack">
+                <p class="dim small">Pick a session, or open one. A write needs <code>fs.write</code> and a command needs <code>shell.run</code>: without a grant the page offers you the approval, and nothing happens until you decide.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ───────────── experiments ───────────── -->
+      <section class="page" id="view-experiments" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Experiments</h1>
+            <p>Run a declared command with declared parameters, keep the numbers, and compare the runs. A metric is only shown if the experiment said where it comes from.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="experiments-refresh" class="icon-btn" type="button" title="Reload experiments" aria-label="Reload experiments">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body flush">
+          <div class="split">
+            <aside class="picker">
+              <ul id="experiments-list" class="list"></ul>
+              <form id="experiment-create-form" class="card">
+                <div class="card-head"><h3>Declare an experiment</h3><p class="hint">A command with <code>{placeholder}</code> parameters, and where the numbers come from.</p></div>
+                <label class="field">Name
+                  <input id="experiment-name" type="text" placeholder="sorting">
+                </label>
+                <label class="field">Command
+                  <input id="experiment-command" type="text" placeholder="python bench.py {n}">
+                </label>
+                <label class="field">Parameters
+                  <input id="experiment-params" type="text" placeholder="n=100, seed=1">
+                </label>
+                <label class="field">Metrics
+                  <select id="experiment-metrics" class="sel">
+                    <option value="none">none (keep the run, read no numbers)</option>
+                    <option value="stdout-json">last line of stdout, as JSON</option>
+                    <option value="file">a JSON file the run writes</option>
+                  </select>
+                </label>
+                <label class="field">Metrics file
+                  <input id="experiment-metrics-path" type="text" placeholder="metrics.json">
+                </label>
+                <div class="row between">
+                  <button type="submit" class="btn primary">Declare</button>
+                  <span id="experiment-create-status" class="hint"></span>
+                </div>
+              </form>
+            </aside>
+            <div class="detail">
+              <div id="experiment-detail" class="stack">
+                <p class="dim small">Pick an experiment, or declare one. A run needs <code>shell.run</code>, and a metrics file needs <code>fs.read</code>: without a grant the page offers you the approval, and nothing happens until you decide.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ───────────── play ───────────── -->
+      <section class="page" id="view-play" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Play</h1>
+            <p>Board games the rules referee, and simulations that record a hash you can check. A move the rules refuse is written down with its reason and the board does not change.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="play-refresh" class="icon-btn" type="button" title="Reload games and simulations" aria-label="Reload games and simulations">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body flush">
+          <div class="split">
+            <aside class="picker">
+              <ul id="play-games" class="list"></ul>
+              <form id="play-new-form" class="card">
+                <div class="card-head"><h3>New game</h3><p class="hint">The rules build the board; the engine may only choose from the moves they allow.</p></div>
+                <label class="field">Game
+                  <select id="play-game-type" class="sel">
+                    <option value="tictactoe">tic-tac-toe</option>
+                    <option value="connect4">connect four</option>
+                    <option value="nim">nim</option>
+                  </select>
+                </label>
+                <label class="field">Seed
+                  <input id="play-seed" type="text" placeholder="optional, recorded with the game">
+                </label>
+                <div class="row between">
+                  <button type="submit" class="btn primary">Start</button>
+                  <span id="play-new-status" class="hint"></span>
+                </div>
+              </form>
+              <form id="play-sim-form" class="card">
+                <div class="card-head"><h3>Simulation</h3><p class="hint">B3/S23 on a seeded grid. Same seed, same grid, same hash.</p></div>
+                <div class="row">
+                  <label class="field">Width <input id="play-sim-width" type="text" placeholder="40"></label>
+                  <label class="field">Height <input id="play-sim-height" type="text" placeholder="20"></label>
+                </div>
+                <div class="row">
+                  <label class="field">Steps <input id="play-sim-steps" type="text" placeholder="20"></label>
+                  <label class="field">Seed <input id="play-sim-seed" type="text" placeholder="0"></label>
+                </div>
+                <label class="field">Density <input id="play-sim-density" type="text" placeholder="0.3"></label>
+                <div class="row between">
+                  <button type="submit" class="btn primary">Run</button>
+                  <span id="play-sim-status" class="hint"></span>
+                </div>
+              </form>
+              <ul id="play-sims" class="list"></ul>
+            </aside>
+            <div class="detail">
+              <div id="play-detail" class="stack">
+                <p class="dim small">Start a game or pick one. Every move is written down - the legal ones and the ones the rules refused.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ───────────── tasks ───────────── -->
+      <section class="page" id="view-tasks" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Tasks</h1>
+            <p>What ran, in order, with artifacts and a reproduction record.</p>
+          </div>
+          <div class="ph-actions">
+            <label class="field field-inline">
+              <select id="tasks-status" class="sel" aria-label="Filter by status">
+                <option value="">any status</option>
+                <option value="running">running</option>
+                <option value="completed">completed</option>
+                <option value="failed">failed</option>
+                <option value="interrupted">interrupted</option>
+                <option value="cancelled">cancelled</option>
+              </select>
+            </label>
+            <button id="tasks-refresh" class="icon-btn" type="button" title="Reload tasks" aria-label="Reload tasks">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body flush">
+          <div class="split">
+            <aside class="picker"><ul id="tasks-list" class="list"></ul></aside>
+            <div class="detail">
+              <div id="task-detail" class="stack">
+                <p class="dim small">Pick a task to see its timeline, artifacts and reproduction record.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ───────────── jobs ───────────── -->
+      <section class="page" id="view-jobs" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Jobs</h1>
+            <p>Durable queued work: claims, attempts, deadlines. Running one here uses the same runner as the CLI.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="jobs-refresh" class="icon-btn" type="button" title="Reload the queue" aria-label="Reload the queue">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+            <button id="jobs-run" class="btn primary" type="button">Run one queued job</button>
+          </div>
+        </header>
+        <div class="page-body">
+          <div id="jobs-stats" class="stats"></div>
+          <div class="section-head"><div><h2>Queue</h2><p>Newest first. Pause, resume, retry or cancel act on the record itself.</p></div></div>
+          <div id="jobs-list" class="stack"></div>
+        </div>
+      </section>
+
+      <!-- ───────────── access ───────────── -->
+      <section class="page" id="view-access" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Access</h1>
+            <p>Approving mints exactly the grant that was requested; revoking takes it away. Neither button can widen a request.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="access-refresh" class="icon-btn" type="button" title="Reload access" aria-label="Reload access">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body">
+          <div class="access-section">
+            <div class="section-head"><div><h2>Pending approvals</h2><p>Each one names the capability, the subject and the scope.</p></div></div>
+            <div id="approvals-list" class="stack"></div>
+          </div>
+          <div class="access-section">
+            <div class="section-head"><div><h2>Active grants</h2><p>What Archx may do right now.</p></div></div>
+            <div id="grants-list" class="stack"></div>
+          </div>
+          <div class="access-section">
+            <div class="section-head"><div><h2>Capabilities</h2><p>Every capability this build knows, and what it would allow.</p></div></div>
+            <div id="capabilities-list" class="stack"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ───────────── memory ───────────── -->
+      <section class="page" id="view-memory" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Memory</h1>
+            <p>What Archx keeps about you, with the same duplicate check as <code>memory add</code>.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="memory-refresh" class="icon-btn" type="button" title="Reload memories" aria-label="Reload memories">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body">
+          <form id="memory-form" class="card memory-form">
+            <div class="card-head"><h3>Store a memory</h3><p class="hint">A duplicate is refused with the existing id instead of being stored twice.</p></div>
+            <div class="grid2">
+              <label class="field">Kind
+                <select id="memory-kind" class="sel">
+                  <option value="permanent">permanent</option>
+                  <option value="active">active</option>
+                  <option value="archival">archival</option>
+                  <option value="project">project</option>
+                  <option value="solution">solution</option>
+                  <option value="learning">learning</option>
+                </select>
+              </label>
+              <label class="field">Category
+                <input id="memory-category" type="text" placeholder="fact / preference / …">
+              </label>
+            </div>
+            <label class="field">Title
+              <input id="memory-title" type="text" required>
+            </label>
+            <label class="field">Content
+              <textarea id="memory-content" rows="3" required></textarea>
+            </label>
+            <div class="row between">
+              <button type="submit" class="btn primary">Store memory</button>
+              <span id="memory-status" class="hint"></span>
+            </div>
+          </form>
+          <div id="memory-list" class="stack"></div>
+        </div>
+      </section>
+
+      <!-- ───────────── models ───────────── -->
+      <section class="page" id="view-models" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Models</h1>
+            <p>What this build can run, what it cannot — and the gates a cloud model has to pass before a byte leaves this machine.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="models-refresh" class="icon-btn" type="button" title="Reload models" aria-label="Reload models">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body">
+          <form id="models-form" class="card">
+            <div class="card-head">
+              <h3>Connect Gemini</h3>
+              <p class="hint">The key is never typed into this page. Archx reads it from your environment at request time (<code>GEMINI_API_KEY</code> unless you name another reference) and stores only the reference — so the database, the trace and the logs cannot leak it.</p>
+            </div>
+            <div class="grid2">
+              <label class="field">Name in the catalogue
+                <input id="models-name" type="text" required placeholder="flash">
+              </label>
+              <label class="field">Model id
+                <input id="models-model" type="text" required placeholder="gemini-2.0-flash">
+              </label>
+            </div>
+            <div class="grid2">
+              <label class="field">How it is called
+                <select id="models-transport" class="sel">
+                  <option value="gemini">Google Gemini — Archx's own protocol client</option>
+                </select>
+              </label>
+              <label class="field">Endpoint (optional)
+                <input id="models-base" type="text" placeholder="the vendor's default endpoint">
+              </label>
+            </div>
+            <label class="field">Key reference
+              <input id="models-credential" type="text" placeholder="secret://env/GEMINI_API_KEY">
+            </label>
+            <div class="row between">
+              <button type="submit" class="btn primary">Register model</button>
+              <span id="models-status" class="hint"></span>
+            </div>
+          </form>
+          <div id="models-list" class="stack"></div>
+        </div>
+      </section>
+
+      <!-- ───────────── status ───────────── -->
+      <section class="page" id="view-status" hidden>
+        <header class="page-head">
+          <div>
+            <h1>Status</h1>
+            <p>What this home is, what it can do right now, and the exact command that unblocks anything that it cannot.</p>
+          </div>
+          <div class="ph-actions">
+            <button id="status-refresh" class="icon-btn" type="button" title="Reload status" aria-label="Reload status">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="page-body">
+          <div id="status-cards" class="stats"></div>
+          <div class="status-grid">
+            <div>
+              <div class="section-head"><div><h2>This home</h2><p>Where the records live and which schema they are on.</p></div></div>
+              <div id="status-info" class="stack"></div>
+            </div>
+            <div>
+              <div class="section-head"><div><h2>What is blocked</h2><p>With the exact next command.</p></div></div>
+              <div id="status-blocked" class="stack"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<section id="gate" class="gate" hidden>
+  <form id="gate-form" class="gate-card" autocomplete="off">
+    <svg viewBox="0 0 32 32" width="40" height="40" aria-hidden="true"><rect width="32" height="32" rx="8"/><path d="M16 5 26 26h-5.2l-1.9-4.3h-5.8L11.2 26H6Zm0 8.6-2 4.6h4Z"/></svg>
+    <h1>Archx Agent</h1>
+    <p class="dim">This page is served by your own Archx process. Paste the access token it printed
+      (<code>access token: …</code>) to open a session. Nothing is stored except an HttpOnly cookie
+      this server issued.</p>
+    <label class="field">Access token
+      <input id="gate-token" type="password" spellcheck="false" autofocus>
+    </label>
+    <button type="submit" class="btn primary block">Open session</button>
+    <p id="gate-error" class="error-text" role="alert"></p>
+  </form>
+</section>
+
+<div id="modal" class="modal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <h2 id="modal-title"></h2>
+    <p id="modal-text"></p>
+    <label class="field" id="modal-field" hidden><span>Note (optional)</span><input id="modal-note" type="text"></label>
+    <div class="confirm-actions">
+      <button id="modal-cancel" class="btn ghost" type="button">Cancel</button>
+      <button id="modal-ok" class="btn danger" type="button">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts" class="toasts" aria-live="polite"></div>
+
+<script src="/view-ui.js"></script>
+<script src="/view-chat.js"></script>
+<script src="/view-research.js"></script>
+<script src="/view-learning.js"></script>
+<script src="/view-code.js"></script>
+<script src="/view-experiments.js"></script>
+<script src="/view-voice.js"></script>
+<script src="/view-data.js"></script>
+<script src="/view-train.js"></script>
+<script src="/view-remote.js"></script>
+<script src="/view-automations.js"></script>
+<script src="/view-scenes.js"></script>
+<script src="/view-exec.js"></script>
+<script src="/view-play.js"></script>
+<script src="/view-search.js"></script>
+<script src="/view-tasks.js"></script>
+<script src="/view-jobs.js"></script>
+<script src="/view-access.js"></script>
+<script src="/view-memory.js"></script>
+<script src="/view-models.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+# run 20261029T164537Z-48dd607
+
+step	status	seconds
+install	ok	21
+pytest	ok	538
+stress-edge	ok	47
+integration	ok	20
+coding-acceptance	ok	17
+experiment-acceptance	ok	11
+play-acceptance	ok	14
+voice-acceptance	ok	14
+dataset-acceptance	ok	13
+training-acceptance	ok	13
+remote-acceptance	ok	14
+execution-acceptance	ok	15
+scenes-acceptance	ok	8
+automation-acceptance	ok	6
+blender-real	ok	33
+release-check	ok	9
+sdks	ok	3
+llama-cpp	ok	2
+model-download	ok	1
+serve	ok	1
+completion	ok	1
+sdk-matrix	ok	16
+ollama	ok	51
+tunnel	ok	8
