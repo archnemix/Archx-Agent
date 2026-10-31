@@ -1,8 +1,361 @@
 {
   "bytes": 289724,
   "sha256": "9a263ec54307cfa555b38625a8d8bb35c2dadeb5d1e35afc69b559753b09a68e",
-  "format": "not a zip archive",
-  "header_hex": "1f8b0800000000000003ecfddb721b6996260ad6359fe20f467612a0702029528a0443a1a6484ac1",
-  "selected_source_files": [],
+  "format": "tar archive",
+  "entry_count": 74,
+  "inventory": [
+    {
+      "name": "archx-agent",
+      "bytes": 0
+    },
+    {
+      "name": "archx-agent/CHANGES-1.7.0.md",
+      "bytes": 19489
+    },
+    {
+      "name": "archx-agent/CHANGES-1.8.0.md",
+      "bytes": 6649
+    },
+    {
+      "name": "archx-agent/CHATDEBUG-MAP.md",
+      "bytes": 3541
+    },
+    {
+      "name": "archx-agent/DATABASE-ARCHITECTURE.md",
+      "bytes": 7895
+    },
+    {
+      "name": "archx-agent/LICENSE",
+      "bytes": 1081
+    },
+    {
+      "name": "archx-agent/MEMORY-ARCHITECTURE.md",
+      "bytes": 3265
+    },
+    {
+      "name": "archx-agent/README.md",
+      "bytes": 29943
+    },
+    {
+      "name": "archx-agent/UI-RULES.md",
+      "bytes": 8394
+    },
+    {
+      "name": "archx-agent/bin",
+      "bytes": 0
+    },
+    {
+      "name": "archx-agent/bin/archx-agent.js",
+      "bytes": 89
+    },
+    {
+      "name": "archx-agent/lib",
+      "bytes": 0
+    },
+    {
+      "name": "archx-agent/lib/capabilities.js",
+      "bytes": 6252
+    },
+    {
+      "name": "archx-agent/lib/cli.js",
+      "bytes": 11623
+    },
+    {
+      "name": "archx-agent/lib/db.js",
+      "bytes": 10783
+    },
+    {
+      "name": "archx-agent/lib/keys.js",
+      "bytes": 5017
+    },
+    {
+      "name": "archx-agent/lib/logger.js",
+      "bytes": 753
+    },
+    {
+      "name": "archx-agent/lib/memory",
+      "bytes": 0
+    },
+    {
+      "name": "archx-agent/lib/memory/index.js",
+      "bytes": 448
+    },
+    {
+      "name": "archx-agent/lib/modes",
+      "bytes": 0
+    },
+    {
+      "name": "archx-agent/lib/modes/index.js",
+      "bytes": 831
+    },
+    {
+      "name": "archx-agent/lib/modes/simple-chat.js",
+      "bytes": 305
+    },
+    {
+      "name": "archx-agent/lib/paths.js",
+      "bytes": 2278
+    },
+    {
+      "name": "archx-agent/lib/providers",
+      "bytes": 0
+    },
+    {
+      "name": "archx-agent/lib/providers/anthropic.js",
+      "bytes": 11321
+    },
+    {
+      "name": "archx-agent/lib/providers/gemini.js",
+      "bytes": 14880
+    },
+    {
+      "name": "archx-agent/lib/providers/index.js",
+      "bytes": 1761
+    },
+    {
+      "name": "archx-agent/lib/providers/openai-compatible.js",
+      "bytes": 14406
+    },
+    {
+      "name": "archx-agent/lib/providers/proxy-error.js",
+      "bytes": 252
+    },
+    {
+      "name": "archx-agent/lib/providers/nvidia-nim.js",
+      "bytes": 5400
+    },
+    {
+      "name": "archx-agent/lib/proxy.js",
+      "bytes": 1411
+    },
+    {
+      "name": "archx-agent/lib/retry.js",
+      "bytes": 2053
+    },
+    {
+      "name": "archx-agent/lib/server.js",
+      "bytes": 82600
+    },
+    {
+      "name": "archx-agent/lib/store.js",
+      "bytes": 54504
+    },
+    {
+      "name": "archx-agent/lib/util.js",
+      "bytes": 2211
+    },
+    {
+      "name": "archx-agent/lib/websearch.js",
+      "bytes": 6548
+    },
+    {
+      "name": "archx-agent/package-lock.json",
+      "bytes": 36827
+    },
+    {
+      "name": "archx-agent/package.json",
+      "bytes": 1025
+    },
+    {
+      "name": "archx-agent/public",
+      "bytes": 0
+    },
+    {
+      "name": "archx-agent/public/css",
+      "bytes": 0
+    },
+    {
+      "name": "archx-agent/public/css/base.css",
+      "bytes": 10604
+    },
+    {
+      "name": "archx-agent/public/css/chat.css",
+      "bytes": 14105
+    },
+    {
+      "name": "archx-agent/public/css/components.css",
+      "bytes": 51213
+    },
+    {
+      "name": "archx-agent/public/css/pages.css",
+      "bytes": 16057
+    },
+    {
+      "name": "archx-agent/public/index.html",
+      "bytes": 55743
+    },
+    {
+      "name": "archx-agent/public/js",
+      "bytes": 0
+    },
+    {
+      "name": "archx-agent/public/js/api.js",
+      "bytes": 12126
+    },
+    {
+      "name": "archx-agent/public/js/blocks.js",
+      "bytes": 10954
+    },
+    {
+      "name": "archx-agent/public/js/chat.js",
+      "bytes": 22950
+    },
+    {
+      "name": "archx-agent/public/js/capabilities.mjs",
+      "bytes": 4340
+    },
+    {
+      "name": "archx-agent/public/js/dom.js",
+      "bytes": 7063
+    },
+    {
+      "name": "archx-agent/public/js/main.js",
+      "bytes": 76
+    },
+    {
+      "name": "archx-agent/public/js/markdown-stream.mjs",
+      "bytes": 519
+    },
+    {
+      "name": "archx-agent/public/js/markdown.js",
+      "bytes": 11983
+    },
+    {
+      "name": "archx-agent/public/js/render.js",
+      "bytes": 47781
+    },
+    {
+      "name": "archx-agent/public/js/state.js",
+      "bytes": 16482
+    },
+    {
+      "name": "archx-agent/public/js/theme.mjs",
+      "bytes": 404
+    },
+    {
+      "name": "archx-agent/public/js/ui.js",
+      "bytes": 111191
+    },
+    {
+      "name": "archx-agent/public/toggle-test.html",
+      "bytes": 2862
+    },
+    {
+      "name": "archx-agent/public/vendor",
+      "bytes": 0
+    },
+    {
+      "name": "archx-agent/public/vendor/hljs.css",
+      "bytes": 1315
+    },
+    {
+      "name": "archx-agent/public/vendor/hljs.min.js",
+      "bytes": 121727
+    },
+    {
+      "name": "archx-agent/public/vendor/markdown-it.min.js",
+      "bytes": 123618
+    },
+    {
+      "name": "archx-agent/src-tauri",
+      "bytes": 0
+    },
+    {
+      "name": "archx-agent/src-tauri/Cargo.toml",
+      "bytes": 409
+    },
+    {
+      "name": "archx-agent/src-tauri/build.rs",
+      "bytes": 39
+    },
+    {
+      "name": "archx-agent/src-tauri/capabilities",
+      "bytes": 0
+    },
+    {
+      "name": "archx-agent/src-tauri/capabilities/default.json",
+      "bytes": 224
+    },
+    {
+      "name": "archx-agent/src-tauri/icons",
+      "bytes": 0
+    },
+    {
+      "name": "archx-agent/src-tauri/icons/icon.png",
+      "bytes": 591
+    },
+    {
+      "name": "archx-agent/src-tauri/src",
+      "bytes": 0
+    },
+    {
+      "name": "archx-agent/src-tauri/src/main.rs",
+      "bytes": 2068
+    },
+    {
+      "name": "archx-agent/src-tauri/tauri.conf.json",
+      "bytes": 662
+    },
+    {
+      "name": "archx-agent/CHANGES-1.9.0.md",
+      "bytes": 4871
+    }
+  ],
+  "original_returned": true,
+  "selected_source_files": [
+    "archx-agent/CHANGES-1.7.0.md",
+    "archx-agent/CHANGES-1.8.0.md",
+    "archx-agent/CHATDEBUG-MAP.md",
+    "archx-agent/DATABASE-ARCHITECTURE.md",
+    "archx-agent/MEMORY-ARCHITECTURE.md",
+    "archx-agent/README.md",
+    "archx-agent/UI-RULES.md",
+    "archx-agent/bin/archx-agent.js",
+    "archx-agent/lib/capabilities.js",
+    "archx-agent/lib/cli.js",
+    "archx-agent/lib/db.js",
+    "archx-agent/lib/keys.js",
+    "archx-agent/lib/logger.js",
+    "archx-agent/lib/memory/index.js",
+    "archx-agent/lib/modes/index.js",
+    "archx-agent/lib/modes/simple-chat.js",
+    "archx-agent/lib/paths.js",
+    "archx-agent/lib/providers/anthropic.js",
+    "archx-agent/lib/providers/gemini.js",
+    "archx-agent/lib/providers/index.js",
+    "archx-agent/lib/providers/openai-compatible.js",
+    "archx-agent/lib/providers/proxy-error.js",
+    "archx-agent/lib/providers/nvidia-nim.js",
+    "archx-agent/lib/proxy.js",
+    "archx-agent/lib/retry.js",
+    "archx-agent/lib/server.js",
+    "archx-agent/lib/store.js",
+    "archx-agent/lib/util.js",
+    "archx-agent/lib/websearch.js",
+    "archx-agent/package-lock.json",
+    "archx-agent/package.json",
+    "archx-agent/public/css/base.css",
+    "archx-agent/public/css/chat.css",
+    "archx-agent/public/css/components.css",
+    "archx-agent/public/css/pages.css",
+    "archx-agent/public/index.html",
+    "archx-agent/public/js/api.js",
+    "archx-agent/public/js/blocks.js",
+    "archx-agent/public/js/chat.js",
+    "archx-agent/public/js/dom.js",
+    "archx-agent/public/js/main.js",
+    "archx-agent/public/js/markdown.js",
+    "archx-agent/public/js/render.js",
+    "archx-agent/public/js/state.js",
+    "archx-agent/public/js/ui.js",
+    "archx-agent/public/toggle-test.html",
+    "archx-agent/public/vendor/hljs.css",
+    "archx-agent/public/vendor/hljs.min.js",
+    "archx-agent/public/vendor/markdown-it.min.js",
+    "archx-agent/src-tauri/Cargo.toml",
+    "archx-agent/src-tauri/capabilities/default.json",
+    "archx-agent/src-tauri/tauri.conf.json",
+    "archx-agent/CHANGES-1.9.0.md"
+  ],
   "scope": "Bounded UTF-8 source snapshot only; no downloaded code executed; original download not committed."
 }
