@@ -9,11 +9,11 @@ because that URL was created by GitHub Actions.
 
 ## Current session
 
-[Download the Cloudflare session link](https://github.com/archnemix/Archx-Agent/actions/runs/41205612331/artifacts/13043588337)
-from [GitHub run 41205612331](https://github.com/archnemix/Archx-Agent/actions/runs/41205612331).
-Open `preview-link.txt` in the ZIP and follow its authenticated link. The session
-started on 31 October 2026 around 13:29 UTC and is scheduled to last 90 minutes.
-It is temporary; this documentation is a handoff record, not a permanent hosting URL.
+The 4-bit session is starting in
+[GitHub run 41206423857](https://github.com/archnemix/Archx-Agent/actions/runs/41206423857).
+It publishes its link only after real inference checks and an actual streamed browser
+conversation, follow-up, saved-history reload and verification-chat cleanup pass.
+The prior Q6 session is superseded, not the requested current model.
 
 ## Temporary real-model session
 
@@ -37,14 +37,14 @@ this does not constitute a production security certification.
 
 | Model/engine | Type | How to test |
 |---|---|---|
-| `smollm2-135m-q6` | Real SmolLM2 **135M**, Q6_K GGUF loaded through Ollama | Select it in Chat and ask a short question. It is intentionally tiny and limited, not a high-quality assistant. |
+| `smollm2-135m-q4` | Real SmolLM2 **135M**, Q4_K_M GGUF loaded through Ollama | Select it in Chat and ask a short question. It is intentionally tiny and limited, not a high-quality assistant. |
 | `qwen3:0.6b` | Real reasoning model through Ollama | Select it in Chat, enable showing thinking, and ask a short reasoning question. Thinking comes from the model's native `thinking` field. |
 | `tts-espeak` | Real eSpeak synthesis, not a neural TTS model | Studio → Speech. Enter text and play/download the WAV. |
 | `whisper-tiny` | Real Whisper tiny, CPU/int8 | Studio → Transcription. Upload speech audio and compare the transcript. |
 | `ocr-tesseract` | Real Tesseract OCR, not general image understanding | Studio → Vision/OCR. Upload an image with legible text. Blank images can return no text. |
 | `image-fixture-not-generation` | **Fixed image fixture**, not AI generation | Studio → Image. Any prompt returns the same labelled image to test delivery, preview, download and library deletion. |
 
-The small model is 135M, not 125M. Its Q6_K file comes from the published
+The small model is 135M, not 125M. Its Q4_K_M file comes from the published
 [QuantFactory SmolLM2 model files](https://huggingface.co/QuantFactory/SmolLM2-135M-Instruct-GGUF/tree/main).
 No fake reasoning or fixture is substituted for the real chat/reasoning models.
 General visual understanding and real image generation are not provided by this session.

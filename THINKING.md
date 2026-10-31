@@ -38,3 +38,10 @@ Ollama plus real speech/transcription/OCR engines. Only the explicitly named ima
 fixture is fixed output. The public repository's artifact link is not private hosting.
 Keep user data out of that disposable shared session. Necessary tests were added for
 five distinct lifecycle/library/privacy/file-boundary behaviours, not duplicate counts.
+
+The small-model session now uses Q4_K_M at the user's request. SmolLM2 is 135M,
+not 125M; never relabel its parameter count. Verify the actual app with the actual
+model, not just provider reachability or fixture tests. Record responses and a
+screenshot, test reload, then remove the verification conversation so the user can
+start clean. The local-only browser check uses the preview token; the public tunnel
+still requires its session cookie. A normal local Origin must work for this gate.

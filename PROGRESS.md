@@ -59,7 +59,7 @@ It passes draft reuse, temporary-state exclusion/discard, Memory search/deletion
 saved-knowledge add/edit/delete and switch geometry, plus existing chat/provider/
 stream/reload checks, with zero page errors and no 390px horizontal page overflow.
 
-Latest GitHub run 41205612331 passed the real-model startup gate and published a Cloudflare
+Previous Q6 GitHub run 41205612331 passed the real-model startup gate and published a Cloudflare
 session artifact. Models: SmolLM2 135M Q6_K, Qwen3 0.6B reasoning via Ollama, Whisper
 tiny transcription, eSpeak speech and Tesseract OCR. Fixed-image delivery is labelled
 as a fixture, not generation. The live link is in the [preview-link artifact](https://github.com/archnemix/Archx-Agent/actions/runs/41205612331/artifacts/13043588337).
@@ -69,3 +69,12 @@ This is not general vision, high-quality neural TTS, or real image generation.
 
 No full original feature is marked user-accepted by these checks. Await personal
 feedback. See the live-testing guide for session expiry, privacy and supported scope.
+
+## Requested four-bit model session
+
+The user requested running the model and continuing independent testing, not just
+handing over setup instructions. Session 41206423857 is starting SmolLM2 **135M**
+Q4_K_M through Ollama (the available Smol model is not 125M). A real-browser gate now
+sends a conversation and follow-up through the guarded app, checks saved reload,
+records actual responses/screenshots, and removes its test chat before handoff.
+Startup/results are pending; no browser success is claimed until the job passes.

@@ -34,3 +34,7 @@ mode conversion rules and real model testing before moving forward. This overrid
 the previous ordering for this pass; it does not open an Agent implementation.
 Implement and hand off those changes, let the user test, then resolve findings before
 continuing. The runtime/testing limits are in [Testing the live application](docs/LIVE_TESTING.md).
+
+Current handoff task: run the requested 4-bit small model and independently verify
+actual browser chat, follow-up and persisted reload before giving the user its link.
+Keep the current feature acceptance gate; this is not a new product mode.
