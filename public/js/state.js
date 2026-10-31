@@ -1,3 +1,4 @@
+import { findDraft, isPersistentChat } from './chat-lifecycle.mjs';
 /* Archx Agent — shared state + persistence calls (v3: global multi-provider profiles) */
 
 import * as api from './api.js';
@@ -249,7 +250,7 @@ let chatsTimer = null;
 export function touchChats() {
   clearTimeout(chatsTimer);
   chatsTimer = setTimeout(() => {
-    api.setChats(state.chats, state.activeId).catch(() => {});
+    api.setChats(state.chats.filter(isPersistentChat), state.activeId).catch(() => {});
   }, 350);
 }
 
@@ -260,7 +261,7 @@ const chatWriter = createChatWriter(api.setChat, {
   getActiveId: () => state.activeId,
   onError: (error) => toast('Could not save conversation: ' + error.message, 'err'),
 });
-export function touchChat(chat) { chatWriter.queue(chat); }
+export function touchChat(chat) { if (isPersistentChat(chat)) chatWriter.queue(chat); }
 export const flushChatWrites = () => chatWriter.flush();
 
 export const activeChat = () => state.chats.find((c) => c.id === state.activeId) || null;
@@ -306,6 +307,8 @@ export function addChatTraceId(traceId, chat = activeChat()) {
 }
 
 export function newChatRecord() {
+  const draft = findDraft(state.chats, state.tempMode);
+  if (draft) { state.activeId = draft.id; return draft; }
   // 1.8.0: pinned flag + temporary mode (issues 3 & 4)
   const c = { id: Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4), title: 'New chat', modeId: 'simple-chat', messages: [], systemPromptId: state.settings.defaultSystemPromptId || null, enabledPromptIds: state.settings.defaultSystemPromptId ? [state.settings.defaultSystemPromptId] : [], debugTraceIds: [], debugEvents: [], branches: [], pinned: false, ephemeral: !!state.tempMode };
   state.chats.unshift(c);

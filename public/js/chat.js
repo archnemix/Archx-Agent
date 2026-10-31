@@ -189,6 +189,7 @@ export async function complete(chat) {
         maxTokens: state.settings.maxTokens || null,
         chatId: chat.id,
         modeId: chat.modeId || 'simple-chat',
+        temporary: !!chat.ephemeral,
         profileId: state.settings.advancedProfiles ? state.activeProfileId : null,
         systemPromptId: enabled[0]?.id || null,
         useWebSearch: state.webSearchOn === true, // 1.8.0 web search tool

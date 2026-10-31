@@ -1,3 +1,5 @@
+import { canConvertMode } from './chat-lifecycle.mjs';
+import { bindLibrary, refreshLibrary } from './memory.js';
 /* Archx Agent — screens & controls v4: unified sidebar toggle, auto-refreshing chat debug */
 
 import { $, toast, esc, attachDropdown, attachFilePick } from './dom.js';
@@ -728,6 +730,7 @@ async function studioVisionRun() {
 
 /* ── memory page (1.8.0, issue 13) ─────────────────────────── */
 async function loadMemoryStats() {
+  void refreshLibrary();
   try {
     const s = await api.memoryStats();
     renderMemory(s);
@@ -1168,9 +1171,20 @@ export function bindAll() {
   });
 
   // sidebar: new chat / list / badge / theme / wipe
+  $('#chat-mode').addEventListener('change', async event => {
+    const chat = activeChat() || newChatRecord();
+    const target = event.target.value;
+    if (isStreaming(chat.id) || !canConvertMode(chat.modeId, target, state.modes.map(m => m.id))) { renderMessages(); return; }
+    if (target !== chat.modeId && await confirmAction({ title: 'Convert this conversation?', message: 'This is permanent. This conversation cannot return to Simple Mode or switch to another mode.', confirmText: 'Convert', danger: false })) {
+      chat.modeId = target; touchChat(chat);
+    }
+    renderMessages();
+  });
   $('#new-chat').addEventListener('click', () => {
     // 1.7.0: like mainstream chat UIs, starting/switching chats while a
     // generation runs is allowed — the stream keeps writing to its own chat.
+    for (const chat of state.chats.filter(c => c.ephemeral)) stop(chat.id);
+    state.chats = state.chats.filter(c => !c.ephemeral);
     newChatRecord();
     showPage('chat');           // works from Settings/Debug too: straight home
     renderSidebar();
@@ -1207,6 +1221,9 @@ export function bindAll() {
       renderSidebar();
       return;
     }
+    for (const chat of state.chats.filter(c => c.ephemeral && c.id !== id)) stop(chat.id);
+    state.chats = state.chats.filter(c => !c.ephemeral || c.id === id);
+    state.tempMode = !!state.chats.find(c => c.id === id)?.ephemeral;
     state.activeId = id;
     touchChat(state.chats.find((x) => x.id === id));
     showPage('chat');           // clicking a chat opens it, from any page
@@ -1716,7 +1733,13 @@ export function bindAll() {
   $('#name-dialog-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#name-dialog-ok').click(); } });
 
   // 1.8.0: sidebar — temp mode, multi-select, pins (issues 3 & 4)
-  $('#temp-mode').addEventListener('click', () => { state.tempMode = !state.tempMode; renderSidebar(); toast(state.tempMode ? 'Temporary mode ON — new chats stay in memory and are never written to disk.' : 'Temporary mode OFF — new chats persist as usual.', 'ok', 2600); });
+  $('#temp-mode').addEventListener('click', () => {
+    for (const chat of state.chats.filter(c => c.ephemeral)) stop(chat.id);
+    state.chats = state.chats.filter(c => !c.ephemeral);
+    state.tempMode = !state.tempMode;
+    newChatRecord(); renderSidebar(); renderMessages(); refreshStreamingUI();
+    toast(state.tempMode ? 'Temporary chat — not saved or logged. Leaving this chat discards it.' : 'Back to saved chats.', 'ok', 3200);
+  });
   $('#select-mode').addEventListener('click', () => { state.selectMode = !state.selectMode; if (!state.selectMode) selectedChats.clear(); renderSidebar(); });
   $('#select-all-chats').addEventListener('click', () => { state.chats.forEach((c) => selectedChats.add(c.id)); renderSidebar(); });
   $('#select-cancel').addEventListener('click', () => { state.selectMode = false; selectedChats.clear(); renderSidebar(); });
@@ -1753,6 +1776,7 @@ export function bindAll() {
   $('#sv-run').addEventListener('click', () => { studioVisionRun().catch((e) => toast(e.message, 'err')); });
 
   // 1.8.0: memory page (issue 13)
+  bindLibrary(confirmAction);
   $('#mem-refresh').addEventListener('click', loadMemoryStats);
   $('#mem-grid').addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-mem-wipe]');

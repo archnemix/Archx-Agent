@@ -13,3 +13,4 @@ src-tauri/target/
 src-tauri/gen/
 *.tgz
 .DS_Store
+preview-link.txt

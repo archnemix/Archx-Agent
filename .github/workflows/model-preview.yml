@@ -1,0 +1,96 @@
+name: Temporary real-model preview
+on:
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: Minutes to keep the private preview running (10–90)
+        default: '60'
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: private-model-preview
+  cancel-in-progress: true
+jobs:
+  preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 115
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install temporary inference tools
+        run: |
+          npm ci --ignore-scripts
+          sudo apt-get update -qq
+          sudo apt-get install -y espeak-ng tesseract-ocr
+          pip install fastapi uvicorn python-multipart requests pillow faster-whisper huggingface_hub
+          curl -fsSL https://ollama.com/install.sh | sh
+          curl -fL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o "$RUNNER_TEMP/cloudflared"
+          chmod +x "$RUNNER_TEMP/cloudflared"
+      - name: Prepare real models and start the app
+        run: |
+          export OLLAMA_HOST=127.0.0.1:11434
+          sudo systemctl stop ollama || true
+          ollama serve > "$RUNNER_TEMP/ollama.log" 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:11434/api/tags && break; sleep 2; done
+          python - <<'PY'
+          from huggingface_hub import hf_hub_download
+          import os
+          target = hf_hub_download('QuantFactory/SmolLM2-135M-Instruct-GGUF', 'SmolLM2-135M-Instruct.Q6_K.gguf', local_dir=os.environ['RUNNER_TEMP'])
+          with open(os.path.join(os.environ['RUNNER_TEMP'], 'Modelfile'), 'w') as f:
+              f.write('FROM ' + target + '\nPARAMETER num_ctx 4096\n')
+          PY
+          ollama create smollm2-135m-q6 -f "$RUNNER_TEMP/Modelfile"
+          ollama pull qwen3:0.6b
+          # Warm the actual STT model before declaring the session ready.
+          python -c "from faster_whisper import WhisperModel; WhisperModel('tiny', device='cpu', compute_type='int8')"
+          uvicorn scripts.preview.provider:app --host 127.0.0.1 --port 8090 > "$RUNNER_TEMP/provider.log" 2>&1 &
+          export PREVIEW_TOKEN=$(openssl rand -hex 24)
+          echo "::add-mask::$PREVIEW_TOKEN"
+          echo "PREVIEW_TOKEN=$PREVIEW_TOKEN" >> "$GITHUB_ENV"
+          export PREVIEW_DATA="$RUNNER_TEMP/preview-data"
+          node scripts/preview/server.cjs > "$RUNNER_TEMP/app.log" 2>&1 &
+          python scripts/preview/check.py
+          "$RUNNER_TEMP/cloudflared" tunnel --url http://127.0.0.1:4173 --no-autoupdate > "$RUNNER_TEMP/tunnel.log" 2>&1 &
+          python - <<'PY'
+          import os, re, time, pathlib
+          log = pathlib.Path(os.environ['RUNNER_TEMP']) / 'tunnel.log'
+          for _ in range(60):
+              found = re.search(r'https://[a-z0-9-]+\.trycloudflare\.com', log.read_text() if log.exists() else '')
+              if found:
+                  link = found[0] + '/unlock?token=' + os.environ['PREVIEW_TOKEN']
+                  pathlib.Path('preview-link.txt').write_text(link + '\nTemporary private runner data; session expires. Do not enter valuable keys or private documents.\nReal: SmolLM2 135M Q6_K, Qwen3 0.6B thinking via Ollama, Whisper tiny, eSpeak, Tesseract OCR.\nFixed fixture only: image generation.\n')
+                  with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+                      f.write('## Private model preview ready\nDownload **preview-link** below to open the authenticated app.\nCPU inference is slow. Real model checks passed; image generation is a labelled fixed fixture.\n')
+                  break
+              time.sleep(2)
+          else:
+              raise SystemExit('Cloudflare quick tunnel did not start')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: preview-link
+          path: preview-link.txt
+          retention-days: 1
+      - name: Keep the session available
+        env:
+          MINUTES: ${{ inputs.minutes }}
+        run: |
+          python - <<'PY'
+          import os, time
+          minutes = max(10, min(90, int(os.environ['MINUTES'])))
+          time.sleep(minutes * 60)
+          PY
+      - name: Stop temporary services
+        if: always()
+        run: |
+          pkill -f 'scripts/preview/server.cjs' || true
+          pkill -f 'uvicorn scripts.preview.provider' || true
+          pkill cloudflared || true
+          pkill ollama || true

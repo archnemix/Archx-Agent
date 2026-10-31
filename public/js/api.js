@@ -241,12 +241,12 @@ export async function wipe(scope = 'all') {
  * The server injects the decrypted key for the chosen provider.
  * cb: onDelta(text), onReasoning(text), onMeta(obj)
  */
-export async function chat({ providerId, model, messages, stream, temperature, maxTokens, profileId, chatId, systemPromptId, modeId, useWebSearch }, signal, cb = {}) {
+export async function chat({ providerId, model, messages, stream, temperature, maxTokens, profileId, chatId, systemPromptId, modeId, useWebSearch, temporary }, signal, cb = {}) {
   const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     signal,
-    body: JSON.stringify({ providerId, model, messages, stream, temperature, maxTokens, profileId, chatId, systemPromptId, modeId, useWebSearch }),
+    body: JSON.stringify({ providerId, model, messages, stream, temperature, maxTokens, profileId, chatId, systemPromptId, modeId, useWebSearch, temporary }),
   });
 
   if (!stream) {

@@ -245,6 +245,19 @@ export function renderBranchUI() {
 }
 
 export function renderMessages() {
+  const picker = $('#chat-mode');
+  if (picker) {
+    const chat = activeChat();
+    const mode = chat?.modeId || 'simple-chat';
+    const modes = [...state.modes];
+    for (const pending of [{ id: 'agent', name: 'Agent — not available yet' }, { id: 'research', name: 'Research — not available yet' }]) {
+      if (!modes.some(m => m.id === pending.id)) modes.push({ ...pending, unavailable: true });
+    }
+    picker.innerHTML = modes.map(m => `<option value="${esc(m.id)}" ${mode === m.id ? 'selected' : ''} ${m.unavailable ? 'disabled' : ''}>${esc(m.name)}</option>`).join('');
+    picker.disabled = mode !== 'simple-chat';
+    picker.title = mode === 'simple-chat' ? 'A conversion to a specialised mode cannot be reversed.' : 'This conversation is locked to its mode. Start a new chat for another mode.';
+  }
+
   const box = $('#messages');
   $$('.msg-row', box).forEach((n) => n.remove());
   const chat = activeChat();

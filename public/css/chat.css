@@ -370,3 +370,7 @@
 
 /* Interrupted output remains readable; provider errors are separate from the answer. */
 .msg-failure { margin-top: var(--sp-3); padding: var(--sp-3); border: 1px solid var(--danger); border-radius: var(--radius-sm); color: var(--danger); font-size: 12.5px; overflow-wrap: anywhere; }
+
+.chat-mode-control { flex: 0 0 auto; max-width: 160px; }
+.chat-mode-control .sel { max-width: 100%; font-size: 12px; }
+@media(max-width: 760px) { .chat-mode-control { max-width: 112px; } }

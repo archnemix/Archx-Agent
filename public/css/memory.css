@@ -1,0 +1,38 @@
+/* Library: neutral materials, strong hierarchy, one detail surface, no neon. */
+#page-memory { overflow-y: auto; }
+.memory-workspace { width: min(1220px, 100%); margin: 0 auto; padding: 12px 28px 36px; }
+.memory-toolbar, .memory-caption, .memory-pagination { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.memory-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.memory-tabs button { padding: 10px 13px; border-radius: 8px; color: var(--muted); border: 1px solid transparent; }
+.memory-tabs button[aria-selected="true"] { background: var(--panel); color: var(--text); border-color: var(--border); }
+.memory-tabs small { margin-left: 8px; opacity: .65; }
+.memory-search { display: grid; gap: 8px; margin: 24px 0 12px; font-size: 12px; color: var(--muted); }
+.memory-search input, .memory-editor input, .memory-editor textarea, .memory-editor select { width: 100%; background: var(--panel); border: 1px solid var(--border); border-radius: 9px; padding: 12px; color: var(--text); }
+.memory-caption { font-size: 11px; color: var(--muted); margin-bottom: 14px; flex-wrap: wrap; }
+.memory-browser { display: grid; grid-template-columns: minmax(240px, .8fr) minmax(0, 1.4fr); min-height: 420px; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--panel); }
+.memory-list { border-right: 1px solid var(--border); max-height: 65vh; overflow-y: auto; }
+.memory-row { width: 100%; text-align: left; display: grid; gap: 9px; padding: 18px; border-bottom: 1px solid var(--border); }
+.memory-row:hover, .memory-row[aria-pressed="true"] { background: var(--panel-3); }
+.memory-row b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.memory-row span { font-size: 12px; line-height: 1.6; color: var(--muted); overflow-wrap: anywhere; }
+.memory-row small { font-size: 10px; color: var(--muted); }
+.memory-detail { padding: 26px; min-width: 0; overflow-wrap: anywhere; }
+.memory-detail h3 { margin: 10px 0 18px; }
+.memory-detail pre { white-space: pre-wrap; font: inherit; line-height: 1.8; max-height: 50vh; overflow: auto; }
+.memory-detail-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 20px; margin-top: 20px; border-top: 1px solid var(--border); }
+.memory-pagination { margin-top: 14px; font-size: 12px; color: var(--muted); }
+.memory-empty { padding: 36px 22px; line-height: 1.8; color: var(--muted); font-size: 13px; }
+.memory-editor { display: grid; gap: 14px; }
+.memory-editor label { display: grid; gap: 7px; font-size: 12px; }
+.memory-editor textarea { min-height: 180px; resize: vertical; }
+.memory-storage { margin-top: 28px; color: var(--muted); }
+.memory-storage summary { cursor: pointer; font-size: 12px; padding: 12px 0; }
+.memory-storage .mem-grid { padding: 12px 0; }
+@media (max-width: 760px) {
+ .memory-workspace { padding: 12px 14px 24px; }
+ .memory-toolbar { flex-wrap: wrap; }
+ .memory-browser { grid-template-columns: minmax(0, 1fr); }
+ .memory-list { max-height: 280px; border-right: none; border-bottom: 1px solid var(--border); }
+ .memory-detail { padding: 18px; }
+ .memory-tabs button { padding: 8px; }
+}
