@@ -8,12 +8,18 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+  actions: write
 jobs:
   inspect:
     if: github.ref == 'refs/heads/arena/79ddb5b4-archx-agent'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
+      - name: Stop unrelated model run accidentally triggered by the source checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST repos/archnemix/Archx-Agent/actions/runs/41201959418/cancel
+        continue-on-error: true
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:

@@ -5,6 +5,8 @@ import hashlib
 import json
 from pathlib import Path, PurePosixPath
 import sys
+import tarfile
+import shutil
 import zipfile
 
 
@@ -38,9 +40,32 @@ def inspect(download: Path, output: Path) -> None:
                     target.writestr(str(name), raw)
                     budget -= len(raw)
                     selected.append(str(name))
+        elif tarfile.is_tarfile(download):
+            report['format'] = 'tar archive'
+            with tarfile.open(download, 'r:*') as archive:
+                entries = archive.getmembers()
+                report['entry_count'] = len(entries)
+                report['inventory'] = [{"name": item.name, "bytes": item.size} for item in entries[:10000]]
+                for item in entries[:10000]:
+                    name = PurePosixPath(item.name.replace('\\', '/'))
+                    if not item.isfile() or name.is_absolute() or '..' in name.parts or set(name.parts) & ignored:
+                        continue
+                    if any(part.startswith('.env') for part in name.parts) or name.suffix.lower() not in text_suffixes:
+                        continue
+                    if item.size > 512 * 1024 or item.size > budget:
+                        continue
+                    with archive.extractfile(item) as source:
+                        raw = source.read()
+                    try:
+                        raw.decode('utf-8-sig')
+                    except UnicodeDecodeError:
+                        continue
+                    target.writestr(str(name), raw)
+                    budget -= len(raw)
+                    selected.append(str(name))
         else:
             raw = download.read_bytes()[:512 * 1024]
-            report['format'] = 'not a zip archive'
+            report['format'] = 'unrecognized archive or plain text'
             report['header_hex'] = raw[:40].hex()
             try:
                 raw.decode('utf-8-sig')
@@ -48,6 +73,9 @@ def inspect(download: Path, output: Path) -> None:
                 selected.append('reference-source.txt')
             except UnicodeDecodeError:
                 pass
+    if download.stat().st_size <= 2 * 1024 * 1024:
+        shutil.copyfile(download, output / 'original-download.bin')
+        report['original_returned'] = True
     report['selected_source_files'] = selected
     report['scope'] = 'Bounded UTF-8 source snapshot only; no downloaded code executed; original download not committed.'
     (output / 'report.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
