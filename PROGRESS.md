@@ -78,3 +78,12 @@ Q4_K_M through Ollama (the available Smol model is not 125M). A real-browser gat
 sends a conversation and follow-up through the guarded app, checks saved reload,
 records actual responses/screenshots, and removes its test chat before handoff.
 Startup/results are pending; no browser success is claimed until the job passes.
+
+The first Q4 browser gate failed at saved reload. Local reproduction with an
+explicit provider fixture showed a Promise-valued `waitForFunction` predicate did
+not establish the intended save acknowledgement, allowing reload before debounce.
+The gate now waits for the actual final save response and asserts server state in
+Node. Completed replies also flush saves immediately rather than waiting for the
+normal debounce. The fixture reproduction and all 33 regressions pass. A fresh
+real-model run will verify the correction before publishing a session link; its
+startup gate also checks Ollama reports exactly Q4_K_M, not just a filename claim.

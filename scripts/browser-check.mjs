@@ -106,10 +106,12 @@ try {
   await done(stopped);
   assert.equal(await page.evaluate(() => window.__archxState.chats.find(x => x.id === window.__archxState.activeId).messages.at(-1).meta.stopped), true);
   // Poll the real persistence endpoint rather than assuming a debounce finished.
-  await page.waitForFunction(async ids => {
+  assert.equal(await page.evaluate(async ids => {
+    const { flushChatWrites } = await import('/js/state.js');
+    await flushChatWrites();
     const saved = await (await fetch('/api/state')).json();
     return ids.every(id => saved.chats.find(x => x.id === id)?.messages.at(-1)?.pending === false);
-  }, [first, second, incomplete, stopped]);
+  }, [first, second, incomplete, stopped]), true);
   await page.reload();
   await page.waitForFunction(() => window.__archxState?.storage);
   const restored = await page.evaluate(() => window.__archxState.chats);

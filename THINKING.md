@@ -45,3 +45,9 @@ model, not just provider reachability or fixture tests. Record responses and a
 screenshot, test reload, then remove the verification conversation so the user can
 start clean. The local-only browser check uses the preview token; the public tunnel
 still requires its session cookie. A normal local Origin must work for this gate.
+
+Real browser checks must distinguish an actual save response from a truthy Promise
+returned by an async browser predicate. Reproduce failures with a bounded local
+fixture first; do not rerun large downloads blindly. The app now flushes at reply
+completion, and the runner gate observes the final persistence response before
+reload. This does not certify model answer quality merely because text was returned.

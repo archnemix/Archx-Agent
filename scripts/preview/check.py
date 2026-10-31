@@ -2,6 +2,8 @@
 import base64
 import io
 import json
+import os
+from pathlib import Path
 import time
 import requests
 from PIL import Image, ImageDraw
@@ -15,6 +17,14 @@ for _ in range(90):
     time.sleep(1)
 else:
     raise SystemExit('Provider failed to start')
+details = requests.post('http://127.0.0.1:11434/api/show', json={'model': 'smollm2-135m-q4'}, timeout=30)
+details.raise_for_status()
+metadata = details.json()['details']
+assert metadata['quantization_level'] == 'Q4_K_M', metadata
+output = Path(os.environ.get('RUNNER_TEMP', '/tmp')) / 'real-model-evidence'
+output.mkdir(exist_ok=True)
+(output / 'quantization.json').write_text(json.dumps(metadata, indent=2))
+print('Verified actual loaded model metadata:', metadata, flush=True)
 for model in ['smollm2-135m-q4', 'qwen3:0.6b']:
     response = requests.post(base + '/chat/completions', json={'model': model, 'messages': [{'role': 'user', 'content': 'What is 2 + 3? Answer briefly.'}], 'stream': False, 'max_tokens': 1024}, timeout=240)
     response.raise_for_status()

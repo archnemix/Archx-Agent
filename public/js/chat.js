@@ -5,7 +5,7 @@ import * as api from './api.js';
 import { applyChatFailure } from './chat-failure.mjs';
 import { tableToCSV, tableToTSV, tableToJSON, tableToMarkdown, tableToHTML, downloadText } from './markdown.js';
 import {
-  state, activeChat, activeProvider, enabledPromptsFor, newChatRecord, touchChats, touchChat, recordChatDebug, addChatTraceId,
+  state, activeChat, activeProvider, enabledPromptsFor, newChatRecord, touchChats, touchChat, flushChatWrites, recordChatDebug, addChatTraceId,
   pickInitialModel, visibleModelsFor, setActive,
 } from './state.js';
 import {
@@ -254,6 +254,8 @@ export async function complete(chat) {
     clearInterval(persistTimer);
     syncStreamingUI();
     touchChat(chat);
+    // Final output should not wait for the debounce window before saving.
+    void flushChatWrites().catch(error => toast('Could not finish saving: ' + error.message, 'err'));
     // 1.7.0: navigating away during a generation is allowed (the stream keeps
     // writing to its own chat, like mainstream chat UIs). Only repaint/focus
     // when the finished chat is still the one on screen — and repaint IN

@@ -38,3 +38,8 @@ continuing. The runtime/testing limits are in [Testing the live application](doc
 Current handoff task: run the requested 4-bit small model and independently verify
 actual browser chat, follow-up and persisted reload before giving the user its link.
 Keep the current feature acceptance gate; this is not a new product mode.
+
+Q4 handoff verification: confirm actual quantization metadata, both real-model
+answers through the UI, save acknowledgement, reload, and clean test-chat removal.
+Do not publish a failed session as ready. Continue checking locally as well as
+waiting for user feedback; the user's acceptance remains the final feature gate.
