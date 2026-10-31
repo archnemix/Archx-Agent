@@ -59,11 +59,12 @@ It passes draft reuse, temporary-state exclusion/discard, Memory search/deletion
 saved-knowledge add/edit/delete and switch geometry, plus existing chat/provider/
 stream/reload checks, with zero page errors and no 390px horizontal page overflow.
 
-GitHub run 41205153470 passed the real-model startup gate and published a Cloudflare
+Latest GitHub run 41205612331 passed the real-model startup gate and published a Cloudflare
 session artifact. Models: SmolLM2 135M Q6_K, Qwen3 0.6B reasoning via Ollama, Whisper
 tiny transcription, eSpeak speech and Tesseract OCR. Fixed-image delivery is labelled
-as a fixture, not generation. Artifact download from this sandbox was blocked by its
-Azure redirect; the user can download it directly through GitHub in their browser.
+as a fixture, not generation. The live link is in the [preview-link artifact](https://github.com/archnemix/Archx-Agent/actions/runs/41205612331/artifacts/13043588337).
+Artifact download from this sandbox was blocked by its Azure redirect; the user can
+download it directly through GitHub in their browser.
 This is not general vision, high-quality neural TTS, or real image generation.
 
 No full original feature is marked user-accepted by these checks. Await personal

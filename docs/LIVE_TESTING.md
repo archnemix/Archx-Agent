@@ -7,6 +7,14 @@ Enter provider keys only in Settings → Providers. This sandbox cannot generall
 reach external model services, so it cannot proxy a Cloudflare model URL merely
 because that URL was created by GitHub Actions.
 
+## Current session
+
+[Download the Cloudflare session link](https://github.com/archnemix/Archx-Agent/actions/runs/41205612331/artifacts/13043588337)
+from [GitHub run 41205612331](https://github.com/archnemix/Archx-Agent/actions/runs/41205612331).
+Open `preview-link.txt` in the ZIP and follow its authenticated link. The session
+started on 31 October 2026 around 13:29 UTC and is scheduled to last 90 minutes.
+It is temporary; this documentation is a handoff record, not a permanent hosting URL.
+
 ## Temporary real-model session
 
 The requested GitHub Actions job runs the **whole application** with models on a
