@@ -69,3 +69,51 @@ test('both chats, reasoning and branches survive reopening the SQLite store',asy
 test('memory-only upserts remain readable until the server stops',()=>{
  const memory=new Store(null);try{assert.equal(memory.upsertChat({id:'temporary',messages:[]},'temporary'),true);assert.equal(memory.state.chats.chats[0].id,'temporary');assert.equal(memory.db,null);}finally{memory.close();}
 });
+
+test('library indexes messages/branches and deletes individual content without deleting the chat', async () => {
+ const message={role:'assistant',content:'Unique library text\n```js\nconst artifact = 1;\n```',reasoning:'Library reasoning',ts:12345};
+ const chat={id:'library-chat',title:'Library example',modeId:'simple-chat',messages:[message],branches:[{id:'older',messages:[{...message}]}]};
+ await call('/api/state/chat',{chat});
+ let library=await call('/api/library?kind=messages&q=Unique',undefined,'GET');
+ assert.equal(library.body.total,1,'identical branch copies are indexed once');
+ let artifact=(await call('/api/library?kind=artifacts&q=const',undefined,'GET')).body.rows.find(r=>r.chatId===chat.id);
+ assert.ok(artifact);
+ assert.equal((await call('/api/library/item',{kind:'artifacts',id:artifact.id},'DELETE')).res.status,200);
+ assert.doesNotMatch(store.state.chats.chats.find(c=>c.id===chat.id).branches[0].messages[0].content,/const artifact/);
+ library=await call('/api/library?kind=messages&q=Unique',undefined,'GET');
+ assert.equal((await call('/api/library/item',{kind:'messages',id:library.body.rows[0].id},'DELETE')).res.status,200);
+ const saved=store.state.chats.chats.find(c=>c.id===chat.id);assert.equal(saved.messages.length,0);assert.equal(saved.branches[0].messages.length,0);
+ assert.equal((await call('/api/library/item',{kind:'chats',id:chat.id},'DELETE')).res.status,200);
+ assert.equal(store.state.chats.chats.some(c=>c.id===chat.id),false);
+});
+
+test('library memory add/edit/search/delete and missing-item errors', async () => {
+ const added=await call('/api/library/memory',{title:'Personal preference',content:'Concise answers',memoryType:'permanent'});
+ assert.equal(added.res.status,200);
+ const edited=await call('/api/library/memory',{id:added.body.id,title:'Preference',content:'Detailed answers',memoryType:'permanent'});assert.equal(edited.res.status,200);
+ const matches=await call('/api/library?kind=memories&q=Detailed',undefined,'GET');assert.equal(matches.body.total,1);
+ assert.equal((await call('/api/library/item',{kind:'memories',id:added.body.id},'DELETE')).res.status,200);
+ assert.equal((await call('/api/library/item',{kind:'memories',id:added.body.id},'DELETE')).res.status,404);
+});
+
+test('temporary chat is excluded from state, SQLite and detailed request logs', async () => {
+ await call('/api/state/chat',{chat:{id:'private-chat',ephemeral:true,messages:[{role:'user',content:'private text'}]}});
+ assert.equal(store.state.chats.chats.some(c=>c.id==='private-chat'),false);
+ const response=await call('/api/chat',{providerId,model:'fixture-model',chatId:'private-chat',temporary:true,stream:false,messages:[{role:'user',content:'private text'}]});
+ assert.equal(response.res.status,200);
+ assert.equal(store.db.prepare('SELECT COUNT(*) AS n FROM request_logs WHERE chat_id = ?').get('private-chat').n,0);
+ assert.equal(store.db.prepare('SELECT COUNT(*) AS n FROM chats WHERE id = ?').get('private-chat').n,0);
+});
+
+test('file deletion removes only its owned media file and rejects paths outside media', async () => {
+ const {writeFileSync,mkdirSync,existsSync,symlinkSync}=await import('node:fs');
+ const media=path.join(store.dir,'media');mkdirSync(media,{recursive:true});
+ const owned=path.join(media,'owned.png');writeFileSync(owned,'fixture');
+ store.saveAsset({id:'owned',kind:'image',storagePath:owned,filename:'owned.png'});
+ assert.equal((await call('/api/library/item',{kind:'artifacts',id:'owned'},'DELETE')).res.status,200);assert.equal(existsSync(owned),false);
+ const outside=path.join(root,'keep.txt');writeFileSync(outside,'must remain');
+ const link=path.join(media,'link.txt');symlinkSync(outside,link);
+ store.saveAsset({id:'outside',kind:'file',storagePath:link});
+ assert.equal((await call('/api/library/item',{kind:'artifacts',id:'outside'},'DELETE')).res.status,403);assert.equal(existsSync(outside),true);
+ store.db.prepare('DELETE FROM assets WHERE id = ?').run('outside');
+});

@@ -26,3 +26,11 @@ Do not call this complete before their acceptance.
    explicit user acceptance. Do not open parallel partial modes.
 
 Next feature after acceptance: Agent Mode. No Agent implementation is claimed today.
+
+## User-directed usability blockers before further mode development
+
+The user requested Memory management, temporary/draft fixes, switch repair, one-way
+mode conversion rules and real model testing before moving forward. This overrides
+the previous ordering for this pass; it does not open an Agent implementation.
+Implement and hand off those changes, let the user test, then resolve findings before
+continuing. The runtime/testing limits are in [Testing the live application](docs/LIVE_TESTING.md).

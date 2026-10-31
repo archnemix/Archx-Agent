@@ -22,3 +22,19 @@ Expose the actual app on the live port so the user can configure a provider/key 
 test it personally. Wait for their acceptance, fix findings in the same feature, then
 move on. Current acceptance count is zero. Agent Mode has not started as a complete
 implemented feature. See the feature requirements for the full sequence and gaps.
+
+## Memory and real-model testing pass
+
+The user explicitly requested this usability pass before continuing the feature
+sequence. Keep the reference theme; use a searchable library with category counts,
+selectable details, confirmations and safe per-item deletion. Preserve generated
+Studio files as actual library assets. Do not claim semantic indexing when search
+scans saved text. A temporary chat must be excluded before transport/persistence and
+before request logging, not merely hidden in the sidebar.
+
+Use a whole-app runner preview instead of pretending this sandbox can reach a
+Cloudflare model endpoint. The session uses actual small and reasoning models through
+Ollama plus real speech/transcription/OCR engines. Only the explicitly named image
+fixture is fixed output. The public repository's artifact link is not private hosting.
+Keep user data out of that disposable shared session. Necessary tests were added for
+five distinct lifecycle/library/privacy/file-boundary behaviours, not duplicate counts.

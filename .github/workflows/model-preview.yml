@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       minutes:
-        description: Minutes to keep the private preview running (10–90)
+        description: Minutes to keep the link-protected preview running (10–90)
         default: '60'
         required: true
 permissions:
@@ -70,9 +70,9 @@ jobs:
               found = re.search(r'https://[a-z0-9-]+\.trycloudflare\.com', log.read_text() if log.exists() else '')
               if found:
                   link = found[0] + '/unlock?token=' + os.environ['PREVIEW_TOKEN']
-                  pathlib.Path('preview-link.txt').write_text(link + '\nTemporary private runner data; session expires. Do not enter valuable keys or private documents.\nReal: SmolLM2 135M Q6_K, Qwen3 0.6B thinking via Ollama, Whisper tiny, eSpeak, Tesseract OCR.\nFixed fixture only: image generation.\n')
+                  pathlib.Path('preview-link.txt').write_text(link + '\nTemporary shared testing session in a public repository; session expires. Do not enter valuable keys or private documents.\nReal: SmolLM2 135M Q6_K, Qwen3 0.6B thinking via Ollama, Whisper tiny, eSpeak, Tesseract OCR.\nFixed fixture only: image generation.\n')
                   with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
-                      f.write('## Private model preview ready\nDownload **preview-link** below to open the authenticated app.\nCPU inference is slow. Real model checks passed; image generation is a labelled fixed fixture.\n')
+                      f.write('## Link-protected model preview ready\nDownload **preview-link** below to open the authenticated app.\nCPU inference is slow. Real model checks passed; image generation is a labelled fixed fixture.\n')
                   break
               time.sleep(2)
           else:

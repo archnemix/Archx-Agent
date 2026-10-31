@@ -247,22 +247,38 @@ export function sortedProfileCandidates(profile) {
 }
 
 let chatsTimer = null;
+let listWrite = Promise.resolve();
+function saveChatList() {
+  chatsTimer = null;
+  listWrite = listWrite.then(() => api.setChats(state.chats.filter(isPersistentChat), state.activeId));
+  return listWrite;
+}
 export function touchChats() {
   clearTimeout(chatsTimer);
   chatsTimer = setTimeout(() => {
-    api.setChats(state.chats.filter(isPersistentChat), state.activeId).catch(() => {});
+    void saveChatList().catch(error => {
+      toast('Could not save conversations: ' + error.message, 'err');
+      listWrite = Promise.resolve();
+    });
   }, 350);
 }
 
 /* 1.7.0 hot path: persist ONE changed chat record instead of rewriting the
    whole conversation list. Streaming and debug-event stamps call this every
    few hundred ms; the payload stays proportional to one chat, not all of them. */
-const chatWriter = createChatWriter(api.setChat, {
+const chatWriter = createChatWriter((chat, activeId) => {
+  if (!isPersistentChat(chat) || !state.chats.some(c => c.id === chat.id)) return;
+  return api.setChat(chat, activeId);
+}, {
   getActiveId: () => state.activeId,
   onError: (error) => toast('Could not save conversation: ' + error.message, 'err'),
 });
 export function touchChat(chat) { if (isPersistentChat(chat)) chatWriter.queue(chat); }
-export const flushChatWrites = () => chatWriter.flush();
+export async function flushChatWrites() {
+  await chatWriter.flush();
+  if (chatsTimer !== null) { clearTimeout(chatsTimer); await saveChatList(); }
+  await listWrite;
+}
 
 export const activeChat = () => state.chats.find((c) => c.id === state.activeId) || null;
 export const systemPromptById = (id) => (state.settings.systemPrompts || []).find((p) => p.id === id) || null;

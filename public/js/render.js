@@ -466,7 +466,7 @@ export function renderProfileMenu() {
     card.className = 'profile-option' + (profile.id === state.activeProfileId ? ' sel' : '');
     card.dataset.profileId = profile.id;
     const on = profile.id === state.activeProfileId;
-    card.innerHTML = `<span class="profile-option-main"><b>${esc(profile.name)}</b><span>${items.length} model${items.length === 1 ? '' : 's'} · ${esc([...new Set(items.map((x) => providerById(x.providerId)?.name || 'missing'))].join(' · '))}</span></span><span class="profile-option-priority">P${items[0]?.priority || 1}</span><span class="switch${on ? ' on' : ''}" role="switch" aria-checked="${on}" aria-label="${on ? 'Disable' : 'Enable'} profile ${esc(profile.name)}" data-profile-switch="${esc(profile.id)}"></span>`;
+    card.innerHTML = `<span class="profile-option-main"><b>${esc(profile.name)}</b><span>${items.length} model${items.length === 1 ? '' : 's'} · ${esc([...new Set(items.map((x) => providerById(x.providerId)?.name || 'missing'))].join(' · '))}</span></span><span class="profile-option-priority">P${items[0]?.priority || 1}</span><span class="switch${on ? ' on' : ''}" role="switch" tabindex="0" aria-checked="${on}" aria-label="${on ? 'Disable' : 'Enable'} profile ${esc(profile.name)}" data-profile-switch="${esc(profile.id)}"></span>`;
     list.appendChild(card);
   });
 }

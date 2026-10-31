@@ -8,18 +8,22 @@ export function createChatWriter(write, {
 } = {}) {
   const pending = new Map();
   let timer = null;
-  async function flush() {
+  let writes = Promise.resolve();
+  function flush() {
     if (timer !== null) cancel(timer);
     timer = null;
     const batch = [...pending.values()];
     pending.clear();
     const activeId = getActiveId();
-    const results = [];
-    for (const chat of batch) {
-      try { await write(chat, activeId); results.push(true); }
-      catch (error) { onError(error, chat.id); results.push(false); }
-    }
-    return results;
+    writes = writes.then(async () => {
+      const results = [];
+      for (const chat of batch) {
+        try { await write(chat, activeId); results.push(true); }
+        catch (error) { onError(error, chat.id); results.push(false); }
+      }
+      return results;
+    });
+    return writes;
   }
   return {
     queue(chat) {

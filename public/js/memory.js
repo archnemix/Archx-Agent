@@ -1,6 +1,6 @@
 import { $, esc, toast } from './dom.js';
 import { state, flushChatWrites, loadState } from './state.js';
-import { isStreaming } from './chat.js';
+import { isStreaming, stop } from './chat.js';
 import { renderSidebar, renderMessages } from './render.js';
 
 const labels = { chats: 'Conversations', messages: 'Messages', memories: 'Saved knowledge', artifacts: 'Artifacts' };
@@ -31,11 +31,16 @@ export async function refreshLibrary() {
 }
 async function selectItem(id) {
   try {
+    const requestedKind = kind;
     const item = await request(`/api/library/item?${new URLSearchParams({ kind, id })}`);
+    if (requestedKind !== kind) return;
     selected = item;
-    $('#memory-detail').innerHTML = `<small class="dim">${labels[kind]}</small><h3>${esc(item.title || 'Untitled')}</h3><pre>${esc(item.content || '(No text)')}</pre>${item.reasoning ? `<details><summary>Model reasoning</summary><pre>${esc(item.reasoning)}</pre></details>` : ''}<div class="memory-detail-actions">${item.chatId ? '<button class="btn" id="memory-open-chat" type="button">Open conversation</button>' : ''}${item.file ? `<a class="btn" href="/api/library/file/${encodeURIComponent(id)}">Download file</a>` : ''}${kind === 'memories' ? '<button class="btn" id="memory-edit" type="button">Edit memory</button>' : ''}<button class="btn danger" id="memory-delete" type="button">Delete ${kind === 'chats' ? 'conversation' : kind === 'messages' ? 'message' : 'item'}</button></div>`;
+    $('#memory-detail').innerHTML = `<small class="dim">${labels[kind]}</small><h3>${esc(item.title || 'Untitled')}</h3>${item.file && item.mime?.startsWith('image/') ? `<img class="memory-media" alt="Saved artifact preview" src="/api/library/preview/${encodeURIComponent(id)}" />` : ''}${item.file && item.mime?.startsWith('audio/') ? `<audio class="memory-media" controls src="/api/library/preview/${encodeURIComponent(id)}"></audio>` : ''}<pre>${esc(item.content || '(No text)')}</pre>${item.reasoning ? `<details><summary>Model reasoning</summary><pre>${esc(item.reasoning)}</pre></details>` : ''}<div class="memory-detail-actions">${item.chatId ? '<button class="btn" id="memory-open-chat" type="button">Open conversation</button>' : ''}${item.file ? `<a class="btn" href="/api/library/file/${encodeURIComponent(id)}">Download file</a>` : ''}${kind === 'memories' ? '<button class="btn" id="memory-edit" type="button">Edit memory</button>' : ''}<button class="btn danger" id="memory-delete" type="button">Delete ${kind === 'chats' ? 'conversation' : kind === 'messages' ? 'message' : 'item'}</button></div>`;
     document.querySelectorAll('.memory-row').forEach(row => row.setAttribute('aria-pressed', String(row.dataset.libraryId === id)));
     $('#memory-open-chat')?.addEventListener('click', () => {
+      for (const chat of state.chats.filter(c => c.ephemeral)) stop(chat.id);
+      state.chats = state.chats.filter(c => !c.ephemeral);
+      state.tempMode = false;
       state.activeId = item.chatId; renderSidebar(); renderMessages(); document.querySelector('[data-page="chat"]').click();
     });
     $('#memory-edit')?.addEventListener('click', () => showEditor(item));
@@ -45,8 +50,12 @@ async function selectItem(id) {
       try {
         await flushChatWrites();
         await request('/api/library/item', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: item.kind, id: item.id }) });
+        const liveChats = state.chats.filter(c => isStreaming(c.id));
+        const activeId = state.activeId;
         const localOnly = state.chats.filter(c => c.ephemeral || !c.messages.length);
         await loadState();
+        state.chats = state.chats.map(c => liveChats.find(live => live.id === c.id) || c);
+        if (state.chats.some(c => c.id === activeId)) state.activeId = activeId;
         state.chats.push(...localOnly.filter(c => !state.chats.some(x => x.id === c.id)));
         selected = null; $('#memory-detail').innerHTML = '<p class="dim">Item deleted. Select another to continue.</p>';
         renderSidebar(); renderMessages(); await refreshLibrary();

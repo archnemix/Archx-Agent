@@ -36,7 +36,8 @@
     "PLAN.md",
     "PROGRESS.md",
     "THINKING.md",
-    "docs/FEATURE_REQUIREMENTS.md"
+    "docs/FEATURE_REQUIREMENTS.md",
+    "docs/LIVE_TESTING.md"
   ],
   "engines": {
     "node": ">=22.5"

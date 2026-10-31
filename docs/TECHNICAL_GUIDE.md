@@ -11,7 +11,7 @@
 | lib/providers/ | Provider-specific wire protocols and errors |
 | lib/websearch.js | Search engines and fallback chain |
 | lib/modes/ | Chat-mode request preparation |
-| lib/memory/ | Memory record vocabulary |
+| lib/memory/ | Memory types, browsable library routes and generated-file ownership |
 | public/index.html, public/css/ | Reference layout and component styling |
 | public/js/ | Browser state, API calls, incremental rendering and interactions |
 | public/vendor/ | Bundled third-party browser libraries |
@@ -67,3 +67,7 @@ New small modules own chat-save scheduling (`chat-persistence.mjs`), stream fram
 (`lib/message-state.js`). Native OpenAI-compatible streams now require an explicit
 completion marker or finish reason; other adapters still need the equivalent audit.
 Save failures are reported, but failed writes are not automatically retried.
+
+The user-requested real-model runner is development-only under `scripts/preview/`.
+It is separate from runtime dependencies and the retired Python product. See
+[LIVE_TESTING.md](LIVE_TESTING.md) for its real engines, fixed fixture and privacy limits.

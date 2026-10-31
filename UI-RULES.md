@@ -160,3 +160,21 @@ Keep already received answer/thinking when a stream fails. Show its error separa
 mark completion unconfirmed if the final marker is absent, and never resend a POST
 automatically. Stop is distinct from provider failure. Concurrent chat saves must not
 replace each other in a single-target debounce slot.
+
+## Memory library and mode controls
+
+Use the existing neutral theme, not neon gradients or a second visual language.
+A category bar, labelled search, compact rows and one detail pane provide progressive
+disclosure. Destructive actions belong beside the selected item and require confirmation;
+bulk storage cleanup stays inside a collapsed overview. On phones, list and detail
+stack. Native switch inputs use a background thumb rather than unreliable input
+pseudo-elements, with keyboard/focus behaviour preserved.
+
+Keep mode selection inside Chat. Simple conversations may convert only to available,
+implemented modes; conversion to a specialised mode locks that conversation. Disabled
+future modes are named honestly, not presented as working chat prompts.
+
+Design research: NN/G recommends visual hierarchy, progressive disclosure and filtering
+for complex applications [1](https://www.nngroup.com/courses/application-ux/), and showing
+only task-relevant form controls [3](https://www.nngroup.com/articles/4-principles-reduce-cognitive-load/).
+These are interaction principles, not a template copied over the chosen reference.

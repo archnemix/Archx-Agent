@@ -37,6 +37,7 @@ identity-derived key; this is not protection against an attacker controlling the
 
 - [Using the application](docs/USER_GUIDE.md): installation and everyday flows.
 - [Technical guide](docs/TECHNICAL_GUIDE.md): responsibilities, storage and verification.
+- [Testing the live application](docs/LIVE_TESTING.md): Memory controls, temporary chat, and the real-model runner session.
 - [UI rules](UI-RULES.md): the visual and interaction contract.
 - [Complete features and acceptance requirements](docs/FEATURE_REQUIREMENTS.md): full feature sequence and current gaps.
 - [Plan](PLAN.md), [progress](PROGRESS.md), [decisions](THINKING.md).

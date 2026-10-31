@@ -46,3 +46,16 @@ test('Stop is not treated as a provider failure', () => {
 test('empty stopped output gets an explicit stopped state',()=>{
   const m={content:'',meta:{}};applyChatFailure(m,{name:'AbortError'});assert.equal(m.content,'_stopped_');
 });
+
+test('chat lifecycle reuses matching empty drafts and locks specialised modes', async () => {
+ const {findDraft,isPersistentChat,canConvertMode}=await import('../public/js/chat-lifecycle.mjs');
+ const draft={id:'draft',modeId:'simple-chat',messages:[]};
+ assert.equal(findDraft([draft],false),draft);assert.equal(findDraft([draft],true),undefined);
+ assert.equal(isPersistentChat(draft),false);
+ assert.equal(isPersistentChat({...draft,messages:[{content:'real'}]}),true);
+ assert.equal(isPersistentChat({...draft,ephemeral:true,messages:[{content:'private'}]}),false);
+ assert.equal(canConvertMode('simple-chat','agent',['simple-chat','agent']),true);
+ assert.equal(canConvertMode('simple-chat','agent',['simple-chat']),false);
+ assert.equal(canConvertMode('agent','simple-chat',['simple-chat','agent']),false);
+ assert.equal(canConvertMode('agent','research',['simple-chat','agent','research']),false);
+});

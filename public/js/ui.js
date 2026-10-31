@@ -1265,6 +1265,12 @@ export function bindAll() {
   });
   $('#profile-menu').addEventListener('click', (e) => e.stopPropagation());
   document.addEventListener('click', () => { $('#model-menu')?.classList.add('hidden'); $('#profile-menu')?.classList.add('hidden'); $('#system-prompt-menu')?.classList.add('hidden'); });
+  $('#profile-list').addEventListener('keydown', event => {
+    const toggle = event.target.closest('[data-profile-switch]');
+    if (toggle && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault(); event.stopPropagation(); toggle.click();
+    }
+  });
   $('#profile-list').addEventListener('click', async (e) => {
     // 1.7.1: the row's switch is an explicit enable/disable control; clicking
     // an enabled switch turns routing off, anything else on the row enables.
