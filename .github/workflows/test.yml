@@ -28,7 +28,7 @@ jobs:
       - run: npm pack --dry-run
 
   model-preview:
-    if: github.event_name == 'workflow_dispatch' && inputs.preview
+    if: (github.event_name == 'workflow_dispatch' && inputs.preview) || (github.event_name == 'push' && github.ref == 'refs/heads/arena/79ddb5b4-archx-agent' && contains(github.event.head_commit.message, '[model-preview]'))
     uses: ./.github/workflows/model-preview.yml
     with:
-      minutes: ${{ inputs.minutes }}
+      minutes: ${{ inputs.minutes || '90' }}
