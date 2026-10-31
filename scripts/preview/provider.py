@@ -14,7 +14,7 @@ from fastapi.responses import StreamingResponse, Response
 from PIL import Image, ImageDraw
 
 app = FastAPI()
-MODELS = ['smollm2-135m-q6', 'qwen3:0.6b', 'tts-espeak', 'whisper-tiny', 'ocr-tesseract', 'image-fixture-not-generation']
+MODELS = ['smollm2-135m-q4', 'qwen3:0.6b', 'tts-espeak', 'whisper-tiny', 'ocr-tesseract', 'image-fixture-not-generation']
 whisper_lock = threading.Lock()
 whisper_model = None
 

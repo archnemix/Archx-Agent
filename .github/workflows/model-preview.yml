@@ -32,6 +32,8 @@ jobs:
       - name: Install temporary inference tools
         run: |
           npm ci --ignore-scripts
+          npm install --no-save --package-lock=false playwright
+          npx playwright install --with-deps chromium
           sudo apt-get update -qq
           sudo apt-get install -y espeak-ng tesseract-ocr
           pip install fastapi uvicorn python-multipart requests pillow faster-whisper huggingface_hub
@@ -47,11 +49,11 @@ jobs:
           python - <<'PY'
           from huggingface_hub import hf_hub_download
           import os
-          target = hf_hub_download('QuantFactory/SmolLM2-135M-Instruct-GGUF', 'SmolLM2-135M-Instruct.Q6_K.gguf', local_dir=os.environ['RUNNER_TEMP'])
+          target = hf_hub_download('QuantFactory/SmolLM2-135M-Instruct-GGUF', 'SmolLM2-135M-Instruct.Q4_K_M.gguf', local_dir=os.environ['RUNNER_TEMP'])
           with open(os.path.join(os.environ['RUNNER_TEMP'], 'Modelfile'), 'w') as f:
               f.write('FROM ' + target + '\nPARAMETER num_ctx 4096\n')
           PY
-          ollama create smollm2-135m-q6 -f "$RUNNER_TEMP/Modelfile"
+          ollama create smollm2-135m-q4 -f "$RUNNER_TEMP/Modelfile"
           ollama pull qwen3:0.6b
           # Warm the actual STT model before declaring the session ready.
           python -c "from faster_whisper import WhisperModel; WhisperModel('tiny', device='cpu', compute_type='int8')"
@@ -62,6 +64,7 @@ jobs:
           export PREVIEW_DATA="$RUNNER_TEMP/preview-data"
           node scripts/preview/server.cjs > "$RUNNER_TEMP/app.log" 2>&1 &
           python scripts/preview/check.py
+          node scripts/preview/browser.mjs
           "$RUNNER_TEMP/cloudflared" tunnel --url http://127.0.0.1:4173 --no-autoupdate > "$RUNNER_TEMP/tunnel.log" 2>&1 &
           python - <<'PY'
           import os, re, time, pathlib
@@ -70,7 +73,7 @@ jobs:
               found = re.search(r'https://[a-z0-9-]+\.trycloudflare\.com', log.read_text() if log.exists() else '')
               if found:
                   link = found[0] + '/unlock?token=' + os.environ['PREVIEW_TOKEN']
-                  pathlib.Path('preview-link.txt').write_text(link + '\nTemporary shared testing session in a public repository; session expires. Do not enter valuable keys or private documents.\nReal: SmolLM2 135M Q6_K, Qwen3 0.6B thinking via Ollama, Whisper tiny, eSpeak, Tesseract OCR.\nFixed fixture only: image generation.\n')
+                  pathlib.Path('preview-link.txt').write_text(link + '\nTemporary shared testing session in a public repository; session expires. Do not enter valuable keys or private documents.\nReal: SmolLM2 135M Q4_K_M, Qwen3 0.6B thinking via Ollama, Whisper tiny, eSpeak, Tesseract OCR.\nFixed fixture only: image generation.\n')
                   with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
                       f.write('## Link-protected model preview ready\nDownload **preview-link** below to open the authenticated app.\nCPU inference is slow. Real model checks passed; image generation is a labelled fixed fixture.\n')
                   break
@@ -82,6 +85,11 @@ jobs:
         with:
           name: preview-link
           path: preview-link.txt
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: real-model-evidence
+          path: ${{ runner.temp }}/real-model-evidence
           retention-days: 1
       - name: Keep the session available
         env:

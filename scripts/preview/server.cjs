@@ -7,8 +7,8 @@ const token = process.env.PREVIEW_TOKEN;
 if (!token || token.length < 32) throw new Error('A strong preview token is required.');
 const store = new Store(process.env.PREVIEW_DATA);
 const id = 'runner-test-provider';
-store.state.providers.providers = [{ id, name: 'Runner models · temporary', adapter: 'openai-compatible', baseUrl: 'http://127.0.0.1:8090/v1', models: { catalog: ['smollm2-135m-q6', 'qwen3:0.6b', 'tts-espeak', 'whisper-tiny', 'ocr-tesseract', 'image-fixture-not-generation'], custom: [], hidden: [], catalogInitialized: true, selectionMode: 'checklist', capabilities: { 'qwen3:0.6b': { chat: true, vision: false } } } }];
-store.state.providers.active = { providerId: id, model: 'smollm2-135m-q6' };
+store.state.providers.providers = [{ id, name: 'Runner models · temporary', adapter: 'openai-compatible', baseUrl: 'http://127.0.0.1:8090/v1', models: { catalog: ['smollm2-135m-q4', 'qwen3:0.6b', 'tts-espeak', 'whisper-tiny', 'ocr-tesseract', 'image-fixture-not-generation'], custom: [], hidden: [], catalogInitialized: true, selectionMode: 'checklist', capabilities: { 'qwen3:0.6b': { chat: true, vision: false } } } }];
+store.state.providers.active = { providerId: id, model: 'smollm2-135m-q4' };
 store.state.settings.personalizationOnboarded = true;
 store.persist('providers');
 store.flushWrites();
@@ -26,7 +26,7 @@ app.use((req, res, next) => {
   }
   const cookie = req.headers.cookie?.split('; ').find(c => c.startsWith('archx_preview='))?.slice('archx_preview='.length);
   if (!valid(cookie)) return res.status(401).type('text').send('Temporary test preview. Open the authenticated link from the GitHub preview-link artifact.');
-  if (req.method !== 'GET' && req.headers.origin && req.headers.origin !== `https://${req.headers.host}`) return res.status(403).end();
+  if (req.method !== 'GET' && req.headers.origin && req.headers.origin !== `https://${req.headers.host}` && !(req.headers.host === '127.0.0.1:4173' && req.headers.origin === 'http://127.0.0.1:4173')) return res.status(403).end();
   // Public testing session cannot change host storage or fetch arbitrary URLs.
   if (req.path === '/api/storage' || req.path.startsWith('/api/tools/')) return res.status(403).json({ error: { message: 'Unavailable in the temporary runner preview.' } });
   next();

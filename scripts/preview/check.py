@@ -15,7 +15,7 @@ for _ in range(90):
     time.sleep(1)
 else:
     raise SystemExit('Provider failed to start')
-for model in ['smollm2-135m-q6', 'qwen3:0.6b']:
+for model in ['smollm2-135m-q4', 'qwen3:0.6b']:
     response = requests.post(base + '/chat/completions', json={'model': model, 'messages': [{'role': 'user', 'content': 'What is 2 + 3? Answer briefly.'}], 'stream': False, 'max_tokens': 1024}, timeout=240)
     response.raise_for_status()
     message = response.json()['choices'][0]['message']
