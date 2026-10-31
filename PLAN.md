@@ -1,32 +1,28 @@
-# Implementation plan
+# Feature-by-feature plan
 
-## Completed foundation (5/5 reset deliverables)
+The supplied reference is the only active foundation. Retire the old milestone,
+subsystem and checklist-completion approach. Keep the original requirements, not
+past completion claims or a second implementation.
 
-- Replace active Python source with the user-selected reference.
-- Set npm, lockfile, Cargo and Tauri product versions to 1.0.0.
-- Keep the reference UI and working chat/provider/settings flows.
-- Replace obsolete documentation and add executable baseline checks.
-- First adaptation: correct concurrent chat saving/painting and interrupted replies.
+The complete feature list, acceptance conditions and honest current position are
+in [Complete features and acceptance requirements](docs/FEATURE_REQUIREMENTS.md).
 
-## Next user journeys — not yet complete
+## Current feature: Simple Mode
 
-1. Complete and validate local Ollama/provider setup, model selection, thinking,
-   Stop, persisted conversations, edits/regeneration and branches.
-2. Extend conversational web research: contextual queries, automatic reading of
-   discovered sources, comparisons, citations and follow-up searches. Existing
-   Web search/snippet cards are a starting point, not complete autonomous research.
-3. Add the required learning, coding, agent/tool and other capabilities in coherent
-   grouped screens only after their end-to-end flows work. The deleted Python
-   feature list is a requirements source, not current implementation evidence.
-4. Validate Windows installation and the desktop shell before claiming support
-   has been freshly certified. Keep existing data areas separate during testing.
+Finish the entire agreed chat journey, including provider/key/model setup, actual
+model replies, thinking when supplied, conversation controls, persistence, errors
+and a clean desktop/mobile interface. Edit, regeneration and branch flows still
+need full verification. The user tests with their own key in the live preview.
+Do not call this complete before their acceptance.
 
-No whole-product completion percentage is assigned without a new accepted feature
-baseline. Replacement and version reset are bounded operations, not product completion.
+## Rule for every feature
 
-## Verification gates
+1. Agree its complete behaviour and required supported integrations.
+2. Implement that behaviour, including the necessary settings and failure paths.
+3. Run only the checks needed to cover distinct behaviours and risks; reuse useful
+   existing checks instead of adding duplicate tests or chasing test totals.
+4. Run the actual application on the preview port for the user's personal test.
+5. Fix their findings within this feature. Move to the next feature only after
+   explicit user acceptance. Do not open parallel partial modes.
 
-Keep all 28 Node regressions green and rerun `npm run test:browser` for chat changes.
-Expand checks for edits, regeneration and branch switching before claiming those
-flows newly certified. Add safe-page-fetching tests before autonomous discovered-
-URL reading. Never treat inherited memory tables as a completed learning journey.
+Next feature after acceptance: Agent Mode. No Agent implementation is claimed today.

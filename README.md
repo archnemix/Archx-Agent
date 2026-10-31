@@ -38,6 +38,7 @@ identity-derived key; this is not protection against an attacker controlling the
 - [Using the application](docs/USER_GUIDE.md): installation and everyday flows.
 - [Technical guide](docs/TECHNICAL_GUIDE.md): responsibilities, storage and verification.
 - [UI rules](UI-RULES.md): the visual and interaction contract.
+- [Complete features and acceptance requirements](docs/FEATURE_REQUIREMENTS.md): full feature sequence and current gaps.
 - [Plan](PLAN.md), [progress](PROGRESS.md), [decisions](THINKING.md).
 - [Database architecture](DATABASE-ARCHITECTURE.md), [memory architecture](MEMORY-ARCHITECTURE.md)
   and [chat debug map](CHATDEBUG-MAP.md): inherited technical references.
@@ -52,3 +53,10 @@ Tauri desktop validation is implied by fixture tests.
 
 Run `npm test` for the new baseline checks. Browser checks are documented in the
 technical guide. The old Python source/tests/workflows are intentionally removed.
+
+## How work moves forward
+
+One whole feature at a time, beginning with Simple Mode. Necessary behaviour checks
+come before a live personal test by the user. Only their acceptance closes the
+feature and allows the next one to start. Old milestones and reset percentages are
+retired; useful existing regression checks remain, without duplicate test inflation.

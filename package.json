@@ -35,7 +35,8 @@
     "UI-RULES.md",
     "PLAN.md",
     "PROGRESS.md",
-    "THINKING.md"
+    "THINKING.md",
+    "docs/FEATURE_REQUIREMENTS.md"
   ],
   "engines": {
     "node": ">=22.5"

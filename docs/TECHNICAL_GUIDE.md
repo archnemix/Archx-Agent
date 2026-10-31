@@ -18,7 +18,7 @@
 | src-tauri/ | Inherited desktop wrapper; not freshly validated |
 | test/ | New Node regression tests; no old Python tests |
 | scripts/ | Development-only browser verification |
-| docs/history/ | Reference release notes, not current test evidence |
+| docs/FEATURE_REQUIREMENTS.md | Complete features, acceptance boundaries and current gaps |
 
 Do not split or rewrite the reference UI just to change module counts. Keep new work
 small and feature-owned. Large inherited server/store/ui modules need incremental
@@ -36,7 +36,8 @@ No desktop build, native Windows run or live search is claimed by these checks.
 
 package.json, the root lockfile entries, Cargo.toml and tauri.conf.json must agree on
 1.0.0. Dependency versions and database schema versions are not product versions.
-Reference release notes and historical comments retain their original version labels.
+Historical source comments retain their original version labels. Old release-note
+files were removed from the active documentation; they remain in Git history.
 
 This app does not open the Python schema-31 workspace. The inherited Node schema and
 storage migration remain in place. Test against a new data directory. The desktop

@@ -1,58 +1,42 @@
-# Progress and verification
+# Current feature status
 
-## 1.0.0 foundation reset — 31 October 2026
+## Position against the requirements
 
-**5/5 bounded reset deliverables complete (100% of this reset only):**
+The active product is the supplied Node reference, version 1.0.0. The rejected
+Python implementation is absent from the active tree; its historical claims do
+not count as product progress. Old milestone/reset percentages are retired.
 
-1. Replace the rejected active implementation with the supplied Node reference.
-2. Reset npm, lockfile, Cargo and Tauri product versions to 1.0.0.
-3. Start adapting it: concurrent chat saving/rendering and stream-failure handling.
-4. Replace obsolete instructions; provide separate everyday and technical guides.
-5. Verify the replacement with executable Node and browser checks.
+**Accepted full features: 0/17 (0% accepted, not percentage of code written).**
+The complete list and acceptance boundaries are in
+[Complete features and acceptance requirements](docs/FEATURE_REQUIREMENTS.md).
 
-This is not a whole-product percentage. The previous Python source remains in Git
-history at f5e013a, not as another active codebase. No npm/desktop release is published.
+## Current feature: Simple Mode — awaiting full verification and user acceptance
 
-## Actual results
+Present: provider/key setup, connection/model controls, chat, provider-returned
+thinking, streaming, Stop, conversations, edit/regenerate/branches and SQLite storage.
+Presence is not acceptance. Previous local checks exercised selected fixture-backed
+provider/chat paths, concurrent conversations, failure handling, Stop and reload.
+They did not certify real inference or every chat control. Full edit/regeneration/
+branch behaviour, real provider use and the user's usability test remain open.
 
-- `npm ci --ignore-scripts`: 84 dependencies installed.
-- `npm test`: **28 passed, 0 failed**. Tests cover byte/chunk SSE parsing,
-  incomplete/error streams, independent chat saves, stopped/partial output,
-  local HTTP provider integration, memory-only state, SQLite reasoning/branch/
-  tool-card/failure-text round trips and version consistency.
-- Real Chromium check: provider draft connection → save → model import/selection →
-  two concurrent conversations → reasoning/code → truncated reply retaining its
-  answer and displaying a separate error → Stop → saved reload. Mobile 390px
-  viewport has no horizontal overflow. **0 browser page errors.**
-- `npm pack --dry-run` and executable version output checked; all application/test JavaScript syntax and `git diff --check` passed.
-- Preview uses a separate, key-free data area; no old Python database is opened.
+Agent Mode is not implemented. Research is only inherited one-shot search/snippets,
+not the required autonomous question-driven research. Other areas are listed plainly
+in the feature requirements; database tables and visible pages are not full features.
 
-Browser/provider responses were deliberately local fixtures. These results do not
-certify real model quality, internet research, Windows or a Tauri installer.
+## Available for personal testing
 
-## Implemented corrections
+Port 4173 serves the real reference-based app with its own separate data area and no
+seeded provider credentials. The user can enter a key in Settings → Providers, test,
+save, select a model and chat. The app sends requests through its backend. Never
+paste keys into conversation or point this app at the old Python database.
 
-Chat saves are keyed by conversation, painting by content element, and debug/tool/
-model metadata stay with their originating request. Partial text and thinking are
-not overwritten on failure. Browser SSE and the OpenAI-compatible upstream adapter
-reject unconfirmed EOF without automatically resending the question.
+## Verification policy
 
-Testing exposed an inherited branch-loss defect: reads included `branches_json`,
-but writes omitted it. Writes now preserve it. Tool cards and separate error text
-also survive SQLite reload through the existing metadata column. No schema reset.
+Keep meaningful existing checks; add only missing distinct behaviour/risk checks.
+Do not use test totals or structural cleanup as feature completion. No new tests or
+new product modes were added for this planning reset. User acceptance is the gate.
 
-## Requested journeys still needing completion
-
-- Actual Ollama/cloud inference, edits/regeneration/branch-switching browser flows.
-- Iterative autonomous question-driven research: discovering and reading sources,
-  safe fetching, grounded citations and contextual follow-up searches. The inherited
-  one-shot search/snippets and supplied-link reading are not the finished journey.
-- Complete learning, coding, agent/tool and Blender workflows. Blender has **not**
-  been run; there is no validated Blender integration in this Node foundation.
-- Desktop/Windows packaging and remote-exposure security review.
-- Python-to-Node data migration, if required; none exists today.
-
-Inherited Studio/Memory/search features remain visible, not newly certified. Failed
-chat saves are reported but not automatically retried. Native adapters other than
-OpenAI-compatible need their own truncated-stream audit. Large reference modules
-still require incremental responsibility-based extraction, not another UI rewrite.
+After this documentation/UI wording cleanup, the existing regression suite and
+browser journey were rerun successfully, with no additional tests added. External
+provider access can be blocked by this sandbox's outbound network restrictions;
+entering a key is supported, but successful real inference is not promised here.

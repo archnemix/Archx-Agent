@@ -375,21 +375,21 @@
           </section>
 
           <section id="sec-providers" class="set-page hidden">
-            <div class="setting-section-head"><div><h3>Providers</h3><p class="hint">Providers live here permanently — no modal workflow. Changes appear immediately. Keys are encrypted at rest.</p></div><button id="prov-add" class="btn primary" type="button">New provider</button></div>
+            <div class="setting-section-head"><div><h3>Providers</h3><p class="hint">Connect a model service or your local server. Keys are encrypted on this machine.</p></div><button id="prov-add" class="btn primary" type="button">New provider</button></div>
             <div id="prov-list" class="provider-cards"></div>
             <div id="prov-form" class="provider-editor">
-              <div class="provider-editor-head"><div><b id="prov-form-title">Add provider</b><span class="hint">Test reachability before saving, then test any model from Settings → Models.</span></div><button id="prov-cancel" class="btn ghost" type="button">Clear / add mode</button></div>
+              <div class="provider-editor-head"><div><b id="prov-form-title">Add provider</b><span class="hint">Test the connection, save your provider, then choose a model.</span></div><button id="prov-cancel" class="btn ghost" type="button">Clear / add mode</button></div>
               <form id="prov-form-inner" novalidate>
               <input id="prov-edit-id" type="hidden" />
               <div class="grid2">
-                <label class="field"><span>Provider <em class="hint">(fills URL + protocol)</em></span>
+                <label class="field"><span>Provider preset <em class="hint">(sets connection details)</em></span>
                   <select id="prov-preset" class="sel"></select>
                 </label>
                 <label class="field"><span>Name <em class="hint">(optional)</em></span><input id="prov-name" type="text" placeholder="OpenRouter, work server, local ollama…" spellcheck="false" /></label>
               </div>
               <div class="grid2">
                 <label class="field"><span>Endpoint base URL</span><input id="prov-url" type="text" placeholder="https://openrouter.ai/api/v1" spellcheck="false" /></label>
-                <label class="field"><span>Provider adapter</span><select id="prov-adapter" class="sel"></select><em class="hint">Wire protocol this provider speaks — auto-set by the provider choice above; change it for custom endpoints.</em></label>
+                <label class="field"><span>Provider adapter</span><select id="prov-adapter" class="sel"></select><em class="hint">Set automatically by the provider preset. Change only for a custom endpoint.</em></label>
               </div>
               <label class="field"><span>API key</span><div class="keyrow"><input id="prov-key" type="password" placeholder="leave blank to keep the stored key / for local servers" spellcheck="false" /><button id="prov-show" class="icon-btn" type="button">show</button></div><em id="prov-key-hint" class="hint"></em></label>
               <div class="provider-editor-actions"><span id="prov-status" class="hint"></span><button id="prov-test" class="btn" type="button">Test connection</button><button id="prov-save" class="btn primary" type="button">Save provider</button></div>
@@ -400,9 +400,9 @@
           <section id="sec-models" class="set-page set-page-models hidden">
             <div class="models-page-head">
               <div>
-                <span class="section-eyebrow">MODEL CONTROL</span>
+                <span class="section-eyebrow">YOUR MODELS</span>
                 <h3>Models</h3>
-                <p class="hint">Choose a provider, curate which fetched models are in your local list, enable/disable them globally, and test them. “Probe” opens the per-model test body editor and capability overrides.</p>
+                <p class="hint">Choose a provider, add the models you want, and test them before chatting.</p>
               </div>
               <div class="models-summary" id="mdl-summary"></div>
             </div>
