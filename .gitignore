@@ -13,3 +13,6 @@ dist/
 
 # Local static-analysis caches are not source artifacts.
 .ruff_cache/
+
+# One-off runner transport; reference source belongs outside this repository.
+.reference-review/

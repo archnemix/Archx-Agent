@@ -1,15 +1,16 @@
 file	bytes	lines	sha256	responsibility	structural_checks	result
 .ci/trigger	21	1	18a9c3340c68977febaea84b0a54b27a34130295411e97b3e790d9a0c29112fb	.ci/trigger	read UTF-8; SHA-256	pass
 .github/workflows/model-matrix.yml	21130	433	40a776d0cb7a7b4afea3d49209790a6b1ed914a593e5e4f5f9b2c4146b3f2c59	.github/workflows/model-matrix.yml	read UTF-8; SHA-256	pass
-.gitignore	183	15	93e91d2a4469f2f5e62c7a9d2c3162bcd879f287deeac10bed271ce21e855f46	.gitignore	read UTF-8; SHA-256	pass
+.github/workflows/reference-ui.yml	1280	34	1a127b94fe6013631abc6f9d48a1dfe30f4323cbeeca80880d1b3d4a8b0ee04d	.github/workflows/reference-ui.yml	read UTF-8; SHA-256	pass
+.gitignore	281	18	8f1f8a71cda4d8d1f4c34754034a97eec7f0e66d93dbadfd46c58d2ac77ccc37	.gitignore	read UTF-8; SHA-256	pass
 ARCHITECTURE.md	34050	602	4eb1df97a51ce9c08f18a2132687ea81d07168c3f5872fa6ea38a5ac94f511c8	Architecture	read UTF-8; SHA-256; local document links (file targets only)	pass
 CHANGELOG.md	73786	1041	9558a4c33face7bd1b33afd93c7d8c467c44f04f3dbaa701ae8822e0761249c8	Changelog	read UTF-8; SHA-256; local document links (file targets only)	pass
 GAPS.md	27992	373	7abb686ecd07ef71c9cd3c65d3b2aa3fca2d58e0fb3395f26a5b491d359b6a13	Known gaps and honest limitations	read UTF-8; SHA-256; local document links (file targets only)	pass
 LICENSE	1076	21	2fa5c9403030a03bd0b05f216d16ed561be1657e6fbdb2d09ec60ef2a7d49f08	LICENSE	read UTF-8; SHA-256	pass
-PLAN.md	28551	314	faac58cad30f5bc3e7bb4872a0858556deae4a5588dd8e31d0c2479e1ffa892a	Plan and status	read UTF-8; SHA-256; local document links (file targets only)	pass
-PROGRESS.md	71024	574	90f6802390834086bfdaa5d30d7e053a942076b85c23dbdd6dfcd40878ff422c	Progress	read UTF-8; SHA-256; local document links (file targets only)	pass
-README.md	16638	261	d16d7072072f7aee7b0f6f4342ae0062d7c9edb39340ddd3ef890856dcdfdc95	Archx Agent	read UTF-8; SHA-256; local document links (file targets only)	pass
-THINKING.md	110712	1613	62b574dec6cd9b9033c3891fda91ca514ff349f3a89e7812a339d8143fe08408	Decision log	read UTF-8; SHA-256; local document links (file targets only)	pass
+PLAN.md	30332	341	8c2c5ae61088d8f20bfcf9696d8f7d8ca1b55b321ffce411352b0377309b738f	Plan and status	read UTF-8; SHA-256; local document links (file targets only)	pass
+PROGRESS.md	72805	601	e267d2a9a2ea6ec82a8c23cdd0a7a7bba5b5eed8c59982d5d7b3981ef0548af2	Progress	read UTF-8; SHA-256; local document links (file targets only)	pass
+README.md	16740	262	92b8556f1915a345532e8ad3c7e3ba19daa14284a54bfdfbf89f2d7615f2132b	Archx Agent	read UTF-8; SHA-256; local document links (file targets only)	pass
+THINKING.md	112493	1640	0e1510ddb524632d984fb00c90332d4683712e90274d88c4c89847dd8bc86559	Decision log	read UTF-8; SHA-256; local document links (file targets only)	pass
 data/retrieval_set.json	5665	40	735a4f7d502d3284c2b60b8ceff4373926fdaf878830d0ab14658793b2a89387	data/retrieval_set.json	read UTF-8; SHA-256	pass
 docs/AGENTS.md	4731	102	77c70e442aa52f4b83f234fd066c6536eb3dfb879b05f8c6e5b0c865265090fe	Agent workflows (M25)	read UTF-8; SHA-256; local document links (file targets only)	pass
 docs/AUDIT.md	58375	799	2d43c1b3be3b9bb2a9f77136821ac4e0f19ff696d669c8a05ca40b92dc98debd	Repository audit and requirements comparison	read UTF-8; SHA-256; local document links (file targets only)	pass
@@ -17,17 +18,18 @@ docs/AUTOMATIONS.md	4172	65	4c71c589a9786be9e9d3950af59a48fee23d41899feb7c30bb24
 docs/CODEBASE_GUIDE.md	13428	217	1c0849714c3e10d7a0bd2caca9983ee79a409892ed9731cab5947450c493e924	Codebase guide — a simple map	read UTF-8; SHA-256; local document links (file targets only)	pass
 docs/CODING.md	6219	121	cbd4917b37ff4a377363b6f41e8c3e9e51c3e5606dc090c6213cdcd4399fb184	The coding workspace (M31)	read UTF-8; SHA-256; local document links (file targets only)	pass
 docs/DATASETS.md	8526	153	15b80254c5b84482d1beac767186de97ec764ddafd72b7f0c615a0219c42783e	Datasets	read UTF-8; SHA-256; local document links (file targets only)	pass
-docs/DOCUMENT_GUIDE.md	23028	147	fd6a24c10750ad1a5c47986bbce3a2d5e2e01613fa9a12d648f89a9960ec10f4	Document directory and reading guide	read UTF-8; SHA-256; local document links (file targets only)	pass
+docs/DOCUMENT_GUIDE.md	23242	148	33efdb8e1f3149997c0fbdb7953a3de677ad010a2ac84ec4785aff46a00a7667	Document directory and reading guide	read UTF-8; SHA-256; local document links (file targets only)	pass
 docs/EXECUTION.md	15214	303	2d543876031f1a8f8b077e66f3f0ed7d8d4dad51013b60ea5301cd9c9fe06544	Execution environments and sandboxing	read UTF-8; SHA-256; local document links (file targets only)	pass
 docs/EXPERIMENTS.md	7296	167	4eee34e5a348220195fc09ea662740332de9676b1a502234c445cd02a709d8a9	Experimental Mode	read UTF-8; SHA-256; local document links (file targets only)	pass
 docs/FEATURE_STATUS.md	8655	119	2af8fff028a9a131fadf44160a28add2f0524bf5129f6e95f9b2c9bac19b4791	Current implementation inventory and Research Mode requirement	read UTF-8; SHA-256; local document links (file targets only)	pass
 docs/GUI.md	40248	578	67c6d63059e5c94d1f18033cfbc6d93ad74c8a5f69711e113a32e52be1c9eaf3	The local web GUI	read UTF-8; SHA-256; local document links (file targets only)	pass
 docs/LEARNING.md	9291	167	573238f274620d6794048bea4bee653333524c63b25381d0954406795dc6d4f7	Learning Mode (M30)	read UTF-8; SHA-256; local document links (file targets only)	pass
-docs/LOCAL_TESTING.md	9531	169	7957b4cf3091ec4d92d8498ac1d9284630dabe275204397b7f0b769b67d60d55	Test Archx Agent on your computer	read UTF-8; SHA-256; local document links (file targets only)	pass
+docs/LOCAL_TESTING.md	9531	169	54cd36c0a6b4c60602d200392f4b0035be649e495bed21967f41888193a69916	Test Archx Agent on your computer	read UTF-8; SHA-256; local document links (file targets only)	pass
 docs/MCP.md	15751	289	4a833d11fc45c6f7cdaa41538d3d1b469f46dc757d8a31e7f2657e5da3593f39	MCP and extensions	read UTF-8; SHA-256; local document links (file targets only)	pass
 docs/MODES.md	26786	340	68c5f3bf86fc7b976be045d04c459774d148117dc2194c4ec0882b399754b387	Modes: what each one is for, and what is actually built	read UTF-8; SHA-256; local document links (file targets only)	pass
 docs/PLAY.md	6800	131	81473f40959dc865941beda83881fe50bc63165455fe35157447e77719ec5c8c	Play Mode	read UTF-8; SHA-256; local document links (file targets only)	pass
 docs/PROVIDERS.md	24512	421	bf91977141967b205f34f6c7af514b233f4948479fcac1e1f9f8c0e7dc1b23e6	Providers, privacy metadata and consent	read UTF-8; SHA-256; local document links (file targets only)	pass
+docs/REFERENCE_UI_REVIEW.md	7197	95	fef2e7f23e696a94bc09c815132112c820a1c4a3bcf4e564e03ea21f8bb9abe5	Review of the user's reference interface	read UTF-8; SHA-256; local document links (file targets only)	pass
 docs/RELEASE.md	7274	103	0f402aebcdae2d3b02f54fe6fe0371644a1cc5048bd229f1e682b0412e0ecbc2	Hardening and release readiness (M41)	read UTF-8; SHA-256; local document links (file targets only)	pass
 docs/REMOTE.md	17759	343	7a476ef210c023052f3f79bca8e1ba0525e5b3ff82b8b37fecd40fad649034cc	Remote compute and portability	read UTF-8; SHA-256; local document links (file targets only)	pass
 docs/RESEARCH.md	10432	185	bd7f10c50e8aa287bb55744056321c69d76d219cf10ed2a12affee29cc206005	Researcher Mode (M28)	read UTF-8; SHA-256; local document links (file targets only)	pass
@@ -43,11 +45,11 @@ docs/TOOLS.md	11602	218	95b30dad33d848e77077c3e053808dd88ae3ffe4446bcdea96c45fa0
 docs/TRAINING.md	8005	151	866e098fa070a43d8a1488fb1398ec19613b3f8abf6c0ab8d19effca48b53aef	Training and model modification	read UTF-8; SHA-256; local document links (file targets only)	pass
 docs/VERIFICATION.md	3767	160	9e2a27117bdffa5d2afb4481b5c7357cc4cd0faa93440b97db73ce0548c0546c	Verification record	read UTF-8; SHA-256; local document links (file targets only)	pass
 docs/VOICE.md	7870	150	d5d671ce652ea692bdb2b9b5c5336b21e8cb63becea180e93b57274d3852ed22	Voice and media	read UTF-8; SHA-256; local document links (file targets only)	pass
-docs/audit/checks.tsv	6283	58	ceddd4f55e2aa8fb0e9a921d8b57dc1fe94ae7659b9214a5a2d474d628695780	docs/audit/checks.tsv	read UTF-8; SHA-256	pass
+docs/audit/checks.tsv	6899	61	062221f48078ef21685863ce5269c64aed7e255e8ac682aef6feba50608ba6ee	docs/audit/checks.tsv	read UTF-8; SHA-256	pass
 docs/audit/cleanup-progress.tsv	4948	37	7f2a07e6450f948d0616fe67964d72c9f4a96cc4370ba8495cdade435e32f1a2	docs/audit/cleanup-progress.tsv	read UTF-8; SHA-256	pass
 docs/audit/coverage.tsv	61941	494	dbe307716fea5160fe90833f063bab68f43936b1093a4f57bca570dbfb966af5	docs/audit/coverage.tsv	read UTF-8; SHA-256	pass
-docs/audit/documents.tsv	21036	85	121bdfc9150c68591d72874dddea0182fa54b93fa192252540e4853af6d972c4	docs/audit/documents.tsv	read UTF-8; SHA-256	pass
-docs/audit/folders.tsv	7238	76	650d5c00af2eea1edb7d7204608ac0e746d3ef15dddc304d3720f108af6e1a02	docs/audit/folders.tsv	read UTF-8; SHA-256	pass
+docs/audit/documents.tsv	21288	86	fef11213bd7ce86e6a956ec1b77c1586480a35b3190671cdedd37d1e7d04ea3d	docs/audit/documents.tsv	read UTF-8; SHA-256	pass
+docs/audit/folders.tsv	7239	76	d9822225cc830c9cc5820e7b6efb04247b9972bc54d5a6766823ab96115ddd31	docs/audit/folders.tsv	read UTF-8; SHA-256	pass
 docs/audit/orchestration-contracts.json	54535	1544	669fc52561be335213e495c04466e7cc8fa614e04c7119b8c61670547f15abfa	docs/audit/orchestration-contracts.json	read UTF-8; SHA-256	pass
 docs/audit/refactor-contracts.tsv	3743	28	15c1df15b283c6a775374a9da135bf0cc0d7315903750a8e41f59679738be4f6	docs/audit/refactor-contracts.tsv	read UTF-8; SHA-256	pass
 docs/ci/README.md	8309	188	be99c6a55acd6bb30a491d1acc0c84f22aa63a8189102903013215103a21e375	The CI runs that prove this, kept in the repository	read UTF-8; SHA-256; local document links (file targets only)	pass
@@ -138,6 +140,7 @@ scripts/gui_smoke.mjs	44020	783	c682cea121e513805508360496e3043c36f84f7326b5114e
 scripts/openai_protocol_stub.py	4330	105	14437b90746f442c4c6fc03f517e2ab16a1e8346557aa217bcb9212ac38dbaac	A minimal OpenAI-compatible *protocol* server for integration testing.	read UTF-8; SHA-256; Python AST; duplicate keys/definitions	pass
 scripts/release_check.sh	2170	48	20f2fa3f98bce280b2dbb26ce35557c371590bb0ea4b3f15a84a9ff24ad0434f	Repeatable verification or maintenance command: release check	read UTF-8; SHA-256; bash -n	pass
 scripts/remote_model.sh	8282	211	e348dff5e2fb337d30eed3445bb63edefa0a907171262f1feaf5f55bd00e4a27	Repeatable verification or maintenance command: remote model	read UTF-8; SHA-256; bash -n	pass
+scripts/retrieve_reference_ui.py	4994	99	599188a18652973a68847ae62a488b7b628c09afbea634abab655db1beffab1f	Retrieve a user-supplied UI reference on a runner; inspect bytes, never execute them.	read UTF-8; SHA-256; Python AST; duplicate keys/definitions	pass
 scripts/review_documents.py	4469	119	94a8de543646687ba75b15e30692d4b45f170d341674caf8e1197250ca722f5b	Read/classify every Markdown document and check current source references.	read UTF-8; SHA-256; Python AST; duplicate keys/definitions	pass
 scripts/seed_demo.sh	6506	138	cac3930d02f9b91b6f0bd5b716351d03a77cbd4b54f71be7f60049769ee8e478	Repeatable verification or maintenance command: seed demo	read UTF-8; SHA-256; bash -n	pass
 scripts/strict_openai_stub.py	3655	61	8c1aadee1d0280d8f1072be280e7693185457654ef5411823d0b65be69e946df	A strict stand-in for llama-server, so `remote_model.sh` can be rehearsed without one.	read UTF-8; SHA-256; Python AST; duplicate keys/definitions	pass
@@ -723,6 +726,7 @@ tests/tools/test_mcp_m23.py	23810	557	c7005d58022c0dac17869a50afaf7540594d4b4f3d
 tests/tools/test_mcp_server_boundaries.py	6722	210	88f1b241c2dc732fd44686032b1d595777a5d340e862f61475d92ed2b0375ede	MCP server malformed requests, framing, authentication and CLI default regressions.	read UTF-8; SHA-256; Python AST; duplicate keys/definitions	pass
 tests/tools/test_mcp_transport_safety.py	23799	748	a324f049a62dc96be503ea01e890b0b6ce4bc825406c64be1f264f104e3235b0	MCP byte/deadline/lifecycle regressions using real pipes and loopback HTTP.	read UTF-8; SHA-256; Python AST; duplicate keys/definitions	pass
 tests/tools/test_process_limits.py	3166	85	a4a708b6b39ea0e406a8520519129371a49a24abb55d25760593a9dc02cca3e1	Real subprocess checks: bounded output reads, isolated environment, refusals.	read UTF-8; SHA-256; Python AST; duplicate keys/definitions	pass
+tests/tools/test_reference_retrieval.py	2033	48	84a94c2e8cce013d517effada9fba06c9b5d224ec033020e6d8738fd2c08ac7c	User reference archive inspection is bounded and never extracts executable paths.	read UTF-8; SHA-256; Python AST; duplicate keys/definitions	pass
 tests/tools/test_tool_probe.py	6746	169	4c1ada5ce9e52b522599a6560a86d593a32d1b42595a9026ce244b2a4032e310	`models probe --capability tools`, end to end.	read UTF-8; SHA-256; Python AST; duplicate keys/definitions	pass
 tests/tools/test_tools_m22.py	30668	633	921210fbf8786ab4a3d32444806649d054fc4f5d3d1c752ceef92988594e1a09	M22: tool registry + permission centre.	read UTF-8; SHA-256; Python AST; duplicate keys/definitions	pass
 tests/workflows/__init__.py	77	1	0c4551790ce47f90c5bcaf7cec2430b6450aed2ecbbe98f35386e6ca00e2c03b	Workflows regression suite. Shared fixtures live in tests/conftest.py.	read UTF-8; SHA-256; Python AST; duplicate keys/definitions	pass

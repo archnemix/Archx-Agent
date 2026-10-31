@@ -324,3 +324,18 @@ code. Compare actual navigation, interaction paths and feature completeness befo
 redesign. Download and analysis are pending; do not infer quality or behaviour from the link.
 Publishing the existing saved source is needed to add the runner workflow on this branch;
 main must remain unchanged. Do not commit the original download, environments or models.
+
+
+### Reference retrieval and analysis completed
+
+Downloaded the user's 289724-byte Archx Agent 1.9.0 gzip tar through Actions; original
+SHA256 9a263ec54307cfa555b38625a8d8bb35c2dadeb5d1e35afc69b559753b09a68e.
+Source and isolated no-key Chromium review confirm coherent Chat/Studio/Memory/Debug/Settings,
+browser provider setup, stable stream surfaces, Stop/per-chat ownership and conversation
+editing/branches as concrete reference strengths. A browser check retained code/thinking
+DOM identity across incremental paints; our painter still rebuilds answer contents.
+The reference already contains question-driven web search/source cards (code-inspected,
+not live web-tested here). Review: docs/REFERENCE_UI_REVIEW.md. This is completed analysis,
+not an implemented port or certification that every reference capability works.
+Current source and retrieval workflow were published only to the session branch, not main.
+The unrelated model-matrix run was cancelled; downloaded source remains outside the repo.

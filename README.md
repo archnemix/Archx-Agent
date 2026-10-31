@@ -258,4 +258,5 @@ The current source replaces the competing chat sidebars with one history sidebar
 collapsed advanced tools. It includes actual chat-model selection, separate returned
 model-thinking panels, quieter diagnostics and phone navigation. This does not complete
 the other product modes or autonomous Research. See [the browser guide](docs/GUI.md)
-and [Windows update instructions](docs/LOCAL_TESTING.md) for this unpublished source bundle.
+and [Windows update instructions](docs/LOCAL_TESTING.md) for the source correction. The saved source is now published on the session branch,
+`arena/79ddb5b4-archx-agent`; `main` was not changed.

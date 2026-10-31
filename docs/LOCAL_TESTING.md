@@ -3,9 +3,9 @@
 ## 1. Use the current source
 
 Use the source archive provided with this conversation and extract `Archx-Agent`, or use
-a checkout that actually contains these changes. They have not been published as an
-installer or pushed by this testing-guide update. Cloning an older `main` is not equivalent.
-Work inside the extracted directory containing `pyproject.toml`.
+a checkout of `arena/79ddb5b4-archx-agent`, where the saved source was published during the
+reference-UI retrieval. No installer is published. Cloning the older `main` is not equivalent.
+Work inside the directory containing `pyproject.toml`.
 
 Requirements: Python **3.11 or newer**, a terminal and a browser. Installation downloads
 build/development packages from PyPI. The core GUI needs neither Node.js nor an npm build.

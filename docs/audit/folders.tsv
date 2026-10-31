@@ -2,14 +2,14 @@ folder	responsibility	direct_files
 .	Project overview, packaging metadata and top-level status/architecture documents	10
 .ci	Explicit CI trigger input	1
 .github	GitHub automation configuration	0
-.github/workflows	CI jobs and published evidence procedures	1
+.github/workflows	CI jobs and published evidence procedures	2
 data	Small retrieval evaluation data; not model weights	1
-docs	Current user/maintainer guides and separated historical evidence	32
+docs	Current user/maintainer guides and separated historical evidence	33
 docs/audit	Compact structural, coverage and verification inventories	8
 docs/ci	Historical CI metadata and recorded evidence	6
 docs/reports	Labelled historical milestone reports	17
 docs/verification	Preserved historical run transcripts	27
-scripts	Setup, maintenance, verification procedures and labelled protocol fixtures	40
+scripts	Setup, maintenance, verification procedures and labelled protocol fixtures	41
 src	Installable Python source tree	0
 src/archx_agent	Package identity and executable entry points	1
 src/archx_agent/adapters	External protocol/runtime integrations; no application policy	11
@@ -72,5 +72,5 @@ tests/interfaces	CLI and browser transport/presentation regressions	5
 tests/knowledge	Memory, embeddings, context, retrieval and simple search flows	7
 tests/models	Model catalogue, provider/privacy policy, routing and SDK/runtime protocol regressions	8
 tests/system	Cross-feature integration, stress, hostile-client and distribution regressions	5
-tests/tools	Tool execution, permissions, MCP and extension regressions	9
+tests/tools	Tool execution, permissions, MCP and extension regressions	10
 tests/workflows	Task history, workflow execution and durable scheduler regressions	4

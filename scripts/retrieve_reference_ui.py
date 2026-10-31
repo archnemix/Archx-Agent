@@ -12,8 +12,10 @@ import zipfile
 
 def inspect(download: Path, output: Path) -> None:
     output.mkdir(parents=True, exist_ok=True)
-    report = {"bytes": download.stat().st_size, "sha256": hashlib.file_digest(download.open('rb'), 'sha256').hexdigest()}
-    text_suffixes = {'.py', '.html', '.css', '.js', '.jsx', '.ts', '.tsx', '.json', '.md', '.txt', '.toml', '.yaml', '.yml'}
+    with download.open('rb') as source:
+        digest = hashlib.file_digest(source, 'sha256').hexdigest()
+    report = {"bytes": download.stat().st_size, "sha256": digest}
+    text_suffixes = {'.py', '.html', '.css', '.js', '.mjs', '.jsx', '.ts', '.tsx', '.json', '.md', '.txt', '.toml', '.yaml', '.yml'}
     ignored = {'node_modules', '.git', '.venv', 'venv', '__pycache__', 'site-packages', 'dist', 'build'}
     selected = []
     budget = 8 * 1024 * 1024
@@ -64,7 +66,8 @@ def inspect(download: Path, output: Path) -> None:
                     budget -= len(raw)
                     selected.append(str(name))
         else:
-            raw = download.read_bytes()[:512 * 1024]
+            with download.open('rb') as source:
+                raw = source.read(512 * 1024)
             report['format'] = 'unrecognized archive or plain text'
             report['header_hex'] = raw[:40].hex()
             try:
@@ -77,7 +80,7 @@ def inspect(download: Path, output: Path) -> None:
         shutil.copyfile(download, output / 'original-download.bin')
         report['original_returned'] = True
     report['selected_source_files'] = selected
-    report['scope'] = 'Bounded UTF-8 source snapshot only; no downloaded code executed; original download not committed.'
+    report['scope'] = 'Bounded UTF-8 source snapshot; original returned only below 2 MiB for transport; no downloaded code executed by retrieval.'
     (output / 'report.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
 
 

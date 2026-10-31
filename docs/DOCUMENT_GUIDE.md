@@ -5,7 +5,7 @@ requirements comparison** and **Known gaps and limitations**. Use the feature gu
 for the command you need. Maintainers should also read **Architecture and module
 boundaries**, the relevant tests, and **Design decisions and reasoning**.
 
-The catalogue covers all 84 Markdown documents plus the licence and structured
+The catalogue covers all 85 Markdown documents plus the licence and structured
 reference/evidence files below. “Historical” means the counts, environment and status
 belong to that checkpoint; they must not override current guides or become a claim
 that an absent feature is implemented.
@@ -14,6 +14,7 @@ that an absent feature is implemented.
 
 | Human-readable name | Document | Meaning and purpose |
 |---|---|---|
+| Review of the user’s reference interface | [`docs/REFERENCE_UI_REVIEW.md`](REFERENCE_UI_REVIEW.md) | Download identity, observed screens, concrete interaction advantages and the baseline for further UI work. |
 | Architecture and module boundaries | [`ARCHITECTURE.md`](../ARCHITECTURE.md) | Explains layers, dependency rules, storage invariants and interface responsibilities for maintainers. |
 | Testing on your computer | [`docs/LOCAL_TESTING.md`](LOCAL_TESTING.md) | Current-source setup, safe simulated demo, real-model connection, feature checks and platform/test limitations. |
 | Current feature implementation and Research requirements | [`docs/FEATURE_STATUS.md`](FEATURE_STATUS.md) | Defines the counting units, ten partial areas and the user's required autonomous AI research chat; distinguishes milestone evidence from feature acceptance. |

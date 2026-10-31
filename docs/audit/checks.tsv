@@ -56,3 +56,6 @@ chat-correction-final-targeted	0	452 interface and architecture tests passed in 
 chat-correction-browser	0	Real Chromium 1440x1000 and 390x844: light/dark, model POST binding, separate reasoning/history, collapsed diagnostics, right-aligned user, mobile navigation, interrupted reasoning no replay; fixtures not inference
 chat-correction-dom	0	20 preserved workspace tabs/forms and four completion/failure scenarios; no duplicate POST or page errors; not end-to-end functionality of every mode
 chat-correction-wheel	0	Wheel builds and includes reasoning helper, chat stream owner and chat.css; no installer/native platform certification
+reference-ui-retrieval	0	Actions 41202010796: 289724-byte gzip tar, SHA256 9a263ec54307cfa555b38625a8d8bb35c2dadeb5d1e35afc69b559753b09a68e; bounded transport removed from working tree; original/source outside repo
+reference-ui-browser-review	0	Isolated no-key memory-only Chromium: Chat, Settings, model picker, Memory; code and thinking DOM identity preserved during incremental test paints; external provider/tool requests blocked; no live-inference/search certification
+reference-retrieval-helper	0	3 regressions pass: ZIP path/secrets/dependency filtering, gzip tar modules/symlink filtering, original-size cap
