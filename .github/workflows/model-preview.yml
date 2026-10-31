@@ -1,5 +1,10 @@
 name: Temporary real-model preview
 on:
+  workflow_call:
+    inputs:
+      minutes:
+        type: string
+        default: '90'
   workflow_dispatch:
     inputs:
       minutes:

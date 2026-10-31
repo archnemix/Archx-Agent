@@ -1,5 +1,17 @@
 name: Node baseline
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      preview:
+        description: Start the private real-model preview
+        type: boolean
+        default: false
+      minutes:
+        description: Preview duration, 10–90 minutes
+        type: string
+        default: '90' 
 permissions:
   contents: read
 jobs:
@@ -14,3 +26,9 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm test
       - run: npm pack --dry-run
+
+  model-preview:
+    if: github.event_name == 'workflow_dispatch' && inputs.preview
+    uses: ./.github/workflows/model-preview.yml
+    with:
+      minutes: ${{ inputs.minutes }}
