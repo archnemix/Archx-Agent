@@ -1,262 +1,54 @@
-# Archx Agent
+# Archx Agent 1.0.0
 
-A modular, **local-first** AI operating environment: conversation, persistent memory,
-research, coding, experiments, learning, play, media, model management, datasets,
-training, remote compute, automation and extensible tool execution under one set of
-storage, settings, permissions, routing, tracing and task history.
+A local-first AI workspace built on the user-selected reference interface. Chat,
+provider/model setup, thinking, streaming code/tables, conversation branches, Studio,
+Memory, Debug and Settings form the starting product—not twenty unfinished modes.
 
-> **Status:** M01–M41 are closed within their documented scopes, not as a complete
-> implementation of every broad product ambition. Start with [Progress](PROGRESS.md),
-> [Known gaps](GAPS.md) and the [repository audit](docs/AUDIT.md). The
-> [document guide](docs/DOCUMENT_GUIDE.md) names every document and explains its purpose.
+This repository now contains a **Node.js application**, not the previous Python app.
+The new 1.0.0 version starts from the supplied reference's 1.9.0 source and retains its
+MIT licence. It is a source version reset, not a published npm or desktop release.
 
-Latest local safety gate: **2,616 tests**, **25 acceptance procedures**, **20 GUI tabs +
-4 stream scenarios**, and **493 installed-wheel imports**. Workers now require credentials
-for executable/non-loopback listeners and bound training admission/result retention.
-See the [audit](docs/AUDIT.md#worker-policy-and-admission) and [worker guide](docs/REMOTE.md).
-The fixed large-owner structural list remains **36/36 accepted (100%)**, not overall
-product completion. [Product gaps](GAPS.md), durable recovery and native/platform validation
-remain separate; no fresh Blender, real-model, Windows, cloud or GitHub-CI certification.
+## Run from source
 
-**Research is incomplete against the requested product:** the current workflow needs
-supplied web URLs; AI chat with autonomous web discovery is not implemented. See the
-[current feature inventory](docs/FEATURE_STATUS.md), not milestone counts, for this distinction.
+Install **Node.js 22.5 or newer** (a current Node 22 LTS or newer is recommended).
+From this directory, run:
 
-For a safe local demo, Windows/Linux setup and real-model testing, see
-[Testing on your computer](docs/LOCAL_TESTING.md).
-
-## Install (development)
-
-```bash
-python -m venv .venv
-./.venv/bin/pip install -e .
-./.venv/bin/pip install -e '.[dev,sdks]' # for the full verification matrix
-./.venv/bin/archx-agent init
+```sh
+npm ci
+npm start -- --no-open
 ```
 
-or, in one step: `./scripts/bootstrap.sh`.
+Open the printed address, normally `http://127.0.0.1:4173`. In Settings → Providers,
+add your Ollama endpoint (`http://127.0.0.1:11434/v1`), leave its key empty, fetch/add
+your model and choose it in Chat. Other providers can use their supported adapters.
 
-Python 3.11+ is required. The core has **no mandatory third-party dependencies**;
-model runtimes and media tooling are opt-in extras.
+For an explicit separate data folder:
 
-## Quickstart
-
-```bash
-# 1. point it at a model
-#    a) local GGUF files (needs `pip install llama-cpp-python`)
-archx-agent models discover --dir ~/models
-#    b) any OpenAI-compatible HTTP endpoint (llama.cpp server, Ollama, vLLM, LM Studio)
-archx-agent models add-http --name local-llama --base-url http://127.0.0.1:8080 --model smollm2
-#    c) an explicitly simulated runtime, for exploring the app with no model at all
-archx-agent models add-scripted --name simulated-demo
-
-# 2. remote providers are opt-in: register, confirm the privacy terms, consent
-archx-agent providers add cloud --template openai --auth-ref secret://env/OPENAI_API_KEY
-archx-agent providers privacy          # shows what is known, and where it came from
-archx-agent providers confirm cloud --data-leaves-device yes
-archx-agent providers consent cloud
-archx-agent config set model.local_only false   # deliberately required for remote calls
-
-# 3. talk
-archx-agent chat --message "Summarise what you know about this project"
-archx-agent chat                       # interactive
-
-# 4. memory
-archx-agent memory add --kind permanent --category preference \
-  --title "Metric units" --content "Always use metric units" --tags style
-archx-agent memory search metric
-archx-agent memory policy              # documented policy for all six memory systems
-
-# 5. tools need a grant: the first attempt queues an approval, then run it again
-archx-agent tools run fs.write --arg path=notes.md --arg content=hello
-archx-agent approvals list
-archx-agent approvals approve ap_...
-archx-agent tools run fs.write --arg path=notes.md --arg content=hello
-archx-agent tools runs                  # every attempt, denials included
-
-# 5b. MCP servers and extensions go through the same checks
-archx-agent mcp add fixture --command python3 --arg path/to/server.py
-archx-agent mcp sync fixture            # discovers; registers nothing until trusted+enabled
-archx-agent mcp trust fixture && archx-agent mcp enable fixture
-archx-agent mcp sync fixture && archx-agent mcp call fixture echo --arg text=hi
-
-# 6. what did I do, and can I do it again?
-archx-agent tasks list                      # every turn and tool task, newest first
-archx-agent tasks show <task>                # timeline, tool runs, artifacts
-archx-agent versions list artifact <path>    # content history with diffs and restores
-archx-agent tasks reproduce <task> --record  # exact / partial / impossible, with reasons
-
-# 7. let the agent carry out a plan (a model's plan needs approval)
-archx-agent agent run-file plan.json          # steps you wrote
-archx-agent agent plan "summarise the notes"  # a model proposes; nothing runs yet
-archx-agent agent show wf_... && archx-agent agent run wf_... --approve
-
-# 8. long work goes through the durable queue
-archx-agent jobs submit command "sleep 30" --timeout 5   # a hard deadline, not a hint
-archx-agent jobs submit workflow wf_... --timeout 600
-archx-agent jobs run                                     # drain (exit 3 = work remains)
-archx-agent jobs pause jb_... && archx-agent jobs resume jb_...
-archx-agent jobs recover                                 # after a crash: requeue, do not guess
-
-# 9. one search, and a front door that explains itself
-archx-agent search "database locks"          # conversations, memory, tasks, workflows, files
-archx-agent search kafka --kind memory --no-files
-archx-agent simple ask "where did I write about database locks"
-archx-agent simple ask "remember that the staging key lives in vault"
-archx-agent simple status
-archx-agent simple                            # a small loop: /help for what it understands
-
-# 10. research a question: a plan, real sources, citations, and what it could not establish
-archx-agent research run "how does sqlite locking work"
-archx-agent research run "how does sqlite locking work" --no-model   # extractive, no model calls
-archx-agent research run "..." --mode web --url https://example.com/page   # needs a net.fetch grant
-archx-agent research sources rs_...     # what was read, and what could not be
-archx-agent research verify rs_...      # exit 3 if a citation does not resolve
-
-# 11. the same app in a browser: a local GUI with a token, no second implementation
-archx-agent gui serve                 # prints http://127.0.0.1:8765/?token=...
-archx-agent gui serve --port 0 --open # any free port, and open it
-archx-agent gui routes                # every endpoint it serves
-
-# 12. inspect everything that happened
-archx-agent trace list --limit 20
-archx-agent db check
+```sh
+node bin/archx-agent.js webui --data-dir ./my-data --no-open
 ```
 
-Simple Mode never widens your authority: when a request needs a permission or an approval,
-it prints the exact `archx-agent approvals approve ...` command and stops (exit `4`).
+Do not point this version at the former Python `real-ui-home` database: no Python-to-
+Node data migration is implemented. Keep it backed up. Existing reference-version
+Node data should also be backed up before testing. Keys are encrypted with a machine-
+identity-derived key; this is not protection against an attacker controlling the same OS.
 
-`--json` is accepted before or after the subcommand. `--home DIR` keeps a separate
-workspace (useful for experiments and tests).
+## Guides
 
-### The simulated runtime is not a model
+- [Using the application](docs/USER_GUIDE.md): installation and everyday flows.
+- [Technical guide](docs/TECHNICAL_GUIDE.md): responsibilities, storage and verification.
+- [UI rules](UI-RULES.md): the visual and interaction contract.
+- [Plan](PLAN.md), [progress](PROGRESS.md), [decisions](THINKING.md).
+- [Database architecture](DATABASE-ARCHITECTURE.md), [memory architecture](MEMORY-ARCHITECTURE.md)
+  and [chat debug map](CHATDEBUG-MAP.md): inherited technical references.
 
-`--allow-simulated` / `models add-scripted` enables a **test double** that returns
-canned text. Every surface labels it (`[SIMULATED]`), traces record it, and it is
-disabled unless you ask for it. It exists so the application can be exercised without
-downloading weights; it never stands in for a real model in acceptance evidence.
+## Honest scope
 
-## What works today
+The inherited Web toggle searches from a question, supplies result snippets and shows
+source cards; supplied links can be read separately. Iterative autonomous research is
+still planned. Studio operations require suitable models/providers. A model exposes
+thinking only if its provider returns it. No real provider, live search, Windows or
+Tauri desktop validation is implied by fixture tests.
 
-| Area | State |
-|------|-------|
-| Layered architecture + enforced import matrix | verified |
-| Config (defaults → file → env → CLI), validated, with provenance | verified |
-| SQLite storage: serialised writer, journal, exactly-once replay, backpressure | verified (incl. SIGKILL crash test) |
-| Backup / verify / preview-restore / restore-aside / retention | verified |
-| Structured trace: capture levels, causal tree, redaction, export, retention | verified |
-| Conversations: create, search, rename, soft/hard delete, export, restart-safe ordering | verified |
-| Six memory systems with scope, provenance, history, dedupe, retention, artifacts | verified (M17) |
-| Embeddings: float32 vectors with model identity, states, hybrid retrieval, eval harness | verified (M18) |
-| Context strategies: oldest-first, summarise, AI-select, manual, AI-proposed | verified (M19) |
-| Model catalogue: facts vs claims vs user metadata, discovery, verification states | verified |
-| Providers: local/cloud catalogue, privacy metadata, confirmations, consent, availability, quotas, usage | verified (M20) |
-| Capability-safe routing: evidence-backed capability states, eligibility, probes, visible fallback | verified (M21) |
-| Tools + permissions: declared capabilities, scoped grants, approvals, sandboxed fs/shell, run audit | verified (M22) |
-| MCP client (stdio + HTTP) and optional server; extensions with a trust boundary | verified (M23) |
-| Task history, content versions with diffs/restore, and evidence-based reproduction records | verified (M24) |
-| Agent workflows: user-written plans, model-proposed plans behind approval, subagents, budgets | verified (M25) |
-| Durable job queue: priorities, concurrency with resource admission, hard deadlines, pause/resume, crash recovery | verified (M26) |
-| Unified search across conversations, memory, tasks, workflows, projects, artifacts, tools and files | verified (M27) |
-| Simple Mode: plain-language intents with a stated reason, honest refusals and printed next steps | verified (M27) |
-| Researcher Mode: validated plans, real sources, checked citations, coverage and limitations | verified (M28) |
-| Local GUI: token-authenticated, CSRF-protected, every panel wired to the real services | verified (M29) |
-| Learning Mode: goals with criteria, hint ladder, SM-2-lite schedule, exact/self grading | verified (M30) |
-| Coding workspace: sessions on a directory, edits as diffs, a recorded runner, named checks | verified (M31) |
-| Experimental Mode: declared commands and parameters, metrics only from the declared source, honest comparison | verified (M32) |
-| Play Mode: three games the rules referee, a log that keeps the refusals, simulations that replay from their parameters | verified (M33) |
-| Voice and media: measured from the bytes (PNG/JPEG/GIF/WAV), transcripts that name their author, refusals that name the missing link | verified, scoped (M34 - no speech model exists here) |
-| `net.fetch` as a capability: http(s) only, private addresses refused, redirects re-checked | verified (M28) |
-| Provider runtime boundary: llama.cpp in-process, OpenAI-compatible HTTP, tested error classification | verified for HTTP; llama.cpp needs the optional dependency and a model file |
-| CLI | verified end-to-end |
-| Datasets: candidates measured, cleaning that keeps its reasons, splits that do not move, a manifest that can fail | verified (M35) |
-| Training: two CPU trainers with real metrics and hashed artifacts; fine-tuning refused by name | verified, scoped (M36) |
-| Remote compute: a portable bundle with two digests per record, a worker that re-checks it, and an artifact hashed again on arrival | verified, scoped (M37 - no cloud, no vendor SDK) |
-| Execution environments: seven backends behind one recorded wrapper, a refusal with its reason, and a push/pull hash ledger that keeps a both-sides edit as a conflict | verified, scoped (M38 - WSL is not a boundary, Windows Sandbox is detached) |
-| Scenes/Blender, automations | **Implemented, scoped:** measured scenes, task artifacts and Blender 4.2 CPU rendering; interval/once/hash-watch scheduling with explicit workers. See docs/SCENES.md and docs/AUTOMATIONS.md |
-
-## Design principles (enforced, not aspirational)
-
-1. **Local-first, not local-only.** Cloud and remote workers are optional and explicit.
-2. **Modular.** Replaceable providers, storage, executors and interfaces.
-3. **Real capabilities, not labels.** A capability is only routed on when it is verified.
-4. **Explicit authority, safe defaults.** Nothing grants itself permission.
-5. **Inspectable and reproducible.** Every consequential event is traced.
-6. **Preserve source data.** Compaction never deletes originals.
-7. **Demonstrable progress.** A milestone is done only when it works in the app.
-
-## Documentation
-
-* [ARCHITECTURE.md](ARCHITECTURE.md) - layers, invariants, data model, extension points
-* [PLAN.md](PLAN.md) - milestone scope and status
-* [PROGRESS.md](PROGRESS.md) - what is verified, how, and what is next
-* [GAPS.md](GAPS.md) - known limitations, honestly stated
-* [THINKING.md](THINKING.md) - decision log with reasons
-* [CHANGELOG.md](CHANGELOG.md)
-* [scripts/seed_demo.sh](scripts/seed_demo.sh) - rebuild the demo home the live preview serves (after `bootstrap.sh`)
-* [docs/MODES.md](docs/MODES.md) - every mode and milestone, what each is for, and what is honestly built
-* [docs/GUI.md](docs/GUI.md) - the local web GUI, its layout, themes, security model and every endpoint
-* [docs/LEARNING.md](docs/LEARNING.md) - goals, items, hint ladders, grading and the schedule
-* [docs/RESEARCH.md](docs/RESEARCH.md) - research runs, evidence rules, citations, `net.fetch` limits
-* [docs/CODING.md](docs/CODING.md) - coding sessions, edits as diffs, the recorded runner, named checks
-* [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) - declared commands and parameters, honest metrics, comparison
-* [docs/PLAY.md](docs/PLAY.md) - the rules as the only authority, refused moves kept, simulations that replay
-* [docs/VOICE.md](docs/VOICE.md) - media measured from the bytes, transcripts that name their author, speech refused by name
-* [docs/DATASETS.md](docs/DATASETS.md) - every removal keeps its reason, the split follows from the record, the manifest can fail
-* [docs/TRAINING.md](docs/TRAINING.md) - two trainers that really run, metrics as rows, fine-tuning refused by name
-* [docs/SIMPLE_MODE.md](docs/SIMPLE_MODE.md) - unified search, its ranking, and every Simple Mode intent
-* [docs/AGENTS.md](docs/AGENTS.md) - workflow definitions, step kinds, approval gates and budgets
-* [docs/SCHEDULER.md](docs/SCHEDULER.md) - durable jobs, deadlines, concurrency, pause/resume, crash recovery
-* [docs/TASKS.md](docs/TASKS.md) - task history, content versions, and what "reproducible" means
-* [docs/MCP.md](docs/MCP.md) - MCP client/server, transports, extensions and their trust boundary
-* [docs/EXECUTION.md](docs/EXECUTION.md) - execution backends, the recorded wrapper, push/pull
-  conflicts, and what `execution.enabled` does not promise
-* [docs/TOOLS.md](docs/TOOLS.md) - tool registry, capabilities, grants, approvals, sandbox
-* [docs/ROUTING.md](docs/ROUTING.md) - capability states, eligibility, probes, fallback
-* [docs/PROVIDERS.md](docs/PROVIDERS.md) - provider catalogue, privacy metadata, consent gates
-* [docs/RETRIEVAL.md](docs/RETRIEVAL.md) - embedding design, scale thresholds, model research
-* [docs/RETRIEVAL_EVAL.md](docs/RETRIEVAL_EVAL.md) - measured retrieval quality
-* [docs/VERIFICATION.md](docs/VERIFICATION.md) - environment verification and acceptance transcripts
-
-## Tests
-
-```bash
-./.venv/bin/python -m pytest -q
-```
-
-Unit, integration, crash/recovery, multi-process and end-to-end CLI tests. Tests that
-cannot run are reported as **skipped**, never as passed.
-
-## License
-
-MIT.
-
-
-### Roadmap completion and release scope
-
-M01–M41 have historical completion evidence within their documented scopes. CI #26
-was green for implementation `48dd607`: 1951 tests, ten
-acceptances, real Blender 4.2/Cycles CPU rendering and an isolated-wheel install check. Scenes
-and Automations are available in the CLI and the 20-tab GUI. This is source/wheel readiness, not
-a published installer or a guarantee that all platforms and third-party engines work. See
-[PLAN.md](PLAN.md), [docs/RELEASE.md](docs/RELEASE.md) and [GAPS.md](GAPS.md).
-
-The documentation-first maintenance batch passed its local gate; its results and
-remaining follow-ups are separated in [PROGRESS.md](PROGRESS.md) and [PLAN.md](PLAN.md). Historical CI
-results do not certify later working-tree changes.
-
-## Understanding the code
-
-Start with [Codebase guide — a simple map](docs/CODEBASE_GUIDE.md). Technical reviewers
-should then read [Structure, contracts and verification](docs/TECHNICAL_REVIEW.md),
-which describes the feature packages, boundaries, persistence flows and test suites.
-
-
-### Conversation-first chat correction
-
-The current source replaces the competing chat sidebars with one history sidebar and
-collapsed advanced tools. It includes actual chat-model selection, separate returned
-model-thinking panels, quieter diagnostics and phone navigation. This does not complete
-the other product modes or autonomous Research. See [the browser guide](docs/GUI.md)
-and [Windows update instructions](docs/LOCAL_TESTING.md) for the source correction. The saved source is now published on the session branch,
-`arena/79ddb5b4-archx-agent`; `main` was not changed.
+Run `npm test` for the new baseline checks. Browser checks are documented in the
+technical guide. The old Python source/tests/workflows are intentionally removed.

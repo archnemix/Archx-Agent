@@ -1,18 +1,15 @@
-__pycache__/
-*.py[cod]
-*.egg-info/
-.venv/
-.pytest_cache/
-.coverage
-htmlcov/
-build/
-dist/
+node_modules/
+.archx-agent/
 *.db
 *.db-wal
 *.db-shm
-
-# Local static-analysis caches are not source artifacts.
-.ruff_cache/
-
-# One-off runner transport; reference source belongs outside this repository.
-.reference-review/
+.env
+.env.*
+*.log
+coverage/
+playwright-report/
+test-results/
+src-tauri/target/
+src-tauri/gen/
+*.tgz
+.DS_Store

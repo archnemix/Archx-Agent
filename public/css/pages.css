@@ -1,0 +1,300 @@
+/* Archx Agent — pages: router shell, settings sections, debug log viewer */
+
+.pages { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
+.page { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.page.hidden { display: none; }
+
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+  padding: var(--sp-4) var(--sp-6) var(--sp-4);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.page-head h2 { margin: 0; font-size: 19px; letter-spacing: -.01em; }
+.page-head p { margin: var(--sp-0) 0 0; font-size: 12.5px; }
+
+/* sidebar page nav */
+.page-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: left;
+  transition: background .12s, color .12s;
+}
+.page-nav-btn:hover { background: var(--panel); color: var(--text); }
+.page-nav-btn.active { background: var(--panel); color: var(--text); box-shadow: inset 2px 0 0 var(--accent); }
+/* 1.6.7: the Chats rail and New chat stay visible on every page — clicking a
+   chat (or New chat) jumps you home to it. */
+#side-chat-zone { flex: 1; display: flex; flex-direction: column; gap: var(--sp-3); min-height: 0; }
+
+/* settings page: section nav + one visible section */
+.set-layout { flex: 1; display: flex; min-height: 0; }
+.set-nav {
+  flex: 0 0 200px;
+  border-right: 1px solid var(--border);
+  padding: var(--sp-4) var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  background: var(--bg-2);
+  overflow-y: auto;
+}
+.set-nav-btn {
+  text-align: left;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--muted);
+  transition: background .12s, color .12s;
+}
+.set-nav-btn:hover { background: var(--panel); color: var(--text); }
+.set-nav-btn.active { background: var(--panel); color: var(--text); box-shadow: inset 2px 0 0 var(--accent); }
+.set-nav-btn.danger:hover { color: var(--danger); background: var(--danger-soft); }
+.set-body { flex: 1; overflow-y: auto; padding: var(--sp-6) clamp(18px, 2.2vw, 36px) var(--sp-8); min-width: 0; }
+.set-page { display: flex; flex-direction: column; gap: var(--sp-4); width: 100%; max-width: none; }
+.set-page.hidden { display: none; }
+.scroll-box.tall { max-height: 320px; }
+
+/* debug page: log feed */
+.dbg-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-5);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-2);
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  flex-wrap: wrap;
+}
+.dbg-categories { display: flex; gap: var(--sp-1); flex-wrap: wrap; align-items: center; }
+.dbg-category {
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  transition: background .12s, color .12s;
+}
+.dbg-category:hover { background: var(--panel); color: var(--text); }
+.dbg-category.active { background: color-mix(in srgb, var(--accent) 10%, var(--panel)); color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
+.dbg-tools { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; flex: 1 1 auto; justify-content: flex-end; min-width: 0; }
+/* Scoped to text inputs: a bare `input` selector also matched the auto-refresh
+   checkbox and stretched it with flex/min-width, tearing the label away from it. */
+.dbg-tools input[type="text"] {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--sp-2) var(--sp-3);
+  outline: none;
+  flex: 0 1 340px;
+  min-width: 180px;
+  max-width: 420px;
+  font-size: 13px;
+  transition: border-color .15s;
+}
+.dbg-tools input[type="text"]:focus { border-color: var(--accent); }
+.dbg-tools .check { white-space: nowrap; }
+
+.dbg-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--sp-4) var(--sp-5) var(--sp-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.dbg-group { display: flex; flex-direction: column; gap: var(--sp-2); }
+.dbg-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-0) var(--sp-1);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+}
+.dbg-group-head span:last-child { padding: 1px var(--sp-2); border-radius: 999px; background: var(--panel-2); }
+.dbg-group-list { display: flex; flex-direction: column; gap: var(--sp-2); }
+
+.dbg-entry {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  overflow: hidden;
+  transition: border-color .12s;
+}
+.dbg-entry:hover { border-color: var(--border-2); }
+.dbg-entry.expanded { border-color: var(--border-2); box-shadow: var(--shadow-sm); }
+.dbg-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-3);
+  cursor: pointer;
+  font-size: 12.5px;
+  flex-wrap: wrap;
+  min-height: 54px;
+}
+.dbg-time { color: var(--muted); font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px; flex: 0 0 auto; }
+.dbg-kind {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: var(--sp-0) var(--sp-2);
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  flex: 0 0 auto;
+}
+.kind-chat { color: var(--accent); }
+.kind-models { color: var(--ok); }
+.kind-storage, .kind-storage-migrate { color: var(--accent-2); }
+.kind-provider-add, .kind-provider-update, .kind-provider-remove { color: var(--warn); }
+.kind-tool { color: var(--warn); }
+.kind-local { color: var(--muted); }
+.kind-err { color: var(--danger); }
+.dbg-main { flex: 1; min-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.dbg-status { font-weight: 700; font-size: 11.5px; flex: 0 0 auto; }
+.dbg-status.ok { color: var(--ok); }
+.dbg-status.bad { color: var(--danger); }
+.dbg-status.abort { color: var(--muted); }
+.dbg-ms, .dbg-tok { color: var(--muted); font-size: 11.5px; flex: 0 0 auto; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.dbg-lock { font-size: 10px; color: var(--accent-2); border: 1px solid currentColor; border-radius: 999px; padding: var(--sp-0) var(--sp-2); flex: 0 0 auto; }
+.dbg-fallback { font-size: 10px; color: var(--accent-2); border: 1px solid currentColor; border-radius: 999px; padding: var(--sp-0) var(--sp-2); margin-left: var(--sp-1); white-space: nowrap; }
+/* what actually changed — keeps rows from reading as 80% empty space */
+.dbg-fields { color: var(--muted); font-size: 11.5px; font-weight: 500; margin-left: var(--sp-2); }
+.dbg-open { padding: var(--sp-1) var(--sp-3); font-size: 11px; margin-left: var(--sp-1); }
+.dbg-detail { margin: 0; padding: 0; border-top: 1px dashed var(--border); background: var(--code-bg); color: var(--text-2); font-size: 12px; line-height: 1.55; overflow-x: auto; max-height: min(52vh, 560px); overflow-y: auto; white-space: pre-wrap; }
+.dbg-section + .dbg-section { border-top: 1px solid var(--border); }
+.dbg-section-title { display: flex; align-items: center; justify-content: space-between; padding: var(--sp-2) var(--sp-3); color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.dbg-section pre { margin: 0; padding: var(--sp-2) var(--sp-3) var(--sp-3); overflow: auto; max-height: min(34vh, 360px); font-size: 12px; line-height: 1.6; }
+.dbg-copy-block { font-size: 10px; height: 22px; }
+.dbg-empty { color: var(--muted); padding: var(--sp-8) var(--sp-5); text-align: center; font-size: 13px; }
+
+@media (max-width: 760px) {
+  .set-layout { flex-direction: column; }
+  .set-nav { flex: 0 0 auto; flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--border); }
+}
+@media (max-width: 900px) {
+  .dbg-toolbar { align-items: stretch; flex-direction: column; }
+  .dbg-tools { justify-content: flex-start; }
+  .dbg-tools input[type="text"] { flex: 1 1 100%; min-width: 0; }
+}
+
+/* Provider management */
+.setting-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-4); flex-wrap: wrap; }
+.setting-section-head h3 { margin: 0; font-size: 16px; }
+.provider-cards { display: flex; flex-direction: column; gap: var(--sp-2); }
+.provider-card { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--panel); padding: var(--sp-3); }
+.provider-card-main { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.provider-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--panel-2); border: 1px solid var(--border-2); font-weight: 800; color: var(--accent); flex: 0 0 34px; }
+.provider-card-copy { flex: 1; min-width: 0; }
+.provider-title { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.provider-url { color: var(--muted); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: var(--sp-0); }
+.provider-meta { display: flex; gap: var(--sp-2); align-items: center; color: var(--muted); font-size: 11.5px; margin-top: var(--sp-1); flex-wrap: wrap; }
+.provider-meta .status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; background: var(--muted); }
+.provider-meta .status-dot.good { background: var(--ok); }
+.provider-meta .status-dot.bad { background: var(--danger); }
+.provider-card-actions { display: flex; gap: var(--sp-1); flex-wrap: wrap; }
+.tag { font-size: 10px; padding: var(--sp-0) var(--sp-2); border-radius: 999px; border: 1px solid var(--border-2); color: var(--muted); }
+.provider-editor { border: 1px solid var(--border-2); border-radius: var(--radius-lg); padding: var(--sp-4); background: var(--bg-2); }
+.provider-editor-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); margin-bottom: var(--sp-3); flex-wrap: wrap; }
+.provider-editor-head .hint { display: block; margin-top: var(--sp-1); }
+.provider-editor-actions { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; justify-content: flex-end; }
+.provider-editor-actions #prov-status { margin-right: auto; }
+/* In the prompt editor the action row sat cramped against the textarea edge —
+   give it air and a separator so it reads as its own bar. */
+.system-prompt-editor .provider-editor-actions { margin-top: var(--sp-4); padding-top: var(--sp-3); border-top: 1px solid var(--border); }
+.system-prompt-editor .provider-editor-actions .hint { margin-right: auto; }
+
+/* hot-switch method card + variables table (Settings → System prompts) */
+.sp-mode-card { margin-top: var(--sp-4); }
+.prompt-vars { margin-top: var(--sp-4); border: 1px dashed var(--border-2); border-radius: var(--radius-lg); padding: var(--sp-4); background: var(--bg-2); }
+.prompt-vars-table { width: 100%; border-collapse: collapse; margin-top: var(--sp-3); font-size: 13px; }
+.prompt-vars-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--border); }
+.prompt-vars-table td { padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--border); }
+.prompt-vars-table tr:last-child td { border-bottom: 0; }
+.prompt-vars-table code { padding: var(--sp-1) var(--sp-2); border-radius: 7px; border: 1px solid var(--border); background: var(--panel); color: var(--accent); font-size: 12px; }
+.prompt-vars-table td:last-child { text-align: right; }
+.prompt-vars > .hint { margin-top: var(--sp-3); }
+
+/* log mode */
+.log-mode-card { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--sp-4); background: var(--panel); }
+.log-choice { display: flex; gap: var(--sp-2); align-items: flex-start; margin-top: var(--sp-2); font-size: 13px; cursor: pointer; }
+.log-choice em { font-style: normal; flex: 1; }
+
+/* system prompts */
+.system-prompt-editor { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--sp-4); background: var(--panel); }
+.system-prompt-editor-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-3); margin-top: var(--sp-3); }
+/* 1.6.7 prompt list + single editor */
+.sp-list { display: flex; flex-direction: column; gap: var(--sp-2); margin: var(--sp-3) 0 var(--sp-1); }
+.sp-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); text-align: left; padding: var(--sp-2) var(--sp-3); border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2); cursor: pointer; transition: border-color .15s; color: var(--text); font: inherit; }
+.sp-row:hover { border-color: var(--border-2); }
+.sp-row.active { border-color: var(--accent); box-shadow: inset 2px 0 0 var(--accent); }
+.sp-row-main { display: flex; flex-direction: column; gap: var(--sp-0); min-width: 0; }
+.sp-row-main b { font-size: 13px; }
+.sp-row-main span { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-editor-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-3); margin-top: var(--sp-3); }
+.sp-menu-row { cursor: pointer; }
+.sp-menu-row input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; flex: 0 0 auto; cursor: pointer; }
+.system-prompt-editor textarea { min-height: 150px; }
+.debug-head { padding-bottom: var(--sp-3); }
+.debug-title-block .eyebrow { color: var(--accent); font-size: 10px; letter-spacing: .14em; font-weight: 800; }
+.debug-title-block h2 { margin-top: var(--sp-0); }
+
+@media (max-width: 760px) { .system-prompt-editor-grid { grid-template-columns: 1fr; } }
+/* Keep provider/model controls usable as nested lists at short viewport heights. */
+.profile-viewer { min-height:0; }
+.profile-available-card { min-height:0; }
+.profile-available { max-height:min(50dvh, 500px); height:min(50dvh, 500px); min-height:160px; overflow-y:auto; overscroll-behavior:contain; }
+@media (max-width:900px) {
+  .models-toolbar-actions { width:100%; }
+  .models-toolbar-actions .toolbar-search { flex:1 1 220px; }
+}
+
+/* 1.7.0: with zero profiles the two-column workspace collapsed into a big
+   empty viewer box; show a single calm column instead. */
+.profile-workspace.no-profiles { grid-template-columns: minmax(280px, 480px); }
+.profile-workspace.no-profiles .profile-viewer { display: none; }
+
+
+/* ── 1.7.2 header sidebar toggle (settings/debug were unreachable-on-mobile) ──
+   Desktop already has the chat-topbar toggle and a permanently visible
+   sidebar, so the header button exists only where the sidebar is a drawer. */
+.page-head .page-side-toggle { display: none; }
+@media (max-width: 860px) {
+  .page-head .page-side-toggle { display: inline-flex; flex: 0 0 auto; margin-right: var(--sp-2); }
+  .page-head { justify-content: flex-start; }
+  .page-head > div:first-of-type { flex: 1; }
+}
+
+/* ── 1.7.2 danger zone wipe grid ── */
+.wipe-grid { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--panel); overflow: hidden; }
+.wipe-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); padding: var(--sp-4); flex-wrap: wrap; }
+.wipe-row + .wipe-row { border-top: 1px solid var(--border); }
+.wipe-copy { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; flex: 1 1 320px; }
+.wipe-copy b { font-size: 13.5px; }
+
+/* 1.8.0 (issue 14): the chat rail is chat-only — other sections get the
+   full sidebar for their own navigation (super-app layout). */
+body:not([data-page="chat"]) #side-chat-zone { display: none; }

@@ -1,1 +1,0 @@
-url=https://trigger-crew-billing-dependent.trycloudflare.com

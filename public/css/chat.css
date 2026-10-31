@@ -1,0 +1,372 @@
+/* Archx Agent — chat: messages, markdown, code blocks, composer, empty state */
+
+.messages { flex: 1; overflow-y: auto; padding: var(--sp-6) 0 var(--sp-3); }
+.msg-row { display: flex; padding: 0 var(--sp-5); margin: 0 auto var(--sp-6); max-width: 860px; width: 100%; }
+.msg { display: flex; gap: var(--sp-4); width: 100%; min-width: 0; }
+.avatar {
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  margin-top: var(--sp-0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  border: 1px solid var(--border-2);
+  letter-spacing: .04em;
+}
+.msg.user .avatar { background: var(--panel-2); color: var(--muted); }
+.msg.assistant .avatar { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.msg-body { flex: 1; min-width: 0; }
+.msg-head { display: flex; align-items: baseline; gap: var(--sp-3); margin-bottom: var(--sp-1); flex-wrap: wrap; }
+.msg-role { font-size: 13px; font-weight: 700; }
+.msg-meta { font-size: 11.5px; color: var(--muted); }
+.msg-content { font-size: 15px; overflow-wrap: anywhere; }
+.msg.user .msg-content {
+  background: var(--user-bubble);
+  border: 1px solid var(--border);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: 4px 12px 12px 12px;
+  white-space: pre-wrap;
+}
+.msg-actions { display: flex; gap: var(--sp-0); margin-top: var(--sp-2); opacity: 0; visibility: hidden; transition: opacity .15s ease, visibility .15s; }
+/* 1.7.0: opacity:0 alone kept these buttons hit-testable AND painted above
+   opened topbar menus (opacity creates a stacking context later in DOM
+   order), so invisible copy/regen buttons silently ate clicks aimed at menu
+   rows. visibility:hidden removes them from hit-testing until hovered. */
+.msg-row:hover .msg-actions, .msg-row:focus-within .msg-actions { opacity: 1; visibility: visible; }
+.msg-actions .icon-btn { width: 26px; height: 26px; border-radius: 7px; }
+.msg-actions .btn { padding: var(--sp-1) var(--sp-3); font-size: 12px; }
+.msg.error .msg-content {
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
+  background: var(--danger-soft);
+  color: var(--danger);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius);
+  font-size: 13.5px;
+}
+.caret {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  background: var(--accent);
+  vertical-align: -2px;
+  margin-left: var(--sp-0);
+  animation: blink 1s steps(2) infinite;
+  border-radius: 2px;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* markdown */
+.msg-content > :first-child { margin-top: 0; }
+.msg-content > :last-child { margin-bottom: 0; }
+.msg-content p { margin: 0 0 var(--sp-3); }
+.msg-content h1, .msg-content h2, .msg-content h3, .msg-content h4, .msg-content h5, .msg-content h6 {
+  color: var(--text);
+  line-height: 1.25;
+  margin: var(--sp-6) 0 var(--sp-2);
+  font-weight: 750;
+}
+.msg-content h1 { font-size: 1.55em; }
+.msg-content h2 { font-size: 1.28em; padding-bottom: var(--sp-2); border-bottom: 1px solid var(--border); }
+.msg-content h3 { font-size: 1.12em; }
+.msg-content h4, .msg-content h5, .msg-content h6 { font-size: 1em; }
+.msg-content ul, .msg-content ol { margin: var(--sp-2) 0 var(--sp-4); padding-left: var(--sp-6); }
+.msg-content li { margin: var(--sp-1) 0; }
+.msg-content li + li { margin-top: var(--sp-1); }
+.msg-content a { color: var(--accent); }
+.msg-content hr { border: 0; border-top: 1px solid var(--border-2); margin: var(--sp-5) 0; }
+.msg-content blockquote {
+  margin: var(--sp-4) 0;
+  padding: var(--sp-2) var(--sp-4);
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+  color: var(--muted);
+}
+.msg-content code:not(pre code) {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  padding: 1px var(--sp-2);
+  border-radius: 6px;
+  font-size: .88em;
+}
+
+/* tables */
+.tableblock { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin: var(--sp-4) 0 var(--sp-4); background: var(--panel); }
+.tableblock .tb-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-3);
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  font-size: 11.5px;
+  color: var(--muted);
+  gap: var(--sp-2);
+  overflow-x: auto;
+}
+.table-wrap { overflow: auto; max-height: min(62vh, 680px); }
+.msg-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+  font-size: 13.5px;
+  min-width: 520px;
+}
+.msg-content th, .msg-content td {
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: var(--sp-2) var(--sp-3);
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.5;
+}
+.msg-content thead th {
+  background: var(--panel-2);
+  color: var(--text);
+  font-weight: 700;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-2);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.msg-content tbody tr:nth-child(even) { background: color-mix(in srgb, var(--panel-2) 40%, transparent); }
+.msg-content tbody tr:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+.msg-content tbody tr:last-child td { border-bottom: none; }
+.msg-content td:empty::before { content: "—"; color: var(--muted); }
+.msg-content table code { white-space: nowrap; }
+
+/* code */
+.codeblock { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin: var(--sp-4) 0 var(--sp-4); background: var(--code-bg); }
+.codeblock .cb-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-3);
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  font-size: 11.5px;
+  color: var(--muted);
+  min-height: 34px;
+}
+.codeblock pre { margin: 0; padding: var(--sp-3) var(--sp-4); overflow: auto; background: var(--code-bg); font-size: 13px; line-height: 1.65; max-height: 62vh; }
+.codeblock pre code { background: none; border: none; padding: 0; tab-size: 2; }
+.cb-actions, .tb-actions { display: flex; align-items: center; gap: var(--sp-1); flex-wrap: wrap; justify-content: flex-end; }
+.codeblock .cb-copy, .codeblock .cb-download,
+.tableblock .tb-copy, .tableblock .tb-download {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: var(--muted);
+  transition: background .12s, color .12s;
+}
+.codeblock .cb-copy:hover, .codeblock .cb-download:hover,
+.tableblock .tb-copy:hover, .tableblock .tb-download:hover {
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+/* empty state */
+.empty { max-width: 720px; margin: 9vh auto 0; padding: 0 var(--sp-5); text-align: center; }
+.empty h2 { font-size: 26px; margin: var(--sp-5) 0 var(--sp-2); letter-spacing: -.01em; }
+.empty p { margin: 0 0 var(--sp-6); color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); justify-content: center; }
+.chip {
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 13px;
+  transition: color .15s, border-color .15s;
+}
+.chip:hover { color: var(--text); border-color: var(--accent); }
+
+/* composer */
+.composer-wrap { padding: var(--sp-3) var(--sp-5) var(--sp-3); }
+.composer {
+  max-width: 860px;
+  margin: 0 auto;
+  background: var(--panel);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-3) var(--sp-3) var(--sp-2);
+  box-shadow: var(--shadow-sm);
+  transition: border-color .15s;
+}
+.composer:focus-within { border-color: var(--accent); }
+.composer textarea {
+  width: 100%;
+  background: none;
+  border: none;
+  outline: none;
+  resize: none;
+  max-height: 34vh;
+  font-size: 15px;
+  line-height: 1.55;
+  padding: var(--sp-0) var(--sp-1);
+}
+.composer textarea::placeholder { color: var(--muted); }
+.composer-bar { display: flex; align-items: center; justify-content: space-between; padding: var(--sp-0) var(--sp-1) 0; }
+.comp-meta { font-size: 11.5px; }
+.comp-actions { display: flex; align-items: center; gap: var(--sp-2); }
+.send-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--accent-ink);
+  transition: filter .15s ease, opacity .15s ease;
+}
+.send-btn:hover { filter: brightness(.9); }
+.send-btn:disabled { opacity: .4; cursor: not-allowed; }
+.composer-note { text-align: center; font-size: 11px; margin: var(--sp-2) 0 0; color: var(--muted); }
+
+/* reasoning */
+.thinking {
+  margin: 0 0 var(--sp-3);
+  border: 1px dashed var(--border-2);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 3%, transparent);
+}
+.thinking summary {
+  cursor: pointer;
+  padding: var(--sp-2) var(--sp-3);
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  user-select: none;
+}
+.thinking summary:hover { color: var(--text); }
+.thinking summary .spark { color: var(--accent); }
+.thinking-body {
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  font-size: 13px;
+  color: var(--muted);
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow-y: auto;
+  border-top: 1px dashed var(--border-2);
+}
+
+.msg-meta.fallback { color: var(--accent); font-weight: 700; }
+/* ── 1.7.0 incremental streaming blocks ───────────────────────
+   Each markdown chunk lives in a wrapper that generates no box, so margins
+   behave exactly like before, but the wrapper gives the renderer a stable
+   identity to patch (scrollbars survive repaints). */
+.md-block { display: contents; }
+.msg-content > .md-block:first-child > :first-child,
+.msg-content > details.thinking:first-child + .md-block > :first-child { margin-top: 0; }
+.msg-content > .md-block:last-of-type > :last-child { margin-bottom: 0; }
+
+/* "Jump to latest" pill — appears only when scrolled away from the bottom. */
+#page-chat { position: relative; }
+.jump-latest {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--composer-h, 134px) + 12px); /* measured: never clips the composer, mobile included */
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: 999px;
+  border: 1px solid var(--border-2);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+  animation: rise .18s ease;
+}
+.jump-latest:hover { border-color: var(--accent); }
+.jump-latest.hidden { display: none; }
+
+/* ── light/soft theme syntax highlighting ────────────────────
+   The bundled highlight.js stylesheet is the dark variant; on light
+   surfaces several token colors failed contrast. These scoped overrides
+   keep code legible in every theme without shipping a second stylesheet. */
+[data-theme="light"] .hljs-comment, [data-theme="soft"] .hljs-comment { color: #6a737d; }
+[data-theme="light"] .hljs-keyword, [data-theme="soft"] .hljs-keyword,
+[data-theme="light"] .hljs-selector-tag, [data-theme="soft"] .hljs-selector-tag { color: #b3264e; }
+[data-theme="light"] .hljs-string, [data-theme="soft"] .hljs-string,
+[data-theme="light"] .hljs-addition, [data-theme="soft"] .hljs-addition { color: #0a7a34; }
+[data-theme="light"] .hljs-number, [data-theme="soft"] .hljs-number,
+[data-theme="light"] .hljs-literal, [data-theme="soft"] .hljs-literal { color: #8740d6; }
+[data-theme="light"] .hljs-title, [data-theme="soft"] .hljs-title,
+[data-theme="light"] .hljs-section, [data-theme="soft"] .hljs-section { color: #6f42c1; }
+[data-theme="light"] .hljs-built_in, [data-theme="soft"] .hljs-built_in,
+[data-theme="light"] .hljs-type, [data-theme="soft"] .hljs-type { color: #b25c00; }
+[data-theme="light"] .hljs-attr, [data-theme="soft"] .hljs-attr,
+[data-theme="light"] .hljs-attribute, [data-theme="soft"] .hljs-attribute { color: #7a3e00; }
+[data-theme="light"] .hljs-variable, [data-theme="soft"] .hljs-variable,
+[data-theme="light"] .hljs-template-variable, [data-theme="soft"] .hljs-template-variable { color: #a0400a; }
+[data-theme="light"] .hljs-deletion, [data-theme="soft"] .hljs-deletion { color: #b3264e; }
+[data-theme="light"] .hljs-meta, [data-theme="soft"] .hljs-meta { color: #565656; }
+[data-theme="light"] .codeblock pre code.hljs, [data-theme="soft"] .codeblock pre code.hljs { color: #171717; }
+
+
+/* ── 1.7.2 branches ── */
+.branch-wrap { position: relative; display: inline-flex; }
+.branch-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  z-index: 45;
+  width: min(380px, 92vw);
+  max-height: min(50dvh, 420px);
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+.branch-menu-head { display: flex; flex-direction: column; gap: var(--sp-0); padding: var(--sp-2) var(--sp-2) var(--sp-1); }
+.branch-menu-head b { font-size: 12.5px; }
+.branch-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  text-align: left;
+  padding: var(--sp-2) var(--sp-2);
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+}
+.branch-row:hover { background: var(--panel-2); border-color: var(--border); }
+.branch-origin {
+  flex: 0 0 auto;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+.branch-origin.edit { color: var(--warn); }
+.branch-origin.current { color: var(--ok); }
+.branch-copy { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.branch-copy b { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.branch-copy small { color: var(--muted); font-size: 10.5px; }
+.branch-open-label { flex: 0 0 auto; color: var(--muted); font-size: 11px; }
+
+/* Interrupted output remains readable; provider errors are separate from the answer. */
+.msg-failure { margin-top: var(--sp-3); padding: var(--sp-3); border: 1px solid var(--danger); border-radius: var(--radius-sm); color: var(--danger); font-size: 12.5px; overflow-wrap: anywhere; }

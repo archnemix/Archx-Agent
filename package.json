@@ -1,0 +1,55 @@
+{
+  "name": "archx-agent",
+  "version": "1.0.0",
+  "description": "Local AI workspace with SQLite persistence, pluggable providers, model endpoints and mode-based chat. Large assets stay on the user-selected filesystem.",
+  "keywords": [
+    "llm",
+    "chatgpt",
+    "chat-ui",
+    "openai",
+    "openai-compatible",
+    "groq",
+    "ollama",
+    "local",
+    "webui",
+    "cli",
+    "ephemeral",
+    "privacy"
+  ],
+  "license": "MIT",
+  "bin": {
+    "archx-agent": "bin/archx-agent.js"
+  },
+  "main": "lib/server.js",
+  "files": [
+    "bin",
+    "lib",
+    "public",
+    "README.md",
+    "DATABASE-ARCHITECTURE.md",
+    "CHATDEBUG-MAP.md",
+    "MEMORY-ARCHITECTURE.md",
+    "LICENSE",
+    "docs/USER_GUIDE.md",
+    "docs/TECHNICAL_GUIDE.md",
+    "UI-RULES.md",
+    "PLAN.md",
+    "PROGRESS.md",
+    "THINKING.md"
+  ],
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "start": "node bin/archx-agent.js webui",
+    "test": "node --test test/*.test.mjs",
+    "test:browser": "node scripts/browser-check.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
+    "@highlightjs/cdn-assets": "^11.9.0",
+    "express": "^4.21.2",
+    "markdown-it": "^14.1.0",
+    "openai": "^6.49.0"
+  }
+}
