@@ -42,6 +42,7 @@ jobs:
           chmod +x "$RUNNER_TEMP/cloudflared"
       - name: Prepare real models and start the app
         run: |
+          exec > >(tee "$RUNNER_TEMP/startup.log") 2>&1
           export OLLAMA_HOST=127.0.0.1:11434
           sudo systemctl stop ollama || true
           ollama serve > "$RUNNER_TEMP/ollama.log" 2>&1 &
@@ -80,6 +81,18 @@ jobs:
               time.sleep(2)
           else:
               raise SystemExit('Cloudflare quick tunnel did not start')
+          PY
+      - name: Diagnose startup failure
+        if: failure()
+        run: |
+          python - <<'PY'
+          import os, pathlib
+          for name in ['startup.log', 'app.log', 'provider.log']:
+              path = pathlib.Path(os.environ['RUNNER_TEMP']) / name
+              if path.exists():
+                  text = '\n'.join(path.read_text(errors='replace').splitlines()[-35:])[-6000:]
+                  escaped = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                  print('::error title=Preview ' + name + '::' + escaped)
           PY
       - uses: actions/upload-artifact@v4
         with:
