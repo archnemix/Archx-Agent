@@ -1,0 +1,7 @@
+interaction
+visual-desktop
+visual-laptop
+visual-mobile
+api (job failure)
+visual (job failure)
+interaction (job failure)
