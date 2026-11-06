@@ -17,6 +17,7 @@ import {
   waitFor,
   isHittable,
   goTo,
+  loadPuppeteer,
   ARTIFACT_ROOT,
   VIEWPORTS,
 } from './support.mjs';
@@ -39,8 +40,7 @@ test.before(async () => {
   app = await startApp();
   const api = client(app.baseUrl);
   await api.addProvider({ name: 'Mock Provider', baseUrl: `${mockBase}/v1`, model: 'mock-chat' });
-  const puppeteer = (await import('puppeteer-core')).default;
-  browser = await launchBrowser(puppeteer);
+  browser = await launchBrowser(loadPuppeteer());
 });
 
 test.after(async () => {

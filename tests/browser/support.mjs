@@ -7,7 +7,18 @@
  * throwing is still a broken page.
  */
 import { mkdir } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import path from 'node:path';
+
+/*
+ * Browser tooling is installed in tests/ci/node_modules so it never becomes a
+ * dependency of the shipped app.  ESM resolution only walks up from this file,
+ * which would miss it — so resolve through the harness package instead.
+ */
+const harnessRequire = createRequire(path.resolve(import.meta.dirname, '..', 'ci', 'package.json'));
+
+export const loadPuppeteer = () => harnessRequire('puppeteer-core');
+export const loadChromium = () => harnessRequire('@sparticuz/chromium');
 
 export const ARTIFACT_ROOT = process.env.ARTIFACT_DIR || path.resolve(import.meta.dirname, '..', '..', 'test-output');
 
@@ -26,7 +37,8 @@ export const ACTIVE_VIEWPORTS = process.env.TEST_VIEWPORT
   : VIEWPORTS;
 
 export async function launchBrowser(puppeteer) {
-  const chromium = (await import('@sparticuz/chromium')).default;
+  const chromiumModule = loadChromium();
+  const chromium = chromiumModule.default || chromiumModule;
   const args = [...chromium.args, '--no-sandbox', '--disable-dev-shm-usage', '--font-render-hinting=none'];
   const executablePath = process.env.CHROME_PATH || (await chromium.executablePath());
   return puppeteer.launch({ executablePath, args, headless: 'shell', protocolTimeout: 120000 });

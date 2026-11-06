@@ -13,7 +13,17 @@ import test from 'node:test';
 import { Report, ok } from '../helpers/assertions.mjs';
 import { startApp, client } from '../helpers/app.mjs';
 import { createMockUpstream } from '../mock-upstream/server.mjs';
-import { launchBrowser, openPage, goTo, VIEWPORTS, ACTIVE_VIEWPORTS, waitFor, humanClick, ARTIFACT_ROOT } from './support.mjs';
+import {
+  launchBrowser,
+  openPage,
+  goTo,
+  VIEWPORTS,
+  ACTIVE_VIEWPORTS,
+  waitFor,
+  humanClick,
+  loadPuppeteer,
+  ARTIFACT_ROOT,
+} from './support.mjs';
 import { writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -31,8 +41,7 @@ test.before(async () => {
   app = await startApp();
   const api = client(app.baseUrl);
   await api.addProvider({ name: 'Mock Provider', baseUrl: `http://127.0.0.1:${mockPort}/v1`, model: 'mock-chat' });
-  const puppeteer = (await import('puppeteer-core')).default;
-  browser = await launchBrowser(puppeteer);
+  browser = await launchBrowser(loadPuppeteer());
 });
 
 test.after(async () => {
