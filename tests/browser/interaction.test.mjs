@@ -208,7 +208,10 @@ test('code block can be scrolled and keeps its position during streaming', { ski
     // the code frame caps at 62vh (~450px at 720p), so ~120 lines is needed to
     // overflow it; 80 lines fit and made the overflow assertion meaningless
     const lines = Array.from({ length: 140 }, (_, i) => `const line${i} = ${i};`).join('\n');
-    await setScenario({ chunks: lines.match(/.{1,60}/gs), delayMs: 25 });
+    // it has to be a fenced block, otherwise the app correctly renders plain
+    // text and there is nothing to scroll
+    const fenced = '```js\n' + lines + '\n```';
+    await setScenario({ chunks: fenced.match(/[\s\S]{1,60}/g), delayMs: 25 });
     await send('write a long code file', session);
     await waitForAnswer(session.page, 'const line0', 20000);
     await new Promise((r) => setTimeout(r, 700));
