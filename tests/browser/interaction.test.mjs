@@ -216,12 +216,22 @@ test('code block can be scrolled and keeps its position during streaming', { ski
     const box = await session.page.evaluate(() => {
       const pres = Array.from(document.querySelectorAll('#messages pre'));
       const pre = pres[pres.length - 1];
-      if (!pre) return null;
+      if (!pre) return { error: 'no <pre> in the transcript' };
       pre.scrollTop = 0;
-      return { scrollHeight: pre.scrollHeight, clientHeight: pre.clientHeight, top: pre.scrollTop };
+      return {
+        scrollHeight: pre.scrollHeight,
+        clientHeight: pre.clientHeight,
+        textLength: pre.textContent.length,
+        blocks: document.querySelectorAll('#messages .codeblock').length,
+        msgCount: document.querySelectorAll('#messages .msg').length,
+      };
     });
-    ok(box, 'a code block exists');
-    ok(box.scrollHeight > box.clientHeight + 20, 'code block actually overflows (so scrolling is meaningful)');
+    ok(!box.error, box.error || '');
+    ok(
+      box.scrollHeight > box.clientHeight + 20,
+      `code block actually overflows (scrollHeight ${box.scrollHeight} vs clientHeight ${box.clientHeight}, ` +
+        `${box.textLength} chars, ${box.blocks} codeblock(s), ${box.msgCount} messages)`
+    );
 
     await new Promise((r) => setTimeout(r, 1200));
     const after = await session.page.evaluate(() => {

@@ -104,7 +104,16 @@ async function tour(name, viewport) {
           arg: theme,
         });
         await page.screenshot({ path: (await session.shot(`${tag}-04-theme-${theme}`)), fullPage: false });
-        const stored = await page.evaluate(async () => (await (await fetch('/api/state')).json()).settings.theme);
+        // saveSettings debounces 250 ms before it writes to the server
+        const stored = await waitFor(
+          page,
+          async (want) => {
+            const res = await fetch('/api/state');
+            const json = await res.json();
+            return json.settings.theme === want ? want : false;
+          },
+          { timeout: 6000, arg: theme, label: `theme ${theme} to be persisted` }
+        );
         ok(stored === theme, `theme is persisted server-side (got ${stored})`);
       });
     }
