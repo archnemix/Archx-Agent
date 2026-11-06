@@ -1,0 +1,171 @@
+name: browser-tests
+
+# Triggered by editing the sentinel file, so a run costs one tiny commit and
+# never fires on ordinary source pushes.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tests/ci/run-browser-tests'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: browser-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------- API suite
+  api:
+    name: API contract (node)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Run API tests
+        run: |
+          set -o pipefail
+          node --test tests/api/ 2>&1 | tee /tmp/api.log
+      - name: Collect output
+        if: always()
+        run: |
+          mkdir -p test-output
+          cp /tmp/api.log test-output/api.log
+          cp /tmp/api.log test-output/has-failures && rm test-output/has-failures
+          if grep -qE '^not ok' /tmp/api.log; then echo "api" >> test-output/failed-suites.txt; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-results
+          path: test-output/
+          retention-days: 3
+
+  # ------------------------------------------------- visual tour, per viewport
+  visual:
+    name: Visual tour (${{ matrix.viewport }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        viewport: [desktop, laptop, mobile]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund && npm ci --prefix tests/ci --no-audit --no-fund
+      - name: Run the ${{ matrix.viewport }} tour
+        env:
+          BROWSER_TESTS: '1'
+          TEST_VIEWPORT: ${{ matrix.viewport }}
+          ARTIFACT_DIR: test-output/${{ matrix.viewport }}
+        run: |
+          set -o pipefail
+          node --test tests/browser/visual-tour.test.mjs 2>&1 | tee /tmp/tour.log
+      - name: Collect output
+        if: always()
+        run: |
+          mkdir -p "test-output/${{ matrix.viewport }}"
+          cp /tmp/tour.log "test-output/${{ matrix.viewport }}/visual.log"
+          if grep -qE '^not ok' /tmp/tour.log; then echo "visual-${{ matrix.viewport }}" >> test-output/failed-suites.txt; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-${{ matrix.viewport }}
+          path: test-output/${{ matrix.viewport }}/
+          retention-days: 3
+
+  # ------------------------------------------------------- interaction tests
+  interaction:
+    name: Interaction + hit-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund && npm ci --prefix tests/ci --no-audit --no-fund
+      - name: Run interaction suite
+        env:
+          BROWSER_TESTS: '1'
+          ARTIFACT_DIR: test-output/interaction
+        run: |
+          set -o pipefail
+          node --test tests/browser/interaction.test.mjs 2>&1 | tee /tmp/interaction.log
+      - name: Collect output
+        if: always()
+        run: |
+          mkdir -p test-output/interaction
+          cp /tmp/interaction.log test-output/interaction/interaction.log
+          if grep -qE '^not ok' /tmp/interaction.log; then echo "interaction" >> test-output/failed-suites.txt; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: interaction
+          path: test-output/interaction/
+          retention-days: 3
+
+  # ------------------------------------------------------------ publish back
+  publish:
+    name: Publish results into the repo
+    needs: [api, visual, interaction]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download every result bundle
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/results
+
+      - name: Assemble test-output/
+        run: |
+          rm -rf test-output
+          mkdir -p test-output
+          # artifact folders nest as <artifact-name>/<files>
+          cp -r /tmp/results/*/. test-output/ 2>/dev/null || true
+          find test-output -name 'has-failures' -delete
+          echo "--- tree ---"
+          find test-output -maxdepth 2 -type f | sort | head -60
+          echo "--- failures ---"
+          cat test-output/failed-suites.txt 2>/dev/null || echo "(none)"
+
+      - name: Write the run summary
+        run: |
+          node tests/ci/summarize.mjs "${{ github.run_id }}" "${{ github.run_number }}" "${{ github.sha }}"
+
+      - name: Commit results back to the branch
+        run: |
+          git config user.name  "archx-test-bot"
+          git config user.email "archx-test-bot@users.noreply.github.com"
+          git add -A test-output
+          if git diff --cached --quiet; then
+            echo "no result changes — nothing to commit"
+          else
+            git commit -m "test: browser suite results for run ${GITHUB_RUN_NUMBER}"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
+
+      - name: Fail the run if a suite failed
+        run: |
+          if [ -s test-output/failed-suites.txt ]; then
+            echo "Failed suites:"
+            cat test-output/failed-suites.txt
+            exit 1
+          fi

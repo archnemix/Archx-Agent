@@ -1,0 +1,13 @@
+{
+  "name": "archx-agent-test-harness",
+  "private": true,
+  "description": "Browser tooling for the Archx Agent test suite. Kept out of the app's own dependencies.",
+  "type": "module",
+  "scripts": {
+    "postinstall": "node -e \"const c=require('@sparticuz/chromium');c.executablePath().then(p=>console.log('chromium ready at',p))\""
+  },
+  "dependencies": {
+    "@sparticuz/chromium": "131.0.1",
+    "puppeteer-core": "^23.11.1"
+  }
+}

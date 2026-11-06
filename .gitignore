@@ -11,3 +11,7 @@ data/
 
 # rust / tauri build output
 src-tauri/target/
+
+# test runs write screenshots and reports here
+/test-output/
+tests/ci/node_modules/
