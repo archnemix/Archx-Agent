@@ -214,9 +214,13 @@ test('code block can be scrolled and keeps its position during streaming', { ski
     await new Promise((r) => setTimeout(r, 700));
 
     const box = await session.page.evaluate(() => {
-      const pres = Array.from(document.querySelectorAll('#messages pre'));
+      // pick the newest row by data-idx rather than DOM order, which depends on
+      // how the incremental renderer happened to append its wrappers
+      const rows = Array.from(document.querySelectorAll('#messages .msg-row'));
+      const newest = rows.sort((a, b) => Number(a.dataset.idx) - Number(b.dataset.idx)).pop();
+      const pres = newest ? Array.from(newest.querySelectorAll('pre')) : [];
       const pre = pres[pres.length - 1];
-      if (!pre) return { error: 'no <pre> in the transcript' };
+      if (!pre) return { error: `no <pre> in the newest row (${rows.length} rows, ${pres.length} pre)` };
       pre.scrollTop = 0;
       return {
         scrollHeight: pre.scrollHeight,
