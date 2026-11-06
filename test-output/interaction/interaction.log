@@ -1,0 +1,33 @@
+✔ typing a message and sending it streams an answer into the chat (3503.502453ms)
+✔ send button is disabled/blocked while the cursor has no text (995.233077ms)
+✔ stop button interrupts a slow stream and keeps what arrived (891.089885ms)
+✔ markdown answer renders headings, lists, tables and code blocks (2291.469665ms)
+✔ code block can be scrolled and keeps its position during streaming (1904.213306ms)
+✔ theme switch repaints immediately and survives a reload (2947.658188ms)
+✔ chat appears in the sidebar and switching keeps both transcripts (2293.877544ms)
+✔ keyboard: Enter sends, Shift+Enter adds a line (956.491783ms)
+✔ mobile: sidebar drawer opens and closes, composer stays usable (1910.230481ms)
+✔ every visible interactive element is reachable at three viewports (24470.410209ms)
+✖ interaction suite had no failures (0.568658ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 10
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 42468.993319
+
+✖ failing tests:
+
+test at tests/browser/interaction.test.mjs:448:1
+✖ interaction suite had no failures (0.568658ms)
+  Error [CheckError]: 1 interaction check(s) failed
+  code-scroll: no <pre> in the newest row (5 rows, 0 pre)
+      at ok (file:///home/runner/work/Archx-Agent/Archx-Agent/tests/helpers/assertions.mjs:18:21)
+      at TestContext.<anonymous> (file:///home/runner/work/Archx-Agent/Archx-Agent/tests/browser/interaction.test.mjs:451:3)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1047:25)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:744:7) {
+    detail: undefined
+  }

@@ -1,0 +1,209 @@
+{
+  "suite": "interaction",
+  "startedAt": "2026-11-06T14:46:18.625Z",
+  "durationMs": 42348,
+  "total": 33,
+  "passed": 32,
+  "failed": 1,
+  "checks": [
+    {
+      "id": "send-flow",
+      "name": "message round-trip through the composer",
+      "status": "pass",
+      "ms": 955
+    },
+    {
+      "id": "empty-send",
+      "name": "empty composer does not send",
+      "status": "pass",
+      "ms": 314
+    },
+    {
+      "id": "stop-stream",
+      "name": "stop halts generation without losing partial text",
+      "status": "pass",
+      "ms": 288
+    },
+    {
+      "id": "markdown",
+      "name": "rich markdown renders as real elements",
+      "status": "pass",
+      "ms": 1499
+    },
+    {
+      "id": "code-scroll",
+      "name": "streaming code block keeps scroll position",
+      "status": "fail",
+      "message": "no <pre> in the newest row (5 rows, 0 pre)",
+      "ms": 1016
+    },
+    {
+      "id": "theme-persist",
+      "name": "theme choice persists across reload",
+      "status": "pass",
+      "ms": 1965
+    },
+    {
+      "id": "sidebar-switch",
+      "name": "sidebar lists chats and switching preserves them",
+      "status": "pass",
+      "ms": 1626
+    },
+    {
+      "id": "keyboard",
+      "name": "Enter sends; Shift+Enter keeps a newline",
+      "status": "pass",
+      "ms": 184
+    },
+    {
+      "id": "mobile-drawer",
+      "name": "drawer and composer work at 390 px",
+      "status": "pass",
+      "ms": 962
+    },
+    {
+      "id": "hit-desktop-chat",
+      "name": "hit-test chat @ desktop",
+      "status": "pass",
+      "ms": 1312
+    },
+    {
+      "id": "hit-desktop-studio",
+      "name": "hit-test studio @ desktop",
+      "status": "pass",
+      "ms": 1154
+    },
+    {
+      "id": "hit-desktop-memory",
+      "name": "hit-test memory @ desktop",
+      "status": "pass",
+      "ms": 866
+    },
+    {
+      "id": "hit-desktop-debug",
+      "name": "hit-test debug @ desktop",
+      "status": "pass",
+      "ms": 873
+    },
+    {
+      "id": "hit-desktop-settings-general",
+      "name": "hit-test settings:general @ desktop",
+      "status": "pass",
+      "ms": 886
+    },
+    {
+      "id": "hit-desktop-settings-providers",
+      "name": "hit-test settings:providers @ desktop",
+      "status": "pass",
+      "ms": 1049
+    },
+    {
+      "id": "hit-desktop-settings-models",
+      "name": "hit-test settings:models @ desktop",
+      "status": "pass",
+      "ms": 1336
+    },
+    {
+      "id": "hit-desktop-settings-danger",
+      "name": "hit-test settings:danger @ desktop",
+      "status": "pass",
+      "ms": 1082
+    },
+    {
+      "id": "hit-laptop-chat",
+      "name": "hit-test chat @ laptop",
+      "status": "pass",
+      "ms": 1119
+    },
+    {
+      "id": "hit-laptop-studio",
+      "name": "hit-test studio @ laptop",
+      "status": "pass",
+      "ms": 888
+    },
+    {
+      "id": "hit-laptop-memory",
+      "name": "hit-test memory @ laptop",
+      "status": "pass",
+      "ms": 865
+    },
+    {
+      "id": "hit-laptop-debug",
+      "name": "hit-test debug @ laptop",
+      "status": "pass",
+      "ms": 1253
+    },
+    {
+      "id": "hit-laptop-settings-general",
+      "name": "hit-test settings:general @ laptop",
+      "status": "pass",
+      "ms": 909
+    },
+    {
+      "id": "hit-laptop-settings-providers",
+      "name": "hit-test settings:providers @ laptop",
+      "status": "pass",
+      "ms": 1195
+    },
+    {
+      "id": "hit-laptop-settings-models",
+      "name": "hit-test settings:models @ laptop",
+      "status": "pass",
+      "ms": 900
+    },
+    {
+      "id": "hit-laptop-settings-danger",
+      "name": "hit-test settings:danger @ laptop",
+      "status": "pass",
+      "ms": 914
+    },
+    {
+      "id": "hit-mobile-chat",
+      "name": "hit-test chat @ mobile",
+      "status": "pass",
+      "ms": 859
+    },
+    {
+      "id": "hit-mobile-studio",
+      "name": "hit-test studio @ mobile",
+      "status": "pass",
+      "ms": 923
+    },
+    {
+      "id": "hit-mobile-memory",
+      "name": "hit-test memory @ mobile",
+      "status": "pass",
+      "ms": 1297
+    },
+    {
+      "id": "hit-mobile-debug",
+      "name": "hit-test debug @ mobile",
+      "status": "pass",
+      "ms": 870
+    },
+    {
+      "id": "hit-mobile-settings-general",
+      "name": "hit-test settings:general @ mobile",
+      "status": "pass",
+      "ms": 1151
+    },
+    {
+      "id": "hit-mobile-settings-providers",
+      "name": "hit-test settings:providers @ mobile",
+      "status": "pass",
+      "ms": 1001
+    },
+    {
+      "id": "hit-mobile-settings-models",
+      "name": "hit-test settings:models @ mobile",
+      "status": "pass",
+      "ms": 900
+    },
+    {
+      "id": "hit-mobile-settings-danger",
+      "name": "hit-test settings:danger @ mobile",
+      "status": "pass",
+      "ms": 867
+    }
+  ]
+}

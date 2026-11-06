@@ -1,0 +1,112 @@
+{
+  "suite": "visual-tour",
+  "startedAt": "2026-11-06T14:46:12.375Z",
+  "durationMs": 10423,
+  "total": 17,
+  "passed": 17,
+  "failed": 0,
+  "checks": [
+    {
+      "id": "laptop-chat",
+      "name": "chat page renders at laptop",
+      "status": "pass",
+      "ms": 463
+    },
+    {
+      "id": "laptop-studio",
+      "name": "studio page renders at laptop",
+      "status": "pass",
+      "ms": 408
+    },
+    {
+      "id": "laptop-memory",
+      "name": "memory page renders at laptop",
+      "status": "pass",
+      "ms": 360
+    },
+    {
+      "id": "laptop-debug",
+      "name": "debug page renders at laptop",
+      "status": "pass",
+      "ms": 375
+    },
+    {
+      "id": "laptop-settings-general",
+      "name": "settings → general at laptop",
+      "status": "pass",
+      "ms": 375
+    },
+    {
+      "id": "laptop-settings-tools",
+      "name": "settings → tools at laptop",
+      "status": "pass",
+      "ms": 363
+    },
+    {
+      "id": "laptop-settings-generation",
+      "name": "settings → generation at laptop",
+      "status": "pass",
+      "ms": 368
+    },
+    {
+      "id": "laptop-settings-providers",
+      "name": "settings → providers at laptop",
+      "status": "pass",
+      "ms": 366
+    },
+    {
+      "id": "laptop-settings-models",
+      "name": "settings → models at laptop",
+      "status": "pass",
+      "ms": 364
+    },
+    {
+      "id": "laptop-settings-profiles",
+      "name": "settings → profiles at laptop",
+      "status": "pass",
+      "ms": 358
+    },
+    {
+      "id": "laptop-settings-storage",
+      "name": "settings → storage at laptop",
+      "status": "pass",
+      "ms": 364
+    },
+    {
+      "id": "laptop-settings-danger",
+      "name": "settings → danger at laptop",
+      "status": "pass",
+      "ms": 369
+    },
+    {
+      "id": "laptop-theme-light",
+      "name": "light theme applies at laptop",
+      "status": "pass",
+      "ms": 1142
+    },
+    {
+      "id": "laptop-theme-soft",
+      "name": "soft theme applies at laptop",
+      "status": "pass",
+      "ms": 1059
+    },
+    {
+      "id": "laptop-theme-dark",
+      "name": "dark theme applies at laptop",
+      "status": "pass",
+      "ms": 1088
+    },
+    {
+      "id": "laptop-console",
+      "name": "no console errors during the whole laptop tour",
+      "status": "pass",
+      "ms": 0
+    },
+    {
+      "id": "laptop-network",
+      "name": "no failed requests during the whole laptop tour",
+      "status": "pass",
+      "ms": 0
+    }
+  ]
+}

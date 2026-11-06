@@ -220,7 +220,15 @@ test('code block can be scrolled and keeps its position during streaming', { ski
       const newest = rows.sort((a, b) => Number(a.dataset.idx) - Number(b.dataset.idx)).pop();
       const pres = newest ? Array.from(newest.querySelectorAll('pre')) : [];
       const pre = pres[pres.length - 1];
-      if (!pre) return { error: `no <pre> in the newest row (${rows.length} rows, ${pres.length} pre)` };
+      if (!pre) {
+        const newestText = (newest?.textContent || '').slice(0, 400);
+        return {
+          error: `no <pre> in the newest row (idx ${newest?.dataset.idx}, ${rows.length} rows, ${pres.length} pre)`,
+          newestText,
+          classes: newest ? newest.className : '',
+          children: newest ? Array.from(newest.querySelectorAll('*')).slice(0, 12).map((n) => n.className || n.tagName) : [],
+        };
+      }
       pre.scrollTop = 0;
       return {
         scrollHeight: pre.scrollHeight,
