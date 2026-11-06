@@ -59,8 +59,13 @@ for (;;) {
   await sleep(15000);
 }
 
-// test-output/ is gitignored locally, so a pull would skip it. Fetch and take
-// the committed results explicitly instead.
-git('fetch', '-q', 'origin', branch);
-git('checkout', `origin/${branch}`, '--', 'test-output');
-console.log('results pulled into test-output/ — open test-output/SUMMARY.md');
+// Results live on their own branch (force-pushed per run); test-output/ is
+// gitignored on the working branch, so take them from there explicitly.
+try {
+  git('fetch', '-q', 'origin', 'test-results');
+  git('checkout', 'FETCH_HEAD', '--', 'test-output');
+  console.log('results pulled into test-output/ — open test-output/SUMMARY.md');
+} catch (error) {
+  console.log('could not pull results:', error.message.split('\n')[0]);
+  process.exit(1);
+}

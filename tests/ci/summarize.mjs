@@ -105,4 +105,6 @@ await writeFile(
 
 const failures = reports.reduce((sum, r) => sum + r.failed, 0);
 console.log(lines.join('\n'));
-process.exit(failures > 0 ? 1 : 0);
+// The workflow owns the final exit code (it also knows about crashed jobs);
+// this script only writes the report files.
+process.exit(0);
