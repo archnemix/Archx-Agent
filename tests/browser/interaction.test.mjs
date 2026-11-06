@@ -205,7 +205,9 @@ test('markdown answer renders headings, lists, tables and code blocks', { skip: 
 test('code block can be scrolled and keeps its position during streaming', { skip: !PUPPETEER_ENABLED }, async () => {
   const session = await openPage(browser, app.baseUrl, VIEWPORTS.desktop);
   await report.run('code-scroll', 'streaming code block keeps scroll position', async () => {
-    const lines = Array.from({ length: 80 }, (_, i) => `const line${i} = ${i};`).join('\n');
+    // the code frame caps at 62vh (~450px at 720p), so ~120 lines is needed to
+    // overflow it; 80 lines fit and made the overflow assertion meaningless
+    const lines = Array.from({ length: 140 }, (_, i) => `const line${i} = ${i};`).join('\n');
     await setScenario({ chunks: lines.match(/.{1,60}/gs), delayMs: 25 });
     await send('write a long code file', session);
     await waitForAnswer(session.page, 'const line0', 20000);
@@ -322,6 +324,9 @@ test('mobile: sidebar drawer opens and closes, composer stays usable', { skip: !
     await waitFor(session.page, () => !document.body.classList.contains('side-open'), {
       label: 'sidebar drawer to close (scrim tap)',
     });
+    // the drawer slides out over .22s; judge the composer after it has gone,
+    // otherwise this measures a mid-animation frame instead of the layout
+    await new Promise((r) => setTimeout(r, 500));
 
     const composer = await isHittable(session.page, '#input');
     ok(composer.hittable, `composer is clickable on mobile (${composer.reason || 'ok'})`);
