@@ -36,7 +36,7 @@
   },
   "scripts": {
     "start": "node bin/archx-agent.js webui",
-    "test": "node --test tests/api/"
+    "test": "node --test \"tests/api/**/*.test.mjs\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

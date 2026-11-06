@@ -31,7 +31,7 @@ jobs:
       - name: Run API tests
         run: |
           mkdir -p test-output/api-results
-          node --test --test-reporter=spec tests/api/ > test-output/api-results/api.log 2>&1 || EXIT=$?
+          node --test --test-reporter=spec "tests/api/**/*.test.mjs" > test-output/api-results/api.log 2>&1 || EXIT=$?
           tail -40 test-output/api-results/api.log
           if [ "${EXIT:-0}" != "0" ]; then
             echo "api" > test-output/api-results/failed-suites.txt

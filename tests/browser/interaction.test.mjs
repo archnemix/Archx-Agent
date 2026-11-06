@@ -332,28 +332,55 @@ test('every visible interactive element is reachable at three viewports', { skip
           const blocked = await session.page.evaluate(() => {
             const selector =
               'button:not([disabled]), a[href], input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [role=button]';
+            // Only the page the user is looking at is on screen; hidden pages
+            // keep their own zero-size controls and are not part of this test.
+            const activePage = document.querySelector('.page:not(.hidden)');
+            if (!activePage) return [{ tag: 'page', id: '', cls: '', coveredBy: 'no visible page' }];
+
             const out = [];
-            for (const el of document.querySelectorAll(selector)) {
+            for (const el of activePage.querySelectorAll(selector)) {
+              if (el.closest('.modal')) continue; // dialogs are closed in these states
               const style = getComputedStyle(el);
               if (style.visibility === 'hidden' || style.display === 'none') continue;
               if (Number(style.opacity) === 0) continue;
               const box = el.getBoundingClientRect();
               if (box.width < 2 || box.height < 2) continue;
-              if (box.bottom < 0 || box.top > innerHeight) continue; // scrolled out of view is fine
-              const x = box.left + box.width / 2;
-              const y = box.top + box.height / 2;
-              if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) continue;
+
+              // Progressively scroll the control into view, exactly as a person
+              // would have to. Only if it still cannot be brought on screen is
+              // it a real blocker.
+              let visible = box.top >= 0 && box.bottom <= innerHeight;
+              if (!visible) {
+                el.scrollIntoView({ block: 'center', inline: 'center' });
+                const again = el.getBoundingClientRect();
+                visible = again.top >= 0 && again.bottom <= innerHeight;
+              }
+              const finalBox = el.getBoundingClientRect();
+
+              // Horizontal overflow is a genuine mobile defect, not a scroll case.
+              if (finalBox.left < -1 || finalBox.right > innerWidth + 1) {
+                out.push({
+                  tag: el.tagName.toLowerCase(),
+                  id: el.id,
+                  cls: String(el.className).split(' ').slice(0, 2).join(' '),
+                  coveredBy: `overflows viewport horizontally (${Math.round(finalBox.left)}…${Math.round(finalBox.right)} of ${innerWidth})`,
+                });
+                continue;
+              }
+              if (!visible) continue; // taller than the viewport; scrolling is the answer
+
+              const x = finalBox.left + finalBox.width / 2;
+              const y = finalBox.top + finalBox.height / 2;
               const hit = document.elementFromPoint(x, y);
               if (!hit) continue;
               const reaches = hit === el || el.contains(hit) || hit.contains(el);
-              // a label wrapping its input is legitimate
               const labelled = el.closest('label') && el.closest('label').contains(hit);
               if (!reaches && !labelled) {
                 out.push({
                   tag: el.tagName.toLowerCase(),
                   id: el.id,
                   cls: String(el.className).split(' ').slice(0, 2).join(' '),
-                  coveredBy: hit ? hit.tagName.toLowerCase() + '.' + String(hit.className).split(' ')[0] : 'nothing',
+                  coveredBy: hit.tagName.toLowerCase() + '.' + String(hit.className).split(' ')[0],
                 });
               }
             }

@@ -44,8 +44,30 @@ export async function launchBrowser(puppeteer) {
   return puppeteer.launch({ executablePath, args, headless: 'shell', protocolTimeout: 120000 });
 }
 
+/**
+ * First run shows a personalization dialog over everything ("A few details for
+ * your agent").  Tests that exercise the app itself dismiss it the way a user
+ * would; tests that *about* the dialog keep it.
+ */
+export async function dismissOnboarding(page) {
+  const shown = await page.evaluate(() => {
+    const dialog = document.querySelector('#personalization-dialog');
+    return !!dialog && !dialog.classList.contains('hidden');
+  });
+  if (!shown) return false;
+  await page.evaluate(() => {
+    const skip = document.querySelector('#personalization-skip');
+    if (skip) skip.click();
+  });
+  await page.waitForFunction(
+    () => document.querySelector('#personalization-dialog')?.classList.contains('hidden'),
+    { timeout: 5000 }
+  );
+  return true;
+}
+
 /** One page, with console/network problems recorded rather than printed. */
-export async function openPage(browser, baseUrl, viewport = VIEWPORTS.desktop) {
+export async function openPage(browser, baseUrl, viewport = VIEWPORTS.desktop, { dismissOverlays = true } = {}) {
   const page = await browser.newPage();
   await page.setViewport({ ...viewport, deviceScaleFactor: 1 });
 
@@ -63,6 +85,8 @@ export async function openPage(browser, baseUrl, viewport = VIEWPORTS.desktop) {
 
   await page.goto(baseUrl, { waitUntil: 'networkidle2', timeout: 30000 });
   await page.waitForSelector('#input', { timeout: 15000 });
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  if (dismissOverlays) await dismissOnboarding(page);
 
   return {
     page,

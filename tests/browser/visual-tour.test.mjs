@@ -96,10 +96,7 @@ async function tour(name, viewport) {
       await report.run(`${tag}-theme-${theme}`, `${theme} theme applies at ${name}`, async () => {
         await goTo(page, 'settings', 'general');
         // the real control, not a direct DOM poke: click the theme card
-        await page.evaluate((t) => {
-          const card = document.querySelector(`[data-theme-choice="${t}"]`);
-          if (card) card.scrollIntoView({ block: 'center' });
-        }, theme);
+        await page.$eval(`[data-theme-choice="${theme}"]`, (el) => el.scrollIntoView({ block: 'center' }));
         await humanClick(page, `[data-theme-choice="${theme}"]`);
         await waitFor(page, `document.documentElement.dataset.theme === ${JSON.stringify(theme)}`, {
           label: `theme attribute to become ${theme}`,
