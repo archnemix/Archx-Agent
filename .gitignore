@@ -15,3 +15,6 @@ src-tauri/target/
 # test runs write screenshots and reports here
 /test-output/
 tests/ci/node_modules/
+
+# CI writes results here
+/test-output/
