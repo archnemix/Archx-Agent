@@ -81,18 +81,34 @@ if (!reports.length) {
   }
 }
 
-// screenshot inventory, so a reviewer knows what to look at
-const shotsDir = path.join(OUT, 'screenshots');
-try {
-  const files = (await readdir(shotsDir)).filter((f) => f.endsWith('.png')).sort();
-  push('## Screenshots');
-  push();
-  for (const file of files) {
-    const info = await stat(path.join(shotsDir, file));
-    push(`- \`test-output/screenshots/${file}\` (${Math.round(info.size / 1024)} KB)`);
+// screenshot inventory, so a reviewer knows what to look at. Each suite keeps
+// its shots under its own bundle folder (screenshots/ inside visual-<vp>/).
+async function findShots(dir) {
+  const found = [];
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return found;
   }
-} catch {
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) found.push(...(await findShots(full)));
+    else if (entry.name.endsWith('.png')) found.push(full);
+  }
+  return found;
+}
+
+const shots = (await findShots(OUT)).sort();
+push('## Screenshots');
+push();
+if (!shots.length) {
   push('_No screenshots were produced._');
+} else {
+  for (const file of shots) {
+    const info = await stat(file);
+    push(`- \`${path.relative('.', file)}\` (${Math.round(info.size / 1024)} KB)`);
+  }
 }
 
 await writeFile(path.join(OUT, 'SUMMARY.md'), lines.join('\n') + '\n');
