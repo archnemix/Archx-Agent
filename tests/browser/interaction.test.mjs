@@ -13,6 +13,7 @@ import {
   launchBrowser,
   openPage,
   humanClick,
+  pressButton,
   typeInto,
   waitFor,
   isHittable,
@@ -70,9 +71,12 @@ async function waitForAnswer(page, expected, timeout = 25000) {
     return await waitFor(
       page,
       (want) => {
+        // textContent, not innerText: a row that is still streaming is not
+        // rendered yet (white-space: pre-wrap), so innerText stays empty until
+        // the answer finishes — which is exactly what we are waiting for.
         const rows = Array.from(document.querySelectorAll('#messages .msg'));
         if (!rows.length) return false;
-        const text = rows.map((r) => r.innerText || '').join('\n');
+        const text = rows.map((r) => r.textContent || '').join('\n');
         return text.includes(want) ? text : false;
       },
       { timeout, label: `an answer containing "${expected}"` },
