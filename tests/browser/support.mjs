@@ -158,6 +158,24 @@ export async function humanClick(page, selector) {
   await page.mouse.click(x, y);
 }
 
+/**
+ * Clicks a control whose visible face is an inline <svg>. Pointing at the
+ * centre of the button can land on the path inside the icon, which is a
+ * legitimate hit for a person and an ambiguous one for elementFromPoint.
+ */
+export async function pressButton(page, selector) {
+  await page.$eval(selector, (el) => el.scrollIntoView({ block: 'center', inline: 'center' })).catch(() => {});
+  const check = await isHittable(page, selector);
+  if (!check.found) throw new Error(`cannot press ${selector} — element missing`);
+  if (!check.hittable && !/covered by (svg|path|use)/.test(String(check.reason))) {
+    throw new Error(`cannot press ${selector} — ${check.reason}`);
+  }
+  const box = check.box;
+  const x = Math.round(box.left + box.width / 2);
+  const y = Math.round(box.top + box.height / 2);
+  await page.mouse.click(x, y);
+}
+
 export async function typeInto(page, selector, text, { clear = true } = {}) {
   await humanClick(page, selector);
   if (clear) {

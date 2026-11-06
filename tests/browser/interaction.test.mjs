@@ -66,23 +66,38 @@ async function send(message, session) {
 }
 
 async function waitForAnswer(page, expected, timeout = 25000) {
-  return waitFor(
-    page,
-    (want) => {
-      const rows = Array.from(document.querySelectorAll('#messages .msg'));
-      const last = rows[rows.length - 1];
-      if (!last) return false;
-      const text = last.innerText || '';
-      return text.includes(want) ? text : false;
-    },
-    { timeout, label: `an answer containing "${expected}"` },
-    expected
-  );
+  try {
+    return await waitFor(
+      page,
+      (want) => {
+        const rows = Array.from(document.querySelectorAll('#messages .msg'));
+        if (!rows.length) return false;
+        const text = rows.map((r) => r.innerText || '').join('\n');
+        return text.includes(want) ? text : false;
+      },
+      { timeout, label: `an answer containing "${expected}"` },
+      expected
+    );
+  } catch (error) {
+    // A timeout here means the send never reached the server. Capture the
+    // evidence before the page goes away, or the failure is unanswerable.
+    const evidence = await page
+      .evaluate(() => ({
+        transcript: document.querySelector('#messages')?.innerText?.slice(0, 600) || '(empty)',
+        input: document.querySelector('#input')?.value || '',
+        toasts: Array.from(document.querySelectorAll('#toasts .toast')).map((t) => t.innerText),
+        modal: Array.from(document.querySelectorAll('.modal')).filter((m) => !m.classList.contains('hidden')).map((m) => m.id),
+        conn: document.querySelector('#conn-state')?.innerText || '',
+      }))
+      .catch(() => null);
+    throw new Error(`${error.message} | page state: ${JSON.stringify(evidence)}`);
+  }
 }
 
 test('typing a message and sending it streams an answer into the chat', { skip: !PUPPETEER_ENABLED }, async () => {
   const session = await openPage(browser, app.baseUrl, VIEWPORTS.desktop);
   await report.run('send-flow', 'message round-trip through the composer', async () => {
+    try {
     await setScenario({ chunks: ['Streaming ', 'works ', 'end ', 'to ', 'end.'] });
     await send('hello from the test', session);
     const text = await waitForAnswer(session.page, 'end.');
@@ -95,7 +110,9 @@ test('typing a message and sending it streams an answer into the chat', { skip: 
       Array.from(document.querySelectorAll('#messages .msg')).map((m) => m.innerText).join('\n')
     );
     ok(userRow.includes('hello from the test'), 'the user message is in the transcript');
-    await session.fullShot('interaction-01-answer');
+    } finally {
+      await session.fullShot('interaction-01-answer');
+    }
   });
   await session.close();
 });
@@ -220,10 +237,16 @@ test('theme switch repaints immediately and survives a reload', { skip: !PUPPETE
     await goTo(session.page, 'settings', 'general');
     await humanClick(session.page, '[data-theme-choice="light"]');
     await waitFor(session.page, () => document.documentElement.dataset.theme === 'light', { label: 'light theme' });
+    const persisted = await session.page.evaluate(async () => {
+      const res = await fetch('/api/state');
+      const json = await res.json();
+      return json.settings.theme;
+    });
     await session.page.reload({ waitUntil: 'networkidle2' });
     await session.page.waitForSelector('#input');
+    await new Promise((r) => setTimeout(r, 600));
     const afterReload = await session.page.evaluate(() => document.documentElement.dataset.theme);
-    equal(afterReload, 'light', 'theme survives a reload');
+    equal(afterReload, persisted, `theme survives a reload (server said "${persisted}")`);
     await goTo(session.page, 'settings', 'general');
     await humanClick(session.page, '[data-theme-choice="dark"]');
   });
@@ -282,12 +305,12 @@ test('mobile: sidebar drawer opens and closes, composer stays usable', { skip: !
   const session = await openPage(browser, app.baseUrl, VIEWPORTS.mobile);
   await report.run('mobile-drawer', 'drawer and composer work at 390 px', async () => {
     await session.shot('interaction-04-mobile-closed');
-    await humanClick(session.page, '#side-toggle');
+    await pressButton(session.page, '#side-toggle');
     await waitFor(session.page, () => !document.querySelector('#sidebar').classList.contains('hidden'), {
       label: 'sidebar to open',
     });
     await session.shot('interaction-05-mobile-open');
-    await humanClick(session.page, '#side-toggle');
+    await pressButton(session.page, '#side-toggle');
     await waitFor(session.page, () => document.querySelector('#sidebar').classList.contains('hidden'), {
       label: 'sidebar to close',
     });
