@@ -59,5 +59,8 @@ for (;;) {
   await sleep(15000);
 }
 
-git('pull', '--rebase', '-q', 'origin', branch);
+// test-output/ is gitignored locally, so a pull would skip it. Fetch and take
+// the committed results explicitly instead.
+git('fetch', '-q', 'origin', branch);
+git('checkout', `origin/${branch}`, '--', 'test-output');
 console.log('results pulled into test-output/ — open test-output/SUMMARY.md');
