@@ -98,9 +98,10 @@ async function tour(name, viewport) {
         // the real control, not a direct DOM poke: click the theme card
         await page.$eval(`[data-theme-choice="${theme}"]`, (el) => el.scrollIntoView({ block: 'center' }));
         await humanClick(page, `[data-theme-choice="${theme}"]`);
-        await waitFor(page, `document.documentElement.dataset.theme === ${JSON.stringify(theme)}`, {
+        await waitFor(page, (t) => document.documentElement.dataset.theme === t, {
           label: `theme attribute to become ${theme}`,
           timeout: 5000,
+          arg: theme,
         });
         await page.screenshot({ path: (await session.shot(`${tag}-04-theme-${theme}`)), fullPage: false });
         const stored = await page.evaluate(async () => (await (await fetch('/api/state')).json()).settings.theme);

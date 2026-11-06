@@ -79,8 +79,7 @@ async function waitForAnswer(page, expected, timeout = 25000) {
         const text = rows.map((r) => r.textContent || '').join('\n');
         return text.includes(want) ? text : false;
       },
-      { timeout, label: `an answer containing "${expected}"` },
-      expected
+      { timeout, label: `an answer containing "${expected}"`, arg: expected }
     );
   } catch (error) {
     // A timeout here means the send never reached the server. Capture the
@@ -309,14 +308,19 @@ test('mobile: sidebar drawer opens and closes, composer stays usable', { skip: !
   const session = await openPage(browser, app.baseUrl, VIEWPORTS.mobile);
   await report.run('mobile-drawer', 'drawer and composer work at 390 px', async () => {
     await session.shot('interaction-04-mobile-closed');
-    await pressButton(session.page, '#side-toggle');
-    await waitFor(session.page, () => !document.querySelector('#sidebar').classList.contains('hidden'), {
-      label: 'sidebar to open',
+    const toggles = await session.page.$$('#side-toggle');
+    ok(toggles.length === 1, `exactly one header toggle on mobile (${toggles.length})`);
+
+    await toggles[0].click();
+    await waitFor(session.page, () => document.body.classList.contains('side-open'), {
+      label: 'sidebar drawer to open',
     });
     await session.shot('interaction-05-mobile-open');
-    await pressButton(session.page, '#side-toggle');
-    await waitFor(session.page, () => document.querySelector('#sidebar').classList.contains('hidden'), {
-      label: 'sidebar to close',
+
+    // close by tapping the scrim next to the drawer, the usual phone gesture
+    await session.page.mouse.click(370, 420);
+    await waitFor(session.page, () => !document.body.classList.contains('side-open'), {
+      label: 'sidebar drawer to close (scrim tap)',
     });
 
     const composer = await isHittable(session.page, '#input');

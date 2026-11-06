@@ -167,7 +167,16 @@ export async function pressButton(page, selector) {
   await page.$eval(selector, (el) => el.scrollIntoView({ block: 'center', inline: 'center' })).catch(() => {});
   const check = await isHittable(page, selector);
   if (!check.found) throw new Error(`cannot press ${selector} — element missing`);
-  if (!check.hittable && !/covered by (svg|path|use)/.test(String(check.reason))) {
+  /*
+   * A hit that lands on the button's own children (icon svg, label span) is a
+   * normal click for a person — the event bubbles to the button. Only a hit on
+   * something outside the element is a genuine blocker.
+   */
+  const ownChildHit = check.found && (await page.$eval(selector, (el, point) => {
+    const hit = document.elementFromPoint(point.x, point.y);
+    return !!hit && el.contains(hit);
+  }, { x: Math.round(check.box.left + check.box.width / 2), y: Math.round(check.box.top + check.box.height / 2) }));
+  if (!check.hittable && !ownChildHit) {
     throw new Error(`cannot press ${selector} — ${check.reason}`);
   }
   const box = check.box;
@@ -190,12 +199,17 @@ export async function typeInto(page, selector, text, { clear = true } = {}) {
   await page.keyboard.type(text, { delay: 8 });
 }
 
-export async function waitFor(page, fn, { timeout = 10000, interval = 100, label = 'condition' } = {}) {
+/**
+ * Poll an in-page predicate. `arg` is forwarded to the page function — without
+ * it a closure over a Node-side variable silently becomes undefined inside the
+ * browser, and the poll can never succeed.
+ */
+export async function waitFor(page, fn, { timeout = 10000, interval = 100, label = 'condition', arg } = {}) {
   const deadline = Date.now() + timeout;
   let last;
   while (Date.now() < deadline) {
     try {
-      last = await page.evaluate(fn);
+      last = await page.evaluate(fn, arg);
       if (last) return last;
     } catch (error) {
       last = error.message;
