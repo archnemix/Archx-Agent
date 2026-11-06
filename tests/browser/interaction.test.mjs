@@ -410,13 +410,22 @@ test('every visible interactive element is reachable at three viewports', { skip
               // Progressively scroll the control into view, exactly as a person
               // would have to. Only if it still cannot be brought on screen is
               // it a real blocker.
-              let visible = box.top >= 0 && box.bottom <= innerHeight;
-              if (!visible) {
-                el.scrollIntoView({ block: 'center', inline: 'center' });
-                const again = el.getBoundingClientRect();
-                visible = again.top >= 0 && again.bottom <= innerHeight;
+              // Scroll like a person: centre it, and if that still leaves it
+              // under the floating composer, nudge it to the top of the pane.
+              el.scrollIntoView({ block: 'center', inline: 'center' });
+              let finalBox = el.getBoundingClientRect();
+              const coveredByChrome = (rect) => {
+                const probe = document.elementFromPoint(
+                  rect.left + rect.width / 2,
+                  rect.top + rect.height / 2
+                );
+                return !!probe && !el.contains(probe) && !el.closest('label')?.contains(probe);
+              };
+              if (coveredByChrome(finalBox)) {
+                el.scrollIntoView({ block: 'start', inline: 'center' });
+                finalBox = el.getBoundingClientRect();
               }
-              const finalBox = el.getBoundingClientRect();
+              const visible = finalBox.top >= 0 && finalBox.bottom <= innerHeight;
 
               // Horizontal overflow is a genuine mobile defect, not a scroll case.
               if (finalBox.left < -1 || finalBox.right > innerWidth + 1) {
