@@ -1,0 +1,28 @@
+✔ health reports the running version (445.396221ms)
+✔ fresh install starts with no chat debris (4.60651ms)
+✔ provider lifecycle: create, discover models, rename, delete (15.85356ms)
+✔ model selection rejects anything not in the enabled catalog (3.876027ms)
+✔ streamed chat reaches the client as ordered deltas (69.767285ms)
+✔ reasoning deltas are forwarded separately from content (117.353052ms)
+✔ upstream failures surface as errors, not silent empty answers (6.945081ms)
+✔ a flaky provider is retried on the probe path (by design, not on chat) (261.104734ms)
+✔ a rate-limited stream surfaces the upstream error instead of faking an answer (5.895741ms)
+✔ system prompt templates are expanded before they reach the provider (69.868741ms)
+✔ chat records persist through the single-chat upsert endpoint (3.46703ms)
+✔ bulk chat write validates its payload (1.507806ms)
+✔ settings writes are clamped to legal ranges (2.849024ms)
+✔ every request is written to the debug journal (3.751241ms)
+✔ storage view points at the sandbox data area (1.728332ms)
+✔ static assets are served and cacheable (7.656432ms)
+✔ unknown routes are a clean 404 (1.632841ms)
+✔ anthropic adapter speaks the Messages protocol (76.163613ms)
+✔ gemini adapter speaks the Generative Language protocol (77.923342ms)
+✔ deleting the active provider leaves the app usable (11.446731ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1268.731246

@@ -141,15 +141,15 @@ export async function isHittable(page, selector) {
 
 /** Real mouse click: scroll into view, confirm nothing covers it, then click. */
 export async function humanClick(page, selector) {
-  await page.evaluate((sel) => {
-    const el = document.querySelector(sel);
-    if (el) el.scrollIntoView({ block: 'center', inline: 'center' });
-  }, selector);
+  await page.$eval(selector, (el) => el.scrollIntoView({ block: 'center', inline: 'center' })).catch(() => {});
   const check = await isHittable(page, selector);
   if (!check.found) throw new Error(`cannot click ${selector} — element missing`);
   if (!check.hittable) throw new Error(`cannot click ${selector} — ${check.reason}`);
   const box = check.box;
-  await page.mouse.click(box.left + box.width / 2, box.top + box.height / 2);
+  // CDP wants integers: a fractional y is rejected outright by newer builds.
+  const x = Math.round(box.left + box.width / 2);
+  const y = Math.round(box.top + box.height / 2);
+  await page.mouse.click(x, y);
 }
 
 export async function typeInto(page, selector, text, { clear = true } = {}) {

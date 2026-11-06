@@ -1,0 +1,14 @@
+{
+  "api": {
+    "result": "success",
+    "outputs": {}
+  },
+  "visual": {
+    "result": "failure",
+    "outputs": {}
+  },
+  "interaction": {
+    "result": "failure",
+    "outputs": {}
+  }
+}

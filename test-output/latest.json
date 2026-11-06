@@ -1,0 +1,32 @@
+{
+  "runId": "42233781764",
+  "runNumber": "5",
+  "sha": "9be02bf8a4ea1ce80d521ac34a54f98db3a81d40",
+  "at": "2026-11-06T14:26:22.030Z",
+  "suites": [
+    {
+      "suite": "interaction",
+      "total": 33,
+      "passed": 23,
+      "failed": 10
+    },
+    {
+      "suite": "visual-tour",
+      "total": 17,
+      "passed": 14,
+      "failed": 3
+    },
+    {
+      "suite": "visual-tour",
+      "total": 17,
+      "passed": 14,
+      "failed": 3
+    },
+    {
+      "suite": "visual-tour",
+      "total": 17,
+      "passed": 14,
+      "failed": 3
+    }
+  ]
+}

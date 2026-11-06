@@ -1,0 +1,42 @@
+✔ typing a message and sending it streams an answer into the chat (3390.928097ms)
+✔ send button is disabled/blocked while the cursor has no text (769.931242ms)
+✔ stop button interrupts a slow stream and keeps what arrived (600.730566ms)
+✔ markdown answer renders headings, lists, tables and code blocks (600.059374ms)
+✔ code block can be scrolled and keeps its position during streaming (599.683103ms)
+✔ theme switch repaints immediately and survives a reload (867.06199ms)
+✔ chat appears in the sidebar and switching keeps both transcripts (801.242973ms)
+✔ keyboard: Enter sends, Shift+Enter adds a line (631.907101ms)
+✔ mobile: sidebar drawer opens and closes, composer stays usable (718.059912ms)
+✔ every visible interactive element is reachable at three viewports (22026.969716ms)
+✖ interaction suite had no failures (0.630172ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 10
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 31354.136853
+
+✖ failing tests:
+
+test at tests/browser/interaction.test.mjs:398:1
+✖ interaction suite had no failures (0.630172ms)
+  Error [CheckError]: 10 interaction check(s) failed
+  send-flow: Protocol error (Input.dispatchMouseEvent): Invalid parameters Failed to deserialize params.x - BINDINGS: double value expected at position 58
+  empty-send: Protocol error (Input.dispatchMouseEvent): Invalid parameters Failed to deserialize params.x - BINDINGS: double value expected at position 58
+  stop-stream: Protocol error (Input.dispatchMouseEvent): Invalid parameters Failed to deserialize params.x - BINDINGS: double value expected at position 58
+  markdown: Protocol error (Input.dispatchMouseEvent): Invalid parameters Failed to deserialize params.x - BINDINGS: double value expected at position 58
+  code-scroll: Protocol error (Input.dispatchMouseEvent): Invalid parameters Failed to deserialize params.x - BINDINGS: double value expected at position 58
+  theme-persist: Protocol error (Input.dispatchMouseEvent): Invalid parameters Failed to deserialize params.x - BINDINGS: double value expected at position 58
+  sidebar-switch: Protocol error (Input.dispatchMouseEvent): Invalid parameters Failed to deserialize params.x - BINDINGS: double value expected at position 58
+  keyboard: Protocol error (Input.dispatchMouseEvent): Invalid parameters Failed to deserialize params.x - BINDINGS: double value expected at position 58
+  mobile-drawer: Protocol error (Input.dispatchMouseEvent): Invalid parameters Failed to deserialize params.x - BINDINGS: double value expected at position 58
+  hit-mobile-chat: 1 blocked control(s): [{"tag":"button","id":"","cls":"chip","coveredBy":"footer.composer-wrap"}]
+      at ok (file:///home/runner/work/Archx-Agent/Archx-Agent/tests/helpers/assertions.mjs:18:21)
+      at TestContext.<anonymous> (file:///home/runner/work/Archx-Agent/Archx-Agent/tests/browser/interaction.test.mjs:401:3)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1047:25)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:744:7) {
+    detail: undefined
+  }
