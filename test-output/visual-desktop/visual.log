@@ -1,5 +1,5 @@
-✔ desktop tour (10099.25498ms)
-✖ visual tour had no failures (0.826298ms)
+✔ desktop tour (6747.225505ms)
+✖ visual tour had no failures (0.348978ms)
 ℹ tests 2
 ℹ suites 0
 ℹ pass 1
@@ -7,18 +7,18 @@
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 10329.815536
+ℹ duration_ms 6915.168513
 
 ✖ failing tests:
 
-test at tests/browser/visual-tour.test.mjs:133:1
-✖ visual tour had no failures (0.826298ms)
+test at tests/browser/visual-tour.test.mjs:130:1
+✖ visual tour had no failures (0.348978ms)
   Error [CheckError]: 3 visual check(s) failed
-  desktop-theme-light: cannot click [data-theme-choice="light"] — covered by div.modal
-  desktop-theme-soft: cannot click [data-theme-choice="soft"] — covered by div.modal
-  desktop-theme-dark: cannot click [data-theme-choice="dark"] — covered by div.modal
+  desktop-theme-light: Protocol error (Input.dispatchMouseEvent): Invalid parameters Failed to deserialize params.x - BINDINGS: double value expected at position 58
+  desktop-theme-soft: Protocol error (Input.dispatchMouseEvent): Invalid parameters Failed to deserialize params.x - BINDINGS: double value expected at position 58
+  desktop-theme-dark: Protocol error (Input.dispatchMouseEvent): Invalid parameters Failed to deserialize params.x - BINDINGS: double value expected at position 58
       at ok (file:///home/runner/work/Archx-Agent/Archx-Agent/tests/helpers/assertions.mjs:18:21)
-      at TestContext.<anonymous> (file:///home/runner/work/Archx-Agent/Archx-Agent/tests/browser/visual-tour.test.mjs:136:3)
+      at TestContext.<anonymous> (file:///home/runner/work/Archx-Agent/Archx-Agent/tests/browser/visual-tour.test.mjs:133:3)
       at Test.runInAsyncScope (node:async_hooks:214:14)
       at Test.run (node:internal/test_runner/test:1047:25)
       at async Test.processPendingSubtests (node:internal/test_runner/test:744:7) {

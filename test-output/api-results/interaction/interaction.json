@@ -1,0 +1,241 @@
+{
+  "suite": "interaction",
+  "startedAt": "2026-11-06T14:05:17.277Z",
+  "durationMs": 28750,
+  "total": 33,
+  "passed": 0,
+  "failed": 33,
+  "checks": [
+    {
+      "id": "send-flow",
+      "name": "message round-trip through the composer",
+      "status": "fail",
+      "message": "cannot click #input — covered by div.modal",
+      "ms": 9
+    },
+    {
+      "id": "empty-send",
+      "name": "empty composer does not send",
+      "status": "fail",
+      "message": "cannot click #btn-send — covered by div.modal",
+      "ms": 1
+    },
+    {
+      "id": "stop-stream",
+      "name": "stop halts generation without losing partial text",
+      "status": "fail",
+      "message": "cannot click #input — covered by div.modal",
+      "ms": 3
+    },
+    {
+      "id": "markdown",
+      "name": "rich markdown renders as real elements",
+      "status": "fail",
+      "message": "cannot click #input — covered by div.modal",
+      "ms": 2
+    },
+    {
+      "id": "code-scroll",
+      "name": "streaming code block keeps scroll position",
+      "status": "fail",
+      "message": "cannot click #input — covered by div.modal",
+      "ms": 3
+    },
+    {
+      "id": "theme-persist",
+      "name": "theme choice persists across reload",
+      "status": "fail",
+      "message": "cannot click [data-theme-choice=\"light\"] — covered by div.modal",
+      "ms": 282
+    },
+    {
+      "id": "sidebar-switch",
+      "name": "sidebar lists chats and switching preserves them",
+      "status": "fail",
+      "message": "cannot click #input — covered by div.modal",
+      "ms": 2
+    },
+    {
+      "id": "keyboard",
+      "name": "Enter sends; Shift+Enter keeps a newline",
+      "status": "fail",
+      "message": "cannot click #input — covered by div.modal",
+      "ms": 2
+    },
+    {
+      "id": "mobile-drawer",
+      "name": "drawer and composer work at 390 px",
+      "status": "fail",
+      "message": "cannot click #side-toggle — covered by div.modal",
+      "ms": 70
+    },
+    {
+      "id": "hit-desktop-chat",
+      "name": "hit-test chat @ desktop",
+      "status": "fail",
+      "message": "23 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn active\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"}]",
+      "ms": 850
+    },
+    {
+      "id": "hit-desktop-studio",
+      "name": "hit-test studio @ desktop",
+      "status": "fail",
+      "message": "15 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn active\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"}]",
+      "ms": 872
+    },
+    {
+      "id": "hit-desktop-memory",
+      "name": "hit-test memory @ desktop",
+      "status": "fail",
+      "message": "13 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn active\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"}]",
+      "ms": 837
+    },
+    {
+      "id": "hit-desktop-debug",
+      "name": "hit-test debug @ desktop",
+      "status": "fail",
+      "message": "28 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn active\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"}]",
+      "ms": 869
+    },
+    {
+      "id": "hit-desktop-settings-general",
+      "name": "hit-test settings:general @ desktop",
+      "status": "fail",
+      "message": "27 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn active\",\"coveredBy\":\"div.modal\"}]",
+      "ms": 892
+    },
+    {
+      "id": "hit-desktop-settings-providers",
+      "name": "hit-test settings:providers @ desktop",
+      "status": "fail",
+      "message": "26 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn active\",\"coveredBy\":\"div.modal\"}]",
+      "ms": 979
+    },
+    {
+      "id": "hit-desktop-settings-models",
+      "name": "hit-test settings:models @ desktop",
+      "status": "fail",
+      "message": "25 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn active\",\"coveredBy\":\"div.modal\"}]",
+      "ms": 1132
+    },
+    {
+      "id": "hit-desktop-settings-danger",
+      "name": "hit-test settings:danger @ desktop",
+      "status": "fail",
+      "message": "22 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn active\",\"coveredBy\":\"div.modal\"}]",
+      "ms": 985
+    },
+    {
+      "id": "hit-laptop-chat",
+      "name": "hit-test chat @ laptop",
+      "status": "fail",
+      "message": "23 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn active\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"}]",
+      "ms": 1023
+    },
+    {
+      "id": "hit-laptop-studio",
+      "name": "hit-test studio @ laptop",
+      "status": "fail",
+      "message": "15 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn active\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"}]",
+      "ms": 854
+    },
+    {
+      "id": "hit-laptop-memory",
+      "name": "hit-test memory @ laptop",
+      "status": "fail",
+      "message": "13 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn active\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"}]",
+      "ms": 857
+    },
+    {
+      "id": "hit-laptop-debug",
+      "name": "hit-test debug @ laptop",
+      "status": "fail",
+      "message": "27 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn active\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"}]",
+      "ms": 864
+    },
+    {
+      "id": "hit-laptop-settings-general",
+      "name": "hit-test settings:general @ laptop",
+      "status": "fail",
+      "message": "24 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn active\",\"coveredBy\":\"div.modal\"}]",
+      "ms": 870
+    },
+    {
+      "id": "hit-laptop-settings-providers",
+      "name": "hit-test settings:providers @ laptop",
+      "status": "fail",
+      "message": "26 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn active\",\"coveredBy\":\"div.modal\"}]",
+      "ms": 847
+    },
+    {
+      "id": "hit-laptop-settings-models",
+      "name": "hit-test settings:models @ laptop",
+      "status": "fail",
+      "message": "25 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn active\",\"coveredBy\":\"div.modal\"}]",
+      "ms": 858
+    },
+    {
+      "id": "hit-laptop-settings-danger",
+      "name": "hit-test settings:danger @ laptop",
+      "status": "fail",
+      "message": "22 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"page-nav-btn active\",\"coveredBy\":\"div.modal\"}]",
+      "ms": 890
+    },
+    {
+      "id": "hit-mobile-chat",
+      "name": "hit-test chat @ mobile",
+      "status": "fail",
+      "message": "13 blocked control(s): [{\"tag\":\"button\",\"id\":\"side-toggle\",\"cls\":\"icon-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"model-btn\",\"cls\":\"model-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"profile-btn\",\"cls\":\"model-btn profile-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"system-prompt-btn\",\"cls\":\"model-btn system-prompt-btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"chat-debug-btn\",\"cls\":\"btn ghost\",\"coveredBy\":\"div.modal-head\"}]",
+      "ms": 848
+    },
+    {
+      "id": "hit-mobile-studio",
+      "name": "hit-test studio @ mobile",
+      "status": "fail",
+      "message": "9 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"icon-btn page-side-toggle\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"studio-tab active\",\"coveredBy\":\"p.hint\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"studio-tab\",\"coveredBy\":\"p.hint\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"studio-tab\",\"coveredBy\":\"p.hint\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"studio-tab\",\"coveredBy\":\"p.hint\"}]",
+      "ms": 849
+    },
+    {
+      "id": "hit-mobile-memory",
+      "name": "hit-test memory @ mobile",
+      "status": "fail",
+      "message": "6 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"icon-btn page-side-toggle\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"mem-refresh\",\"cls\":\"btn\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"btn tiny\",\"coveredBy\":\"input.\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"btn tiny\",\"coveredBy\":\"span.\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"btn tiny\",\"coveredBy\":\"div.modal-body\"}]",
+      "ms": 917
+    },
+    {
+      "id": "hit-mobile-debug",
+      "name": "hit-test debug @ mobile",
+      "status": "fail",
+      "message": "17 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"icon-btn page-side-toggle\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"dbg-category active\",\"coveredBy\":\"h3.\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"dbg-category\",\"coveredBy\":\"h3.\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"dbg-category\",\"coveredBy\":\"h3.\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"dbg-category\",\"coveredBy\":\"p.hint\"}]",
+      "ms": 852
+    },
+    {
+      "id": "hit-mobile-settings-general",
+      "name": "hit-test settings:general @ mobile",
+      "status": "fail",
+      "message": "14 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"icon-btn page-side-toggle\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"set-nav-btn active\",\"coveredBy\":\"p.hint\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"set-nav-btn\",\"coveredBy\":\"p.hint\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"set-nav-btn\",\"coveredBy\":\"p.hint\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"set-nav-btn\",\"coveredBy\":\"p.hint\"}]",
+      "ms": 852
+    },
+    {
+      "id": "hit-mobile-settings-providers",
+      "name": "hit-test settings:providers @ mobile",
+      "status": "fail",
+      "message": "13 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"icon-btn page-side-toggle\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"set-nav-btn\",\"coveredBy\":\"p.hint\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"set-nav-btn\",\"coveredBy\":\"p.hint\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"set-nav-btn\",\"coveredBy\":\"p.hint\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"set-nav-btn active\",\"coveredBy\":\"p.hint\"}]",
+      "ms": 873
+    },
+    {
+      "id": "hit-mobile-settings-models",
+      "name": "hit-test settings:models @ mobile",
+      "status": "fail",
+      "message": "14 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"icon-btn page-side-toggle\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"set-nav-btn\",\"coveredBy\":\"p.hint\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"set-nav-btn\",\"coveredBy\":\"p.hint\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"set-nav-btn\",\"coveredBy\":\"p.hint\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"set-nav-btn\",\"coveredBy\":\"p.hint\"}]",
+      "ms": 864
+    },
+    {
+      "id": "hit-mobile-settings-danger",
+      "name": "hit-test settings:danger @ mobile",
+      "status": "fail",
+      "message": "11 blocked control(s): [{\"tag\":\"button\",\"id\":\"\",\"cls\":\"icon-btn page-side-toggle\",\"coveredBy\":\"div.modal\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"set-nav-btn\",\"coveredBy\":\"p.hint\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"set-nav-btn\",\"coveredBy\":\"p.hint\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"set-nav-btn\",\"coveredBy\":\"p.hint\"},{\"tag\":\"button\",\"id\":\"\",\"cls\":\"set-nav-btn\",\"coveredBy\":\"p.hint\"}]",
+      "ms": 846
+    }
+  ]
+}

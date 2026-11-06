@@ -1,14 +1,38 @@
 {
-  "runId": "42230781447",
-  "runNumber": "3",
-  "sha": "05804383b18602ce5738e93694c93a1aeafbec33",
-  "at": "2026-11-06T14:05:58.843Z",
+  "runId": "42231102856",
+  "runNumber": "4",
+  "sha": "21075d3c35059af78912c44e1c0218748e640ce3",
+  "at": "2026-11-06T14:08:14.253Z",
   "suites": [
     {
       "suite": "interaction",
       "total": 33,
       "passed": 0,
       "failed": 33
+    },
+    {
+      "suite": "visual-tour",
+      "total": 17,
+      "passed": 14,
+      "failed": 3
+    },
+    {
+      "suite": "visual-tour",
+      "total": 17,
+      "passed": 14,
+      "failed": 3
+    },
+    {
+      "suite": "visual-tour",
+      "total": 17,
+      "passed": 14,
+      "failed": 3
+    },
+    {
+      "suite": "interaction",
+      "total": 33,
+      "passed": 23,
+      "failed": 10
     },
     {
       "suite": "visual-tour",
