@@ -1,0 +1,197 @@
+✖ typing a message and sending it streams an answer into the chat (643.19414ms)
+✖ send button is disabled/blocked while the cursor has no text (1.090733ms)
+✖ stop button interrupts a slow stream and keeps what arrived (0.118693ms)
+✖ markdown answer renders headings, lists, tables and code blocks (0.185127ms)
+✖ code block can be scrolled and keeps its position during streaming (0.131236ms)
+✖ theme switch repaints immediately and survives a reload (0.093084ms)
+✖ chat appears in the sidebar and switching keeps both transcripts (0.072816ms)
+✖ keyboard: Enter sends, Shift+Enter adds a line (0.09633ms)
+✖ mobile: sidebar drawer opens and closes, composer stays usable (0.404759ms)
+✖ every visible interactive element is reachable at three viewports (0.299742ms)
+✖ interaction suite had no failures (0.096862ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 0
+ℹ fail 11
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 808.942359
+
+✖ failing tests:
+
+test at tests/browser/interaction.test.mjs:83:1
+✖ typing a message and sending it streams an answer into the chat (643.19414ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'puppeteer-core' imported from /home/runner/work/Archx-Agent/Archx-Agent/tests/browser/interaction.test.mjs
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:314:9)
+      at packageResolve (node:internal/modules/esm/resolve:772:81)
+      at moduleResolve (node:internal/modules/esm/resolve:859:18)
+      at defaultResolve (node:internal/modules/esm/resolve:989:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+      at ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+      at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+      at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+      at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+      at ModuleLoader.import (node:internal/modules/esm/loader:679:21) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/browser/interaction.test.mjs:103:1
+✖ send button is disabled/blocked while the cursor has no text (1.090733ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'puppeteer-core' imported from /home/runner/work/Archx-Agent/Archx-Agent/tests/browser/interaction.test.mjs
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:314:9)
+      at packageResolve (node:internal/modules/esm/resolve:772:81)
+      at moduleResolve (node:internal/modules/esm/resolve:859:18)
+      at defaultResolve (node:internal/modules/esm/resolve:989:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+      at ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+      at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+      at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+      at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+      at ModuleLoader.import (node:internal/modules/esm/loader:679:21) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/browser/interaction.test.mjs:116:1
+✖ stop button interrupts a slow stream and keeps what arrived (0.118693ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'puppeteer-core' imported from /home/runner/work/Archx-Agent/Archx-Agent/tests/browser/interaction.test.mjs
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:314:9)
+      at packageResolve (node:internal/modules/esm/resolve:772:81)
+      at moduleResolve (node:internal/modules/esm/resolve:859:18)
+      at defaultResolve (node:internal/modules/esm/resolve:989:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+      at ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+      at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+      at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+      at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+      at ModuleLoader.import (node:internal/modules/esm/loader:679:21) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/browser/interaction.test.mjs:140:1
+✖ markdown answer renders headings, lists, tables and code blocks (0.185127ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'puppeteer-core' imported from /home/runner/work/Archx-Agent/Archx-Agent/tests/browser/interaction.test.mjs
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:314:9)
+      at packageResolve (node:internal/modules/esm/resolve:772:81)
+      at moduleResolve (node:internal/modules/esm/resolve:859:18)
+      at defaultResolve (node:internal/modules/esm/resolve:989:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+      at ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+      at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+      at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+      at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+      at ModuleLoader.import (node:internal/modules/esm/loader:679:21) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/browser/interaction.test.mjs:185:1
+✖ code block can be scrolled and keeps its position during streaming (0.131236ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'puppeteer-core' imported from /home/runner/work/Archx-Agent/Archx-Agent/tests/browser/interaction.test.mjs
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:314:9)
+      at packageResolve (node:internal/modules/esm/resolve:772:81)
+      at moduleResolve (node:internal/modules/esm/resolve:859:18)
+      at defaultResolve (node:internal/modules/esm/resolve:989:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+      at ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+      at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+      at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+      at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+      at ModuleLoader.import (node:internal/modules/esm/loader:679:21) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/browser/interaction.test.mjs:217:1
+✖ theme switch repaints immediately and survives a reload (0.093084ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'puppeteer-core' imported from /home/runner/work/Archx-Agent/Archx-Agent/tests/browser/interaction.test.mjs
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:314:9)
+      at packageResolve (node:internal/modules/esm/resolve:772:81)
+      at moduleResolve (node:internal/modules/esm/resolve:859:18)
+      at defaultResolve (node:internal/modules/esm/resolve:989:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+      at ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+      at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+      at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+      at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+      at ModuleLoader.import (node:internal/modules/esm/loader:679:21) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/browser/interaction.test.mjs:233:1
+✖ chat appears in the sidebar and switching keeps both transcripts (0.072816ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'puppeteer-core' imported from /home/runner/work/Archx-Agent/Archx-Agent/tests/browser/interaction.test.mjs
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:314:9)
+      at packageResolve (node:internal/modules/esm/resolve:772:81)
+      at moduleResolve (node:internal/modules/esm/resolve:859:18)
+      at defaultResolve (node:internal/modules/esm/resolve:989:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+      at ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+      at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+      at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+      at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+      at ModuleLoader.import (node:internal/modules/esm/loader:679:21) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/browser/interaction.test.mjs:260:1
+✖ keyboard: Enter sends, Shift+Enter adds a line (0.09633ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'puppeteer-core' imported from /home/runner/work/Archx-Agent/Archx-Agent/tests/browser/interaction.test.mjs
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:314:9)
+      at packageResolve (node:internal/modules/esm/resolve:772:81)
+      at moduleResolve (node:internal/modules/esm/resolve:859:18)
+      at defaultResolve (node:internal/modules/esm/resolve:989:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+      at ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+      at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+      at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+      at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+      at ModuleLoader.import (node:internal/modules/esm/loader:679:21) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/browser/interaction.test.mjs:281:1
+✖ mobile: sidebar drawer opens and closes, composer stays usable (0.404759ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'puppeteer-core' imported from /home/runner/work/Archx-Agent/Archx-Agent/tests/browser/interaction.test.mjs
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:314:9)
+      at packageResolve (node:internal/modules/esm/resolve:772:81)
+      at moduleResolve (node:internal/modules/esm/resolve:859:18)
+      at defaultResolve (node:internal/modules/esm/resolve:989:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+      at ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+      at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+      at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+      at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+      at ModuleLoader.import (node:internal/modules/esm/loader:679:21) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/browser/interaction.test.mjs:314:1
+✖ every visible interactive element is reachable at three viewports (0.299742ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'puppeteer-core' imported from /home/runner/work/Archx-Agent/Archx-Agent/tests/browser/interaction.test.mjs
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:314:9)
+      at packageResolve (node:internal/modules/esm/resolve:772:81)
+      at moduleResolve (node:internal/modules/esm/resolve:859:18)
+      at defaultResolve (node:internal/modules/esm/resolve:989:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+      at ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+      at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+      at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+      at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+      at ModuleLoader.import (node:internal/modules/esm/loader:679:21) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/browser/interaction.test.mjs:371:1
+✖ interaction suite had no failures (0.096862ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'puppeteer-core' imported from /home/runner/work/Archx-Agent/Archx-Agent/tests/browser/interaction.test.mjs
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:314:9)
+      at packageResolve (node:internal/modules/esm/resolve:772:81)
+      at moduleResolve (node:internal/modules/esm/resolve:859:18)
+      at defaultResolve (node:internal/modules/esm/resolve:989:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+      at ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+      at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+      at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+      at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+      at ModuleLoader.import (node:internal/modules/esm/loader:679:21) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
