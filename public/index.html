@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Archx Agent · workspace</title>
+<meta name="color-scheme" content="dark light" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23000'/%3E%3Cpath d='M16 5 26 26h-5.2l-1.9-4.3h-5.8L11.2 26H6Zm0 8.6-2 4.6h4Z' fill='%23fff'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/vendor/hljs.css" />
+<link rel="stylesheet" href="/css/base.css" />
+<link rel="stylesheet" href="/css/components.css" />
+<link rel="stylesheet" href="/css/chat.css" />
+<link rel="stylesheet" href="/css/pages.css" />
+</head>
+<body>
+
+<div id="app" class="app hidden">
+  <aside id="sidebar" class="sidebar">
+    <div class="side-top">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0d0d0d"/><path d="M16 5 26 26h-5.2l-1.9-4.3h-5.8L11.2 26H6Zm0 8.6-2 4.6h4Z" fill="#ffffff"/></svg>
+        <span>Archx Agent</span>
+      </div>
+    </div>
+
+    <nav class="page-nav" aria-label="Workspace sections">
+      <button class="page-nav-btn active" data-page="chat" title="Chats">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
+        Chat
+      </button>
+      <button class="page-nav-btn" data-page="studio" title="Studio — image, speech, transcription, vision">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.5-4.5L7 20"/></svg>
+        Studio
+      </button>
+      <button class="page-nav-btn" data-page="memory" title="Memory — what Archx stores and how much">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2Z"/><path d="M9 8h6M9 12h6"/></svg>
+        Memory
+      </button>
+      <button class="page-nav-btn" data-page="debug" title="Debug — request logs">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 2 1.5 3M16 2 14.5 5M3 11h18M5 7h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><path d="M9 13v3M15 13v3"/></svg>
+        Debug
+      </button>
+      <button class="page-nav-btn" data-page="settings" title="Settings">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </button>
+    </nav>
+
+    <div id="side-chat-zone">
+      <div class="chat-zone-top">
+        <button id="new-chat" class="btn primary block">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          New chat
+        </button>
+        <div class="chat-zone-toggles">
+          <button id="temp-mode" class="mini-toggle" type="button" title="Temporary mode — new chats are kept in memory only and never written to disk" aria-pressed="false">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c3 3 6 6.6 6 10a6 6 0 0 1-12 0c0-3.4 3-7 6-10Z"/></svg>
+            Temp
+          </button>
+          <button id="select-mode" class="mini-toggle" type="button" title="Select multiple chats to delete them together" aria-pressed="false">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 7 2 2 4-4M4 17l2 2 4-4M14 6h6M14 12h6M14 18h6"/></svg>
+            Select
+          </button>
+        </div>
+      </div>
+      <div id="select-bar" class="select-bar hidden">
+        <button id="select-all-chats" class="btn tiny" type="button">All</button>
+        <button id="delete-selected-chats" class="btn tiny danger" type="button" disabled>Delete (0)</button>
+        <button id="select-cancel" class="btn tiny ghost" type="button">Cancel</button>
+      </div>
+      <div class="side-label">Chats <span class="dim" id="chat-count"></span></div>
+      <nav id="chat-list" class="chat-list"></nav>
+    </div>
+
+    <div class="side-foot">
+      <div class="endpoint-badge" id="endpoint-badge" title="Manage providers"></div>
+      <div class="foot-row">
+        <button id="side-theme" class="icon-btn" title="Switch theme" aria-label="Switch theme">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+        </button>
+        <button id="side-wipe" class="icon-btn danger" title="Wipe all stored data" aria-label="Wipe all stored data">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+        </button>
+      </div>
+      <div class="privacy-note" id="privacy-note">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        <span id="privacy-text">keys encrypted · stored on this machine</span>
+        <span class="dim" id="app-version" style="margin-left:auto"></span>
+      </div>
+    </div>
+  </aside>
+
+  <div class="pages">
+    <!-- ─────────── PAGE: CHAT ─────────── -->
+    <section id="page-chat" class="page">
+      <header class="topbar">
+        <button id="side-toggle" class="icon-btn" aria-label="Toggle sidebar" aria-expanded="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+
+        <div class="model-wrap">
+          <button id="model-btn" class="model-btn" title="Choose provider & model">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 3 8l9 5 9-5-9 5ZM3 13l9 5 9-5"/></svg>
+            <span id="model-label">no provider</span>
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div id="model-menu" class="model-menu hidden">
+            <div class="mm-cols">
+              <div class="mm-provs" id="mm-provs"></div>
+              <div class="mm-right">
+                <input id="model-search" type="text" placeholder="Filter models…" spellcheck="false" />
+                <div id="mm-lock" class="mm-lock hidden"></div>
+                <div id="mm-warn" class="mm-warn hidden"></div>
+                <div id="model-list" class="model-list"></div>
+                <div class="model-foot"><span id="model-count"></span><button id="model-refresh" class="link-btn" type="button">refresh list</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-wrap hidden" id="profile-wrap">
+          <button id="profile-btn" class="model-btn profile-btn" title="Choose a multi-provider fallback profile">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 7l8 4 8-4-8 4ZM4 12l8 4 8-4M4 17l8 4 8-4"/></svg>
+            <span id="profile-label">No profile</span>
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div id="profile-menu" class="model-menu profile-menu hidden">
+            <div class="profile-menu-head"><div><b>Fallback profile</b><span class="hint">With a profile active, requests are routed by priority instead of going to one model — direct model picking is disabled until you choose “No profile”.</span></div></div>
+            <div id="profile-list" class="profile-menu-list"></div>
+          </div>
+        </div>
+
+        <div class="system-prompt-wrap" id="system-prompt-wrap">
+          <button id="system-prompt-btn" class="model-btn system-prompt-btn" title="Choose the system prompt for this chat"><span class="system-prompt-glyph">S</span><span id="system-prompt-label">Default</span><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+          <div id="system-prompt-menu" class="model-menu system-prompt-menu hidden"><div class="profile-menu-head"><div><b>System prompt</b><span class="hint">Each chat remembers its own selection. The preview below is the exact system instruction shape sent on the next request.</span></div><button id="system-prompt-manage" class="btn ghost tiny" type="button">Manage</button></div><div id="system-prompt-stack-hint" class="sp-stack-hint"></div><div id="system-prompt-list" class="profile-menu-list"></div><details class="sp-effective"><summary>What the agent will receive</summary><pre id="system-prompt-effective-preview"></pre></details></div>
+        </div>
+
+        <div class="top-actions">
+          <span id="conn-state" class="conn-state" title="Connection"></span>
+          <button id="chat-debug-btn" class="btn ghost tiny chat-debug-btn" type="button" title="Show request activity for this chat">Chat debug</button>
+          <div id="chat-debug-pop" class="chat-debug-pop hidden" aria-hidden="true">
+            <div class="chat-debug-head">
+              <div><b>Chat debug</b><span id="chat-debug-sub" class="hint">Current chat request activity</span></div>
+              <button id="chat-debug-close" class="icon-btn" type="button" aria-label="Close chat debug">×</button>
+            </div>
+            <div class="chat-debug-tabs" role="tablist">
+              <button class="chat-debug-tab active" data-debug-tab="api" type="button">API calls <span id="chat-debug-api-count">0</span></button>
+              <button class="chat-debug-tab" data-debug-tab="tools" type="button">Tools <span id="chat-debug-tools-count">0</span></button>
+              <button class="chat-debug-tab" data-debug-tab="other" type="button">Other <span id="chat-debug-other-count">0</span></button>
+            </div>
+            <div class="chat-debug-filters">
+              <select id="chat-debug-provider" class="sel"><option value="">All providers</option></select>
+              <button id="chat-debug-refresh" class="btn ghost tiny" type="button">Refresh</button>
+            </div>
+            <div id="chat-debug-list" class="chat-debug-list"></div>
+          </div>
+        </div>
+      </header>
+
+      <div id="messages" class="messages">
+        <div id="empty" class="empty">
+          <svg viewBox="0 0 32 32" width="44" height="44" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0d0d0d"/><path d="M16 5 26 26h-5.2l-1.9-4.3h-5.8L11.2 26H6Zm0 8.6-2 4.6h4Z" fill="#ffffff"/></svg>
+          <h2>How can I help you today?</h2>
+          <p class="dim">Streaming, reasoning view, markdown, code &amp; tables — powered by <b id="empty-model">your model</b>.</p>
+          <div class="chips" id="chips"></div>
+        </div>
+        <div id="no-provider" class="empty hidden">
+          <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true" style="color:var(--muted)"><rect x="3" y="4" width="18" height="14" rx="3"/><path d="M8 21h8M12 18v3M7 9h5M7 12.5h8"/></svg>
+          <h2>No provider configured</h2>
+          <p class="dim">The chat UI works without any key. When you're ready, add an OpenAI-compatible
+            endpoint (Groq, OpenAI, OpenRouter, Ollama, LM Studio, vLLM…) — keys are stored
+            <b>encrypted</b> in your data area and never leave this machine except to that endpoint.</p>
+          <div class="chips">
+            <button id="np-add" class="btn primary" type="button">Add a provider</button>
+            <button id="np-settings" class="btn ghost" type="button">Open settings</button>
+          </div>
+        </div>
+      </div>
+
+      <button id="jump-latest" class="jump-latest hidden" type="button" title="Jump to the newest message" aria-label="Jump to latest message">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m0 0-6-6m6 6 6-6"/></svg>
+        New content
+      </button>
+
+      <footer class="composer-wrap">
+        <div class="composer">
+          <textarea id="input" rows="1" placeholder="Send a message…  (Enter to send, Shift+Enter for a new line)"></textarea>
+          <div class="composer-bar">
+            <span class="comp-meta dim" id="comp-meta"></span>
+            <div class="comp-actions">
+              <button id="btn-web" class="mini-toggle" type="button" title="Web search tool — run the query through free search engines and ground the answer" aria-pressed="false">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 4 5.6 4 9s-1.5 6.4-4 9c-2.5-2.6-4-5.6-4-9s1.5-6.4 4-9Z"/></svg>
+                Web
+              </button>
+              <div class="branch-wrap">
+                <button id="branch-btn" class="btn ghost tiny hidden" type="button" title="View alternate continuations (branches)">⑂ <span id="branch-count">0</span></button>
+                <div id="branch-menu" class="branch-menu hidden" role="menu" aria-label="Conversation branches"></div>
+              </div>
+              <button id="btn-stop" class="icon-btn hidden" title="Stop (Esc)" aria-label="Stop generating">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+              </button>
+              <button id="btn-send" class="send-btn" title="Send" aria-label="Send message">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 14-7-4 7 4 7-14-7Z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <p class="composer-note dim" id="composer-note"></p>
+      </footer>
+    </section>
+
+    <!-- ─────────── PAGE: STUDIO ─────────── -->
+    <section id="page-studio" class="page hidden">
+      <header class="page-head">
+        <button class="icon-btn page-side-toggle" aria-label="Toggle sidebar" aria-expanded="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        <div>
+          <h2>Studio</h2>
+          <p class="dim">Dedicated surfaces for multimodal models — each area lists only models that can do that job.</p>
+        </div>
+      </header>
+      <div class="studio-tabs" role="tablist">
+        <button class="studio-tab active" data-studio-tab="image" type="button">Image generation</button>
+        <button class="studio-tab" data-studio-tab="tts" type="button">Text → speech</button>
+        <button class="studio-tab" data-studio-tab="stt" type="button">Speech → text</button>
+        <button class="studio-tab" data-studio-tab="vision" type="button">Vision · OCR</button>
+      </div>
+      <div class="studio-body">
+        <div id="studio-image" class="studio-panel">
+          <div class="studio-controls">
+            <label class="field"><span>Image model</span><select id="si-model" class="sel"></select></label>
+            <label class="field"><span>Prompt</span><textarea id="si-prompt" rows="4" placeholder="A minimal white letter A on a black square…" spellcheck="false"></textarea></label>
+            <label class="field"><span>Reference image <em class="hint">optional · used when the model accepts image input</em></span><input id="si-ref" type="file" accept="image/*" /></label>
+            <div class="studio-run-row"><button id="si-run" class="btn primary" type="button">Generate image</button><span id="si-status" class="hint"></span></div>
+          </div>
+          <div id="si-out" class="studio-out"><div class="empty-state compact"><b>No image yet</b><span>Pick an image model, describe what you want, generate.</span></div></div>
+        </div>
+        <div id="studio-tts" class="studio-panel hidden">
+          <div class="studio-controls">
+            <label class="field"><span>Speech model</span><select id="st-model" class="sel"></select></label>
+            <label class="field"><span>Voice <em class="hint">provider voice id, e.g. alloy / Kore</em></span><input id="st-voice" type="text" placeholder="default" spellcheck="false" /></label>
+            <label class="field"><span>Text to speak</span><textarea id="st-input" rows="5" placeholder="Type the text to synthesize…" spellcheck="false"></textarea></label>
+            <div class="studio-run-row"><button id="st-run" class="btn primary" type="button">Synthesize speech</button><span id="st-status" class="hint"></span></div>
+          </div>
+          <div id="st-out" class="studio-out"><div class="empty-state compact"><b>No audio yet</b><span>Pick a TTS model and synthesize.</span></div></div>
+        </div>
+        <div id="studio-stt" class="studio-panel hidden">
+          <div class="studio-controls">
+            <label class="field"><span>Transcription model</span><select id="sr-model" class="sel"></select></label>
+            <label class="field"><span>Audio file</span><input id="sr-file" type="file" accept="audio/*" /></label>
+            <div class="studio-run-row"><button id="sr-run" class="btn primary" type="button">Transcribe</button><span id="sr-status" class="hint"></span></div>
+          </div>
+          <div id="sr-out" class="studio-out"><div class="empty-state compact"><b>No transcription yet</b><span>Pick a speech-to-text model and upload audio.</span></div></div>
+        </div>
+        <div id="studio-vision" class="studio-panel hidden">
+          <div class="studio-controls">
+            <label class="field"><span>Vision model</span><select id="sv-model" class="sel"></select></label>
+            <label class="field"><span>Images <em class="hint">multiple allowed — all are sent in one request</em></span><input id="sv-file" type="file" accept="image/*" multiple /></label>
+            <label class="field"><span>Instruction</span><textarea id="sv-prompt" rows="2" spellcheck="false">Extract all text from this image (OCR). Output only the extracted text.</textarea></label>
+            <div class="studio-run-row"><button id="sv-run" class="btn primary" type="button">Run vision</button><span id="sv-status" class="hint"></span></div>
+          </div>
+          <div id="sv-out" class="studio-out"><div class="empty-state compact"><b>No result yet</b><span>Pick a vision model, upload an image, run OCR or any visual question.</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────── PAGE: MEMORY ─────────── -->
+    <section id="page-memory" class="page hidden">
+      <header class="page-head">
+        <button class="icon-btn page-side-toggle" aria-label="Toggle sidebar" aria-expanded="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        <div>
+          <h2>Memory</h2>
+          <p class="dim">Everything Archx stores on this machine — sizes, counts, and per-category cleanup.</p>
+        </div>
+        <div class="page-head-actions"><span id="mem-total" class="count-pill accent"></span><button id="mem-refresh" class="btn" type="button">Refresh</button></div>
+      </header>
+      <div id="mem-grid" class="mem-grid"></div>
+    </section>
+
+    <!-- ─────────── PAGE: SETTINGS ─────────── -->
+    <section id="page-settings" class="page hidden">
+      <header class="page-head">
+        <button class="icon-btn page-side-toggle" aria-label="Toggle sidebar" aria-expanded="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        <div>
+          <h2>Settings</h2>
+          <p class="dim">Personalize your workspace, control generation, manage providers and models, and move local data.</p>
+        </div>
+      </header>
+      <div class="set-layout">
+        <nav class="set-nav">
+          <button class="set-nav-btn active" data-sec="general">General</button>
+          <button class="set-nav-btn" data-sec="tools">Tools</button>
+          <button class="set-nav-btn" data-sec="generation">System prompts</button>
+          <button class="set-nav-btn" data-sec="providers">Providers</button>
+          <button class="set-nav-btn" data-sec="models">Models</button>
+          <button class="set-nav-btn" data-sec="profiles">Profiles</button>
+          <button class="set-nav-btn" data-sec="storage">Storage</button>
+          <button class="set-nav-btn danger" data-sec="danger">Danger zone</button>
+        </nav>
+        <div class="set-body">
+          <section id="sec-general" class="set-page">
+            <div class="general-settings-card">
+              <div class="setting-section-head"><div><h3>Personalization</h3><p class="hint">These values stay in your local settings and can be inserted into system prompts with template tokens.</p></div></div>
+              <div class="grid2">
+                <label class="field"><span>Your name <em class="hint">→ {username}</em></span><input id="set-username" type="text" placeholder="e.g. Alex" spellcheck="false" /></label>
+                <label class="field"><span>Age <em class="hint">→ {age}</em></span><input id="set-age" type="text" inputmode="numeric" placeholder="e.g. 18" spellcheck="false" /></label>
+              </div>
+              <div class="grid2">
+                <label class="field"><span>What should the agent call you? <em class="hint">→ {preferredName}</em></span><input id="set-preferred-name" type="text" placeholder="Defaults to your name" spellcheck="false" /></label>
+                <label class="field"><span>Agent name <em class="hint">→ {agentName}</em></span><input id="set-agent-name" type="text" placeholder="Archx Agent" spellcheck="false" /></label>
+              </div>
+            </div>
+            <div class="grid2">
+              <label class="field"><span>Temperature <b id="temp-val" class="dim"></b></span>
+                <input id="set-temp" type="range" min="0" max="2" step="0.1" />
+              </label>
+              <label class="field"><span>Max tokens <span class="dim">(blank = provider default)</span></span>
+                <input id="set-max" type="number" min="1" step="1" placeholder="e.g. 2048" />
+              </label>
+            </div>
+            <label class="check"><input id="set-stream" type="checkbox" class="sp-switch" /> Stream responses token-by-token</label>
+            <label class="check"><input id="set-reasoning" type="checkbox" class="sp-switch" /> Show model reasoning / thinking when the model provides it</label>
+            <div class="advanced-setting-card">
+              <label class="check"><input id="set-advanced-profiles" type="checkbox" class="sp-switch" /> Enable advanced model profiles in Chat</label>
+              <p class="hint">Profiles remain managed in Settings so the chat header stays focused. A profile can combine models from different providers and fail over automatically by priority.</p>
+            </div>
+            <section class="theme-setting" aria-labelledby="theme-setting-title">
+              <div><h3 id="theme-setting-title">Appearance</h3><p class="hint">Choose a calm working surface. Your choice is saved on this device.</p></div>
+              <div class="theme-choices" role="group" aria-label="Color theme">
+                <button class="theme-choice" type="button" data-theme-choice="dark" aria-pressed="false"><span class="theme-swatch dark"></span><span><b>Dark</b><small>Pure black &amp; white</small></span></button>
+                <button class="theme-choice" type="button" data-theme-choice="light" aria-pressed="false"><span class="theme-swatch light"></span><span><b>Light</b><small>Clean white</small></span></button>
+                <button class="theme-choice" type="button" data-theme-choice="soft" aria-pressed="false"><span class="theme-swatch soft"></span><span><b>Warm</b><small>Cream &amp; amber</small></span></button>
+              </div>
+            </section>
+          </section>
+
+          <section id="sec-tools" class="set-page hidden">
+            <div class="setting-section-head"><div><h3>Web search tool</h3><p class="hint">The first built-in tool — available in every chat mode from the composer’s “Web” toggle. Keyless engines run in your priority order with automatic fallback.</p></div></div>
+            <label class="check"><input id="set-search-enabled" type="checkbox" class="sp-switch" checked /> Enable the web search tool</label>
+            <div class="field"><span>Engine priority <em class="hint">top runs first; failures fall through</em></span><div id="search-engine-list" class="engine-list"></div></div>
+            <div class="grid2">
+              <label class="field"><span>Max results per search</span><input id="set-search-max" type="number" min="1" max="10" step="1" value="5" /></label>
+              <div class="field"><span>Diagnostics</span><div class="provider-editor-actions"><button id="search-test" class="btn" type="button">Test engines</button></div><pre id="search-test-out" class="endpoint-code" style="white-space:pre-wrap"></pre></div>
+            </div>
+          </section>
+
+          <section id="sec-generation" class="set-page hidden">
+            <div class="system-prompt-editor">
+              <div class="setting-section-head"><div><h3>System prompts</h3><p class="hint">The default prompt ships with the app, is always here and starts checked in every new chat — edit it to add your standing rules. Extra prompts are additions: check them per chat when you need them.</p></div><button id="set-system-prompt-new" class="btn primary" type="button">New prompt</button></div>
+              <div id="sp-list" class="sp-list"></div>
+              <div class="sp-editor-grid">
+                <label class="field"><span>Name</span><input id="set-system-prompt-name" class="inline-input" type="text" placeholder="e.g. Coding assistant" spellcheck="false" /></label>
+              </div>
+              <label class="field"><span>Prompt text</span><textarea id="set-system" rows="6" placeholder="You are a helpful assistant." spellcheck="false"></textarea></label>
+              <div class="provider-editor-actions"><span class="hint">Click a prompt above to open it here. Save applies it everywhere it is checked.</span><button id="set-system-prompt-delete" class="btn danger" type="button">Delete</button><button id="set-system-prompt-save" class="btn primary" type="button">Save</button></div>
+            </div>
+            <div class="advanced-setting-card sp-mode-card">
+              <div class="setting-section-head"><div><h3>Hot-switch method</h3><p class="hint">How prompt changes apply to a conversation that is already running.</p></div></div>
+              <label class="log-choice"><input id="sp-mode-stack" type="radio" name="sp-mode" value="stack" /> Stack <em class="hint">earlier prompts stay; each additionally enabled prompt is appended as another <code>system</code> message tagged <code>update:</code> — the model sees the history of instructions</em></label>
+              <label class="log-choice"><input id="sp-mode-replace" type="radio" name="sp-mode" value="replace" /> Replace <em class="hint">only the enabled prompts are sent, as one single first <code>system</code> message — the model never sees earlier wording</em></label>
+              <div class="hint">Switch methods any time; the change applies to the next message you send.</div>
+            </div>
+            <div class="prompt-vars">
+              <div class="setting-section-head"><div><h3>Prompt variables</h3><p class="hint">Type these tokens into any prompt — they are expanded with your personalization values before the request is sent. Click to copy.</p></div></div>
+              <table class="prompt-vars-table" id="prompt-vars-table">
+                <thead><tr><th>Token</th><th>Means</th><th></th></tr></thead>
+                <tbody>
+                  <tr><td><code>{username}</code></td><td>Your name</td><td><button class="btn ghost tiny" type="button" data-copy-var="{username}">copy</button></td></tr>
+                  <tr><td><code>{age}</code></td><td>Your age</td><td><button class="btn ghost tiny" type="button" data-copy-var="{age}">copy</button></td></tr>
+                  <tr><td><code>{preferredName}</code></td><td>What the agent should call you</td><td><button class="btn ghost tiny" type="button" data-copy-var="{preferredName}">copy</button></td></tr>
+                  <tr><td><code>{agentName}</code></td><td>The agent's own name</td><td><button class="btn ghost tiny" type="button" data-copy-var="{agentName}">copy</button></td></tr>
+                </tbody>
+              </table>
+              <p class="hint">Example: <code>You are assisting {preferredName}, age {age}.</code></p>
+            </div>
+          </section>
+
+          <section id="sec-providers" class="set-page hidden">
+            <div class="setting-section-head"><div><h3>Providers</h3><p class="hint">Providers live here permanently — no modal workflow. Changes appear immediately. Keys are encrypted at rest.</p></div><button id="prov-add" class="btn primary" type="button">New provider</button></div>
+            <div id="prov-list" class="provider-cards"></div>
+            <div id="prov-form" class="provider-editor">
+              <div class="provider-editor-head"><div><b id="prov-form-title">Add provider</b><span class="hint">Test reachability before saving, then test any model from Settings → Models.</span></div><button id="prov-cancel" class="btn ghost" type="button">Clear / add mode</button></div>
+              <form id="prov-form-inner" novalidate>
+              <input id="prov-edit-id" type="hidden" />
+              <div class="grid2">
+                <label class="field"><span>Provider <em class="hint">(fills URL + protocol)</em></span>
+                  <select id="prov-preset" class="sel"></select>
+                </label>
+                <label class="field"><span>Name <em class="hint">(optional)</em></span><input id="prov-name" type="text" placeholder="OpenRouter, work server, local ollama…" spellcheck="false" /></label>
+              </div>
+              <div class="grid2">
+                <label class="field"><span>Endpoint base URL</span><input id="prov-url" type="text" placeholder="https://openrouter.ai/api/v1" spellcheck="false" /></label>
+                <label class="field"><span>Provider adapter</span><select id="prov-adapter" class="sel"></select><em class="hint">Wire protocol this provider speaks — auto-set by the provider choice above; change it for custom endpoints.</em></label>
+              </div>
+              <label class="field"><span>API key</span><div class="keyrow"><input id="prov-key" type="password" placeholder="leave blank to keep the stored key / for local servers" spellcheck="false" /><button id="prov-show" class="icon-btn" type="button">show</button></div><em id="prov-key-hint" class="hint"></em></label>
+              <div class="provider-editor-actions"><span id="prov-status" class="hint"></span><button id="prov-test" class="btn" type="button">Test connection</button><button id="prov-save" class="btn primary" type="button">Save provider</button></div>
+              </form>
+            </div>
+          </section>
+
+          <section id="sec-models" class="set-page set-page-models hidden">
+            <div class="models-page-head">
+              <div>
+                <span class="section-eyebrow">MODEL CONTROL</span>
+                <h3>Models</h3>
+                <p class="hint">Choose a provider, curate which fetched models are in your local list, enable/disable them globally, and test them. “Probe” opens the per-model test body editor and capability overrides.</p>
+              </div>
+              <div class="models-summary" id="mdl-summary"></div>
+            </div>
+
+            <div class="provider-switcher">
+              <div class="provider-switcher-head">
+                <div><b>Providers</b><span class="hint">Click a provider to inspect its models.</span></div>
+                <select id="mdl-provider-sel" class="sel sr-only" aria-hidden="true" tabindex="-1"></select>
+              </div>
+              <div id="mdl-provider-tabs" class="provider-tabs"></div>
+            </div>
+
+            <div class="models-toolbar">
+              <div class="models-toolbar-title">
+                <span class="section-eyebrow">CATALOG</span>
+                <b id="mdl-provider-title">Models</b>
+              </div>
+              <div class="models-toolbar-actions">
+                <label class="toolbar-search"><span aria-hidden="true">⌕</span><input id="mdl-search" type="text" placeholder="Search models…" spellcheck="false" /></label>
+                <label class="check toolbar-check"><input id="mdl-free-only" type="checkbox" class="sp-switch" /> Free only</label>
+                <button id="mdl-fetch" class="btn" type="button">Fetch models</button>
+                <button id="mdl-test-all" class="btn" type="button">Test all</button>
+                <button id="mdl-delete-selected" class="btn danger" type="button" disabled>Delete selected</button>
+              </div>
+            </div>
+            <div id="mdl-free-warn" class="mm-warn hidden"></div>
+
+            <div class="model-workspace">
+              <section class="model-status-panel">
+                <div class="model-panel-head">
+                  <div><b>Enabled</b><span class="hint">Models that can be selected in Chat / Studio.</span></div>
+                  <span class="count-pill accent" id="mdl-enabled-count">0</span>
+                </div>
+                <div id="mdl-enabled" class="model-list model-list-status"></div>
+              </section>
+              <section class="model-status-panel">
+                <div class="model-panel-head">
+                  <div><b>Disabled</b><span class="hint">Models available from this provider but not enabled.</span></div>
+                  <span class="count-pill" id="mdl-disabled-count">0</span>
+                </div>
+                <div id="mdl-disabled" class="model-list model-list-status"></div>
+              </section>
+            </div>
+
+            <section class="custom-model-inline">
+              <div class="custom-model-inline-copy">
+                <span class="section-eyebrow">CUSTOM MODEL</span>
+                <b>Add a model ID</b>
+                <span class="hint">Custom models use the same Enabled / Disabled controls as provider models.</span>
+              </div>
+              <div class="custom-model-add">
+                <input id="mdl-custom-input" type="text" placeholder="e.g. llama-3.1-8b-instant-fine-tuned" spellcheck="false" />
+                <button id="mdl-custom-add" class="btn" type="button">Add custom model</button>
+              </div>
+            </section>
+          </section>
+
+          <section id="sec-profiles" class="set-page set-page-models hidden">
+            <div class="models-page-head">
+              <div>
+                <span class="section-eyebrow">FALLBACK CHAINS</span>
+                <h3>Model profiles</h3>
+                <p class="hint">Profiles are reusable multi-provider model chains with priority failover. They live on their own page so Models stays focused on per-provider curation.</p>
+              </div>
+              <div class="profile-create-bar"><button id="mdl-profile-new" class="btn primary" type="button">New profile</button></div>
+            </div>
+              <div class="profile-workspace">
+                <aside class="profile-list-panel">
+                  <div class="model-panel-head"><div><b>Profiles</b><span class="hint">Click a profile to open it.</span></div><span class="count-pill" id="mdl-profile-count">0</span></div>
+                  <div id="mdl-profile-list" class="profile-list"></div>
+                </aside>
+
+                <section class="profile-viewer empty" id="mdl-profile-viewer">
+                  <div class="profile-viewer-head">
+                    <div><span class="section-eyebrow">PROFILE VIEWER</span><h4 id="mdl-profile-title">No profile selected</h4><p class="hint" id="mdl-profile-subtitle">Create or select a profile to manage its model chain.</p></div>
+                    <div class="profile-viewer-actions">
+                      <select id="mdl-profile-sel" class="sel sr-only" aria-hidden="true" tabindex="-1"></select>
+                      <button id="mdl-profile-rename" class="btn" type="button">Rename / details</button>
+                      <button id="mdl-profile-save" class="btn" type="button">Save</button>
+                      <button id="mdl-profile-delete" class="btn danger" type="button">Delete</button>
+                    </div>
+                  </div>
+                  <div class="profile-chain-card">
+                    <div class="model-panel-head"><div><b>Models in this profile</b><span class="hint">Pause keeps the model in the chain; global disable still applies everywhere.</span></div><span class="count-pill accent" id="mdl-profile-enabled-count">0</span></div>
+                    <div id="mdl-profile-items" class="profile-items profile-items-viewer"></div>
+                  </div>
+                  <div class="profile-available-card">
+                    <div class="profile-available-toolbar"><div class="model-panel-head"><div><b>Available to add</b><span class="hint">Choose a provider, then add only models already enabled in Model Control.</span></div></div><div id="mdl-profile-provider-tabs" class="provider-tabs profile-provider-tabs"></div></div>
+                    <div id="mdl-profile-available" class="profile-available"></div>
+                  </div>
+                  <div class="profile-custom-add">
+                    <div><b>Add custom model ID</b><span class="hint">Useful for providers that expose a model before it appears in their models endpoint.</span></div>
+                    <div class="profile-add-row"><select id="mdl-profile-provider" class="sel"></select><input id="mdl-profile-model" class="inline-input" type="text" placeholder="model id" spellcheck="false" /><input id="mdl-profile-priority" class="priority-input" type="number" min="1" step="1" value="1" title="Lower numbers run first" /><button id="mdl-profile-add" class="btn" type="button">Add</button></div>
+                  </div>
+                </section>
+              </div>
+          </section>
+
+          <section id="sec-storage" class="set-page hidden">
+            <p class="hint">Where providers+keys, chats, settings and request logs live. Moving copies everything to the new place first, verifies the copy, switches the default, and only then deletes the originals.</p>
+            <div class="field">
+              <span>Current data area</span>
+              <code id="sto-current" class="endpoint-code"></code>
+            </div>
+            <div class="field">
+              <span>Request logs (debug page feed)</span>
+              <code id="sto-logs" class="endpoint-code"></code>
+            </div>
+            <div class="field log-mode-card">
+              <span>Request logging</span>
+              <label class="log-choice"><input id="set-logs-simple" type="radio" name="logs-mode" value="simple" /> Simple logs <em class="hint">metadata only; same kind of information the app currently stores</em></label>
+              <label class="log-choice"><input id="set-logs-detailed" type="radio" name="logs-mode" value="detailed-encrypted" /> Detailed encrypted logs <em class="hint">full request + response payloads, system prompt, streaming result, and tool-related fields; encrypted at rest with a separate machine-bound key derived only in RAM</em></label>
+              <div class="hint">Detailed logs can include sensitive prompts and model output. The plaintext key material is never written to the log files.</div>
+            </div>
+            <div class="field log-mode-card">
+              <span>Log retention <em class="hint">days · blank = keep forever · applied at startup and every 6 h</em></span>
+              <div class="grid2">
+                <label class="field"><span>API &amp; model logs</span><input id="ret-api" type="number" min="1" placeholder="keep forever" /></label>
+                <label class="field"><span>Tool logs</span><input id="ret-tools" type="number" min="1" placeholder="keep forever" /></label>
+              </div>
+              <div class="grid2">
+                <label class="field"><span>Config &amp; storage logs</span><input id="ret-config" type="number" min="1" placeholder="keep forever" /></label>
+                <label class="field"><span>Everything (hard cap)</span><input id="ret-all" type="number" min="1" placeholder="keep forever" /></label>
+              </div>
+            </div>
+            <div class="field">
+              <span>Manifest — fixed map of everything (never moves)</span>
+              <code id="sto-manifest" class="endpoint-code"></code>
+            </div>
+            <div class="field">
+              <span>Move data to…</span>
+              <div class="keyrow">
+                <input id="sto-input" type="text" placeholder="e.g. D:\\LLM\\archx-data  or  /srv/archx" spellcheck="false" />
+                <button id="sto-apply" class="btn" type="button">Move</button>
+              </div>
+              <div class="presets">
+                <button id="sto-default" class="preset" type="button">Default location</button>
+                <button id="sto-local" class="preset" type="button">This project folder</button>
+                <button id="sto-memory" class="preset" type="button">Memory-only (stop persisting)</button>
+              </div>
+            </div>
+          </section>
+
+          <section id="sec-danger" class="set-page hidden">
+            <div class="setting-section-head"><div><h3>Wipe data</h3><p class="hint">Every action asks for confirmation first and writes through the crash-safe queue. The fixed manifest is never touched.</p></div></div>
+            <div class="wipe-grid">
+              <div class="wipe-row"><div class="wipe-copy"><b>Wipe everything</b><span class="hint">Providers, encrypted keys, models, profiles, settings, chats, logs, assets — full reset, then reload.</span></div><button id="set-wipe" class="btn danger" type="button" data-wipe-scope="all">Wipe all</button></div>
+              <div class="wipe-row"><div class="wipe-copy"><b>Wipe chat data, keep providers &amp; personalization</b><span class="hint">Deletes conversations, request logs and memories. Providers, encrypted keys, models, profiles, your name/agent name and all settings stay.</span></div><button class="btn danger" type="button" data-wipe-scope="keep-providers">Wipe</button></div>
+              <div class="wipe-row"><div class="wipe-copy"><b>Wipe chats only</b><span class="hint">Conversations and their messages disappear; keys, settings and generated artifacts remain.</span></div><button class="btn danger" type="button" data-wipe-scope="chats">Wipe</button></div>
+              <div class="wipe-row"><div class="wipe-copy"><b>Wipe image assets</b><span class="hint">Deletes stored image files and their asset records.</span></div><button class="btn danger" type="button" data-wipe-scope="media-images">Wipe</button></div>
+              <div class="wipe-row"><div class="wipe-copy"><b>Wipe video assets</b><span class="hint">Deletes stored video files and their asset records.</span></div><button class="btn danger" type="button" data-wipe-scope="media-videos">Wipe</button></div>
+              <div class="wipe-row"><div class="wipe-copy"><b>Wipe document assets</b><span class="hint">Deletes stored documents/audio and their asset records.</span></div><button class="btn danger" type="button" data-wipe-scope="media-docs">Wipe</button></div>
+              <div class="wipe-row"><div class="wipe-copy"><b>Wipe the library fully</b><span class="hint">Every asset of every kind plus the media folder contents.</span></div><button class="btn danger" type="button" data-wipe-scope="library">Wipe</button></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────── PAGE: DEBUG ─────────── -->
+    <section id="page-debug" class="page hidden">
+      <header class="page-head debug-head"><button class="icon-btn page-side-toggle" aria-label="Toggle sidebar" aria-expanded="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="debug-title-block"><div class="eyebrow">OBSERVABILITY</div><h2>Debug</h2><p class="dim" id="dbg-info">Request activity · inspect API payloads, tools, and local changes without leaving this page.</p></div></header>
+      <div class="dbg-toolbar"><div class="dbg-categories" role="tablist" aria-label="Debug categories"><button class="dbg-category active" data-log-category="all" type="button">All</button><button class="dbg-category" data-log-category="api" type="button">API &amp; models</button><button class="dbg-category" data-log-category="tools" type="button">Tools</button><button class="dbg-category" data-log-category="config" type="button">Config &amp; storage</button></div><div class="dbg-tools"><input id="dbg-filter" type="text" placeholder="Search logs…" spellcheck="false" /><label class="check"><input id="dbg-auto" type="checkbox" class="sp-switch" checked /> auto-refresh</label><button id="dbg-refresh" class="btn" type="button">Refresh</button><button id="dbg-clear" class="btn danger" type="button">Clear logs</button></div></div>
+      <div id="dbg-list" class="dbg-list"></div>
+    </section>
+  </div>
+</div>
+
+<div id="toasts" class="toasts" aria-live="polite"></div>
+
+<div id="model-import-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="model-import-title">
+  <div class="modal-card wide model-import-card">
+    <div class="modal-head"><div><h3 id="model-import-title">Add provider models</h3><p id="model-import-subtitle" class="hint"></p></div><button id="model-import-close" class="icon-btn" type="button" aria-label="Close">×</button></div>
+    <div class="modal-body model-import-body">
+      <div class="model-import-tools"><label class="toolbar-search"><span aria-hidden="true">⌕</span><input id="model-import-search" type="text" placeholder="Filter by text contained in model id…" spellcheck="false" /></label><span id="model-import-count" class="hint"></span><button id="model-import-test" class="btn" type="button" title="Probe every listed model in parallel">Test listed models</button><button id="model-import-select-all" class="btn tiny" type="button">Select all</button><button id="model-import-select-matching" class="btn tiny" type="button">Select matching</button><button id="model-import-none" class="btn tiny" type="button">Clear all</button></div>
+      <label class="check import-only-working"><input id="model-import-only-working" type="checkbox" class="sp-switch" /> Add only working models <em class="hint">testing starts automatically; on add, failed models are skipped while passed + not-yet-tested models are added</em></label>
+      <div id="model-import-progress" class="import-progress hidden">
+        <div class="import-progress-head"><b id="mip-label">Testing models…</b><span id="mip-counts" class="hint"></span><button id="mip-stop" class="btn danger tiny" type="button">Stop</button></div>
+        <div class="import-bar"><i id="mip-bar"></i></div>
+        <div id="mip-current" class="hint"></div>
+      </div>
+      <div id="model-import-list" class="model-import-list"></div>
+      <div class="model-import-manual">
+        <span class="hint">Model not listed? Add its ID manually:</span>
+        <div class="model-import-manual-row">
+          <input id="model-import-manual-input" type="text" placeholder="e.g. my-finetune-v2" spellcheck="false" />
+          <button id="model-import-manual-add" class="btn tiny" type="button">Add ID</button>
+        </div>
+      </div>
+      <div class="confirm-actions"><button id="model-import-cancel" class="btn ghost" type="button">Cancel</button><button id="model-import-add" class="btn primary" type="button">Add checked models</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="confirm-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+  <div class="modal-card confirm-card">
+    <div class="modal-head"><h3 id="confirm-title">Confirm action</h3><button id="confirm-close" class="icon-btn" type="button" aria-label="Close">×</button></div>
+    <div class="modal-body">
+      <p id="confirm-message" class="confirm-message"></p>
+      <div class="confirm-actions"><button id="confirm-cancel" class="btn ghost" type="button">Cancel</button><button id="confirm-accept" class="btn danger" type="button">Continue</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="name-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="name-dialog-title">
+  <div class="modal-card confirm-card">
+    <div class="modal-head"><h3 id="name-dialog-title">Name it</h3><button id="name-dialog-close" class="icon-btn" type="button" aria-label="Close">×</button></div>
+    <div class="modal-body">
+      <p id="name-dialog-sub" class="hint"></p>
+      <label class="field"><span>Name</span><input id="name-dialog-name" type="text" spellcheck="false" /></label>
+      <label class="field" id="name-dialog-desc-wrap"><span>Short description <em class="hint">optional</em></span><input id="name-dialog-desc" type="text" spellcheck="false" /></label>
+      <label class="check" id="name-dialog-enable-wrap"><input id="name-dialog-enable" type="checkbox" /> <span id="name-dialog-enable-label">Activate it now</span></label>
+      <div class="confirm-actions"><button id="name-dialog-cancel" class="btn ghost" type="button">Cancel</button><button id="name-dialog-ok" class="btn primary" type="button">Create</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="provider-delete-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="pd-title">
+  <div class="modal-card confirm-card">
+    <div class="modal-head"><h3 id="pd-title">Delete provider</h3><button id="pd-close" class="icon-btn" type="button" aria-label="Close">×</button></div>
+    <div class="modal-body">
+      <p id="pd-message" class="confirm-message"></p>
+      <p class="hint">What should happen to this provider’s models inside your profiles?</p>
+      <div class="confirm-actions col">
+        <button id="pd-pause" class="btn primary block" type="button">Keep models, pause them</button>
+        <button id="pd-remove" class="btn danger block" type="button">Remove provider and its models</button>
+        <button id="pd-cancel" class="btn ghost block" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="probe-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="probe-title">
+  <div class="modal-card wide">
+    <div class="modal-head"><div><h3 id="probe-title">Model probe</h3><p id="probe-sub" class="hint"></p></div><button id="probe-close" class="icon-btn" type="button" aria-label="Close">×</button></div>
+    <div class="modal-body">
+      <div class="grid2">
+        <div class="field"><span>Detected capabilities <em class="hint">override the guess per capability</em></span><div id="probe-caps" class="cap-checks"></div></div>
+        <div class="field"><span>Default test document</span><pre id="probe-default" class="endpoint-code" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></div>
+      </div>
+      <label class="field"><span>Custom test body (JSON) <em class="hint">merged over the default document — future-proofs providers that change their request shape</em></span><textarea id="probe-body" rows="6" spellcheck="false"></textarea></label>
+      <div class="confirm-actions"><button id="probe-reset" class="btn ghost" type="button">Restore default body</button><button id="probe-run" class="btn" type="button">Test now</button><button id="probe-save" class="btn primary" type="button">Save</button></div>
+      <pre id="probe-result" class="endpoint-code" style="white-space:pre-wrap"></pre>
+    </div>
+  </div>
+</div>
+
+<div id="personalization-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="personalization-title">
+  <div class="modal-card onboarding-card">
+    <div class="modal-head"><div><h3 id="personalization-title">A few details for your agent</h3><p class="hint">This is optional, stays in your local settings, and is included in the system instructions so the agent can use it.</p></div></div>
+    <div class="modal-body">
+      <div class="grid2">
+        <label class="field"><span>Your name <em class="hint">optional</em></span><input id="first-username" type="text" placeholder="e.g. Alex" spellcheck="false" /></label>
+        <label class="field"><span>Age <em class="hint">optional</em></span><input id="first-age" type="text" inputmode="numeric" placeholder="e.g. 18" /></label>
+      </div>
+      <label class="field"><span>Preferred name <em class="hint">what the agent should call you</em></span><input id="first-preferred-name" type="text" placeholder="e.g. Alex" spellcheck="false" /></label>
+      <label class="field"><span>Agent name</span><input id="first-agent-name" type="text" placeholder="Archx Agent" spellcheck="false" /></label>
+      <p class="hint">You can change these later in Settings → General. The effective system instructions are always visible from the System prompt menu.</p>
+      <div class="confirm-actions"><button id="personalization-skip" class="btn ghost" type="button">Skip for now</button><button id="personalization-save" class="btn primary" type="button">Save and continue</button></div>
+    </div>
+  </div>
+</div>
+
+<script src="/vendor/markdown-it.min.js"></script>
+<script src="/vendor/hljs.min.js"></script>
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>

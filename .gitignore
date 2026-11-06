@@ -1,0 +1,13 @@
+# dependencies
+node_modules/
+npm-debug.log*
+
+# local runtime data (chat db, media, keys) — lives outside the repo by default
+.archx-data/
+*.db
+*.db-wal
+*.db-shm
+data/
+
+# rust / tauri build output
+src-tauri/target/
