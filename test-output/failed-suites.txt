@@ -1,6 +1,0 @@
-interaction
-visual-desktop
-visual-laptop
-visual-mobile
-visual (job failure)
-interaction (job failure)

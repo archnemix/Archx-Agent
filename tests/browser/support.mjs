@@ -125,8 +125,11 @@ export async function isHittable(page, selector) {
     if (box.width === 0 || box.height === 0) return { found: true, hittable: false, reason: 'zero-size' };
     const x = box.left + box.width / 2;
     const y = box.top + box.height / 2;
+    // DOMRect does not survive the CDP boundary (its properties live on the
+    // prototype, so JSON serialisation yields {}). Send plain numbers.
+    const rect = { left: box.left, top: box.top, width: box.width, height: box.height };
     if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) {
-      return { found: true, hittable: false, reason: 'offscreen', box };
+      return { found: true, hittable: false, reason: 'offscreen', box: rect };
     }
     const hit = document.elementFromPoint(x, y);
     const contains = hit === el || el.contains(hit) || (hit && hit.contains(el));
@@ -134,7 +137,7 @@ export async function isHittable(page, selector) {
       found: true,
       hittable: !!contains,
       reason: contains ? null : `covered by ${hit ? hit.tagName.toLowerCase() + '.' + String(hit.className).split(' ')[0] : 'nothing'}`,
-      box,
+      box: rect,
     };
   }, selector);
 }
@@ -149,6 +152,9 @@ export async function humanClick(page, selector) {
   // CDP wants integers: a fractional y is rejected outright by newer builds.
   const x = Math.round(box.left + box.width / 2);
   const y = Math.round(box.top + box.height / 2);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    throw new Error(`cannot click ${selector} — element reported no geometry`);
+  }
   await page.mouse.click(x, y);
 }
 
