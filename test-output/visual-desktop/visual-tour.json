@@ -1,0 +1,112 @@
+{
+  "suite": "visual-tour",
+  "startedAt": "2026-11-06T14:57:40.556Z",
+  "durationMs": 13193,
+  "total": 17,
+  "passed": 17,
+  "failed": 0,
+  "checks": [
+    {
+      "id": "desktop-chat",
+      "name": "chat page renders at desktop",
+      "status": "pass",
+      "ms": 534
+    },
+    {
+      "id": "desktop-studio",
+      "name": "studio page renders at desktop",
+      "status": "pass",
+      "ms": 464
+    },
+    {
+      "id": "desktop-memory",
+      "name": "memory page renders at desktop",
+      "status": "pass",
+      "ms": 480
+    },
+    {
+      "id": "desktop-debug",
+      "name": "debug page renders at desktop",
+      "status": "pass",
+      "ms": 401
+    },
+    {
+      "id": "desktop-settings-general",
+      "name": "settings → general at desktop",
+      "status": "pass",
+      "ms": 500
+    },
+    {
+      "id": "desktop-settings-tools",
+      "name": "settings → tools at desktop",
+      "status": "pass",
+      "ms": 404
+    },
+    {
+      "id": "desktop-settings-generation",
+      "name": "settings → generation at desktop",
+      "status": "pass",
+      "ms": 391
+    },
+    {
+      "id": "desktop-settings-providers",
+      "name": "settings → providers at desktop",
+      "status": "pass",
+      "ms": 474
+    },
+    {
+      "id": "desktop-settings-models",
+      "name": "settings → models at desktop",
+      "status": "pass",
+      "ms": 489
+    },
+    {
+      "id": "desktop-settings-profiles",
+      "name": "settings → profiles at desktop",
+      "status": "pass",
+      "ms": 373
+    },
+    {
+      "id": "desktop-settings-storage",
+      "name": "settings → storage at desktop",
+      "status": "pass",
+      "ms": 385
+    },
+    {
+      "id": "desktop-settings-danger",
+      "name": "settings → danger at desktop",
+      "status": "pass",
+      "ms": 386
+    },
+    {
+      "id": "desktop-theme-light",
+      "name": "light theme applies at desktop",
+      "status": "pass",
+      "ms": 1957
+    },
+    {
+      "id": "desktop-theme-soft",
+      "name": "soft theme applies at desktop",
+      "status": "pass",
+      "ms": 1678
+    },
+    {
+      "id": "desktop-theme-dark",
+      "name": "dark theme applies at desktop",
+      "status": "pass",
+      "ms": 1770
+    },
+    {
+      "id": "desktop-console",
+      "name": "no console errors during the whole desktop tour",
+      "status": "pass",
+      "ms": 0
+    },
+    {
+      "id": "desktop-network",
+      "name": "no failed requests during the whole desktop tour",
+      "status": "pass",
+      "ms": 0
+    }
+  ]
+}

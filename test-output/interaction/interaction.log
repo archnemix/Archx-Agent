@@ -1,0 +1,19 @@
+✔ typing a message and sending it streams an answer into the chat (2934.185816ms)
+✔ send button is disabled/blocked while the cursor has no text (946.835894ms)
+✔ stop button interrupts a slow stream and keeps what arrived (906.936821ms)
+✔ markdown answer renders headings, lists, tables and code blocks (2762.679568ms)
+✔ code block can be scrolled and keeps its position during streaming (3059.44528ms)
+✔ theme switch repaints immediately and survives a reload (2635.876524ms)
+✔ chat appears in the sidebar and switching keeps both transcripts (1997.07303ms)
+✔ keyboard: Enter sends, Shift+Enter adds a line (900.892951ms)
+✔ mobile: sidebar drawer opens and closes, composer stays usable (1747.178938ms)
+✔ every visible interactive element is reachable at three viewports (24739.032457ms)
+✔ interaction suite had no failures (0.3123ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 42952.669015
