@@ -12,7 +12,7 @@ For each implemented flow, document:
 
 Product-level behaviors under discussion (not implemented flows): chat and mode transitions; context compaction; archive and selective memory retrieval; tool execution; and optional backup. Their interfaces and functions are not yet defined.
 
-## Home shell flows (pending runner validation)
+## Home shell flows (runner-validated; Windows user review pending)
 
 - Launch: `src/main.rs::main` → `src/app.rs::App::new` (reads optional `ARCHX_SNAPSHOT`) → `src/app.rs::App::view` → `src/home.rs::view` → sidebar + home or about widgets; `src/style.rs` supplies colors/styles. Output: native window. Failure: Iced startup returns an error.
 - Available navigation: Home/About click → `src/app.rs::Message::Navigate` → `App::update` stores `Page` → `App::view` redraws requested page. Future destinations do not emit messages. Test: `src/app.rs` focused navigation unit test; runner logs under `Docs/Test_Results/Unreleased/build/`.

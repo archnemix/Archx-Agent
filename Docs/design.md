@@ -18,7 +18,7 @@
 
 ## Cross-platform review
 
-- First-class targets: Windows, Linux, macOS. Capture the running Iced app at the same window/content dimensions on each OS after every GUI milestone; inspect alignment, clipping, font fallback, contrast, and selected-state rendering. Expect OS/window-chrome differences: target consistent **content and layout**, not an impossible byte-identical whole-screen image.
+- First-class targets: Windows, Linux, macOS. Request the same window/content dimensions on each OS after every GUI milestone; record actual screenshot dimensions and inspect alignment, clipping, font fallback, contrast, and selected-state rendering. The first macOS runner limited the captured window to 1024 × 642 despite the requested 1280 × 800, while Windows/Linux captured 1280 × 800. Compare content at equivalent viewports where possible; do not claim byte-identical pixels or a full-page inspection from a shorter capture.
 - Validate a compact window as well as the default size, and keep long content scrollable. Prefer responsiveness to a hard-coded pixel layout.
 - Keep screenshots and concise test output organized by version, retaining the current and two preceding versions. Provide a downloadable Windows build at each GUI step; the user chose storing the build in the repository. Avoid retaining unlimited historical binaries.
 

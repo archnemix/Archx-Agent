@@ -5,7 +5,7 @@ Iced has been selected as the Rust desktop UI framework; Windows, macOS, and Lin
 
 ## Home shell in progress
 
-- `Cargo.toml`: Rust 2024 application with Iced 0.14 for native UI and `image` 0.25 PNG support only for opt-in cross-OS screenshot capture. This implementation has not yet passed CI.
+- `Cargo.toml`: Rust 2024 application with Iced 0.14 for native UI and `image` 0.25 PNG support only for opt-in cross-OS screenshot capture. The home shell's focused unit test, release builds, and running-app screenshots passed the Linux, Windows, and macOS CI workflow; see `Test_Results/Unreleased/Gui_Validation.md`. This does not establish future agent functionality or pixel-identical UI rendering.
 - `src/main.rs`: initializes the window, Manrope typeface, theme, and application callbacks.
 - `src/app.rs`: holds available home/about navigation and optional `ARCHX_SNAPSHOT` capture state; no model or persistence yet.
 - `src/home.rs`: renders the AI Lab launcher, future destination labels, and About view; unfinished destinations are inert.

@@ -56,3 +56,9 @@
 ## Linux runtime dependency discovered (2026-11-09)
 
 - The corrected Iced shell compiled and its focused unit test passed on Linux. Snapshot launch under Xvfb failed because the runner lacked `libxkbcommon-x11.so`, not because of Rust compilation. Added `libxkbcommon-x11-0` to the Linux workflow setup; must rerun to prove the app launches and captures a screenshot before Windows/macOS jobs can proceed.
+
+## Home shell cross-platform review (2026-11-09)
+
+- The third workflow attempt succeeded: one focused navigation test passed on each of Linux, Windows, and macOS, each release build completed, running-app screenshots were saved, and an 11.5 MB portable Windows executable was committed to the requested repository path.
+- Inspected all three screenshots. Windows/Linux captured 1280 × 800; the macOS runner restricted its display and captured 1024 × 642, with lower content reachable by scrolling rather than visible in that frame. The shared graphite layout, selected gray rail item, and Manrope typography look consistent in the visible area; exact pixel identity is neither expected nor claimed.
+- Recorded exact commands, log paths, screenshot dimensions/checksums, binary checksum, and prior failed-run Git revisions in `Docs/Test_Results/Unreleased/Gui_Validation.md`. Next: user tests the Windows executable and gives UI feedback before starting the chat interface.

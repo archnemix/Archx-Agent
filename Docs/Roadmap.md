@@ -1,7 +1,7 @@
 <!-- Purpose: Tracks ordered, complete implementation milestones derived from the agreed product plan. -->
 # Roadmap
 
-**Status: Step 0 home-screen direction and repository-hosted Windows delivery agreed; Step 1 home shell in progress, not validated. Detailed behavior and stack decisions for later steps remain open.** The user directs what to build next and can request revisions. Suggest missing dependencies or risks before moving a step, but do not silently expand scope. Complete and validate one step before starting the next; a UI placeholder must be visibly unavailable, not presented as a working feature.
+**Status: Step 0 done; Step 1 built and validated on three OS runners, with Windows download ready for user hands-on review. Do not start Step 2 until the user reviews the GUI and any Step 1 issues are fixed.** The user directs what to build next and can request revisions. Suggest missing dependencies or risks before moving a step, but do not silently expand scope. Complete and validate one step before starting the next; a UI placeholder must be visibly unavailable, not presented as a working feature.
 
 ## Shared completion rule
 

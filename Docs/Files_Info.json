@@ -428,6 +428,76 @@
         "Observed Linux build result"
       ],
       "handles": "Linux CI evidence"
+    },
+    "Docs/Test_Results/Unreleased/Gui_Validation.md": {
+      "purpose": "Document three-OS test commands, inputs, outputs, hashes, and visual review",
+      "inputs": [
+        "CI runner results"
+      ],
+      "outputs": [
+        "Validation record"
+      ],
+      "handles": "GUI test evidence"
+    },
+    "Docs/Test_Results/Unreleased/build/windows.log": {
+      "purpose": "Preserve Windows cargo test/build and app screenshot output",
+      "inputs": [
+        "Windows CI job"
+      ],
+      "outputs": [
+        "Observed Windows log"
+      ],
+      "handles": "Windows test evidence"
+    },
+    "Docs/Test_Results/Unreleased/build/macos.log": {
+      "purpose": "Preserve macOS cargo test/build and app screenshot output",
+      "inputs": [
+        "macOS CI job"
+      ],
+      "outputs": [
+        "Observed macOS log"
+      ],
+      "handles": "macOS test evidence"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux.png": {
+      "purpose": "Show Linux home screen from running Iced app",
+      "inputs": [
+        "Linux snapshot mode"
+      ],
+      "outputs": [
+        "Linux PNG"
+      ],
+      "handles": "Visual review"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows.png": {
+      "purpose": "Show Windows home screen from running Iced app",
+      "inputs": [
+        "Windows snapshot mode"
+      ],
+      "outputs": [
+        "Windows PNG"
+      ],
+      "handles": "Visual review"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos.png": {
+      "purpose": "Show macOS home screen from running Iced app",
+      "inputs": [
+        "macOS snapshot mode"
+      ],
+      "outputs": [
+        "macOS PNG"
+      ],
+      "handles": "Visual review"
+    },
+    "deliverables/Unreleased/windows/archx-ai-lab.exe": {
+      "purpose": "Provide a portable unsigned Windows home-shell build",
+      "inputs": [
+        "Windows release build"
+      ],
+      "outputs": [
+        "Windows executable"
+      ],
+      "handles": "User testing"
     }
   }
 }

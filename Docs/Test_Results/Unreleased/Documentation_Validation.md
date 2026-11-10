@@ -198,3 +198,23 @@ PASS: workflow dependency and work log diff check
 ```
 
 The documentation check exited successfully; GUI screenshot validation still required a rerun.
+
+## 2026-11-09: successful three-OS GUI review documentation
+
+Input: all 49 repository files, including CI-generated logs, screenshots, Windows executable, and the newly written `Docs/Test_Results/Unreleased/Gui_Validation.md`. This is documentation validation, not a substitute for the runner results.
+
+Commands (repository root):
+
+```sh
+python -c 'import json,pathlib; r=pathlib.Path("."); files={p.as_posix() for p in r.rglob("*") if p.is_file() and ".git" not in p.parts}; index=json.loads((r/"Docs/Files_Info.json").read_text())["files"]; assert files==set(index),(sorted(files-set(index)),sorted(set(index)-files)); assert all(p.read_text().startswith("<!-- Purpose:") for p in r.rglob("*.md") if ".git" not in p.parts); print(f"PASS: {len(files)} files inventoried; Markdown purpose headers valid")'
+git diff --check
+```
+
+Observed output:
+
+```text
+PASS: 49 files inventoried; Markdown purpose headers valid
+PASS: git diff --check
+```
+
+Both commands exited successfully. The three-OS test/build/screenshot commands and outcomes are recorded separately in `Gui_Validation.md` and `build/*.log`.
