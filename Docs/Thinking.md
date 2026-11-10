@@ -52,3 +52,7 @@
 ## First Linux runner feedback (2026-11-09)
 
 - CI installed the toolchain and produced a lockfile, then failed at compilation: Iced button messages require `Clone`; the theme callback needed an explicit `&App` argument type. Fixed those two source issues before re-running. Windows/macOS were skipped by the workflow because Linux did not pass; no build is yet downloadable.
+
+## Linux runtime dependency discovered (2026-11-09)
+
+- The corrected Iced shell compiled and its focused unit test passed on Linux. Snapshot launch under Xvfb failed because the runner lacked `libxkbcommon-x11.so`, not because of Rust compilation. Added `libxkbcommon-x11-0` to the Linux workflow setup; must rerun to prove the app launches and captures a screenshot before Windows/macOS jobs can proceed.

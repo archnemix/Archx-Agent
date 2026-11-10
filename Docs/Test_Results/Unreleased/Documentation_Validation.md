@@ -180,3 +180,21 @@ PASS: git diff --check
 ```
 
 Both documentation checks exited successfully. CI compilation was **failed**; its exact compiler output is retained in `build/linux.log` from the first run, not disguised as a passing test.
+
+## 2026-11-09: Linux GUI runtime dependency correction
+
+Input: `.github/workflows/gui.yml` and `Docs/Thinking.md` after Linux CI compiled/tested successfully but screenshot launch failed for missing `libxkbcommon-x11.so`. Full runtime output is retained in `build/linux.log` for that run.
+
+Command (repository root):
+
+```sh
+git diff --check && echo 'PASS: workflow dependency and work log diff check'
+```
+
+Observed output:
+
+```text
+PASS: workflow dependency and work log diff check
+```
+
+The documentation check exited successfully; GUI screenshot validation still required a rerun.

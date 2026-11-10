@@ -29,7 +29,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          sudo apt-get update -qq && sudo apt-get install -y -qq libxkbcommon-dev libwayland-dev libasound2-dev xvfb > /dev/null
+          sudo apt-get update -qq && sudo apt-get install -y -qq libxkbcommon-dev libxkbcommon-x11-0 libwayland-dev libasound2-dev xvfb > /dev/null
           mkdir -p Docs/Test_Results/Unreleased/{build,visual}
           cargo generate-lockfile > Docs/Test_Results/Unreleased/build/linux.log 2>&1
           (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
