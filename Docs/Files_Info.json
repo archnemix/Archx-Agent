@@ -1,0 +1,413 @@
+{
+  "_description": "File inventory with responsibilities, inputs, and outputs; update when files change.",
+  "files": {
+    "README.md": {
+      "purpose": "Introduce the repository and link its documentation.",
+      "inputs": [
+        "Project status",
+        "Documentation links"
+      ],
+      "outputs": [
+        "Contributor entry point"
+      ],
+      "handles": "Repository orientation"
+    },
+    "Docs/README.md": {
+      "purpose": "Guide readers through the documentation directory.",
+      "inputs": [
+        "Documentation layout"
+      ],
+      "outputs": [
+        "Documentation index"
+      ],
+      "handles": "Documentation navigation"
+    },
+    "Docs/Rules.md": {
+      "purpose": "Define working, structure, code, documentation, and testing rules.",
+      "inputs": [
+        "User working instructions"
+      ],
+      "outputs": [
+        "Rules to follow before changes"
+      ],
+      "handles": "Project conventions"
+    },
+    "Docs/Plan/README.md": {
+      "purpose": "Explain the product-plan directory.",
+      "inputs": [
+        "Plan directory contents"
+      ],
+      "outputs": [
+        "Plan navigation"
+      ],
+      "handles": "Plan directory orientation"
+    },
+    "Docs/Plan/Architecture.md": {
+      "purpose": "Record agreed product scope and architectural decisions.",
+      "inputs": [
+        "Product discussion and decisions"
+      ],
+      "outputs": [
+        "Approved scope and architecture"
+      ],
+      "handles": "Product planning"
+    },
+    "Docs/Roadmap.md": {
+      "purpose": "Order complete and testable implementation milestones.",
+      "inputs": [
+        "Agreed plan",
+        "Approved scope changes"
+      ],
+      "outputs": [
+        "Implementation sequence and status"
+      ],
+      "handles": "Milestone planning"
+    },
+    "Docs/Thinking.md": {
+      "purpose": "Record work-round decisions and problem resolutions.",
+      "inputs": [
+        "Work completed",
+        "Problems and decisions"
+      ],
+      "outputs": [
+        "Concise decision and work log"
+      ],
+      "handles": "Decision history"
+    },
+    "Docs/Change.md": {
+      "purpose": "Track new user-requested scope changes and roadmap effects.",
+      "inputs": [
+        "User requests",
+        "Scope decisions"
+      ],
+      "outputs": [
+        "Change requests and roadmap implications"
+      ],
+      "handles": "Scope-change tracking"
+    },
+    "Docs/Changelog.md": {
+      "purpose": "Summarize changes in actual releases.",
+      "inputs": [
+        "Released features and modifications"
+      ],
+      "outputs": [
+        "Version-by-version release history"
+      ],
+      "handles": "Release notes"
+    },
+    "Docs/Technical.md": {
+      "purpose": "Explain the stack, component roles, and interfaces.",
+      "inputs": [
+        "Implemented components",
+        "File inventory"
+      ],
+      "outputs": [
+        "Technical overview"
+      ],
+      "handles": "Technical reference"
+    },
+    "Docs/Files_Info.json": {
+      "purpose": "Index files by purpose, inputs, outputs, and responsibility.",
+      "inputs": [
+        "Repository file changes"
+      ],
+      "outputs": [
+        "Machine-readable file inventory"
+      ],
+      "handles": "File navigation"
+    },
+    "Docs/Logic.md": {
+      "purpose": "Trace implemented user actions through files and functions.",
+      "inputs": [
+        "Implemented call paths",
+        "Permission and state transitions",
+        "Integration test locations"
+      ],
+      "outputs": [
+        "Debuggable call-flow map"
+      ],
+      "handles": "Program flow navigation"
+    },
+    "Docs/Workaround.md": {
+      "purpose": "Document access and tooling workarounds.",
+      "inputs": [
+        "Concrete tooling constraints and solutions"
+      ],
+      "outputs": [
+        "Reproducible workaround instructions"
+      ],
+      "handles": "Environment workarounds"
+    },
+    "Docs/Secrets.md": {
+      "purpose": "List GitHub secret names and purposes without values.",
+      "inputs": [
+        "User-configured secret names and uses"
+      ],
+      "outputs": [
+        "Non-sensitive secret catalog"
+      ],
+      "handles": "Secret-name documentation"
+    },
+    "Docs/Research.json": {
+      "purpose": "Index researched topics with summaries and exact URLs.",
+      "inputs": [
+        "Verified online sources"
+      ],
+      "outputs": [
+        "Machine-readable research index"
+      ],
+      "handles": "Research reuse"
+    },
+    "Docs/Test_Results/README.md": {
+      "purpose": "Explain the versioned test-evidence directory.",
+      "inputs": [
+        "Test retention policy"
+      ],
+      "outputs": [
+        "Test-evidence navigation"
+      ],
+      "handles": "Test-results organization"
+    },
+    "Docs/Test_Results/Unreleased/README.md": {
+      "purpose": "Explain where pre-release test evidence is kept.",
+      "inputs": [
+        "Pre-release test records"
+      ],
+      "outputs": [
+        "Pre-release results navigation"
+      ],
+      "handles": "Pre-release test organization"
+    },
+    "Docs/Test_Results/Unreleased/Documentation_Validation.md": {
+      "purpose": "Record documentation validation inputs, commands, and outputs.",
+      "inputs": [
+        "Documentation files",
+        "Validation command"
+      ],
+      "outputs": [
+        "Observed validation result"
+      ],
+      "handles": "Documentation validation evidence"
+    },
+    "internels/README.md": {
+      "purpose": "Explain the internal-helper directory and optional skills.",
+      "inputs": [
+        "Internal-helper layout"
+      ],
+      "outputs": [
+        "Internal-helper orientation"
+      ],
+      "handles": "Internal support navigation"
+    },
+    ".gitignore": {
+      "purpose": "Exclude local Rust build cache",
+      "inputs": [
+        "Local Cargo builds"
+      ],
+      "outputs": [
+        "Tracked source only"
+      ],
+      "handles": "Build hygiene"
+    },
+    ".github/README.md": {
+      "purpose": "Explain automation directory",
+      "inputs": [
+        "Workflow layout"
+      ],
+      "outputs": [
+        "Automation navigation"
+      ],
+      "handles": "CI organization"
+    },
+    ".github/workflows/README.md": {
+      "purpose": "Explain workflow responsibilities",
+      "inputs": [
+        "Workflow configuration"
+      ],
+      "outputs": [
+        "Workflow navigation"
+      ],
+      "handles": "CI organization"
+    },
+    ".github/workflows/gui.yml": {
+      "purpose": "Run three-OS build, tests, screenshots and Windows delivery",
+      "inputs": [
+        "Source changes and intentional trigger"
+      ],
+      "outputs": [
+        "Build logs, screenshots, Windows executable"
+      ],
+      "handles": "Cross-platform CI"
+    },
+    "Cargo.toml": {
+      "purpose": "Declare Rust GUI application dependencies",
+      "inputs": [
+        "Selected framework and screenshot libraries"
+      ],
+      "outputs": [
+        "Cargo dependency graph"
+      ],
+      "handles": "Rust build configuration"
+    },
+    "Docs/design.md": {
+      "purpose": "Record AI Lab visual system and cross-OS review criteria",
+      "inputs": [
+        "User visual direction"
+      ],
+      "outputs": [
+        "Design specification"
+      ],
+      "handles": "UI visual consistency"
+    },
+    "assets/README.md": {
+      "purpose": "Explain bundled resources",
+      "inputs": [
+        "Asset layout"
+      ],
+      "outputs": [
+        "Asset navigation"
+      ],
+      "handles": "Assets"
+    },
+    "assets/fonts/README.md": {
+      "purpose": "Document bundled font and license",
+      "inputs": [
+        "Font provenance"
+      ],
+      "outputs": [
+        "Font usage note"
+      ],
+      "handles": "Typography assets"
+    },
+    "assets/fonts/Manrope.ttf": {
+      "purpose": "Bundle cross-platform Manrope typeface",
+      "inputs": [
+        "Font bytes from Google Fonts"
+      ],
+      "outputs": [
+        "Glyph outlines rendered by Iced"
+      ],
+      "handles": "Typography asset"
+    },
+    "assets/fonts/OFL.txt": {
+      "purpose": "Preserve original font license",
+      "inputs": [
+        "Google Fonts OFL license"
+      ],
+      "outputs": [
+        "License terms"
+      ],
+      "handles": "Font licensing"
+    },
+    "src/README.md": {
+      "purpose": "Explain Rust UI source directory",
+      "inputs": [
+        "Module layout"
+      ],
+      "outputs": [
+        "Source navigation"
+      ],
+      "handles": "Rust source organization"
+    },
+    "src/main.rs": {
+      "purpose": "Start Iced with bundled font",
+      "inputs": [
+        "App constructor and UI theme"
+      ],
+      "outputs": [
+        "Desktop process"
+      ],
+      "handles": "Application entry point"
+    },
+    "src/app.rs": {
+      "purpose": "Handle navigation and optional screenshot capture",
+      "inputs": [
+        "User navigation and snapshot trigger"
+      ],
+      "outputs": [
+        "UI state and screenshots"
+      ],
+      "handles": "Shell state"
+    },
+    "src/home.rs": {
+      "purpose": "Render launcher and about views",
+      "inputs": [
+        "Current page"
+      ],
+      "outputs": [
+        "Desktop widgets"
+      ],
+      "handles": "Home presentation"
+    },
+    "src/style.rs": {
+      "purpose": "Provide graphite palette and widget styles",
+      "inputs": [
+        "Selected and hover state"
+      ],
+      "outputs": [
+        "Iced style values"
+      ],
+      "handles": "Visual styling"
+    },
+    "internels/ci-trigger.txt": {
+      "purpose": "Allow deliberate tracked CI trigger",
+      "inputs": [
+        "Intentional edit"
+      ],
+      "outputs": [
+        "GUI workflow run"
+      ],
+      "handles": "Manual CI workaround"
+    },
+    "Docs/Test_Results/Unreleased/build/README.md": {
+      "purpose": "Explain per-OS build logs",
+      "inputs": [
+        "Build job commands and output"
+      ],
+      "outputs": [
+        "Test evidence navigation"
+      ],
+      "handles": "CI results"
+    },
+    "Docs/Test_Results/Unreleased/visual/README.md": {
+      "purpose": "Explain OS screenshots",
+      "inputs": [
+        "Running app captures"
+      ],
+      "outputs": [
+        "Visual review guide"
+      ],
+      "handles": "UI evidence"
+    },
+    "deliverables/README.md": {
+      "purpose": "Explain downloadable builds and retention",
+      "inputs": [
+        "GUI milestones"
+      ],
+      "outputs": [
+        "Build navigation"
+      ],
+      "handles": "Downloads"
+    },
+    "deliverables/Unreleased/README.md": {
+      "purpose": "Explain pre-release downloads",
+      "inputs": [
+        "CI output"
+      ],
+      "outputs": [
+        "Pre-release build navigation"
+      ],
+      "handles": "Downloads"
+    },
+    "deliverables/Unreleased/windows/README.md": {
+      "purpose": "Explain portable Windows executable",
+      "inputs": [
+        "Windows CI build"
+      ],
+      "outputs": [
+        "User download note"
+      ],
+      "handles": "Windows delivery"
+    }
+  }
+}

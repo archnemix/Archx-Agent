@@ -1,0 +1,2 @@
+# Purpose: Allows an intentional tracked edit to trigger cross-platform GUI validation.
+initial GUI shell

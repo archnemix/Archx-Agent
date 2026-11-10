@@ -1,0 +1,99 @@
+# Purpose: Builds, tests, screenshots, and records the native GUI on Linux, Windows, and macOS.
+name: Desktop GUI review
+
+on:
+  push:
+    branches: [arena/d45bc2a4-archx-agent]
+    paths:
+      - 'src/**'
+      - 'assets/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/gui.yml'
+      - 'internels/ci-trigger.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: arena/d45bc2a4-archx-agent
+          persist-credentials: true
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build, test, and screenshot
+        shell: bash
+        run: |
+          set -o pipefail
+          sudo apt-get update -qq && sudo apt-get install -y -qq libxkbcommon-dev libwayland-dev libasound2-dev xvfb > /dev/null
+          mkdir -p Docs/Test_Results/Unreleased/{build,visual}
+          cargo generate-lockfile > Docs/Test_Results/Unreleased/build/linux.log 2>&1
+          (cargo test --locked && cargo build --release --locked) >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
+          xvfb-run -a env ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/linux.png
+      - name: Record results in repository
+        if: always()
+        shell: bash
+        run: |
+          git config user.name 'archx-ci[bot]'
+          git config user.email 'archx-ci[bot]@users.noreply.github.com'
+          git add -A Docs/Test_Results/Unreleased/build/ Docs/Test_Results/Unreleased/visual/
+          if test -f Cargo.lock; then git add Cargo.lock; fi
+          git diff --cached --quiet || (git commit -m 'Record Linux GUI validation' && git push origin HEAD:arena/d45bc2a4-archx-agent)
+
+  windows:
+    needs: linux
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: arena/d45bc2a4-archx-agent
+          persist-credentials: true
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build, test, and screenshot
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p Docs/Test_Results/Unreleased/{build,visual} deliverables/Unreleased/windows
+          (cargo test --locked && cargo build --release --locked) > Docs/Test_Results/Unreleased/build/windows.log 2>&1
+          ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/build/windows.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/windows.png
+          cp target/release/archx-ai-lab.exe deliverables/Unreleased/windows/archx-ai-lab.exe
+      - name: Record results and Windows build in repository
+        if: always()
+        shell: bash
+        run: |
+          git config user.name 'archx-ci[bot]'
+          git config user.email 'archx-ci[bot]@users.noreply.github.com'
+          git add -A Docs/Test_Results/Unreleased/build/ Docs/Test_Results/Unreleased/visual/ deliverables/Unreleased/windows/
+          git diff --cached --quiet || (git commit -m 'Record Windows GUI validation and build' && git push origin HEAD:arena/d45bc2a4-archx-agent)
+
+  macos:
+    needs: windows
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: arena/d45bc2a4-archx-agent
+          persist-credentials: true
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build, test, and screenshot
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p Docs/Test_Results/Unreleased/{build,visual}
+          (cargo test --locked && cargo build --release --locked) > Docs/Test_Results/Unreleased/build/macos.log 2>&1
+          ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/macos.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/macos.png
+      - name: Record results in repository
+        if: always()
+        shell: bash
+        run: |
+          git config user.name 'archx-ci[bot]'
+          git config user.email 'archx-ci[bot]@users.noreply.github.com'
+          git add -A Docs/Test_Results/Unreleased/build/ Docs/Test_Results/Unreleased/visual/
+          git diff --cached --quiet || (git commit -m 'Record macOS GUI validation' && git push origin HEAD:arena/d45bc2a4-archx-agent)

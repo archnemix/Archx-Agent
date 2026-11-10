@@ -1,0 +1,162 @@
+<!-- Purpose: Records the exact documentation validation command, inputs, and observed output. -->
+# Documentation validation
+
+## 2026-11-09: documentation setup
+
+Input: the 18 repository files present at validation, including `Docs/Files_Info.json`, `Docs/Research.json`, and all Markdown files. No application code or runtime test input exists yet.
+
+Command (run from repository root):
+
+```sh
+python -c 'import json,pathlib; root=pathlib.Path("."); files={p.as_posix() for p in root.rglob("*") if p.is_file() and ".git" not in p.parts}; manifest=json.loads((root/"Docs/Files_Info.json").read_text()); research=json.loads((root/"Docs/Research.json").read_text()); assert set(manifest["files"])==files,(sorted(files-set(manifest["files"])),sorted(set(manifest["files"])-files)); assert all(p.read_text().startswith("<!-- Purpose:") for p in root.rglob("*.md") if ".git" not in p.parts); assert all((d/"README.md").is_file() for d in [root,*root.rglob("*")] if d.is_dir() and ".git" not in d.parts); assert list(manifest)[0]==list(research)[0]=="_description"; print(f"PASS: {len(files)} inventoried files; Markdown purpose comments, folder READMEs, and JSON validated")'
+git diff --check
+```
+
+Observed output:
+
+```text
+PASS: 18 inventoried files; Markdown purpose comments, folder READMEs, and JSON validated
+PASS: git diff --check
+```
+
+Both commands exited successfully. Documentation-only validation ran locally; no application tests or cross-platform runner results are claimed.
+
+## 2026-11-09: interface discussion documentation update
+
+Input: `Docs/Plan/Architecture.md` and `Docs/Thinking.md` after documenting the provisional interface direction.
+
+Commands (run from repository root):
+
+```sh
+python -c 'from pathlib import Path; files=[Path("Docs/Plan/Architecture.md"),Path("Docs/Thinking.md")]; assert all(p.read_text().startswith("<!-- Purpose:") for p in files); print("PASS: 2 updated Markdown files have purpose headers")'
+git diff --check
+```
+
+Observed output:
+
+```text
+PASS: 2 updated Markdown files have purpose headers
+PASS: git diff --check
+```
+
+Both commands exited successfully locally; no application or cross-platform tests were run.
+
+## 2026-11-09: Iced framework decision documentation update
+
+Input: `Docs/Plan/Architecture.md`, `Docs/Technical.md`, `Docs/Thinking.md`, and `Docs/Research.json` after recording the framework selection and source checks.
+
+Commands (run from repository root):
+
+```sh
+python -c 'import json; from pathlib import Path; paths=[Path("Docs/Plan/Architecture.md"),Path("Docs/Technical.md"),Path("Docs/Thinking.md")]; assert all(p.read_text().startswith("<!-- Purpose:") for p in paths); topics=json.loads(Path("Docs/Research.json").read_text())["topics"]; assert len(topics)==4 and all(t["summary"] and t["url"].startswith("https://") for t in topics.values()); print("PASS: 3 Markdown headers and 4 research entries validated")'
+git diff --check
+```
+
+Observed output:
+
+```text
+PASS: 3 Markdown headers and 4 research entries validated
+PASS: git diff --check
+```
+
+Both commands exited successfully locally; no application or cross-platform tests were run.
+
+## 2026-11-09: cross-platform UI concern documentation update
+
+Input: `Docs/Plan/Architecture.md` and `Docs/Thinking.md` after clarifying the webview-rendering concern.
+
+Commands (run from repository root):
+
+```sh
+python -c 'from pathlib import Path; files=[Path("Docs/Plan/Architecture.md"),Path("Docs/Thinking.md")]; assert all(p.read_text().startswith("<!-- Purpose:") for p in files); print("PASS: 2 updated Markdown purpose headers")'
+git diff --check
+```
+
+Observed output:
+
+```text
+PASS: 2 updated Markdown purpose headers
+PASS: git diff --check
+```
+
+Both commands exited successfully locally; no application or cross-platform tests were run.
+
+## 2026-11-09: superapp scope and rules documentation update
+
+Input: all 19 repository files, including the new `Docs/Logic.md`, the revised rules, architecture, roadmap, technical overview, file inventory, and work log. Documentation only.
+
+Commands (run from repository root):
+
+```sh
+python -c 'import json,pathlib; r=pathlib.Path("."); files={p.as_posix() for p in r.rglob("*") if p.is_file() and ".git" not in p.parts}; inventory=json.loads((r/"Docs/Files_Info.json").read_text()); json.loads((r/"Docs/Research.json").read_text()); assert files==set(inventory["files"]),(files-set(inventory["files"]),set(inventory["files"])-files); assert all(p.read_text().startswith("<!-- Purpose:") for p in r.rglob("*.md") if ".git" not in p.parts); assert all((d/"README.md").is_file() for d in [r,*r.rglob("*")] if d.is_dir() and ".git" not in d.parts); print(f"PASS: {len(files)} files inventoried; JSON, Markdown headers, folder READMEs valid")'
+git diff --check
+```
+
+Observed output:
+
+```text
+PASS: 19 files inventoried; JSON, Markdown headers, folder READMEs valid
+PASS: git diff --check
+```
+
+Both commands exited successfully locally. No application tests or Windows/macOS/Linux runner tests were run: there is still no application code.
+
+## 2026-11-09: sequenced roadmap and general task agent
+
+Input: all 19 repository files; changed `Docs/Roadmap.md`, `Docs/Plan/Architecture.md`, `Docs/Change.md`, and `Docs/Thinking.md`. Documentation only.
+
+Commands (run from repository root):
+
+```sh
+python -c 'import json,pathlib; r=pathlib.Path("."); files={p.as_posix() for p in r.rglob("*") if p.is_file() and ".git" not in p.parts}; inventory=json.loads((r/"Docs/Files_Info.json").read_text()); assert files==set(inventory["files"]); paths=[r/p for p in ("Docs/Roadmap.md","Docs/Plan/Architecture.md","Docs/Change.md","Docs/Thinking.md")]; assert all(p.read_text().startswith("<!-- Purpose:") for p in paths); print(f"PASS: {len(files)} files inventoried; 4 updated Markdown purpose headers valid")'
+git diff --check
+```
+
+Observed output:
+
+```text
+PASS: 19 files inventoried; 4 updated Markdown purpose headers valid
+PASS: git diff --check
+```
+
+Both commands exited successfully locally. No GUI or cross-platform tests exist yet.
+
+## 2026-11-09: staged roadmap decision gates
+
+Input: `Docs/Roadmap.md` after narrowing Step 0 to the home-screen slice and moving model/tool decisions to the steps that need them.
+
+Commands (run from repository root):
+
+```sh
+python -c 'from pathlib import Path; p=Path("Docs/Roadmap.md"); t=p.read_text(); assert t.startswith("<!-- Purpose:") and "Do **not** block the home screen" in t and "First agree on initial model source" in t; print("PASS: roadmap header and staged decision gates valid")'
+git diff --check
+```
+
+Observed output:
+
+```text
+PASS: roadmap header and staged decision gates valid
+PASS: git diff --check
+```
+
+Both commands exited successfully locally; no application tests were run.
+
+## 2026-11-09: AI Lab design and initial GUI source validation
+
+Input: all 40 repository source/documentation/assets files, excluding `.git`. This validates inventory coverage and documentation structure, **not** compilation or GUI behavior. `assets/fonts/Manrope.ttf` is binary; `assets/fonts/OFL.txt` is an unmodified license.
+
+Commands (run from repository root):
+
+```sh
+python -c 'import json,pathlib; r=pathlib.Path("."); files={p.as_posix() for p in r.rglob("*") if p.is_file() and ".git" not in p.parts}; index=json.loads((r/"Docs/Files_Info.json").read_text())["files"]; json.loads((r/"Docs/Research.json").read_text()); assert files==set(index),(files-set(index),set(index)-files); assert all(p.read_text().startswith("<!-- Purpose:") for p in r.rglob("*.md") if ".git" not in p.parts); assert all((d/"README.md").is_file() for d in [r,*r.rglob("*")] if d.is_dir() and ".git" not in d.parts); print(f"PASS: {len(files)} inventoried files, valid JSON, Markdown headers, folder READMEs")'
+git diff --check
+```
+
+Observed output:
+
+```text
+PASS: 40 inventoried files, valid JSON, Markdown headers, folder READMEs
+PASS: git diff --check
+```
+
+Both commands exited successfully locally. No Rust tests or cross-platform build results exist yet. Attempting to install PyYAML in the system-managed Python environment failed with an externally-managed-environment error; no workflow parser result is claimed.

@@ -1,0 +1,2 @@
+# Purpose: Keeps local Rust build outputs out of version control; CI deliverables are kept separately.
+/target/

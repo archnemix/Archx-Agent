@@ -1,0 +1,45 @@
+{
+  "_description": "Source-backed research index keyed by topic; each entry includes a summary and exact source URL.",
+  "topics": {
+    "iced": {
+      "summary": "The official Iced organization describes Iced as a cross-platform Rust GUI library inspired by Elm. This supports considering it for a desktop UI; no Archx performance benchmark has been run.",
+      "url": "https://github.com/iced-rs"
+    },
+    "cosmic_iced": {
+      "summary": "System76's libcosmic describes itself as a platform toolkit based on Iced for COSMIC applets and applications.",
+      "url": "https://github.com/pop-os/libcosmic"
+    },
+    "tauri_webviews": {
+      "summary": "Tauri's official reference says it uses WebView2 on Windows and WebKit on macOS and Linux; the engine differs by platform. That alone does not establish that Tauri necessarily breaks cross-platform.",
+      "url": "https://v2.tauri.app/reference/webview-versions/"
+    },
+    "egui_repaint": {
+      "summary": "egui's official README describes it as immediate-mode but says it repaints on interaction or animation, not continuously while idle. Performance differences need measurement for the intended workload.",
+      "url": "https://github.com/emilk/egui"
+    },
+    "iced_0_14_api": {
+      "summary": "Official iced 0.14.0 release and tagged examples establish application(new/update/view), .font/.default_font, widget styling closures, subscriptions, and window screenshot tasks. Planned use: src/main.rs app startup; src/app.rs state, navigation and snapshot; src/home.rs layout; src/style.rs widget styles. No other UI framework.",
+      "url": "https://github.com/iced-rs/iced/tree/0.14.0/examples"
+    },
+    "iced_screenshot_api": {
+      "summary": "Tagged screenshot example uses window::latest().and_then(window::screenshot), screenshot rgba buffer, and image::save_buffer to PNG. Planned use: optional screenshot path for OS review only.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/examples/screenshot/src/main.rs"
+    },
+    "image_0_25": {
+      "summary": "Iced 0.14 Cargo manifest uses image 0.25; use its PNG encoding only for opt-in screenshots, not for homepage rendering.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/Cargo.toml"
+    },
+    "manrope_font": {
+      "summary": "Manrope font and unmodified SIL OFL license from the Google Fonts repository; bundled for consistent desktop typography.",
+      "url": "https://github.com/google/fonts/tree/main/ofl/manrope"
+    },
+    "iced_styling": {
+      "summary": "Tagged styling example demonstrates container, button, layout and themes; use simple solid styles instead of expensive blur.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/examples/styling/src/main.rs"
+    },
+    "github_actions_workflows": {
+      "summary": "GitHub Actions workflow syntax and OS runner labels for cross-platform build/test automation; only build outputs required for review should be checked in under a dedicated location.",
+      "url": "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax"
+    }
+  }
+}

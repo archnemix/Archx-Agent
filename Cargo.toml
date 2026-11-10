@@ -1,0 +1,10 @@
+# Purpose: Declares the native Archx AI Lab desktop application and its GUI/screenshot dependencies.
+[package]
+name = "archx-ai-lab"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+iced = { version = "0.14.0", features = ["tokio"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
