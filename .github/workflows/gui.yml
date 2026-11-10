@@ -32,7 +32,7 @@ jobs:
           sudo apt-get update -qq && sudo apt-get install -y -qq libxkbcommon-dev libwayland-dev libasound2-dev xvfb > /dev/null
           mkdir -p Docs/Test_Results/Unreleased/{build,visual}
           cargo generate-lockfile > Docs/Test_Results/Unreleased/build/linux.log 2>&1
-          (cargo test --locked && cargo build --release --locked) >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
+          (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
           xvfb-run -a env ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/linux.png
       - name: Record results in repository
@@ -59,7 +59,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p Docs/Test_Results/Unreleased/{build,visual} deliverables/Unreleased/windows
-          (cargo test --locked && cargo build --release --locked) > Docs/Test_Results/Unreleased/build/windows.log 2>&1
+          (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) > Docs/Test_Results/Unreleased/build/windows.log 2>&1
           ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/build/windows.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/windows.png
           cp target/release/archx-ai-lab.exe deliverables/Unreleased/windows/archx-ai-lab.exe
@@ -86,7 +86,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p Docs/Test_Results/Unreleased/{build,visual}
-          (cargo test --locked && cargo build --release --locked) > Docs/Test_Results/Unreleased/build/macos.log 2>&1
+          (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) > Docs/Test_Results/Unreleased/build/macos.log 2>&1
           ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/macos.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/macos.png
       - name: Record results in repository

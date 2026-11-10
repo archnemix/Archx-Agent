@@ -408,6 +408,26 @@
         "User download note"
       ],
       "handles": "Windows delivery"
+    },
+    "Cargo.lock": {
+      "purpose": "Pin exact resolved Rust dependencies for reproducible three-OS builds.",
+      "inputs": [
+        "Cargo dependency graph"
+      ],
+      "outputs": [
+        "Locked dependency versions"
+      ],
+      "handles": "Build reproducibility"
+    },
+    "Docs/Test_Results/Unreleased/build/linux.log": {
+      "purpose": "Record Linux CI compilation/test output, including current failure diagnostics.",
+      "inputs": [
+        "Linux cargo test and release build"
+      ],
+      "outputs": [
+        "Observed Linux build result"
+      ],
+      "handles": "Linux CI evidence"
     }
   }
 }

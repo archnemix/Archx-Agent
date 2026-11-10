@@ -14,7 +14,7 @@ pub enum Page {
     About,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Message {
     Navigate(Page),
     SnapshotTick,

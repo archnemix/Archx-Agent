@@ -48,3 +48,7 @@
 - Recorded a restrained graphite visual system in `Docs/design.md` and bundled Manrope with its original license. Used native Iced widgets, no browser/blur/animation; the selected rail item uses an inexpensive gray solid surface rather than costly backdrop effects.
 - Checked Iced 0.14 tagged examples, font source, screenshot API, and image 0.25 dependency before writing GUI code. Split the initial app into entry, navigation/snapshot state, home rendering, and visual style.
 - The sandbox lacks `rustc` and `cargo`; a source-triggered GitHub workflow is set up to compile/test and take running-app screenshots sequentially on Linux, Windows, and macOS, saving logs/screenshots and a repository-hosted Windows executable. Until runner results are inspected and issues fixed, Step 1 is **not complete** and no cross-OS pixel match is claimed.
+
+## First Linux runner feedback (2026-11-09)
+
+- CI installed the toolchain and produced a lockfile, then failed at compilation: Iced button messages require `Clone`; the theme callback needed an explicit `&App` argument type. Fixed those two source issues before re-running. Windows/macOS were skipped by the workflow because Linux did not pass; no build is yet downloadable.

@@ -160,3 +160,23 @@ PASS: git diff --check
 ```
 
 Both commands exited successfully locally. No Rust tests or cross-platform build results exist yet. Attempting to install PyYAML in the system-managed Python environment failed with an externally-managed-environment error; no workflow parser result is claimed.
+
+## 2026-11-09: first CI compilation correction
+
+Inputs: all 42 repository files after Linux CI committed `Cargo.lock` and `Docs/Test_Results/Unreleased/build/linux.log`; the previous Linux compiler output reports missing `Clone` for UI messages and a theme callback lifetime. No Windows/macOS result exists yet.
+
+Commands (from repository root):
+
+```sh
+python -c 'import json,pathlib; r=pathlib.Path("."); files={p.as_posix() for p in r.rglob("*") if p.is_file() and ".git" not in p.parts}; index=json.loads((r/"Docs/Files_Info.json").read_text())["files"]; assert files==set(index),(files-set(index),set(index)-files); print(f"PASS: {len(files)} files inventoried after Linux CI failure")'
+git diff --check
+```
+
+Observed output:
+
+```text
+PASS: 42 files inventoried after Linux CI failure
+PASS: git diff --check
+```
+
+Both documentation checks exited successfully. CI compilation was **failed**; its exact compiler output is retained in `build/linux.log` from the first run, not disguised as a passing test.
