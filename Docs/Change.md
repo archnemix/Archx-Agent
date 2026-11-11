@@ -43,3 +43,9 @@
 
 - **Validation:** Actions run `43031034141` passed Linux/Windows/macOS tests/builds/screenshots (4 tests passed per OS) and Windows PE GUI-subsystem and company-metadata checks. Reviewed client screenshots: logo and non-preview copy consistent; compact macOS shelf remains scrollable. Native titlebar/taskbar and 3D animation are not proven by client captures.
 - **Delivery:** New unsigned portable Windows build recorded at `deliverables/Unreleased/windows/archx-ai-lab.exe`. PE certificate directory is empty. User requested verified publisher and genuine high-quality rotating 3D covers; both remain open, not silently treated as done.
+
+## 2026-11-09 — Meshy reference mapping and future coding workspace
+
+- **Request:** Explain which reference image belongs to which app before generating any more images. The main Archx Agent image must represent the full six-mode hub (simple chat, general task, research, coding, learning and play), not only a chat bubble. Model Training is a separate launcher destination. A future Coding Agent should eventually include a built-in code editor; this is a later functionality decision, **not** part of Step 1 artwork or an implemented feature.
+- **Suggested art mapping for approval:** one six-path Agent core, one training-process artifact, one precise fine-tuning instrument, and one model-observation instrument. Optionally use a 3D rendition of the user-supplied logo in the hero only if it improves the composition; retain the original mark for identity and icons. Do not generate ambiguous imagery or use an independent AI-generated "Archnemix" wordmark.
+- **Performance request:** plan two future display modes based on available RAM/CPU and a user choice in Settings; the mode names and thresholds need benchmarking rather than arbitrary assumptions. Real 3D remains unimplemented; prior image-selection previews were skipped, with no selected asset saved.

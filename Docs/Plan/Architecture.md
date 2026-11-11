@@ -15,7 +15,7 @@ Settings should give users control over resource use (lazy load, eager load, or 
 | --- | --- | --- |
 | Simple chat | Converse and optionally search the internet | Conversation history, summaries, stable user preferences |
 | General task agent | Handle agentic tasks outside the specialized modes | Task state, permissions, and scoped tools; detailed memory/tool design later |
-| Coding agent | Research, generate, execute, test, and publish code | Per-project structure, files, interfaces, and execution flow; tools to be scoped later |
+| Coding agent | Research, generate, execute, test, and publish code | Per-project structure, files, interfaces, and execution flow; a built-in code editor was requested for a later functionality step, not the home-screen scope |
 | Learning agent | Interactive teaching with goals and feedback | Per-skill scope, progress, assessments, optional resources |
 | Research agent | Deep, source-backed investigation | Per-topic findings, source URLs, and evidence/credibility information |
 | Play agent | Build a game and take turns playing with the user while conversing | Game state, controls visible to the agent, turn loop; detailed design later |
