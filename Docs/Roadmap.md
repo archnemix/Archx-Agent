@@ -1,7 +1,7 @@
 <!-- Purpose: Tracks ordered, complete implementation milestones derived from the agreed product plan. -->
 # Roadmap
 
-**Status: Step 0 done; Step 1 built and validated on three OS runners, with Windows download ready for user hands-on review. Do not start Step 2 until the user reviews the GUI and any Step 1 issues are fixed.** The user directs what to build next and can request revisions. Suggest missing dependencies or risks before moving a step, but do not silently expand scope. Complete and validate one step before starting the next; a UI placeholder must be visibly unavailable, not presented as a working feature.
+**Status: Step 0 done; Step 1 reopened for the user's Windows console and launcher-design corrections. Revised build and three-OS review pending. Do not start Step 2 until Step 1 is corrected and reviewed.** The user directs what to build next and can request revisions. Suggest missing dependencies or risks before moving a step, but do not silently expand scope. Complete and validate one step before starting the next; a UI placeholder must be visibly unavailable, not presented as a working feature.
 
 ## Shared completion rule
 

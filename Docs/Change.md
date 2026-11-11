@@ -13,3 +13,9 @@
 - **Request:** Name the AI/ML launcher **Archx AI Lab**; reserve **Archx Agent** for the chat destination. Include future entries for model training, fine-tuning, and model observation. Use a sleek, minimal graphite/black style, professional typeface, and restrained gray glass-like menu selection. Capture/inspect the running UI on Windows, Linux, and macOS; the user chose repository-hosted Windows builds.
 - **Roadmap effect:** Step 1 is the AI Lab home shell with the future areas visibly unavailable. Their actual capabilities remain later scope. Cross-platform screenshots and a Windows executable are part of the Step 1 completion gate.
 - **Open:** Actual functionality and naming of future model workspaces are not yet approved; no claim of pixel-identical OS chrome or successful build before runner review.
+
+## 2026-11-09 — Windows console fix and app-launcher redesign
+
+- **Request:** The portable Windows GUI must not leave a Command Prompt open. Replace the generic dark dashboard look with a proper app-launcher entrance inspired by Epic/LDPlayer browsing: true black, restrained grey/white, selected smoky-grey menu state, and clearly app-based AI destinations.
+- **Roadmap effect:** Reopen Step 1 for correction; do not start Step 2 until the updated Windows executable is delivered and three-OS builds, snapshots, and Windows GUI-subsystem assertion pass.
+- **Design:** Updated `Docs/design.md`. The artwork is original monochrome Agent cover imagery, not copied launcher art or neon UI.

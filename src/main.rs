@@ -1,5 +1,8 @@
-//! Purpose: Starts the native Archx AI Lab application with its bundled typeface.
+//! Purpose: Starts the native Archx AI Lab GUI without a console in Windows release builds.
+#![cfg_attr(all(target_os = "windows", not(debug_assertions)), windows_subsystem = "windows")]
+
 mod app;
+mod app_tile;
 mod home;
 mod style;
 

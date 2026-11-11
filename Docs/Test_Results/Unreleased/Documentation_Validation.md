@@ -218,3 +218,37 @@ PASS: git diff --check
 ```
 
 Both commands exited successfully. The three-OS test/build/screenshot commands and outcomes are recorded separately in `Gui_Validation.md` and `build/*.log`.
+
+## 2026-11-09: Windows console fix and launcher redesign (pre-CI)
+
+Input: 51 repository files, including changed Rust source, workflow, generated `assets/agent-cover.png`, design documents, and the **previous** Windows binary. No local Rust toolchain is installed; new compilation requires CI.
+
+Commands (repository root) and observed outputs:
+
+```sh
+python - <<'PY'
+import pathlib, struct
+binary = pathlib.Path('deliverables/Unreleased/windows/archx-ai-lab.exe').read_bytes()
+pe = struct.unpack_from('<I', binary, 0x3c)[0]
+subsystem = struct.unpack_from('<H', binary, pe + 92)[0]
+print(f'Previous Windows PE subsystem: {subsystem} (3=console, 2=GUI)')
+PY
+# Previous Windows PE subsystem: 3 (3=console, 2=GUI)
+
+python -m venv /home/user/.venv
+/home/user/.venv/bin/pip install -q pyyaml
+/home/user/.venv/bin/python - <<'PY'
+import yaml
+from pathlib import Path
+workflow=yaml.safe_load(Path('.github/workflows/gui.yml').read_text())
+print('PASS: workflow YAML parsed;',len(workflow['jobs']),'OS jobs')
+PY
+# PASS: workflow YAML parsed; 3 OS jobs
+
+python -c 'import json,pathlib; r=pathlib.Path("."); files={p.as_posix() for p in r.rglob("*") if p.is_file() and ".git" not in p.parts}; index=json.loads((r/"Docs/Files_Info.json").read_text())["files"]; assert files==set(index),(sorted(files-set(index)),sorted(set(index)-files)); assert all(p.read_text().startswith("<!-- Purpose:") for p in r.rglob("*.md") if ".git" not in p.parts); assert (r/"assets/agent-cover.png").read_bytes().startswith(b"\x89PNG\r\n\x1a\n"); print(f"PASS: {len(files)} files inventoried; Markdown headers and cover PNG valid")'
+git diff --check && echo 'PASS: git diff --check'
+# PASS: 51 files inventoried; Markdown headers and cover PNG valid
+# PASS: git diff --check
+```
+
+All commands above exited successfully. An earlier exploratory one-liner for PE inspection used an invalid constructed `struct` format and exited with `struct.error: bad char in struct format`; it was replaced by the explicit `<H` command above. That exploratory failure did not test the application. No new GUI build is claimed yet.

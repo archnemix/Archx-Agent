@@ -230,7 +230,7 @@
       "handles": "CI organization"
     },
     ".github/workflows/gui.yml": {
-      "purpose": "Run three-OS build, tests, screenshots and Windows delivery",
+      "purpose": "Run three-OS GUI checks, screenshots, Windows PE subsystem verification and delivery.",
       "inputs": [
         "Source changes and intentional trigger"
       ],
@@ -310,7 +310,7 @@
       "handles": "Rust source organization"
     },
     "src/main.rs": {
-      "purpose": "Start Iced with bundled font",
+      "purpose": "Start native Iced app using the Windows GUI subsystem in release builds.",
       "inputs": [
         "App constructor and UI theme"
       ],
@@ -330,7 +330,7 @@
       "handles": "Shell state"
     },
     "src/home.rs": {
-      "purpose": "Render launcher and about views",
+      "purpose": "Render the AI app launcher, Agent feature artwork, navigation and About page.",
       "inputs": [
         "Current page"
       ],
@@ -340,7 +340,7 @@
       "handles": "Home presentation"
     },
     "src/style.rs": {
-      "purpose": "Provide graphite palette and widget styles",
+      "purpose": "Provide black/grey/white colors and glass-like selected navigation style.",
       "inputs": [
         "Selected and hover state"
       ],
@@ -498,6 +498,26 @@
         "Windows executable"
       ],
       "handles": "User testing"
+    },
+    "assets/agent-cover.png": {
+      "purpose": "Provide original monochrome editorial artwork for the Agent feature.",
+      "inputs": [
+        "Generated artwork asset"
+      ],
+      "outputs": [
+        "Bundled launcher feature image"
+      ],
+      "handles": "Home artwork"
+    },
+    "src/app_tile.rs": {
+      "purpose": "Describe and render four inert app-launcher shelf entries.",
+      "inputs": [
+        "App metadata and status"
+      ],
+      "outputs": [
+        "Monochrome app tiles"
+      ],
+      "handles": "App-shelf presentation"
     }
   }
 }

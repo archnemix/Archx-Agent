@@ -62,3 +62,10 @@
 - The third workflow attempt succeeded: one focused navigation test passed on each of Linux, Windows, and macOS, each release build completed, running-app screenshots were saved, and an 11.5 MB portable Windows executable was committed to the requested repository path.
 - Inspected all three screenshots. Windows/Linux captured 1280 × 800; the macOS runner restricted its display and captured 1024 × 642, with lower content reachable by scrolling rather than visible in that frame. The shared graphite layout, selected gray rail item, and Manrope typography look consistent in the visible area; exact pixel identity is neither expected nor claimed.
 - Recorded exact commands, log paths, screenshot dimensions/checksums, binary checksum, and prior failed-run Git revisions in `Docs/Test_Results/Unreleased/Gui_Validation.md`. Next: user tests the Windows executable and gives UI feedback before starting the chat interface.
+
+## Windows console and launcher redesign (2026-11-09)
+
+- The user tested the Windows build: a Command Prompt remained open and the home looked too much like a generic dashboard. The executable used Rust's default console subsystem. Set the Windows release binary to the GUI subsystem; the workflow now checks the PE subsystem is 2 in addition to running the app.
+- Reworked the direction toward an AI app launcher with a black main canvas, restrained grey/white surfaces, selected gray-glass-like rail item, featured Agent art, and a shelf of app destinations. Kept unavailable apps inert and labeled. Created original monochrome Agent artwork as a bundled resource.
+- The repository checkout arrived at the original base commit with last turn's files as untracked snapshot contents; fetched and reset the **current branch only** to its existing remote tip, preserving those files, and restored the CI logs omitted from workspace snapshots because their directory is named `build`. No branch was switched.
+- The first build's success does not cover this revision. Re-run all three OS builds, unit/integration checks, screenshots, and Windows subsystem verification before claiming the fix is complete.

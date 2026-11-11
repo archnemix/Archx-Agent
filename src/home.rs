@@ -1,217 +1,204 @@
-//! Purpose: Renders the Archx AI Lab launcher and its available home/about navigation.
-use iced::widget::{button, column, container, row, scrollable, space, text};
-use iced::{Center, Element, Fill, FillPortion};
+//! Purpose: Renders the Archx AI Lab app-launcher home and available About page.
+use std::sync::LazyLock;
+
+use iced::widget::{button, column, container, image, row, scrollable, space, text};
+use iced::{Center, ContentFit, Element, Fill, FillPortion};
 
 use crate::app::{Message, Page};
+use crate::app_tile::{self, APPS};
 use crate::style;
 
-pub fn view(page: Page) -> Element<'static, Message> {
-    let content = row![sidebar(page), main_content(page)]
-        .width(Fill)
-        .height(Fill);
+static AGENT_COVER: LazyLock<image::Handle> = LazyLock::new(|| {
+    image::Handle::from_bytes(include_bytes!("../assets/agent-cover.png").to_vec())
+});
 
-    container(content)
-        .width(Fill)
-        .height(Fill)
-        .style(style::canvas)
-        .into()
+pub fn view(page: Page) -> Element<'static, Message> {
+    container(
+        row![sidebar(page), main_content(page)]
+            .width(Fill)
+            .height(Fill),
+    )
+    .width(Fill)
+    .height(Fill)
+    .style(style::canvas)
+    .into()
 }
 
 fn sidebar(page: Page) -> Element<'static, Message> {
-    let brand = column![
-        text("A  /  ARCHNEMIX").size(17).color(style::TEXT),
-        text("AI WORKSPACE").size(11).color(style::FAINT)
+    let identity = row![
+        container(text("A").size(19).color(style::BLACK))
+            .padding([5, 11])
+            .style(style::brand_mark),
+        column![
+            text("ARCHX").size(15).color(style::WHITE),
+            text("AI LAB").size(10).color(style::GREY)
+        ]
+        .spacing(2)
     ]
-    .spacing(5);
+    .spacing(12)
+    .align_y(Center);
 
-    let home = button(text("⌂    Home").size(15))
+    let discover = button(text("◧    Discover").size(14))
         .width(Fill)
-        .padding([13, 16])
+        .padding([12, 15])
         .on_press(Message::Navigate(Page::Home))
         .style(move |theme, status| style::nav(page == Page::Home, theme, status));
-    let about = button(text("◌    About the Lab").size(15))
+    let about = button(text("◌    About").size(14))
         .width(Fill)
-        .padding([13, 16])
+        .padding([12, 15])
         .on_press(Message::Navigate(Page::About))
         .style(move |theme, status| style::nav(page == Page::About, theme, status));
 
-    let rail = column![
-        brand,
-        space().height(48),
-        text("WORKSPACE").size(11).color(style::FAINT),
-        space().height(12),
-        home,
-        about,
-        space().height(32),
-        text("DESTINATIONS").size(11).color(style::FAINT),
+    let navigation = column![
+        identity,
+        space().height(56),
+        text("BROWSE").size(10).color(style::DIM),
         space().height(16),
-        text("    Archx Agent").size(14).color(style::MUTED),
-        space().height(20),
-        text("    Model Studio").size(14).color(style::FAINT),
-        space().height(20),
-        text("    Fine-tuning").size(14).color(style::FAINT),
-        space().height(20),
-        text("    Model Monitor").size(14).color(style::FAINT),
+        discover,
+        space().height(7),
+        container(text("◫    Library    ·    Soon").size(14).color(style::DIM))
+            .padding([12, 15]),
+        space().height(7),
+        about,
+        space().height(34),
+        text("YOUR APPS").size(10).color(style::DIM),
+        space().height(16),
+        text("    Archx Agent").size(13).color(style::GREY),
+        space().height(15),
+        text("    Model Training").size(13).color(style::DIM),
+        space().height(15),
+        text("    Fine-tuning").size(13).color(style::DIM),
+        space().height(15),
+        text("    Model Monitor").size(13).color(style::DIM),
         space().height(Fill),
-        text("ARCHX AI LAB   ·   EARLY BUILD").size(10).color(style::FAINT),
+        text("ARCHNEMIX   /   LOCAL PREVIEW").size(10).color(style::DIM)
     ]
     .width(Fill)
     .height(Fill)
-    .padding(24);
+    .padding(23);
 
-    container(rail)
-        .width(236)
+    container(navigation)
+        .width(220)
         .height(Fill)
-        .style(style::sidebar)
+        .style(style::rail)
         .into()
 }
 
 fn main_content(page: Page) -> Element<'static, Message> {
-    let content = match page {
+    scrollable(match page {
         Page::Home => home(),
         Page::About => about(),
-    };
-
-    scrollable(content)
-        .width(Fill)
-        .height(Fill)
-        .into()
+    })
+    .width(Fill)
+    .height(Fill)
+    .into()
 }
 
 fn home() -> Element<'static, Message> {
-    let heading = row![
-        column![
-            text("YOUR WORKSPACE").size(11).color(style::MUTED),
-            space().height(14),
-            text("Archx AI Lab").size(40).color(style::TEXT),
-            space().height(7),
-            text("One place to explore, build, and work with AI.")
-                .size(16)
-                .color(style::MUTED)
-        ]
-        .width(FillPortion(3)),
-        container(text("DESKTOP  /  PREVIEW 01").size(11).color(style::FAINT))
-            .width(FillPortion(1))
-            .align_x(iced::alignment::Horizontal::Right)
+    let topbar = row![
+        text("DISCOVER").size(11).color(style::GREY).width(Fill),
+        text("ARCHX AI LAB    /    PREVIEW 01").size(11).color(style::DIM)
     ]
     .align_y(Center);
 
     let hero = container(
         row![
             column![
-                text("01  /  CONVERSATION & AGENTS")
-                    .size(11)
-                    .color(style::MUTED),
-                space().height(22),
-                text("Start with an idea.\nTake it further.")
-                    .size(32)
-                    .color(style::TEXT),
-                space().height(15),
-                text("The home for conversations, research, coding, learning,\nand everything your agents will help you make.")
+                text("FEATURED APP     /     01").size(11).color(style::GREY),
+                space().height(28),
+                text("Archx Agent").size(36).color(style::WHITE),
+                space().height(12),
+                text("Conversations are only the beginning.\nExplore ideas, build, research and learn.")
                     .size(14)
-                    .color(style::MUTED),
-                space().height(34),
-                container(text("ARCHX AGENT   ·   COMING NEXT").size(12).color(style::TEXT))
-                    .padding([12, 17])
-                    .style(style::selection)
+                    .color(style::GREY),
+                space().height(36),
+                container(text("IN DEVELOPMENT").size(11).color(style::WHITE))
+                    .padding([10, 14])
+                    .style(style::badge)
             ]
             .spacing(0)
-            .width(FillPortion(3)),
-            container(
-                column![
-                    text("A").size(114).color(style::TEXT),
-                    text("AN OPEN SPACE FOR INTELLIGENCE")
-                        .size(10)
-                        .color(style::MUTED)
-                ]
-                .spacing(0)
-                .align_x(Center)
-            )
             .width(FillPortion(1))
-            .align_y(iced::alignment::Vertical::Center)
+            .padding(iced::Padding::new(28.0).right(0).left(30)),
+            image(AGENT_COVER.clone())
+                .width(FillPortion(1))
+                .height(304)
+                .content_fit(ContentFit::Cover)
         ]
-        .align_y(Center)
+        .height(304)
+        .align_y(Center),
     )
     .width(Fill)
-    .padding(32)
-    .style(style::elevated);
+    .style(style::surface);
 
-    let categories = column![
-        row![
-            text("Explore the Lab").size(22).color(style::TEXT).width(Fill),
-            text("MORE WORKSPACES AHEAD").size(11).color(style::FAINT)
+    let shelf_heading = row![
+        column![
+            text("THE COLLECTION").size(10).color(style::DIM),
+            space().height(7),
+            text("Explore apps").size(24).color(style::WHITE)
         ]
-        .align_y(Center),
-        space().height(17),
-        row![
-            destination("02", "Model Studio", "Train and manage your own models.", "COMING LATER"),
-            destination("03", "Fine-tuning", "Shape a model around your work.", "COMING LATER"),
-            destination("04", "Model Monitor", "See what your models are doing.", "COMING LATER")
-        ]
-        .spacing(14)
-    ];
+        .width(Fill),
+        text("04 APPS   /   MORE TO COME").size(11).color(style::DIM)
+    ]
+    .align_y(Center);
+
+    let apps = row![
+        app_tile::view(&APPS[0]),
+        app_tile::view(&APPS[1]),
+        app_tile::view(&APPS[2]),
+        app_tile::view(&APPS[3])
+    ]
+    .spacing(17);
 
     let footer = row![
-        text("BUILT FOR THE CURIOUS").size(11).color(style::FAINT).width(Fill),
-        text("ARCHNEMIX  /  AI LAB").size(11).color(style::FAINT)
+        text("A SPACE FOR WHAT COMES NEXT").size(10).color(style::DIM).width(Fill),
+        text("ARCHX  /  ARCHNEMIX").size(10).color(style::DIM)
     ];
 
-    column![heading, space().height(32), hero, space().height(38), categories, space().height(48), footer]
-        .spacing(0)
-        .padding(40)
-        .width(Fill)
-        .into()
-}
-
-fn destination(
-    number: &'static str,
-    title: &'static str,
-    description: &'static str,
-    status: &'static str,
-) -> Element<'static, Message> {
-    container(
-        column![
-            text(number).size(12).color(style::FAINT),
-            space().height(24),
-            text(title).size(19).color(style::TEXT),
-            space().height(9),
-            text(description).size(13).color(style::MUTED),
-            space().height(33),
-            text(status).size(10).color(style::FAINT)
-        ]
-        .width(Fill)
-    )
-    .padding(22)
-    .width(FillPortion(1))
-    .style(style::panel)
+    column![
+        topbar,
+        space().height(31),
+        text("Welcome to the Lab.").size(33).color(style::WHITE),
+        space().height(8),
+        text("Your launchpad for everything AI.").size(15).color(style::GREY),
+        space().height(30),
+        hero,
+        space().height(38),
+        shelf_heading,
+        space().height(20),
+        apps,
+        space().height(46),
+        footer
+    ]
+    .padding(36)
+    .width(Fill)
     .into()
 }
 
 fn about() -> Element<'static, Message> {
     column![
-        text("ABOUT THE LAB").size(11).color(style::MUTED),
-        space().height(20),
-        text("A home for what's next.").size(38).color(style::TEXT),
-        space().height(20),
-        text("Archx AI Lab is an Archnemix workspace for AI tools and experiences.")
+        text("ARCHX  /  ABOUT").size(11).color(style::DIM),
+        space().height(31),
+        text("More than a chat window.").size(35).color(style::WHITE),
+        space().height(16),
+        text("Archx AI Lab is the Archnemix launcher for AI tools and experiences.")
             .size(16)
-            .color(style::MUTED),
-        space().height(48),
+            .color(style::GREY),
+        space().height(40),
         container(
             column![
-                text("THIS IS THE BEGINNING").size(11).color(style::FAINT),
+                text("THIS IS THE BEGINNING").size(11).color(style::DIM),
                 space().height(18),
-                text("The launcher is here first. Archx Agent, model training, fine-tuning, and observation will arrive as each area is built and tested.")
+                text("The Lab starts with its launcher. Archx Agent, model training, fine-tuning and observation will become available as each app is built and tested.")
                     .size(17)
-                    .color(style::TEXT)
+                    .color(style::WHITE)
             ]
             .width(Fill)
         )
         .padding(30)
         .width(Fill)
-        .style(style::panel)
+        .style(style::surface)
     ]
-    .padding(40)
+    .padding(36)
     .width(Fill)
     .into()
 }

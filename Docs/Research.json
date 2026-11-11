@@ -40,6 +40,18 @@
     "github_actions_workflows": {
       "summary": "GitHub Actions workflow syntax and OS runner labels for cross-platform build/test automation; only build outputs required for review should be checked in under a dedicated location.",
       "url": "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax"
+    },
+    "windows_gui_subsystem": {
+      "summary": "Rust Reference: the default Windows console subsystem creates/attaches a console; crate-level windows_subsystem=\"windows\" runs a GUI process without a console. Use for Windows release builds in src/main.rs; verify PE subsystem in CI.",
+      "url": "https://doc.rust-lang.org/reference/runtime.html"
+    },
+    "iced_embedded_image": {
+      "summary": "Iced 0.14 image widget with ContentFit::Cover, using a stable cached Handle for bundled PNG art; enable iced image feature. The official gallery example demonstrates image() and ContentFit.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/examples/gallery/src/main.rs"
+    },
+    "epic_launcher_structure": {
+      "summary": "Epic support describes launcher navigation via Store and Library tabs/sidebars. Use only the broad launcher pattern: editorial feature and an app library, not Epic branding/assets or a copied UI.",
+      "url": "https://www.epicgames.com/help/c-32735058/c-36403860/how-do-i-know-if-i-m-using-the-epic-games-launcher-preview-or-the-legacy-epic-games-launcher-a16795756?lang=en-US"
     }
   }
 }
