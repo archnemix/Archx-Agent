@@ -11,6 +11,9 @@ use crate::style;
 static AGENT_COVER: LazyLock<image::Handle> = LazyLock::new(|| {
     image::Handle::from_bytes(include_bytes!("../assets/agent-cover.png").to_vec())
 });
+static BRAND: LazyLock<image::Handle> = LazyLock::new(|| {
+    image::Handle::from_bytes(include_bytes!("../assets/brand/archnemix-lockup.png").to_vec())
+});
 
 pub fn view(page: Page) -> Element<'static, Message> {
     container(
@@ -25,18 +28,10 @@ pub fn view(page: Page) -> Element<'static, Message> {
 }
 
 fn sidebar(page: Page) -> Element<'static, Message> {
-    let identity = row![
-        container(text("A").size(19).color(style::BLACK))
-            .padding([5, 11])
-            .style(style::brand_mark),
-        column![
-            text("ARCHX").size(15).color(style::WHITE),
-            text("AI LAB").size(10).color(style::GREY)
-        ]
-        .spacing(2)
-    ]
-    .spacing(12)
-    .align_y(Center);
+    let identity = image(BRAND.clone())
+        .width(160)
+        .height(160)
+        .content_fit(ContentFit::Contain);
 
     let discover = button(text("Discover").size(14))
         .width(Fill)
@@ -51,7 +46,7 @@ fn sidebar(page: Page) -> Element<'static, Message> {
 
     let navigation = column![
         identity,
-        space().height(56),
+        space().height(18),
         text("BROWSE").size(10).color(style::DIM),
         space().height(16),
         discover,
@@ -74,7 +69,7 @@ fn sidebar(page: Page) -> Element<'static, Message> {
         space().height(15),
         text("    Model Monitor").size(13).color(style::DIM),
         space().height(Fill),
-        text("ARCHNEMIX   /   LOCAL PREVIEW").size(10).color(style::DIM)
+        text("ARCHNEMIX").size(10).color(style::DIM)
     ]
     .width(Fill)
     .height(Fill)
@@ -100,7 +95,7 @@ fn main_content(page: Page) -> Element<'static, Message> {
 fn home() -> Element<'static, Message> {
     let topbar = row![
         text("DISCOVER").size(11).color(style::GREY).width(Fill),
-        text("ARCHX AI LAB    /    PREVIEW 01").size(11).color(style::DIM)
+        text("ARCHX AI LAB    /    ARCHNEMIX").size(11).color(style::DIM)
     ]
     .align_y(Center);
 

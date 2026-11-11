@@ -10,5 +10,6 @@ Iced is the selected Rust desktop UI framework; Windows, macOS, and Linux are fi
 - `src/app.rs`: holds available home/about navigation and optional `ARCHX_SNAPSHOT` capture state; `ARCHX_SNAPSHOT_PAGE=about` selects the About page only when taking a CI screenshot. Snapshot delay is five seconds to allow images to load before capture. No model or persistence yet.
 - `src/home.rs`: renders the AI Lab launcher, Agent feature and About view; unfinished destinations are inert.
 - `src/app_tile.rs`: renders four unavailable AI apps with cached 800 × 480 cover images, bounded by a clipping container; tests decode all covers.
+- `src/main.rs`: loads the user-supplied Archnemix brand icon as a native window icon; `build.rs` embeds the ICO and company metadata only on Windows. The metadata is not a digital signature.
 - `src/style.rs`: black/grey palette and reusable styles, including a native gradient/shadow selected-menu pill. `assets/fonts/` holds licensed Manrope; `assets/` holds four original monochrome generated images embedded at compile time.
 - `.github/workflows/gui.yml`: intended source-triggered three-OS compilation/test/screenshot review and repository-hosted portable Windows executable. The local sandbox has no Rust toolchain, so successful build/runtime behavior must be established by runner logs before marking the roadmap step complete.

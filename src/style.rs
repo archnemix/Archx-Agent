@@ -39,14 +39,6 @@ pub fn cover(_: &Theme) -> container::Style {
         })
 }
 
-pub fn brand_mark(_: &Theme) -> container::Style {
-    container::Style::default().background(WHITE).border(Border {
-        color: WHITE,
-        width: 0.0,
-        radius: 6.0.into(),
-    })
-}
-
 pub fn badge(_: &Theme) -> container::Style {
     container::Style::default()
         .background(Color::from_rgb8(44, 44, 44))

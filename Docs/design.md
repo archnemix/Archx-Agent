@@ -24,3 +24,7 @@ Use the broad desktop-launcher pattern—persistent navigation, a featured desti
 ## Deferred
 
 Training/monitoring tools, library search, accounts, live agents and additional art belong to their own approved steps. No mock action is presented as functional.
+
+## Current brand/3D revision request
+
+Use the user-supplied Archnemix mark in the sidebar and native window/taskbar icon, with a near-black background and faithful proportions. Remove `LOCAL PREVIEW` and `PREVIEW 01` labels; do not label unbuilt apps operational. A Windows CompanyName resource is not a publisher signature. The next shelf-art revision requires domain-specific **real 3D geometry** that reveals its other sides during a single 360-degree hover rotation, not a 2D picture spun in its plane. Keep a reduced-motion/fallback path, bound artwork within cards, and verify startup, hover/revolution and final rest state on all three OSes; capture multiple animation frames, not only a startup still. This is not implemented by the brand-only change.

@@ -92,3 +92,8 @@
 
 - CI run `43016569988` built the app, passed three focused tests per OS, verified the Windows GUI subsystem and captured Home/About on each OS. Visual inspection caught a real integration defect that the tests did not: the four tile images were invisible on Windows/macOS, while Linux rendered them outside their intended height, overlapping labels. The selected glass pill itself looked consistent.
 - Kept Step 1 open. Normalized the art to 800 × 480, added a separate cropped Agent tile, bounded tile imagery in a fixed-height clipping container, and extended the snapshot delay to allow image loading. Added one focused test that decodes each cover. These are hypotheses for the rendering fix, not a claimed solution until the next three-OS screenshots are inspected.
+
+## Branding and 3D review scope (2026-11-09)
+
+- The user chose actual 3D rotation, not a flat picture spinning on hover. A preexisting JPEG cannot reveal unseen surfaces; keep the existing shelf inert rather than claim that a fake 3D animation satisfies the request. A genuine model/renderer and an animation-driven cross-platform test need their own implementation and evidence.
+- Applied the provided transparent Archnemix art as a black-backed sidebar mark and derived native/PE icons. Set truthful company metadata only. Windows Authenticode verification requires a suitable signing identity, which the user is not sure they have; never substitute metadata for signing or label an unsigned binary verified.

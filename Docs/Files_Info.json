@@ -230,7 +230,7 @@
       "handles": "CI organization"
     },
     ".github/workflows/gui.yml": {
-      "purpose": "Build/test on three OSes; capture Home/About and verify Windows GUI delivery.",
+      "purpose": "Build/test on three OSes; capture Home/About and check Windows GUI subsystem and company metadata.",
       "inputs": [
         "Source changes and intentional trigger"
       ],
@@ -310,12 +310,12 @@
       "handles": "Rust source organization"
     },
     "src/main.rs": {
-      "purpose": "Start native Iced app using the Windows GUI subsystem in release builds.",
+      "purpose": "Start the native Iced app with bundled Archnemix window icon and Windows GUI subsystem.",
       "inputs": [
-        "App constructor and UI theme"
+        "Application UI and brand PNG"
       ],
       "outputs": [
-        "Desktop process"
+        "Desktop process and native icon"
       ],
       "handles": "Application entry point"
     },
@@ -330,7 +330,7 @@
       "handles": "Shell state"
     },
     "src/home.rs": {
-      "purpose": "Render the AI app launcher, Agent feature artwork, navigation and About page.",
+      "purpose": "Render the launcher Home/About pages with a user-provided Archnemix sidebar mark and without preview labels.",
       "inputs": [
         "Current page"
       ],
@@ -340,7 +340,7 @@
       "handles": "Home presentation"
     },
     "src/style.rs": {
-      "purpose": "Provide black/grey native styles and gradient-glass selected navigation.",
+      "purpose": "Provide the black/silver native launcher styles and selected-glass navigation.",
       "inputs": [
         "Selected and hover state"
       ],
@@ -588,6 +588,66 @@
         "macos About PNG"
       ],
       "handles": "Selected-state visual evidence"
+    },
+    "build.rs": {
+      "purpose": "Embed Windows icon and descriptive Archnemix company metadata without claiming digital signing.",
+      "inputs": [
+        "Windows ICO resource"
+      ],
+      "outputs": [
+        "Windows PE icon and version resource"
+      ],
+      "handles": "Windows-only build resource"
+    },
+    "assets/brand/README.md": {
+      "purpose": "Document the supplied Archnemix logo and derived assets.",
+      "inputs": [
+        "Brand assets"
+      ],
+      "outputs": [
+        "Provenance notes"
+      ],
+      "handles": "Brand directory guide"
+    },
+    "assets/brand/archnemix-source.png": {
+      "purpose": "Original transparent Archnemix logo provided by the user.",
+      "inputs": [
+        "User-supplied logo"
+      ],
+      "outputs": [
+        "Bundled brand imagery"
+      ],
+      "handles": "Visual identity"
+    },
+    "assets/brand/archnemix-lockup.png": {
+      "purpose": "Black-backed cropped logo for the sidebar.",
+      "inputs": [
+        "assets/brand/archnemix-source.png"
+      ],
+      "outputs": [
+        "Bundled brand imagery"
+      ],
+      "handles": "Visual identity"
+    },
+    "assets/brand/archnemix-icon.png": {
+      "purpose": "Black-backed 256px native window and taskbar icon.",
+      "inputs": [
+        "assets/brand/archnemix-source.png"
+      ],
+      "outputs": [
+        "Bundled brand imagery"
+      ],
+      "handles": "Visual identity"
+    },
+    "assets/brand/archnemix.ico": {
+      "purpose": "Multiresolution Windows executable icon resource.",
+      "inputs": [
+        "assets/brand/archnemix-source.png"
+      ],
+      "outputs": [
+        "Bundled brand imagery"
+      ],
+      "handles": "Visual identity"
     }
   }
 }

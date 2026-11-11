@@ -64,6 +64,22 @@
     "pillow_tile_crop": {
       "summary": "Pillow ImageOps.fit center-crops and resizes images to an exact aspect ratio. Used only as a local asset-preparation tool to normalize four app covers to 800×480; it is not a runtime dependency.",
       "url": "https://pillow.readthedocs.io/en/stable/reference/ImageOps.html"
+    },
+    "iced_0_14_window_icon": {
+      "summary": "Iced 0.14 application.window accepts window::Settings with icon. window::icon::from_file_data decodes embedded PNG into a native titlebar/taskbar icon on supported platforms. Window icon is separate from Windows executable icon resource.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/src/window/icon.rs"
+    },
+    "iced_0_14_window_settings": {
+      "summary": "Window settings contain size and optional icon, passed through Application::window; tested on each native runner.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/core/src/window/settings.rs"
+    },
+    "tauri_winres_0_3_7": {
+      "summary": "tauri-winres 0.3.7 WindowsResource::set_icon embeds ICO in PE, and set(\"CompanyName\", ...) adds truthful version metadata. These do not provide Authenticode signing; target-specific build dependency only on Windows.",
+      "url": "https://github.com/tauri-apps/winres/blob/main/src/lib.rs"
+    },
+    "microsoft_signtool": {
+      "summary": "Microsoft SignTool signs, timestamps and verifies files with a trusted signing certificate. A company metadata field or image icon cannot replace a certificate. Do not claim the executable is signed pending verified Archnemix certificate and a secure signing method.",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/seccrypto/signtool"
     }
   }
 }
