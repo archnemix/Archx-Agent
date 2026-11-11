@@ -77,7 +77,7 @@ impl App {
 
     pub fn subscription(&self) -> Subscription<Message> {
         if self.snapshot.is_some() && !self.snapshot_requested {
-            time::every(Duration::from_secs(2)).map(|_| Message::SnapshotTick)
+            time::every(Duration::from_secs(5)).map(|_| Message::SnapshotTick)
         } else {
             Subscription::none()
         }

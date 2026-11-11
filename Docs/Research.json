@@ -60,6 +60,10 @@
     "iced_0_14_image_cover": {
       "summary": "Iced 0.14 gallery example uses image handles, ContentFit and border radius. Used to render bundled JPEG app cover art without runtime network requests.",
       "url": "https://github.com/iced-rs/iced/blob/0.14.0/examples/gallery/src/main.rs"
+    },
+    "pillow_tile_crop": {
+      "summary": "Pillow ImageOps.fit center-crops and resizes images to an exact aspect ratio. Used only as a local asset-preparation tool to normalize four app covers to 800×480; it is not a runtime dependency.",
+      "url": "https://pillow.readthedocs.io/en/stable/reference/ImageOps.html"
     }
   }
 }

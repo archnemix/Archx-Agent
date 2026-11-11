@@ -1,7 +1,7 @@
 //! Purpose: Describes and renders distinct, unavailable AI apps in the launcher shelf.
 use std::sync::LazyLock;
 
-use iced::widget::{column, image, space, text};
+use iced::widget::{column, container, image, space, text};
 use iced::{ContentFit, Element, Fill, FillPortion};
 
 use crate::app::Message;
@@ -29,7 +29,7 @@ pub const APPS: [AppTile; 4] = [
 ];
 
 static AGENT: LazyLock<image::Handle> = LazyLock::new(|| {
-    image::Handle::from_bytes(include_bytes!("../assets/agent-cover.png").to_vec())
+    image::Handle::from_bytes(include_bytes!("../assets/agent-tile.jpg").to_vec())
 });
 static TRAINING: LazyLock<image::Handle> = LazyLock::new(|| {
     image::Handle::from_bytes(include_bytes!("../assets/model-training.jpg").to_vec())
@@ -51,12 +51,20 @@ fn art(art: Art) -> image::Handle {
 }
 
 pub fn view(tile: &'static AppTile) -> Element<'static, Message> {
-    column![
+    let cover = container(
         image(art(tile.art))
             .width(Fill)
-            .height(140)
-            .content_fit(ContentFit::Cover)
-            .border_radius(12),
+            .height(Fill)
+            .content_fit(ContentFit::Contain)
+            .border_radius(10),
+    )
+    .width(Fill)
+    .height(140)
+    .clip(true)
+    .style(style::cover);
+
+    column![
+        cover,
         space().height(14),
         text(tile.category).size(10).color(style::DIM),
         space().height(5),
@@ -77,5 +85,18 @@ mod tests {
     fn app_tiles_have_unique_names() {
         let names: HashSet<_> = APPS.iter().map(|app| app.name).collect();
         assert_eq!(names.len(), APPS.len());
+    }
+
+    #[test]
+    fn every_cover_decodes_at_the_expected_aspect_ratio() {
+        for bytes in [
+            &include_bytes!("../assets/agent-tile.jpg")[..],
+            &include_bytes!("../assets/model-training.jpg")[..],
+            &include_bytes!("../assets/fine-tuning.jpg")[..],
+            &include_bytes!("../assets/model-monitor.jpg")[..],
+        ] {
+            let cover = ::image::load_from_memory(bytes).expect("Bundled app cover should decode");
+            assert_eq!((cover.width(), cover.height()), (800, 480));
+        }
     }
 }

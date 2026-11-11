@@ -320,7 +320,7 @@
       "handles": "Application entry point"
     },
     "src/app.rs": {
-      "purpose": "Handle launcher navigation and optional Home/About screenshot capture.",
+      "purpose": "Handle navigation and delayed Home/About snapshots after image loading.",
       "inputs": [
         "User navigation and snapshot trigger"
       ],
@@ -510,7 +510,7 @@
       "handles": "Home artwork"
     },
     "src/app_tile.rs": {
-      "purpose": "Render four unavailable apps with cached embedded cover images.",
+      "purpose": "Render four inert app entries with bounded, normalized, cached image covers.",
       "inputs": [
         "App metadata and status"
       ],
@@ -548,6 +548,46 @@
         "Bundled app-shelf artwork"
       ],
       "handles": "App identity"
+    },
+    "assets/agent-tile.jpg": {
+      "purpose": "Provide a cropped, 800 × 480 Agent app-shelf cover.",
+      "inputs": [
+        "Original Agent feature art"
+      ],
+      "outputs": [
+        "Embedded Agent tile illustration"
+      ],
+      "handles": "App identity"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux-about.png": {
+      "purpose": "Show the selected About navigation on linux.",
+      "inputs": [
+        "linux CI snapshot mode"
+      ],
+      "outputs": [
+        "linux About PNG"
+      ],
+      "handles": "Selected-state visual evidence"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows-about.png": {
+      "purpose": "Show the selected About navigation on windows.",
+      "inputs": [
+        "windows CI snapshot mode"
+      ],
+      "outputs": [
+        "windows About PNG"
+      ],
+      "handles": "Selected-state visual evidence"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos-about.png": {
+      "purpose": "Show the selected About navigation on macos.",
+      "inputs": [
+        "macos CI snapshot mode"
+      ],
+      "outputs": [
+        "macos About PNG"
+      ],
+      "handles": "Selected-state visual evidence"
     }
   }
 }

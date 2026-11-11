@@ -87,3 +87,8 @@
 - Chose Iced's existing native gradient and shadow styles for a scalable selected-menu pill; generated three small monochrome cover assets to give training, fine-tuning and monitoring distinct app identities instead of repeating letter tiles. Added an About-page CI capture so the requested selected state is inspected on Windows, Linux and macOS, not only the Home state.
 - The session checkout again started at the base commit with snapshot files; restored the current branch to its existing remote tip and restored CI logs omitted from snapshots because their folder is named `build`. No new branch or product area was started.
 - Code and docs are pending runner validation. Do not claim final visual quality or a working Windows build until CI and screenshot review complete.
+
+## Cross-OS app-cover rendering defect (2026-11-09)
+
+- CI run `43016569988` built the app, passed three focused tests per OS, verified the Windows GUI subsystem and captured Home/About on each OS. Visual inspection caught a real integration defect that the tests did not: the four tile images were invisible on Windows/macOS, while Linux rendered them outside their intended height, overlapping labels. The selected glass pill itself looked consistent.
+- Kept Step 1 open. Normalized the art to 800 × 480, added a separate cropped Agent tile, bounded tile imagery in a fixed-height clipping container, and extended the snapshot delay to allow image loading. Added one focused test that decodes each cover. These are hypotheses for the rendering fix, not a claimed solution until the next three-OS screenshots are inspected.

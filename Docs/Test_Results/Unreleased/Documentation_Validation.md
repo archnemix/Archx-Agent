@@ -321,3 +321,22 @@ PASS: 54 inventoried files and Markdown headers
 ```
 
 `git diff --check` exited successfully with no output. No Rust/GUI test result is claimed at this point.
+
+## 2026-11-09: bounded app-cover correction (pre-CI)
+
+Inputs: all 58 repository files, including the previous CI Home/About captures, new cropped Agent tile and resized JPEG covers. A first inventory check failed because the three CI-generated About screenshots were not yet indexed: `AssertionError: (['Docs/Test_Results/Unreleased/visual/linux-about.png', 'Docs/Test_Results/Unreleased/visual/macos-about.png', 'Docs/Test_Results/Unreleased/visual/windows-about.png'], [])`. Indexed them before rerunning. No new rendering pass is claimed yet.
+
+Commands (repository root):
+
+```sh
+python -c 'import json,pathlib; r=pathlib.Path("."); files={p.as_posix() for p in r.rglob("*") if p.is_file() and ".git" not in p.parts}; index=json.loads((r/"Docs/Files_Info.json").read_text())["files"]; assert files==set(index),(sorted(files-set(index)),sorted(set(index)-files)); assert (r/"src/app_tile.rs").read_text().startswith("//! Purpose:"); print(f"PASS: {len(files)} inventoried files and edited source header")'
+git diff --check
+```
+
+Observed output:
+
+```text
+PASS: 58 inventoried files and edited source header
+```
+
+`git diff --check` exited successfully with no output. The first command had previously exited with the missing-About-screenshot assertion described above; after the manifest correction both checks exited successfully.
