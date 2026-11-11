@@ -28,13 +28,13 @@ pub fn view(tile: &'static AppTile) -> Element<'static, Message> {
             ]
             .align_y(Center),
             space().height(Fill),
-            text(tile.letter).size(62).color(style::WHITE)
+            text(tile.letter).size(52).color(style::WHITE)
         ]
         .width(Fill)
-        .height(144),
+        .height(108),
     )
     .width(Fill)
-    .height(176)
+    .height(140)
     .padding(16)
     .style(style::cover);
 

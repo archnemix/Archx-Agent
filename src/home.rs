@@ -38,12 +38,12 @@ fn sidebar(page: Page) -> Element<'static, Message> {
     .spacing(12)
     .align_y(Center);
 
-    let discover = button(text("◧    Discover").size(14))
+    let discover = button(text("Discover").size(14))
         .width(Fill)
         .padding([12, 15])
         .on_press(Message::Navigate(Page::Home))
         .style(move |theme, status| style::nav(page == Page::Home, theme, status));
-    let about = button(text("◌    About").size(14))
+    let about = button(text("About").size(14))
         .width(Fill)
         .padding([12, 15])
         .on_press(Message::Navigate(Page::About))
@@ -56,7 +56,10 @@ fn sidebar(page: Page) -> Element<'static, Message> {
         space().height(16),
         discover,
         space().height(7),
-        container(text("◫    Library    ·    Soon").size(14).color(style::DIM))
+        container(row![
+            text("Library").size(14).color(style::DIM).width(Fill),
+            text("SOON").size(10).color(style::DIM)
+        ])
             .padding([12, 15]),
         space().height(7),
         about,
@@ -105,26 +108,26 @@ fn home() -> Element<'static, Message> {
         row![
             column![
                 text("FEATURED APP     /     01").size(11).color(style::GREY),
-                space().height(28),
-                text("Archx Agent").size(36).color(style::WHITE),
-                space().height(12),
+                space().height(18),
+                text("Archx Agent").size(34).color(style::WHITE),
+                space().height(8),
                 text("Conversations are only the beginning.\nExplore ideas, build, research and learn.")
                     .size(14)
                     .color(style::GREY),
-                space().height(36),
+                space().height(18),
                 container(text("IN DEVELOPMENT").size(11).color(style::WHITE))
                     .padding([10, 14])
                     .style(style::badge)
             ]
             .spacing(0)
             .width(FillPortion(1))
-            .padding(iced::Padding::new(28.0).right(0).left(30)),
+            .padding(iced::Padding::new(22.0).right(0).left(30)),
             image(AGENT_COVER.clone())
                 .width(FillPortion(1))
-                .height(304)
-                .content_fit(ContentFit::Cover)
+                .height(248)
+                .content_fit(ContentFit::Contain)
         ]
-        .height(304)
+        .height(248)
         .align_y(Center),
     )
     .width(Fill)
@@ -156,13 +159,13 @@ fn home() -> Element<'static, Message> {
 
     column![
         topbar,
-        space().height(31),
+        space().height(24),
         text("Welcome to the Lab.").size(33).color(style::WHITE),
         space().height(8),
         text("Your launchpad for everything AI.").size(15).color(style::GREY),
-        space().height(30),
+        space().height(22),
         hero,
-        space().height(38),
+        space().height(30),
         shelf_heading,
         space().height(20),
         apps,

@@ -252,3 +252,23 @@ git diff --check && echo 'PASS: git diff --check'
 ```
 
 All commands above exited successfully. An earlier exploratory one-liner for PE inspection used an invalid constructed `struct` format and exited with `struct.error: bad char in struct format`; it was replaced by the explicit `<H` command above. That exploratory failure did not test the application. No new GUI build is claimed yet.
+
+## 2026-11-09: visual-review layout refinement (pre-CI)
+
+Input: 51 repository files; modified `src/home.rs`, `src/app_tile.rs`, `Docs/design.md`, and `Docs/Thinking.md` after inspecting the first redesigned screenshots. These checks do not verify rendering.
+
+Commands (repository root):
+
+```sh
+python -c 'import json,pathlib; r=pathlib.Path("."); files={p.as_posix() for p in r.rglob("*") if p.is_file() and ".git" not in p.parts}; index=json.loads((r/"Docs/Files_Info.json").read_text())["files"]; assert files==set(index); assert (r/"src/home.rs").read_text().startswith("//! Purpose:") and (r/"src/app_tile.rs").read_text().startswith("//! Purpose:"); print(f"PASS: {len(files)} files inventoried; edited source headers valid")'
+git diff --check
+```
+
+Observed output:
+
+```text
+PASS: 51 files inventoried; edited source headers valid
+PASS: git diff --check
+```
+
+Both checks exited successfully locally. New cross-platform screenshots and GUI tests still need CI.

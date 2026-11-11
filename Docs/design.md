@@ -13,7 +13,7 @@ The layout takes **navigation patterns**, not artwork or branding, from desktop 
 - **Selection:** gray translucent-looking selected navigation surface with a subtle border; lightweight solid/alpha fill instead of an expensive backdrop blur. Hover is visibly distinct. Only available pages respond to clicks.
 - **Typography:** bundled Manrope (SIL OFL) for consistency across Windows, Linux, macOS. Body 13–16px, prominent clear titles. Preserve the original license under `assets/fonts/OFL.txt`.
 - **Editorial artwork:** original generated monochrome sculpture in `assets/agent-cover.png`, embedded into the executable and limited to the Agent feature tile; it has no text or external image request. Other app covers use simple native monochrome letterforms; no distracting icon pack or copying other brands' content.
-- **Structure:** compact brand and browsing rail; feature banner for Archx Agent; app shelf with distinct tile covers, titles, categories, and availability labels. The About page is the only second working destination in the first slice. Library and all AI apps remain visibly unavailable.
+- **Structure:** compact brand and browsing rail; feature banner for Archx Agent; app shelf with distinct tile covers, titles, categories, and availability labels. At the default 1280 × 800 viewport the app names should be visible without scrolling; on compact displays the remaining shelf can scroll. The Agent art must remain uncropped at narrower widths. The About page is the only second working destination in the first slice. Library and all AI apps remain visibly unavailable.
 
 ## Cross-platform review
 

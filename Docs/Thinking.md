@@ -69,3 +69,8 @@
 - Reworked the direction toward an AI app launcher with a black main canvas, restrained grey/white surfaces, selected gray-glass-like rail item, featured Agent art, and a shelf of app destinations. Kept unavailable apps inert and labeled. Created original monochrome Agent artwork as a bundled resource.
 - The repository checkout arrived at the original base commit with last turn's files as untracked snapshot contents; fetched and reset the **current branch only** to its existing remote tip, preserving those files, and restored the CI logs omitted from workspace snapshots because their directory is named `build`. No branch was switched.
 - The first build's success does not cover this revision. Re-run all three OS builds, unit/integration checks, screenshots, and Windows subsystem verification before claiming the fix is complete.
+
+## Launcher screenshot refinement (2026-11-09)
+
+- First redesigned CI run passed both focused tests and release/snapshot checks on all three OSes; the Windows PE subsystem is 2 (GUI, no console), but screenshots revealed two layout problems before handoff: app names were below the initial Windows/Linux viewport, and the Agent artwork was cropped on the smaller macOS runner display. Linux also wrapped the inert Library label awkwardly.
+- Reduced unused vertical space and app-cover height so names can appear above the fold at 1280 × 800, changed the Agent artwork to `Contain` to preserve its silhouette, and simplified sidebar labels without OS-dependent glyphs. A new three-OS build/screenshot review is required before claiming the layout fixes.
