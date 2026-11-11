@@ -362,3 +362,7 @@ git diff --check
 ```
 
 Observed: `PASS: 64 inventoried files`; diff check had no output and exited successfully. Code compilation, icon in Windows chrome, and cross-platform screenshots still need CI; no animation or Authenticode signature is claimed.
+
+## 2026-11-09: post-brand evidence/plan alignment
+
+Commands: `python -c 'import json,pathlib; r=pathlib.Path("."); files={p.as_posix() for p in r.rglob("*") if p.is_file() and ".git" not in p.parts}; index=json.loads((r/"Docs/Files_Info.json").read_text())["files"]; assert files==set(index),(sorted(files-set(index)),sorted(set(index)-files)); print(f"PASS: {len(files)} inventoried files")'` and `git diff --check`. Input: current 64 tracked/file-inventory entries, latest run `43031034141` logs and screenshots, signing/animation limitations. Observed `PASS: 64 inventoried files`; diff check exited successfully without output.

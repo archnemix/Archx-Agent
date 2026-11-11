@@ -1,5 +1,39 @@
 <!-- Purpose: Records current three-OS GUI test commands, outputs, screenshots, visual review, and Windows delivery. -->
-# AI Lab launcher validation — current review build
+# AI Lab launcher validation — brand follow-up and earlier review
+
+## Brand follow-up (2026-11-09)
+
+Source commit `76db961`, Actions run `43031034141` (passed sequential Linux, Windows and macOS). Each job ran `cargo test --locked` (4 passed, 0 failed), `cargo build --release --locked`, and the Home/About screenshot commands listed in the earlier section below. Windows also ran the PE GUI-subsystem check (output `PASS: Windows GUI subsystem 2 (no console)`) and this metadata check:
+
+```sh
+powershell.exe -NoProfile -Command '$info=(Get-Item "target/release/archx-ai-lab.exe").VersionInfo; if ($info.CompanyName -ne "Archnemix" -or $info.ProductName -ne "Archx AI Lab") { throw "Incorrect PE product metadata" }; Write-Output "PASS: Archnemix Windows product metadata (not a digital signature)"'
+```
+
+Observed `PASS: Archnemix Windows product metadata (not a digital signature)` in `build/windows.log`. The exact test and build outputs are in `build/{linux,windows,macos}.log`. The latest Home/About PNGs were captured successfully on all three OSes. Visual inspection of Home and Windows About: provided black-backed logo replaces the generic letter badge; `LOCAL PREVIEW` and `PREVIEW 01` are gone; no tile-cover overlap at 1280 × 800 Windows/Linux; macOS still needs scrolling to show tile labels. These screenshots show client content only: they do **not** prove native titlebar/taskbar icon fidelity or hover animation. Command `/home/user/.venv/bin/python` (Pillow) with `ImageChops.difference`/`ImageStat.Stat` on `visual/{windows,linux,macos}.png` 160 × 160 logo crops at `(23,23)` found mean absolute per-channel RGB error of `4.283` for Windows versus Linux and `0.022` for Windows versus macOS; the logo geometry and layout are consistent, but GPU/font sampling differs, so pixel-identical output is not claimed. Exact comparison input/code:
+
+```sh
+/home/user/.venv/bin/python - <<'PY'
+from PIL import Image, ImageChops, ImageStat
+from pathlib import Path
+root = Path('Docs/Test_Results/Unreleased/visual')
+logo = {os: Image.open(root / f'{os}.png').convert('RGB').crop((23, 23, 183, 183)) for os in ('linux', 'windows', 'macos')}
+for os in ('linux', 'macos'):
+    print(os, ImageStat.Stat(ImageChops.difference(logo['windows'], logo[os])).mean)
+PY
+``` Product metadata is not a verified publisher.
+
+| Latest screenshot | Dimensions | SHA-256 |
+| --- | --- | --- |
+| `visual/linux.png` | 1280 × 800 | `133ea8b80d69ac8fb983c65a9cedcb60eb4c183cdae5a85396e04eead2f3a189` |
+| `visual/linux-about.png` | 1280 × 800 | `68e9059d229f67f071223e27da22fd572d4f08a751a1f7a3cb80e9d183d64405` |
+| `visual/windows.png` | 1280 × 800 | `86b8acc0cc4910995552e9fe182fbc8938483adc5d681d3d12a697795ee6c2c7` |
+| `visual/windows-about.png` | 1280 × 800 | `7ea9bb4f594b8163569801c38931bcfd31eb8f5cc4c20de560205223325d6426` |
+| `visual/macos.png` | 1024 × 642 | `01027f28ab775f165284de595fcf1d10cf38259dc5e4c97a92a96d0a2a541ec4` |
+| `visual/macos-about.png` | 1024 × 645 | `6c71e4963753ea7008a3e05c1c4cd9334ea00b1c938b7f4019898ec836410cfd` |
+
+Windows deliverable `deliverables/Unreleased/windows/archx-ai-lab.exe`: 21,204,992 bytes, SHA-256 `6eb9d153608a9854a654f74f1a25dbc9cc361df5c3d88f58d4f25ce4630a1979`. Local Python `struct.unpack_from('<II', data, directory+8*4)` on the PE32+ certificate-directory entry returned `(0, 0)`; **the executable is unsigned**, so Windows cannot display a verified publisher. The native icon code was built and screenshot launch succeeded, but titlebar/taskbar icon should also be checked hands-on. The requested genuine 3D cover rotation and animation-specific cross-OS tests have **not** been implemented; Step 1 remains open.
+
+## Previous bounded-cover review (historical)
 
 Source input: commit `731206d`, locked dependencies in `Cargo.lock`, four embedded 800 × 480 shelf covers plus original Agent feature art. GitHub Actions run `43020392009` on Linux, Windows, macOS sequentially. No model, user data, secrets, backend, or network UI input was used. The exact command output is in `build/linux.log`, `build/windows.log`, and `build/macos.log`.
 

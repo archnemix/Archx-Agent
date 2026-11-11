@@ -80,6 +80,10 @@
     "microsoft_signtool": {
       "summary": "Microsoft SignTool signs, timestamps and verifies files with a trusted signing certificate. A company metadata field or image icon cannot replace a certificate. Do not claim the executable is signed pending verified Archnemix certificate and a secure signing method.",
       "url": "https://learn.microsoft.com/en-us/windows/win32/seccrypto/signtool"
+    },
+    "microsoft_artifact_signing_eligibility": {
+      "summary": "Official 2026 quickstart lists restricted country eligibility for Public Trust organization validation; Pakistan is not listed. This is only one possible provider. Need to confirm Archnemix legal entity location and obtain an appropriate identity-validated certificate/service before signing; do not assume eligibility or create fake self-signed publisher.",
+      "url": "https://learn.microsoft.com/en-us/azure/artifact-signing/quickstart"
     }
   }
 }
