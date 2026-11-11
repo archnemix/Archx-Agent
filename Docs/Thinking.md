@@ -74,3 +74,9 @@
 
 - First redesigned CI run passed both focused tests and release/snapshot checks on all three OSes; the Windows PE subsystem is 2 (GUI, no console), but screenshots revealed two layout problems before handoff: app names were below the initial Windows/Linux viewport, and the Agent artwork was cropped on the smaller macOS runner display. Linux also wrapped the inert Library label awkwardly.
 - Reduced unused vertical space and app-cover height so names can appear above the fold at 1280 × 800, changed the Agent artwork to `Contain` to preserve its silhouette, and simplified sidebar labels without OS-dependent glyphs. A new three-OS build/screenshot review is required before claiming the layout fixes.
+
+## Launcher correction ready for user review (2026-11-09)
+
+- After the screenshot refinement, CI run `42992545976` passed two focused tests and the release/snapshot gates on all three OSes. Windows CI inspected the actual executable and confirmed PE subsystem 2, correcting the prior console-subsystem defect.
+- Reviewed all three images: Windows/Linux at 1280 × 800 now show Agent artwork plus all four app names/statuses without scrolling; macOS at its runner-limited 1024 × 642 shows uncropped Agent artwork and the shelf beginning below it. The GUI is intentionally black/grey/white with an app-launcher composition, not the earlier dashboard.
+- Updated the current GUI evidence record and retained prior outputs in Git history. Step 1 remains pending the user's actual Windows hands-on review; do not start chat UI until accepted or remaining issues are fixed.
