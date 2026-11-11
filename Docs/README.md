@@ -7,6 +7,7 @@
 - [Roadmap](Roadmap.md): ordered implementation steps once scope is agreed.
 - [Thinking](Thinking.md): work-round decisions and problem resolutions.
 - [Change](Change.md): user-requested scope changes.
+- [Rough ideas](Rough_Ideas.md): uncommitted ideas to revisit later, without expanding the roadmap.
 - [Changelog](Changelog.md): changes by release.
 - [Technical](Technical.md), [Files_Info.json](Files_Info.json), and [Logic](Logic.md): technical overview, file inventory, and implemented call flows.
 - [Workaround](Workaround.md): access and tooling workarounds.

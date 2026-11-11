@@ -13,7 +13,7 @@
       "handles": "Repository orientation"
     },
     "Docs/README.md": {
-      "purpose": "Guide readers through the documentation directory.",
+      "purpose": "Guide readers to documentation, including the rough-ideas parking lot.",
       "inputs": [
         "Documentation layout"
       ],
@@ -648,6 +648,16 @@
         "Bundled brand imagery"
       ],
       "handles": "Visual identity"
+    },
+    "Docs/Rough_Ideas.md": {
+      "purpose": "Park unapproved product ideas for future discussion without altering scope.",
+      "inputs": [
+        "User brainstorming and unresolved questions"
+      ],
+      "outputs": [
+        "Dated rough-idea reminders"
+      ],
+      "handles": "Idea parking lot"
     }
   }
 }

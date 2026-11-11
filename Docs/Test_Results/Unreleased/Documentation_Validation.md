@@ -366,3 +366,18 @@ Observed: `PASS: 64 inventoried files`; diff check had no output and exited succ
 ## 2026-11-09: post-brand evidence/plan alignment
 
 Commands: `python -c 'import json,pathlib; r=pathlib.Path("."); files={p.as_posix() for p in r.rglob("*") if p.is_file() and ".git" not in p.parts}; index=json.loads((r/"Docs/Files_Info.json").read_text())["files"]; assert files==set(index),(sorted(files-set(index)),sorted(set(index)-files)); print(f"PASS: {len(files)} inventoried files")'` and `git diff --check`. Input: current 64 tracked/file-inventory entries, latest run `43031034141` logs and screenshots, signing/animation limitations. Observed `PASS: 64 inventoried files`; diff check exited successfully without output.
+
+## 2026-11-09: rough-ideas parking lot (documentation only)
+
+Input: `Docs/Rough_Ideas.md`, `Docs/README.md`, and `Docs/Files_Info.json`. Command from repository root:
+
+```sh
+python - <<'PY'
+import json
+from pathlib import Path
+root=Path('.'); files={p.as_posix() for p in root.rglob('*') if p.is_file() and '.git' not in p.parts}; indexed=set(json.loads((root/'Docs/Files_Info.json').read_text())['files']); assert files==indexed,(sorted(files-indexed),sorted(indexed-files)); text=(root/'Docs/Rough_Ideas.md').read_text(); assert text.startswith('<!-- Purpose:') and 'Status:** Parked' in text; assert '[Rough ideas](Rough_Ideas.md)' in (root/'Docs/README.md').read_text(); print(f'PASS: {len(files)} inventoried files; rough idea and docs link validated')
+PY
+git diff --check
+```
+
+Observed `PASS: 65 inventoried files; rough idea and docs link validated`. `git diff --check` exited 0 with no output. No GUI code or roadmap milestone changed, so no GUI runner was invoked.
