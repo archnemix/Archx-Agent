@@ -340,3 +340,14 @@ PASS: 58 inventoried files and edited source header
 ```
 
 `git diff --check` exited successfully with no output. The first command had previously exited with the missing-About-screenshot assertion described above; after the manifest correction both checks exited successfully.
+
+## 2026-11-09: post-run review records
+
+After run `43020392009`, checked the evidence inventory with:
+
+```sh
+python -c 'import json,pathlib; r=pathlib.Path("."); files={p.as_posix() for p in r.rglob("*") if p.is_file() and ".git" not in p.parts}; index=json.loads((r/"Docs/Files_Info.json").read_text())["files"]; assert files==set(index),(sorted(files-set(index)),sorted(set(index)-files)); print(f"PASS: {len(files)} inventoried files")'
+git diff --check
+```
+
+Observed `PASS: 58 inventoried files`; `git diff --check` exited successfully without output. Render-specific findings and the Windows executable digest are in `Gui_Validation.md`.

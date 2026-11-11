@@ -1,7 +1,7 @@
 <!-- Purpose: Tracks ordered, complete implementation milestones derived from the agreed product plan. -->
 # Roadmap
 
-**Status: Step 0 done; Step 1 reopened after the user's selected-menu reference and request for a less generic launcher. New three-OS Home/About screenshots and Windows build pending; do not start Step 2 until the user reviews this iteration.** The user directs what to build next and can request revisions. Suggest missing dependencies or risks before moving a step, but do not silently expand scope. Complete and validate one step before starting the next; a UI placeholder must be visibly unavailable, not presented as a working feature.
+**Status: Step 0 done; Step 1 revised and technically validated by three-OS CI run `43020392009`, with Home/About captures and refreshed Windows GUI build. Awaiting the user's hands-on visual approval; do not start Step 2 until they review this iteration.** The user directs what to build next and can request revisions. Suggest missing dependencies or risks before moving a step, but do not silently expand scope. Complete and validate one step before starting the next; a UI placeholder must be visibly unavailable, not presented as a working feature.
 
 ## Shared completion rule
 

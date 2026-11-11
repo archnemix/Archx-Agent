@@ -1,22 +1,31 @@
-<!-- Purpose: Records current cross-platform GUI commands, inputs, outputs, screenshots, and Windows subsystem verification. -->
-# Home-shell GUI validation — latest review build
+<!-- Purpose: Records current three-OS GUI test commands, outputs, screenshots, visual review, and Windows delivery. -->
+# AI Lab launcher validation — current review build
 
-Source input: commit `6537b5e` (plus its pinned `Cargo.lock`); GitHub Actions run `42992545976`. No model, account, database, credential, or user data was used. Linux, Windows, and macOS jobs ran sequentially. See `.github/workflows/gui.yml` for complete shell steps and `build/*.log` for exact observed stdout/stderr.
+Source input: commit `731206d`, locked dependencies in `Cargo.lock`, four embedded 800 × 480 shelf covers plus original Agent feature art. GitHub Actions run `43020392009` on Linux, Windows, macOS sequentially. No model, user data, secrets, backend, or network UI input was used. The exact command output is in `build/linux.log`, `build/windows.log`, and `build/macos.log`.
 
-| OS | Exact test/build and capture inputs | Observed output |
+| Runner | Exact commands and inputs | Observed output |
 | --- | --- | --- |
-| Linux | `cargo generate-lockfile`; `cargo test --locked`; `cargo build --release --locked`; `xvfb-run -a env ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux.png ./target/release/archx-ai-lab`; `test -s Docs/Test_Results/Unreleased/visual/linux.png` | `test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out`; release build and screenshot succeeded. `visual/linux.png`: 1280 × 800, SHA-256 `2ccd106e55c1aa161280a20e0cad96131e13ffa2b2003df049251a26dd211c35`. |
-| Windows | `cargo test --locked`; `cargo build --release --locked`; Python PE check (below); `ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows.png ./target/release/archx-ai-lab.exe`; `test -s Docs/Test_Results/Unreleased/visual/windows.png`; copy exe to `deliverables/Unreleased/windows/` | `test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out`; `PASS: Windows GUI subsystem 2 (no console)`; release build and screenshot succeeded. `visual/windows.png`: 1280 × 800, SHA-256 `68c42d81ec464c475aa7acb316de45a9141d1f01fe2aa156dbd0a25475c0378c`. |
-| macOS | `cargo test --locked`; `cargo build --release --locked`; `ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos.png ./target/release/archx-ai-lab`; `test -s Docs/Test_Results/Unreleased/visual/macos.png` | `test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out`; release build and screenshot succeeded. `visual/macos.png`: 1024 × 642, SHA-256 `6f0728512fa9123a0f86cfe54eb3c353a49b7164703b584e90357303b180b968`. |
+| Linux | `cargo generate-lockfile`; `cargo test --locked`; `cargo build --release --locked`; `xvfb-run -a env ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux.png ./target/release/archx-ai-lab`; `test -s Docs/Test_Results/Unreleased/visual/linux.png`; `xvfb-run -a env ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-about.png ./target/release/archx-ai-lab`; `test -s Docs/Test_Results/Unreleased/visual/linux-about.png`. | `test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out`; release build passed, both PNGs nonempty. |
+| Windows | `cargo test --locked`; `cargo build --release --locked`; PE subsystem assertion below; `ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows.png ./target/release/archx-ai-lab.exe`; `test -s` Home PNG; `ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-about.png ./target/release/archx-ai-lab.exe`; `test -s Docs/Test_Results/Unreleased/visual/windows-about.png`; copy `target/release/archx-ai-lab.exe` to `deliverables/Unreleased/windows/`. | Same test result (4 passed), `PASS: Windows GUI subsystem 2 (no console)`, release build and both PNGs succeeded; exe copied. |
+| macOS | `cargo test --locked`; `cargo build --release --locked`; `ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos.png ./target/release/archx-ai-lab`; `test -s` Home PNG; `ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-about.png ./target/release/archx-ai-lab`; `test -s Docs/Test_Results/Unreleased/visual/macos-about.png`. | Same test result (4 passed), release build passed, both PNGs nonempty. |
 
-The Windows test explicitly reads the PE optional-header subsystem field and asserts GUI subsystem `2`:
+Windows GUI-subsystem assertion, run against the actual release binary:
 
 ```sh
 python -c 'import pathlib,struct; data=pathlib.Path("target/release/archx-ai-lab.exe").read_bytes(); pe=struct.unpack_from("<I",data,0x3c)[0]; subsystem=struct.unpack_from("<H",data,pe+92)[0]; assert subsystem==2, f"Expected GUI subsystem 2, found {subsystem}"; print("PASS: Windows GUI subsystem 2 (no console)")'
 ```
 
-Download output: `deliverables/Unreleased/windows/archx-ai-lab.exe` (20,240,896 bytes), SHA-256 `3f01c4351ee699d0fb346aeabd4a93be207bfc3c9620640e12589c1438974e83`. It is an unsigned portable executable, not an installer.
+| Output | Pixels | SHA-256 |
+| --- | --- | --- |
+| `visual/linux.png` | 1280 × 800 | `22f09962a2d368a1aeac3c3558d8793de5efe042c3db1a9c8eb32c864605a2df` |
+| `visual/linux-about.png` | 1280 × 800 | `cdfaac537dd9e7da3f2d2d635f4e2220a3c0c66a90dea6ad39d971e8eef1dc03` |
+| `visual/windows.png` | 1280 × 800 | `6e3f2f172d4156a592bba19ebf447a3ceefad65d11008d323d6d2b351f41dc36` |
+| `visual/windows-about.png` | 1280 × 800 | `87f640149ccaa666b731da273153884e25b2cd4ee23a7293685a9ce66a60a1c2` |
+| `visual/macos.png` | 1024 × 642 | `d5307772afcfde3ffc835c58927adf1c9c50e3c22521460baefa30e0a0935a55` |
+| `visual/macos-about.png` | 1024 × 645 | `5228ed2e2af9e5a9b1a53d2390bd83255de8e9af9de674d8d060debb0bf51ace` |
 
-**Visual inspection:** The latest Windows/Linux captures show the black/grey launcher, full Agent art, app covers **and app names within 1280 × 800**; no console is expected from the new Windows GUI-subsystem build. The macOS runner's 1024 × 642 display shows the same top layout and complete Agent artwork; the app shelf continues below the visible area and is scrollable. This is not a claim of pixel-identical rendering or of a user-run Windows session. The user's hands-on review remains the final Step 1 acceptance gate.
+Download: `deliverables/Unreleased/windows/archx-ai-lab.exe` (20,461,056 bytes), SHA-256 `caa9fc5b52b9884bf5f6f56b62dfd5dabe55f88e01253d3ab37831be166362e7`. Portable and unsigned, not an installer.
 
-Earlier attempts remain inspectable via Git history: first Linux compiler errors at `eb65c61:Docs/Test_Results/Unreleased/build/linux.log`, Linux missing X11 runtime at `e983642:Docs/Test_Results/Unreleased/build/linux.log`, the original console-subsystem build review at `ea2d690:Docs/Test_Results/Unreleased/Gui_Validation.md`, and the first black launcher capture in CI commits `d7696ff..f11f4cf`. Current full outputs are in `build/linux.log`, `build/windows.log`, and `build/macos.log`.
+**Visual inspection:** Previous run `43016569988` exposed blank shelf covers on Windows/macOS and overflowed images on Linux, despite passing tests; it is **not** counted as a visually successful iteration. The current screenshots show all four covers bounded above their labels on Windows and Linux, with consistent black/silver selected navigation on Home and About. The macOS runner's smaller viewport shows the hero and upper shelf only; the remaining content is scrollable but not fully visible in that screenshot. Pixel-identical output and normal user interaction are not claimed. Await the user's Windows hands-on approval before Step 2.
+
+Prior logs/results remain inspectable in Git history: `eb65c61` (Linux compiler failure), `e983642` (missing X11 runtime), `ea2d690` (first review build), `f11f4cf` (console fix), `40082d9` (first app launcher), and `8478e7f` (failed visual inspection with new covers). Current full runner output is the latest `build/*.log` files.

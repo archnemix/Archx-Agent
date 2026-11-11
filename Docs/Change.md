@@ -25,3 +25,10 @@
 - **Request:** Replace the flat selected About/Discover rectangle with a sleek dark pill and soft silver-grey bottom glow like the supplied reference. Make the overall launcher more distinctive, cleaner, glassier and less generic without making it dense or flashy.
 - **Roadmap effect:** Step 1 stays open for a new three-OS UI review and Windows build; do not start chat. Inspect selected states on both available pages.
 - **Design:** Use an inexpensive native Iced gradient, thin rim and subtle shadow; add four distinct monochrome app cover images so destinations read as separate apps. Keep them inert until built.
+
+## 2026-11-09 — Bounded covers and current review evidence
+
+- **Visual finding:** The reference-led run `43016569988` passed all three OS tests but its Home screenshots showed blank shelf art on Windows/macOS and art overlapping text on Linux. This was a cross-renderer layout issue, not a successful review build.
+- **Change:** Normalized four app tile images to 800 × 480, added a cropped Agent tile, clipped each cover within a fixed-height container, waited five seconds before CI snapshots, and tested decoding all four bundled covers. Kept the original full-width Agent feature image.
+- **Validation:** Run `43020392009` passed all three jobs (4 tests each), captured Home/About on each platform and asserted Windows GUI subsystem `2`. Reviewed the updated Home PNGs: covers and names are visible without overlap on 1280 × 800 Windows/Linux; compact macOS shows the shelf art but its names remain below the fold, reachable by scrolling. About PNGs from the immediately preceding run show the same glass selected state; the workflow produced new About PNGs for this run. Exact evidence and limitations are recorded in `Docs/Test_Results/Unreleased/Gui_Validation.md`.
+- **Pending:** User hands-on review and approval of the Windows launcher. Step 2 remains blocked.
