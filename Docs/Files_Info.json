@@ -230,7 +230,7 @@
       "handles": "CI organization"
     },
     ".github/workflows/gui.yml": {
-      "purpose": "Run three-OS GUI checks, screenshots, Windows PE subsystem verification and delivery.",
+      "purpose": "Build/test on three OSes; capture Home/About and verify Windows GUI delivery.",
       "inputs": [
         "Source changes and intentional trigger"
       ],
@@ -320,7 +320,7 @@
       "handles": "Application entry point"
     },
     "src/app.rs": {
-      "purpose": "Handle navigation and optional screenshot capture",
+      "purpose": "Handle launcher navigation and optional Home/About screenshot capture.",
       "inputs": [
         "User navigation and snapshot trigger"
       ],
@@ -340,7 +340,7 @@
       "handles": "Home presentation"
     },
     "src/style.rs": {
-      "purpose": "Provide black/grey/white colors and glass-like selected navigation style.",
+      "purpose": "Provide black/grey native styles and gradient-glass selected navigation.",
       "inputs": [
         "Selected and hover state"
       ],
@@ -510,7 +510,7 @@
       "handles": "Home artwork"
     },
     "src/app_tile.rs": {
-      "purpose": "Describe and render four inert app-launcher shelf entries.",
+      "purpose": "Render four unavailable apps with cached embedded cover images.",
       "inputs": [
         "App metadata and status"
       ],
@@ -518,6 +518,36 @@
         "Monochrome app tiles"
       ],
       "handles": "App-shelf presentation"
+    },
+    "assets/model-training.jpg": {
+      "purpose": "Bundle original monochrome artwork for the Model Training app.",
+      "inputs": [
+        "Generated JPEG cover image"
+      ],
+      "outputs": [
+        "Bundled app-shelf artwork"
+      ],
+      "handles": "App identity"
+    },
+    "assets/fine-tuning.jpg": {
+      "purpose": "Bundle original monochrome artwork for the Fine-tuning app.",
+      "inputs": [
+        "Generated JPEG cover image"
+      ],
+      "outputs": [
+        "Bundled app-shelf artwork"
+      ],
+      "handles": "App identity"
+    },
+    "assets/model-monitor.jpg": {
+      "purpose": "Bundle original monochrome artwork for the Model Monitor app.",
+      "inputs": [
+        "Generated JPEG cover image"
+      ],
+      "outputs": [
+        "Bundled app-shelf artwork"
+      ],
+      "handles": "App identity"
     }
   }
 }

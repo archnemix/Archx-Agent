@@ -111,7 +111,7 @@ fn home() -> Element<'static, Message> {
                 space().height(18),
                 text("Archx Agent").size(34).color(style::WHITE),
                 space().height(8),
-                text("Conversations are only the beginning.\nExplore ideas, build, research and learn.")
+                text("Chat, research, build and learn with an agent\ndesigned to work on your terms.")
                     .size(14)
                     .color(style::GREY),
                 space().height(18),
@@ -137,7 +137,7 @@ fn home() -> Element<'static, Message> {
         column![
             text("THE COLLECTION").size(10).color(style::DIM),
             space().height(7),
-            text("Explore apps").size(24).color(style::WHITE)
+            text("Your AI apps").size(24).color(style::WHITE)
         ]
         .width(Fill),
         text("04 APPS   /   MORE TO COME").size(11).color(style::DIM)
@@ -160,9 +160,9 @@ fn home() -> Element<'static, Message> {
     column![
         topbar,
         space().height(24),
-        text("Welcome to the Lab.").size(33).color(style::WHITE),
+        text("The Lab").size(38).color(style::WHITE),
         space().height(8),
-        text("Your launchpad for everything AI.").size(15).color(style::GREY),
+        text("One place for the AI apps you make your own.").size(15).color(style::GREY),
         space().height(22),
         hero,
         space().height(30),

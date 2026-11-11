@@ -3,24 +3,24 @@
 
 ## Product identity
 
-**Archx AI Lab** is the Archnemix AI/ML app launcher; **Archx Agent** is its future chat-and-agent app. Model Training, Fine-tuning, and Model Monitor are separate future destinations. Unbuilt areas must say *Coming later* or *In development* and never simulate working controls.
+**Archx AI Lab** is the Archnemix AI/ML launcher; **Archx Agent** is its future chat-and-agent app. Model Training, Fine-tuning, and Model Monitor remain separate future destinations. Unbuilt areas must say *Coming later* or *In development* and never simulate working controls.
 
-The layout takes **navigation patterns**, not artwork or branding, from desktop launchers: a persistent left rail, a featured app display, and a browsable app shelf. Epic's official support material describes Store/Library navigation; the intent here is an original AI-focused launcher, not an Epic or LDPlayer replica.
+Use the broad desktop-launcher pattern—persistent navigation, a featured destination and an app shelf—without copying Epic or LDPlayer branding, art or UI. The user's selected-menu reference is a black pill with a soft silver-grey lower glow; this is a visual direction, not a request to paste the image into the app.
 
 ## Visual system
 
-- **True black** main canvas `#080808`, rail `#0D0D0D`, surfaces `#141414` to `#202020`; crisp near-white `#F4F4F4` type, neutral grey secondary text, hairline grey outlines. No neon, saturated accent, bright gradients, or dashboard-style KPI cards.
-- **Selection:** gray translucent-looking selected navigation surface with a subtle border; lightweight solid/alpha fill instead of an expensive backdrop blur. Hover is visibly distinct. Only available pages respond to clicks.
-- **Typography:** bundled Manrope (SIL OFL) for consistency across Windows, Linux, macOS. Body 13–16px, prominent clear titles. Preserve the original license under `assets/fonts/OFL.txt`.
-- **Editorial artwork:** original generated monochrome sculpture in `assets/agent-cover.png`, embedded into the executable and limited to the Agent feature tile; it has no text or external image request. Other app covers use simple native monochrome letterforms; no distracting icon pack or copying other brands' content.
-- **Structure:** compact brand and browsing rail; feature banner for Archx Agent; app shelf with distinct tile covers, titles, categories, and availability labels. At the default 1280 × 800 viewport the app names should be visible without scrolling; on compact displays the remaining shelf can scroll. The Agent art must remain uncropped at narrower widths. The About page is the only second working destination in the first slice. Library and all AI apps remain visibly unavailable.
+- **Canvas:** `#080808` black, `#0D0D0D` rail, restrained grey surfaces and hairline borders; near-white `#F4F4F4` type with neutral grey secondary text. No neon, saturated accents or dashboard KPI cards.
+- **Active menu:** a rounded dark-to-silver-grey *native* gradient, thin light-grey rim and subtle bottom shadow. It should evoke smoked glass rather than a flat selected rectangle. No continuous blur or animation; hover is distinct, and only available pages are clickable.
+- **Type:** bundled OFL-licensed Manrope. Use uncluttered hierarchy and comfortable 13–17px body labels; avoid marketing filler and tiny navigation text.
+- **App identity:** an editorial monochrome Agent sculpture in `assets/agent-cover.png`; compact, distinct monochrome image covers for model training (`assets/model-training.jpg`), fine-tuning (`assets/fine-tuning.jpg`) and monitoring (`assets/model-monitor.jpg`). All four images are original generated assets embedded in the executable, not fetched at runtime. App names and availability states stay visible at 1280 × 800. Unlike generic alphabet cards, the cover art gives each destination its own identity without adding loud color.
+- **Structure:** slim left brand/browse rail, clear main heading, one featured Agent surface, then a shelf of independent AI apps with a title, purpose label and status. Library and apps remain inert until implemented; About is the second working destination.
 
 ## Cross-platform review
 
-- Build and run on Windows, Linux, and macOS after each GUI step. Inspect captures of the running app for typography, clipping, contrast, active states, and the full intended viewport. Actual first-run macOS capture was 1024 × 642 despite requesting 1280 × 800; compare visible content at available sizes and check that lower content can scroll. Pixel-identical OS window chrome is not possible; target a consistent **app content** layout.
-- Windows releases must use the GUI subsystem and **must not open a Command Prompt**. CI verifies the PE subsystem numeric value 2, a successful GUI snapshot, and the portable executable.
-- Keep tests/screenshots for the current and preceding two versions. The user chose repository-hosted Windows downloads; monitor executable growth and don't accumulate unnecessary old builds.
+- Build and run on Windows, Linux and macOS after each GUI step. Capture **Discover and About** to inspect both selected-menu states, image decoding, typography, cropping and contrast. Actual first-run macOS capture was limited to 1024 × 642 despite requesting 1280 × 800; lower content must remain scrollable. Target consistent app content, not byte-identical OS chrome.
+- Windows release builds use PE GUI subsystem 2 and must not open a Command Prompt. CI asserts the PE subsystem and runs the app in screenshot mode; the user still needs to confirm the normal Windows launch.
+- Retain only current and two preceding version results; Windows downloads live in the repository at the user's request. Monitor size as art/binaries change.
 
 ## Deferred
 
-Final training/monitoring UIs, more cover artwork, interactive library search, account systems, and live agent controls belong to their own future milestones. No placeholder is described as a working feature.
+Training/monitoring tools, library search, accounts, live agents and additional art belong to their own approved steps. No mock action is presented as functional.

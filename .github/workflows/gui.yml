@@ -35,6 +35,8 @@ jobs:
           (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
           xvfb-run -a env ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/linux.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-about.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/linux-about.png
       - name: Record results in repository
         if: always()
         shell: bash
@@ -63,6 +65,8 @@ jobs:
           python -c 'import pathlib,struct; data=pathlib.Path("target/release/archx-ai-lab.exe").read_bytes(); pe=struct.unpack_from("<I",data,0x3c)[0]; subsystem=struct.unpack_from("<H",data,pe+92)[0]; assert subsystem==2, f"Expected GUI subsystem 2, found {subsystem}"; print("PASS: Windows GUI subsystem 2 (no console)")' >> Docs/Test_Results/Unreleased/build/windows.log 2>&1
           ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/build/windows.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/windows.png
+          ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-about.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/build/windows.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/windows-about.png
           cp target/release/archx-ai-lab.exe deliverables/Unreleased/windows/archx-ai-lab.exe
       - name: Record results and Windows build in repository
         if: always()
@@ -90,6 +94,8 @@ jobs:
           (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) > Docs/Test_Results/Unreleased/build/macos.log 2>&1
           ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/macos.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/macos.png
+          ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-about.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/macos.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/macos-about.png
       - name: Record results in repository
         if: always()
         shell: bash

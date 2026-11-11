@@ -80,3 +80,10 @@
 - After the screenshot refinement, CI run `42992545976` passed two focused tests and the release/snapshot gates on all three OSes. Windows CI inspected the actual executable and confirmed PE subsystem 2, correcting the prior console-subsystem defect.
 - Reviewed all three images: Windows/Linux at 1280 × 800 now show Agent artwork plus all four app names/statuses without scrolling; macOS at its runner-limited 1024 × 642 shows uncropped Agent artwork and the shelf beginning below it. The GUI is intentionally black/grey/white with an app-launcher composition, not the earlier dashboard.
 - Updated the current GUI evidence record and retained prior outputs in Git history. Step 1 remains pending the user's actual Windows hands-on review; do not start chat UI until accepted or remaining issues are fixed.
+
+## Reference-led launcher refinement (2026-11-09)
+
+- The user provided a screenshot of the flat selected About state and a reference with dark glass pills lit subtly along the lower edge, and said the launcher still looked generic. Treated the references as visual direction, not assets to paste into the app.
+- Chose Iced's existing native gradient and shadow styles for a scalable selected-menu pill; generated three small monochrome cover assets to give training, fine-tuning and monitoring distinct app identities instead of repeating letter tiles. Added an About-page CI capture so the requested selected state is inspected on Windows, Linux and macOS, not only the Home state.
+- The session checkout again started at the base commit with snapshot files; restored the current branch to its existing remote tip and restored CI logs omitted from snapshots because their folder is named `build`. No new branch or product area was started.
+- Code and docs are pending runner validation. Do not claim final visual quality or a working Windows build until CI and screenshot review complete.

@@ -52,6 +52,14 @@
     "epic_launcher_structure": {
       "summary": "Epic support describes launcher navigation via Store and Library tabs/sidebars. Use only the broad launcher pattern: editorial feature and an app library, not Epic branding/assets or a copied UI.",
       "url": "https://www.epicgames.com/help/c-32735058/c-36403860/how-do-i-know-if-i-m-using-the-epic-games-launcher-preview-or-the-legacy-epic-games-launcher-a16795756?lang=en-US"
+    },
+    "iced_0_14_gradient_and_shadow": {
+      "summary": "Iced 0.14 core provides gradient::Linear with ordered stops, button::Style background/border/shadow, and Radians orientation. Used for a restrained native grey-glass selection pill; no blur shader or animation.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/core/src/gradient.rs"
+    },
+    "iced_0_14_image_cover": {
+      "summary": "Iced 0.14 gallery example uses image handles, ContentFit and border radius. Used to render bundled JPEG app cover art without runtime network requests.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/examples/gallery/src/main.rs"
     }
   }
 }

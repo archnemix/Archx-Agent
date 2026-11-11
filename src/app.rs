@@ -29,11 +29,15 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
-        Self {
-            page: Page::Home,
-            snapshot: std::env::var_os("ARCHX_SNAPSHOT").map(PathBuf::from),
-            snapshot_requested: false,
-        }
+        let snapshot = std::env::var_os("ARCHX_SNAPSHOT").map(PathBuf::from);
+        let page = if snapshot.is_some()
+            && std::env::var("ARCHX_SNAPSHOT_PAGE").as_deref() == Ok("about")
+        {
+            Page::About
+        } else {
+            Page::Home
+        };
+        Self { page, snapshot, snapshot_requested: false }
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {

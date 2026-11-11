@@ -19,3 +19,9 @@
 - **Request:** The portable Windows GUI must not leave a Command Prompt open. Replace the generic dark dashboard look with a proper app-launcher entrance inspired by Epic/LDPlayer browsing: true black, restrained grey/white, selected smoky-grey menu state, and clearly app-based AI destinations.
 - **Roadmap effect:** Reopen Step 1 for correction; do not start Step 2 until the updated Windows executable is delivered and three-OS builds, snapshots, and Windows GUI-subsystem assertion pass.
 - **Design:** Updated `Docs/design.md`. The artwork is original monochrome Agent cover imagery, not copied launcher art or neon UI.
+
+## 2026-11-09 — Reference-led active state and less generic app shelf
+
+- **Request:** Replace the flat selected About/Discover rectangle with a sleek dark pill and soft silver-grey bottom glow like the supplied reference. Make the overall launcher more distinctive, cleaner, glassier and less generic without making it dense or flashy.
+- **Roadmap effect:** Step 1 stays open for a new three-OS UI review and Windows build; do not start chat. Inspect selected states on both available pages.
+- **Design:** Use an inexpensive native Iced gradient, thin rim and subtle shadow; add four distinct monochrome app cover images so destinations read as separate apps. Keep them inert until built.

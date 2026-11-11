@@ -292,3 +292,32 @@ PASS: git diff --check
 ```
 
 Both documentation checks exited successfully locally. The actual Windows hands-on review is still pending the user.
+
+## 2026-11-09: reference-led launcher revision (pre-CI)
+
+Input: 54 repository files, including three new monochrome JPEG cover assets, revised Iced navigation style, Home/About capture workflow, and updated design records. No local Rust toolchain; screenshots and compilation require CI.
+
+Commands (repository root):
+
+```sh
+python -m venv /home/user/.venv
+/home/user/.venv/bin/pip install -q pyyaml
+/home/user/.venv/bin/python - <<'PY'
+import yaml
+from pathlib import Path
+flow=yaml.safe_load(Path('.github/workflows/gui.yml').read_text())
+assert len(flow['jobs'])==3
+print('PASS: workflow YAML parsed; 3 OS jobs')
+PY
+python -c 'import json,pathlib; r=pathlib.Path("."); files={p.as_posix() for p in r.rglob("*") if p.is_file() and ".git" not in p.parts}; index=json.loads((r/"Docs/Files_Info.json").read_text())["files"]; assert files==set(index),(files-set(index),set(index)-files); assert all(p.read_text().startswith("<!-- Purpose:") for p in r.rglob("*.md") if ".git" not in p.parts); print(f"PASS: {len(files)} inventoried files and Markdown headers")'
+git diff --check
+```
+
+Observed output:
+
+```text
+PASS: workflow YAML parsed; 3 OS jobs
+PASS: 54 inventoried files and Markdown headers
+```
+
+`git diff --check` exited successfully with no output. No Rust/GUI test result is claimed at this point.
