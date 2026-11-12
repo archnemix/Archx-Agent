@@ -5,7 +5,7 @@ use iced::widget::{button, column, container, image, row, scrollable, space, tex
 use iced::{Center, ContentFit, Element, Fill, FillPortion};
 
 use crate::app::{Message, Page};
-use crate::app_tile::{self, APPS};
+use crate::app_tile::{self, Art, APPS};
 use crate::style;
 
 static AGENT_COVER: LazyLock<image::Handle> = LazyLock::new(|| {
@@ -15,9 +15,9 @@ static BRAND: LazyLock<image::Handle> = LazyLock::new(|| {
     image::Handle::from_bytes(include_bytes!("../assets/brand/archnemix-lockup.png").to_vec())
 });
 
-pub fn view(page: Page) -> Element<'static, Message> {
+pub fn view(page: Page, hovered: Option<Art>, phase: u8) -> Element<'static, Message> {
     container(
-        row![sidebar(page), main_content(page)]
+        row![sidebar(page), main_content(page, hovered, phase)]
             .width(Fill)
             .height(Fill),
     )
@@ -66,8 +66,6 @@ fn sidebar(page: Page) -> Element<'static, Message> {
         text("    Model Training").size(13).color(style::DIM),
         space().height(15),
         text("    Fine-tuning").size(13).color(style::DIM),
-        space().height(15),
-        text("    Model Monitor").size(13).color(style::DIM),
         space().height(Fill),
         text("ARCHNEMIX").size(10).color(style::DIM)
     ]
@@ -82,9 +80,9 @@ fn sidebar(page: Page) -> Element<'static, Message> {
         .into()
 }
 
-fn main_content(page: Page) -> Element<'static, Message> {
+fn main_content(page: Page, hovered: Option<Art>, phase: u8) -> Element<'static, Message> {
     scrollable(match page {
-        Page::Home => home(),
+        Page::Home => home(hovered, phase),
         Page::About => about(),
     })
     .width(Fill)
@@ -92,7 +90,7 @@ fn main_content(page: Page) -> Element<'static, Message> {
     .into()
 }
 
-fn home() -> Element<'static, Message> {
+fn home(hovered: Option<Art>, phase: u8) -> Element<'static, Message> {
     let topbar = row![
         text("DISCOVER").size(11).color(style::GREY).width(Fill),
         text("ARCHX AI LAB    /    ARCHNEMIX").size(11).color(style::DIM)
@@ -135,15 +133,14 @@ fn home() -> Element<'static, Message> {
             text("Your AI apps").size(24).color(style::WHITE)
         ]
         .width(Fill),
-        text("04 APPS   /   MORE TO COME").size(11).color(style::DIM)
+        text("03 APPS   /   MORE TO COME").size(11).color(style::DIM)
     ]
     .align_y(Center);
 
     let apps = row![
-        app_tile::view(&APPS[0]),
-        app_tile::view(&APPS[1]),
-        app_tile::view(&APPS[2]),
-        app_tile::view(&APPS[3])
+        app_tile::view(&APPS[0], 0),
+        app_tile::view(&APPS[1], if hovered == Some(Art::Training) { phase } else { 0 }),
+        app_tile::view(&APPS[2], if hovered == Some(Art::Tuning) { phase } else { 0 })
     ]
     .spacing(17);
 
@@ -186,7 +183,7 @@ fn about() -> Element<'static, Message> {
             column![
                 text("THIS IS THE BEGINNING").size(11).color(style::DIM),
                 space().height(18),
-                text("The Lab starts with its launcher. Archx Agent, model training, fine-tuning and observation will become available as each app is built and tested.")
+                text("The Lab starts with its launcher. Archx Agent, model training and fine-tuning will become available as each app is built and tested.")
                     .size(17)
                     .color(style::WHITE)
             ]

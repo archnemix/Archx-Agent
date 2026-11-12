@@ -100,3 +100,8 @@
 
 - The first attempt at a Blender-based real-3D asset workflow in this restricted sandbox could not start: `bpy` 4.5.16 requires `libXrender.so.1`, which is not installed, and `apt-get` cannot reach Debian mirrors here. This is not a UI compile failure. Use an available validated renderer/CI or user-supplied model files for the actual 3D request; do not replace it with a flat 2D spin and mark it finished.
 - Run `43031034141` passed Linux/Windows/macOS and Windows product metadata check. Its client-area screenshots show the supplied logo and removed preview copy, but cannot show the titlebar/taskbar icon or animation. PE certificate table `(0, 0)` confirms the binary is still unsigned. The user must not be told it has a verified publisher.
+
+## Text-based launcher correction (2026-11-09)
+
+- The user changed the visual scope: only Archx Agent gets an animated image/model once approved and supplied. Training and Fine-tuning can communicate their different roles with a small typographic stage sequence instead of potentially misleading generated 3D objects. A hover-only timer avoids idle animation work; leaving the card resets its highlight. The words are conceptual, not a real progress indicator. Model Monitor is hidden for now.
+- `mouse_area::on_enter/on_exit` and a batched timer subscription in Iced 0.14 provide a small native implementation; CI can capture two frozen phases per OS and test a changed text crop. Synthetic phase captures and unit transitions are evidence for rendering/state, but cannot by themselves prove physical mouse movement or timing smoothness on a user's machine.

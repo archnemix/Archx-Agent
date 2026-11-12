@@ -35,6 +35,16 @@ jobs:
           (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
           xvfb-run -a env ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/linux.png
+          for phase in 1 2; do
+            xvfb-run -a env ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-training-hover-$phase.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
+            test -s Docs/Test_Results/Unreleased/visual/linux-training-hover-$phase.png
+          done
+          xvfb-run -a env ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=1 ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-tuning-hover-1.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/linux-tuning-hover-1.png
+          for card in training tuning; do
+            if cmp -s Docs/Test_Results/Unreleased/visual/linux.png Docs/Test_Results/Unreleased/visual/linux-$card-hover-1.png; then echo "FAIL: Linux $card hover matches rest" >> Docs/Test_Results/Unreleased/build/linux.log; exit 1; fi
+            echo "PASS: Linux $card hover phase differs from rest" >> Docs/Test_Results/Unreleased/build/linux.log
+          done
           xvfb-run -a env ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-about.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/linux-about.png
       - name: Record results in repository
@@ -66,6 +76,16 @@ jobs:
           powershell.exe -NoProfile -Command '$info=(Get-Item "target/release/archx-ai-lab.exe").VersionInfo; if ($info.CompanyName -ne "Archnemix" -or $info.ProductName -ne "Archx AI Lab") { throw "Incorrect PE product metadata" }; Write-Output "PASS: Archnemix Windows product metadata (not a digital signature)"' >> Docs/Test_Results/Unreleased/build/windows.log 2>&1
           ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/build/windows.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/windows.png
+          for phase in 1 2; do
+            ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-training-hover-$phase.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/build/windows.log 2>&1
+            test -s Docs/Test_Results/Unreleased/visual/windows-training-hover-$phase.png
+          done
+          ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=1 ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-tuning-hover-1.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/build/windows.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/windows-tuning-hover-1.png
+          for card in training tuning; do
+            if cmp -s Docs/Test_Results/Unreleased/visual/windows.png Docs/Test_Results/Unreleased/visual/windows-$card-hover-1.png; then echo "FAIL: Windows $card hover matches rest" >> Docs/Test_Results/Unreleased/build/windows.log; exit 1; fi
+            echo "PASS: Windows $card hover phase differs from rest" >> Docs/Test_Results/Unreleased/build/windows.log
+          done
           ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-about.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/build/windows.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/windows-about.png
           cp target/release/archx-ai-lab.exe deliverables/Unreleased/windows/archx-ai-lab.exe
@@ -95,6 +115,16 @@ jobs:
           (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) > Docs/Test_Results/Unreleased/build/macos.log 2>&1
           ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/macos.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/macos.png
+          for phase in 1 2; do
+            ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-training-hover-$phase.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/macos.log 2>&1
+            test -s Docs/Test_Results/Unreleased/visual/macos-training-hover-$phase.png
+          done
+          ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=1 ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-tuning-hover-1.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/macos.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/macos-tuning-hover-1.png
+          for card in training tuning; do
+            if cmp -s Docs/Test_Results/Unreleased/visual/macos.png Docs/Test_Results/Unreleased/visual/macos-$card-hover-1.png; then echo "FAIL: macOS $card hover matches rest" >> Docs/Test_Results/Unreleased/build/macos.log; exit 1; fi
+            echo "PASS: macOS $card hover phase differs from rest" >> Docs/Test_Results/Unreleased/build/macos.log
+          done
           ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-about.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/macos.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/macos-about.png
       - name: Record results in repository

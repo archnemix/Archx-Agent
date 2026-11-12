@@ -6,6 +6,7 @@ use iced::time;
 use iced::window;
 use iced::{Element, Subscription, Task};
 
+use crate::app_tile::Art;
 use crate::home;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -17,6 +18,8 @@ pub enum Page {
 #[derive(Debug, Clone)]
 pub enum Message {
     Navigate(Page),
+    TileHover(Art, bool),
+    Animate,
     SnapshotTick,
     SnapshotReady(window::screenshot::Screenshot),
 }
@@ -25,6 +28,9 @@ pub struct App {
     page: Page,
     snapshot: Option<PathBuf>,
     snapshot_requested: bool,
+    hovered: Option<Art>,
+    phase: u8,
+    frozen_snapshot_phase: bool,
 }
 
 impl App {
@@ -37,12 +43,50 @@ impl App {
         } else {
             Page::Home
         };
-        Self { page, snapshot, snapshot_requested: false }
+        let preview_art = if snapshot.is_some() && page == Page::Home {
+            match std::env::var("ARCHX_SNAPSHOT_HOVER").as_deref() {
+                Ok("training") => Some(Art::Training),
+                Ok("tuning") => Some(Art::Tuning),
+                _ => None,
+            }
+        } else {
+            None
+        };
+        let phase = if snapshot.is_some() {
+            std::env::var("ARCHX_SNAPSHOT_PHASE")
+                .ok()
+                .and_then(|value| value.parse::<u8>().ok())
+                .filter(|phase| *phase < 3)
+        } else {
+            None
+        };
+        Self {
+            page,
+            snapshot,
+            snapshot_requested: false,
+            hovered: preview_art,
+            phase: phase.unwrap_or(0),
+            frozen_snapshot_phase: phase.is_some(),
+        }
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::Navigate(page) => self.page = page,
+            Message::Navigate(page) => {
+                self.page = page;
+                self.hovered = None;
+            }
+            Message::TileHover(art, true) if self.page == Page::Home && art != Art::Agent => {
+                self.hovered = Some(art);
+                self.phase = 0;
+            }
+            Message::TileHover(art, false) if self.hovered == Some(art) => {
+                self.hovered = None;
+                self.phase = 0;
+            }
+            Message::Animate if self.hovered.is_some() && !self.frozen_snapshot_phase => {
+                self.phase = (self.phase + 1) % 3;
+            }
             Message::SnapshotTick if self.snapshot.is_some() && !self.snapshot_requested => {
                 self.snapshot_requested = true;
                 return window::latest()
@@ -72,15 +116,21 @@ impl App {
     }
 
     pub fn view(&self) -> Element<'_, Message> {
-        home::view(self.page)
+        home::view(self.page, self.hovered, self.phase)
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
-        if self.snapshot.is_some() && !self.snapshot_requested {
+        let snapshot = if self.snapshot.is_some() && !self.snapshot_requested {
             time::every(Duration::from_secs(5)).map(|_| Message::SnapshotTick)
         } else {
             Subscription::none()
-        }
+        };
+        let animation = if self.page == Page::Home && self.hovered.is_some() && !self.frozen_snapshot_phase {
+            time::every(Duration::from_millis(700)).map(|_| Message::Animate)
+        } else {
+            Subscription::none()
+        };
+        Subscription::batch([snapshot, animation])
     }
 }
 
@@ -96,5 +146,24 @@ mod tests {
         assert_eq!(app.page, Page::About);
         let _ = app.update(Message::Navigate(Page::Home));
         assert_eq!(app.page, Page::Home);
+    }
+
+    #[test]
+    fn type_motion_only_runs_while_an_unavailable_card_is_hovered() {
+        let mut app = App::new();
+        let _ = app.update(Message::TileHover(Art::Agent, true));
+        let _ = app.update(Message::Animate);
+        assert_eq!(app.phase, 0);
+        let _ = app.update(Message::TileHover(Art::Training, true));
+        let _ = app.update(Message::Animate);
+        assert_eq!(app.phase, 1);
+        let _ = app.update(Message::TileHover(Art::Training, false));
+        let _ = app.update(Message::Animate);
+        assert_eq!(app.phase, 0);
+        let _ = app.update(Message::TileHover(Art::Tuning, true));
+        let _ = app.update(Message::Navigate(Page::About));
+        let _ = app.update(Message::Animate);
+        assert_eq!(app.hovered, None);
+        assert_eq!(app.phase, 0);
     }
 }

@@ -260,7 +260,7 @@
       "handles": "UI visual consistency"
     },
     "assets/README.md": {
-      "purpose": "Explain bundled resources",
+      "purpose": "Describe current embedded Agent placeholder and other bundled visual resources.",
       "inputs": [
         "Asset layout"
       ],
@@ -320,7 +320,7 @@
       "handles": "Application entry point"
     },
     "src/app.rs": {
-      "purpose": "Handle navigation and delayed Home/About snapshots after image loading.",
+      "purpose": "Handle navigation, a hover-only typography animation timer, and delayed Home/About snapshots with optional frozen stage phase.",
       "inputs": [
         "User navigation and snapshot trigger"
       ],
@@ -330,7 +330,7 @@
       "handles": "Shell state"
     },
     "src/home.rs": {
-      "purpose": "Render the launcher Home/About pages with a user-provided Archnemix sidebar mark and without preview labels.",
+      "purpose": "Render the three-app AI Lab launcher and About view without Model Monitor.",
       "inputs": [
         "Current page"
       ],
@@ -510,7 +510,7 @@
       "handles": "Home artwork"
     },
     "src/app_tile.rs": {
-      "purpose": "Render four inert app entries with bounded, normalized, cached image covers.",
+      "purpose": "Render the Agent temporary image and two hover-animated text panels for unavailable model apps.",
       "inputs": [
         "App metadata and status"
       ],
@@ -518,36 +518,6 @@
         "Monochrome app tiles"
       ],
       "handles": "App-shelf presentation"
-    },
-    "assets/model-training.jpg": {
-      "purpose": "Bundle original monochrome artwork for the Model Training app.",
-      "inputs": [
-        "Generated JPEG cover image"
-      ],
-      "outputs": [
-        "Bundled app-shelf artwork"
-      ],
-      "handles": "App identity"
-    },
-    "assets/fine-tuning.jpg": {
-      "purpose": "Bundle original monochrome artwork for the Fine-tuning app.",
-      "inputs": [
-        "Generated JPEG cover image"
-      ],
-      "outputs": [
-        "Bundled app-shelf artwork"
-      ],
-      "handles": "App identity"
-    },
-    "assets/model-monitor.jpg": {
-      "purpose": "Bundle original monochrome artwork for the Model Monitor app.",
-      "inputs": [
-        "Generated JPEG cover image"
-      ],
-      "outputs": [
-        "Bundled app-shelf artwork"
-      ],
-      "handles": "App identity"
     },
     "assets/agent-tile.jpg": {
       "purpose": "Provide a cropped, 800 × 480 Agent app-shelf cover.",

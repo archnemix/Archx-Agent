@@ -1,18 +1,17 @@
-//! Purpose: Describes and renders distinct, unavailable AI apps in the launcher shelf.
+//! Purpose: Renders the Agent placeholder and two unavailable AI apps as restrained animated type.
 use std::sync::LazyLock;
 
-use iced::widget::{column, container, image, space, text};
+use iced::widget::{column, container, image, mouse_area, row, space, text};
 use iced::{ContentFit, Element, Fill, FillPortion};
 
 use crate::app::Message;
 use crate::style;
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Art {
     Agent,
     Training,
     Tuning,
-    Monitor,
 }
 
 pub struct AppTile {
@@ -21,47 +20,62 @@ pub struct AppTile {
     pub art: Art,
 }
 
-pub const APPS: [AppTile; 4] = [
-    AppTile { name: "Archx Agent", category: "CHAT & AGENTS", art: Art::Agent },
+pub const APPS: [AppTile; 3] = [
+    AppTile { name: "Archx Agent", category: "SIX MODES / ONE AGENT", art: Art::Agent },
     AppTile { name: "Model Training", category: "BUILD MODELS", art: Art::Training },
     AppTile { name: "Fine-tuning", category: "REFINE MODELS", art: Art::Tuning },
-    AppTile { name: "Model Monitor", category: "OBSERVE MODELS", art: Art::Monitor },
 ];
 
 static AGENT: LazyLock<image::Handle> = LazyLock::new(|| {
     image::Handle::from_bytes(include_bytes!("../assets/agent-tile.jpg").to_vec())
 });
-static TRAINING: LazyLock<image::Handle> = LazyLock::new(|| {
-    image::Handle::from_bytes(include_bytes!("../assets/model-training.jpg").to_vec())
-});
-static TUNING: LazyLock<image::Handle> = LazyLock::new(|| {
-    image::Handle::from_bytes(include_bytes!("../assets/fine-tuning.jpg").to_vec())
-});
-static MONITOR: LazyLock<image::Handle> = LazyLock::new(|| {
-    image::Handle::from_bytes(include_bytes!("../assets/model-monitor.jpg").to_vec())
-});
 
-fn art(art: Art) -> image::Handle {
-    match art {
-        Art::Agent => AGENT.clone(),
-        Art::Training => TRAINING.clone(),
-        Art::Tuning => TUNING.clone(),
-        Art::Monitor => MONITOR.clone(),
-    }
-}
-
-pub fn view(tile: &'static AppTile) -> Element<'static, Message> {
-    let cover = container(
-        image(art(tile.art))
+pub fn view(tile: &'static AppTile, phase: u8) -> Element<'static, Message> {
+    let cover: Element<'static, Message> = match tile.art {
+        Art::Agent => container(
+            image(AGENT.clone())
+                .width(Fill)
+                .height(Fill)
+                .content_fit(ContentFit::Contain)
+                .border_radius(10),
+        )
+        .width(Fill)
+        .height(140)
+        .clip(true)
+        .style(style::cover)
+        .into(),
+        Art::Training | Art::Tuning => {
+            let (eyebrow, headline, steps) = match tile.art {
+                Art::Training => ("MODEL / TRAINING", "Build from data.", ["DATA", "LEARN", "REVIEW"]),
+                Art::Tuning => ("MODEL / FINE-TUNING", "Refine what's there.", ["BASE", "ADAPT", "CHECK"]),
+                Art::Agent => unreachable!(),
+            };
+            let stages = steps.into_iter().enumerate().fold(row![].spacing(16), |row, (index, label)| {
+                row.push(text(label).size(11).color(if index == phase as usize { style::WHITE } else { style::DIM }))
+            });
+            let panel = container(
+                column![
+                    text(eyebrow).size(10).color(style::GREY),
+                    space().height(18),
+                    text(headline).size(23).color(style::WHITE),
+                    space().height(Fill),
+                    stages
+                ]
+                .width(Fill)
+                .height(Fill)
+                .padding(19),
+            )
             .width(Fill)
-            .height(Fill)
-            .content_fit(ContentFit::Contain)
-            .border_radius(10),
-    )
-    .width(Fill)
-    .height(140)
-    .clip(true)
-    .style(style::cover);
+            .height(140)
+            .clip(true)
+            .style(style::cover);
+
+            mouse_area(panel)
+                .on_enter(Message::TileHover(tile.art, true))
+                .on_exit(Message::TileHover(tile.art, false))
+                .into()
+        }
+    };
 
     column![
         cover,
@@ -78,25 +92,21 @@ pub fn view(tile: &'static AppTile) -> Element<'static, Message> {
 
 #[cfg(test)]
 mod tests {
-    use super::APPS;
+    use super::{Art, APPS};
     use std::collections::HashSet;
 
     #[test]
-    fn app_tiles_have_unique_names() {
+    fn app_tiles_have_unique_names_and_only_the_agreed_destinations() {
         let names: HashSet<_> = APPS.iter().map(|app| app.name).collect();
         assert_eq!(names.len(), APPS.len());
+        assert_eq!(APPS.len(), 3);
+        assert!(APPS.iter().all(|app| app.art != Art::Agent || app.name == "Archx Agent"));
     }
 
     #[test]
-    fn every_cover_decodes_at_the_expected_aspect_ratio() {
-        for bytes in [
-            &include_bytes!("../assets/agent-tile.jpg")[..],
-            &include_bytes!("../assets/model-training.jpg")[..],
-            &include_bytes!("../assets/fine-tuning.jpg")[..],
-            &include_bytes!("../assets/model-monitor.jpg")[..],
-        ] {
-            let cover = ::image::load_from_memory(bytes).expect("Bundled app cover should decode");
-            assert_eq!((cover.width(), cover.height()), (800, 480));
-        }
+    fn agent_placeholder_decodes() {
+        let cover = ::image::load_from_memory(include_bytes!("../assets/agent-tile.jpg"))
+            .expect("Bundled Agent cover should decode");
+        assert_eq!((cover.width(), cover.height()), (800, 480));
     }
 }

@@ -381,3 +381,31 @@ git diff --check
 ```
 
 Observed `PASS: 65 inventoried files; rough idea and docs link validated`. `git diff --check` exited 0 with no output. No GUI code or roadmap milestone changed, so no GUI runner was invoked.
+
+## 2026-11-09: three-card text motion pre-CI
+
+Inputs: new three-card source, three-OS workflow, updated file inventory (62 files). Commands and observed outputs:
+
+```sh
+python - <<'PY'
+import json
+from pathlib import Path
+root=Path('.'); files={p.as_posix() for p in root.rglob('*') if p.is_file() and '.git' not in p.parts}; indexed=set(json.loads((root/'Docs/Files_Info.json').read_text())['files']); print(len(files),len(indexed),'missing',sorted(files-indexed),'stale',sorted(indexed-files)); assert files==indexed
+PY
+# output: 62 62 missing [] stale []
+/home/user/.venv/bin/python - <<'PY'
+import yaml
+with open('.github/workflows/gui.yml') as file: workflow=yaml.safe_load(file)
+assert set(workflow['jobs'])=={'linux','windows','macos'}
+for os in ('linux','windows','macos'):
+    script=next(step['run'] for step in workflow['jobs'][os]['steps'] if step.get('name')=='Build, test, and screenshot')
+    assert f'{os}-training-hover-$phase.png' in script
+    assert f'{os}-tuning-hover-1.png' in script
+print('PASS: three-OS workflow YAML and phase snapshot inputs')
+PY
+# output: PASS: three-OS workflow YAML and phase snapshot inputs
+git diff --check
+# output: none; exit 0
+```
+
+Rust toolchain remains unavailable locally. Compilation, focused tests, release snapshots, and phase-difference checks still need the triggered three-OS CI run; no runtime or user hover success is claimed by this precheck.

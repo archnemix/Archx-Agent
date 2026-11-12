@@ -84,6 +84,14 @@
     "microsoft_artifact_signing_eligibility": {
       "summary": "Official 2026 quickstart lists restricted country eligibility for Public Trust organization validation; Pakistan is not listed. This is only one possible provider. Need to confirm Archnemix legal entity location and obtain an appropriate identity-validated certificate/service before signing; do not assume eligibility or create fake self-signed publisher.",
       "url": "https://learn.microsoft.com/en-us/azure/artifact-signing/quickstart"
+    },
+    "iced_0_14_hover_and_subscription": {
+      "summary": "Iced 0.14 mouse_area exposes on_enter/on_exit messages for a hovered text-only card, and Subscription::batch combines the existing snapshot timer with a hover-only animation tick. This does not imply click/navigation. Hover timer should stop on mouse exit or About.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/mouse_area.rs"
+    },
+    "iced_0_14_subscription_batch": {
+      "summary": "Iced 0.14 Subscription::batch combines independent subscriptions, allowing snapshot and hover animation timers to coexist.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/futures/src/subscription.rs"
     }
   }
 }
