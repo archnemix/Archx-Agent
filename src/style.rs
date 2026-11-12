@@ -12,25 +12,33 @@ pub const DIM: Color = Color::from_rgb8(145, 145, 145);
 
 // Type roles and spacing are specified once in Docs/design.md and reused by views.
 #[cfg(not(target_os = "macos"))]
-const DISPLAY_FAMILY: font::Family = font::Family::Name("Space Grotesk");
-#[cfg(target_os = "macos")]
-const DISPLAY_FAMILY: font::Family = font::Family::Name("Manrope");
-
 pub const DISPLAY: Font = Font {
-    family: DISPLAY_FAMILY,
+    family: font::Family::Name("Space Grotesk"),
     weight: font::Weight::Medium,
     ..Font::DEFAULT
 };
+#[cfg(not(target_os = "macos"))]
 pub const DISPLAY_BOLD: Font = Font {
-    family: DISPLAY_FAMILY,
+    family: font::Family::Name("Space Grotesk"),
     weight: font::Weight::Semibold,
     ..Font::DEFAULT
 };
+#[cfg(not(target_os = "macos"))]
 pub const LABEL: Font = Font {
     family: font::Family::Name("Manrope"),
     weight: font::Weight::Medium,
     ..Font::DEFAULT
 };
+
+// Explicit non-Normal weights for the variable Manrope caused macOS glyph
+// advances to overlap across the entire window, even for unmodified Agent.
+// Keep its existing default font while retaining the size-based hierarchy.
+#[cfg(target_os = "macos")]
+pub const DISPLAY: Font = Font::with_name("Manrope");
+#[cfg(target_os = "macos")]
+pub const DISPLAY_BOLD: Font = Font::with_name("Manrope");
+#[cfg(target_os = "macos")]
+pub const LABEL: Font = Font::with_name("Manrope");
 pub const TYPE_LABEL: f32 = 11.0;
 pub const TYPE_BODY: f32 = 14.0;
 pub const TYPE_SECTION: f32 = 24.0;
@@ -153,7 +161,16 @@ mod tests {
     fn model_labs_use_native_gradient_and_selective_display_weight() {
         assert!(matches!(workbench_surface(&Theme::Dark, false).background, Some(Background::Gradient(_))));
         assert!(matches!(workbench_surface(&Theme::Dark, true).background, Some(Background::Gradient(_))));
-        assert_eq!(DISPLAY.weight, font::Weight::Medium);
-        assert_eq!(DISPLAY_BOLD.weight, font::Weight::Semibold);
+        #[cfg(not(target_os = "macos"))]
+        {
+            assert_eq!(DISPLAY.weight, font::Weight::Medium);
+            assert_eq!(DISPLAY_BOLD.weight, font::Weight::Semibold);
+        }
+        #[cfg(target_os = "macos")]
+        {
+            assert_eq!(DISPLAY.weight, font::Weight::Normal);
+            assert_eq!(DISPLAY_BOLD.weight, font::Weight::Normal);
+            assert_eq!(LABEL.weight, font::Weight::Normal);
+        }
     }
 }

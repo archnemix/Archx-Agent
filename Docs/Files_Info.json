@@ -340,7 +340,7 @@
       "handles": "Home presentation"
     },
     "src/style.rs": {
-      "purpose": "Centralize two-font roles (Manrope display fallback on macOS), contrast palette, spacing and native surface styles.",
+      "purpose": "Centralize two-font roles (Manrope Normal-only display fallback on macOS), contrast palette, spacing and native surface styles.",
       "inputs": [
         "Selected and hover state"
       ],

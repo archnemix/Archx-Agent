@@ -499,3 +499,7 @@ Run `43227832253` passed all three runner jobs and 8 tests per OS but macOS `vis
 ## 2026-11-09: second macOS font capture
 
 Run `43231859324` passed 8 tests per OS and release builds, but `visual/macos-tuning-hover-2.png` still shows glyph overlap with two **static** Space Grotesk instances registered. Thus the static-instance change did not fix the macOS rendering problem. A platform-scoped fallback now registers only Manrope on macOS and maps display roles to that family; Linux/Windows retain static Space Grotesk. This requires another full run and visual review before acceptance.
+
+## 2026-11-09: Manrope-only macOS visual inspection
+
+Run `43235460451` passed all three OS jobs and 8 tests each, but the macOS screenshot still overlaps text although Space Grotesk is **not** registered. Weight selection for the bundled Manrope variable font is the remaining new rendering difference; macOS font roles now use Manrope Normal only. This is a hypothesis requiring a new visual run, not an established upstream Iced issue.
