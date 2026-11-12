@@ -1,5 +1,29 @@
 <!-- Purpose: Records current three-OS GUI test commands, outputs, screenshots, visual review, and Windows delivery. -->
-# AI Lab launcher validation — Agent kinetic type and prior reviews
+# AI Lab launcher validation — workbench typography and Agent visual
+
+## Current model-workbench revision (2026-11-09)
+
+Source `685b8dc`, CI run [`43239295666`](https://github.com/archnemix/Archx-Agent/actions/runs/43239295666) passed **sequential Linux, Windows and macOS** jobs: each ran `cargo test --locked` (**8 passed; 0 failed**) then `cargo build --release --locked`. Build, test, screenshot and PE outputs reside under `non_visual/{linux,windows,macos}.log`; GUI captures reside only under `visual/`. The Linux job also ran `cargo generate-lockfile` and used `xvfb-run -a env` to launch the native GUI. Windows logged `PASS: Windows GUI subsystem 2 (no console)` and `PASS: Archnemix Windows product metadata (not a digital signature)`. The latest Windows executable is `deliverables/Unreleased/windows/archx-ai-lab.exe`, **19,738,112 bytes**, SHA-256 `b7baa8c187e6a63111c6402b516e0649444ddba6daa13406dc0d44357b43969d`. It is portable and **unsigned**; a verified publisher is not claimed.
+
+The new section reads `EXPLORE / AI workspaces`; Model Training presents **MODEL FORGE** with a large `DESIGN / TRAIN / EVALUATE` sequence, Fine-tuning presents **REFINEMENT STUDIO** with `SELECT / ADAPT / VALIDATE`. Each changing word occupies the tile's primary visual space; the marker and counter follow the same phase. Agent hero/shelf typography remains unchanged. Both model destinations remain labelled `COMING LATER`; the animated phases are conceptual, not live progress. `Docs/design.md` defines fonts, weights, contrast, size and spacing; Linux/Windows use Space Grotesk display roles plus Manrope, while macOS uses Manrope Normal for all roles after two visibly broken font-weight trials. This is a documented rendering fallback, not a claim of cross-platform font identity.
+
+Per OS (`OS=linux|windows|macos`; executable ends `.exe` on Windows), the workflow saved Home and About, Agent frozen phases 1/3, and two frozen hover phases for each model tile:
+
+```sh
+cargo test --locked
+cargo build --release --locked
+ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/OS.png ./target/release/archx-ai-lab
+ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/OS-about.png ./target/release/archx-ai-lab
+for phase in 1 2; do
+  ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/OS-training-hover-$phase.png ./target/release/archx-ai-lab
+  ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/OS-tuning-hover-$phase.png ./target/release/archx-ai-lab
+done
+```
+
+The workflow also captures Agent phases 1/3 with `ARCHX_SNAPSHOT_AGENT_PHASE=$phase` and checks each capture exists. Local Pillow `ImageChops.difference` confirmed that within the Training and Tuning tile crops **phase 1 differs from phase 2 on all three OSes** (six true differences), beyond the workflow's rest-vs-hover `cmp -s` checks. Visual inspection of final Windows and macOS tuning-phase-2 images shows legible headings, typography and markers inside bounded cards. macOS's smaller 1024 × 645 viewport shows only the upper shelf but is scrollable. Frozen states and timers do **not** verify physical pointer hover or smoothness in an end user's session; hands-on approval remains necessary. In particular, the earlier runs `43227832253`, `43231859324` and `43235460451` **passed tests but had corrupted macOS text**, so they were rejected on visual review. Latest macOS capture is legible again; do not treat success of previous runs as equivalent.
+
+## Previous evidence (historical; hashes/build sizes below refer to earlier revisions)
+
 
 ## Agent typography / transparent sidebar revision (2026-11-09)
 

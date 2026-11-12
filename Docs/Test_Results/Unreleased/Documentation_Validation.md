@@ -503,3 +503,7 @@ Run `43231859324` passed 8 tests per OS and release builds, but `visual/macos-tu
 ## 2026-11-09: Manrope-only macOS visual inspection
 
 Run `43235460451` passed all three OS jobs and 8 tests each, but the macOS screenshot still overlaps text although Space Grotesk is **not** registered. Weight selection for the bundled Manrope variable font is the remaining new rendering difference; macOS font roles now use Manrope Normal only. This is a hypothesis requiring a new visual run, not an established upstream Iced issue.
+
+## 2026-11-09: final visual/non-visual evidence and docs
+
+Source `685b8dc` run `43239295666`: Linux, Windows and macOS each passed `cargo test --locked` (8/8) and `cargo build --release --locked`. Captured final macOS tuning phase 2 is readable again with Manrope Normal-only fallback; Windows tuning phase 2 likewise has legible bounded artwork. From repository root, Pillow `ImageChops.difference` on model-panel crops for `visual/{linux,windows,macos}-{training,tuning}-hover-{1,2}.png` returned a nonempty bbox in all six OS/card comparisons. `Docs/Test_Results/Unreleased/Gui_Validation.md` records inputs, outputs, scope limits and the unsigned Windows artifact. This verifies frozen visual states, **not** pointer simulation or smoothness in real use.
