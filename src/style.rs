@@ -26,14 +26,14 @@ pub const LABEL: Font = Font {
     weight: font::Weight::Medium,
     ..Font::DEFAULT
 };
-pub const TYPE_LABEL: u16 = 11;
-pub const TYPE_BODY: u16 = 14;
-pub const TYPE_SECTION: u16 = 24;
-pub const TYPE_PAGE: u16 = 38;
-pub const SPACE_1: u16 = 8;
-pub const SPACE_2: u16 = 16;
-pub const SPACE_3: u16 = 24;
-pub const SPACE_4: u16 = 36;
+pub const TYPE_LABEL: f32 = 11.0;
+pub const TYPE_BODY: f32 = 14.0;
+pub const TYPE_SECTION: f32 = 24.0;
+pub const TYPE_PAGE: f32 = 38.0;
+pub const SPACE_1: f32 = 8.0;
+pub const SPACE_2: f32 = 16.0;
+pub const SPACE_3: f32 = 24.0;
+pub const SPACE_4: f32 = 36.0;
 
 pub fn canvas(_: &Theme) -> container::Style {
     container::Style::default().background(BLACK)

@@ -487,3 +487,7 @@ git diff --check
 ```
 
 Observed: `PASS: YAML and all three OS visual/non-visual paths`; `PASS: 78 files inventoried; font license present`; diff check exited 0 without output. These are documentation/config checks, not a claim that the new font renders properly or animation works before CI.
+
+## 2026-11-09: failed first workbench compile and correction
+
+Run `43227366516`, source `111b142`, failed Linux `cargo test --locked` with `error[E0277]: the trait bound iced::Pixels: From<u16> is not satisfied` in `src/app_tile.rs` and `src/home.rs`, and `iced::Length: From<u16>` for spacing. Exact stdout/stderr is preserved in `non_visual/linux.log` at this run's evidence commit `190d02c`; Windows/macOS jobs were skipped. After verifying Iced's `Pixels`, `Length` and `Padding` conversions, shared type/spacing constants were corrected to `f32`. Re-run is required before visual or cross-OS success claims.
