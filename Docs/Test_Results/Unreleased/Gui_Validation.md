@@ -1,5 +1,18 @@
 <!-- Purpose: Records current three-OS GUI test commands, outputs, screenshots, visual review, and Windows delivery. -->
-# AI Lab launcher validation — workbench typography and Agent visual
+# AI Lab launcher validation — Agent/Settings UI preview
+
+## Current Step 2 UI-only review (2026-11-09)
+
+Source `9038f01`, GitHub Actions run [`43253945098`](https://github.com/archnemix/Archx-Agent/actions/runs/43253945098): sequential **Linux, Windows, macOS all succeeded**, each running `cargo test --locked` (**11 passed; 0 failed**), `cargo build --release --locked`, and native screenshots. Per-OS complete commands/output and native launch errors, if any, are in `non_visual/{linux,windows,macos}.log`; PNGs are in `visual/`. Linux launches under `xvfb-run -a env`; Windows executable uses `.exe`. Windows log also contains `PASS: Windows GUI subsystem 2 (no console)` and `PASS: Archnemix Windows product metadata (not a digital signature)`.
+
+The **shared Lab rail** navigates to Archx Agent and global Settings. Agent has an inner Conversations rail, session-only empty draft navigation, six preview modes, and a disabled charcoal composer with readable placeholder. Settings has Memory Light / Memory Heavy / Custom and the Agent-only custom choice. Neither memory selections nor drafts persist, and none of these controls load/unload an engine, send messages, store conversation history or convert a chat. The user deferred history conversion and edited-message-tree semantics until real chat functionality. Launcher Agent artwork was not revised.
+
+All three OSes captured `visual/{OS}-agent.png`, `{OS}-settings.png`, `{OS}-coding.png` (snapshot-only `ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_MODE=3`), and `{OS}-custom.png` (snapshot-only `ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_MEMORY=custom`). Each capture is nonempty. Visually inspected final Windows Coding and Custom plus macOS Coding: selected chips and Custom row are bounded/legible, and the disabled composer no longer shows the bright default disabled style. These captures show initial/alternate states, **not** real pointer or keyboard interaction; state unit tests cover draft selection, mode bounds, Settings-only preview updates and resets on new App construction. No backend, memory allocation measurements, persistence or interaction smoothness is claimed.
+
+Portable unsigned Windows review executable: [`deliverables/Unreleased/windows/archx-ai-lab.exe`](../../../deliverables/Unreleased/windows/archx-ai-lab.exe), **19,922,432 bytes**, SHA-256 `479837025a6f787abfee14d5225a55c05763b17d795fba84cc7ff822afe8580e`. It is **not** an installer or verified-publisher signed build. Step 2 awaits user visual/hands-on approval before Step 3.
+
+## Previous evidence (historical; hashes/build sizes below refer to earlier revisions)
+
 
 ## Current model-workbench revision (2026-11-09)
 

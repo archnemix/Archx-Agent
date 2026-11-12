@@ -515,3 +515,7 @@ From repository root: `/home/user/.venv/bin/python` parsed `.github/workflows/gu
 ## 2026-11-09: first Agent/Settings UI run and visual refinement
 
 Run `43250400631` passed sequential Linux, Windows and macOS, 11 tests each with release builds and nonempty default `visual/{os}-{agent,settings}.png` captures. Windows and macOS default-state visual review: all main elements are in bounds; macOS text legible. The disabled text input was visually too bright and its placeholder too dim, so a new charcoal style was added without an `on_input` handler. New snapshot-only selected-state screenshots (`coding`, `custom`) require a rerun before declaring final visual validation.
+
+## 2026-11-09: final Agent/Settings UI-only review
+
+Run `43253945098` (source `9038f01`) passed `cargo test --locked` (11/11) and `cargo build --release --locked` on Linux, Windows and macOS. `visual/{os}-{agent,settings,coding,custom}.png` all exist; visually inspected final Windows Coding/Custom and macOS Coding, including readable charcoal disabled composer and bounded controls. Latest Windows PE check and metadata are in `non_visual/windows.log`. `Docs/Test_Results/Unreleased/Gui_Validation.md` records the review and the unsigned artifact. Inventory JSON lists **97 existing files**, including all 12 new Agent/Settings screenshots. `git diff --check` exits clean. State-change tests do not prove pointer interaction or real memory behavior.
