@@ -7,7 +7,7 @@
 
 Iced is the selected Rust GUI framework. The user wants to avoid different OS webview engines and bundling a browser. Target Windows, macOS, and Linux **from the start**, with real compatibility checks on all three. Native rendering does not remove the need to check font, layout, and platform behavior. No other library or database is selected. At the end of each GUI implementation step, a Windows build must be downloadable for user testing, alongside Linux/Windows/macOS test evidence. Build-output delivery and retention need agreement before the first GUI step so large executables do not accumulate in Git.
 
-Settings should give users control over resource use (lazy load, eager load, or selected preloads), storage location, and future features; secure defaults and understandable consequences are required. Exact controls and defaults are still to be designed.
+Settings are **shared at the AI Lab launcher level**, not separate for every destination. One application should offer Memory Light (load a destination on open, offload on exit), Memory Heavy (keep selected experiences ready), or Custom (per-destination choices). Begin with Agent only and expand controls as other destinations are built. The first UI step offers an explicitly non-persistent preview, not resource management: no model is currently loaded to unload, and secure defaults, actual lifecycle/OS memory behavior and storage controls still require design and tests.
 
 ## AI interaction modes
 
@@ -27,7 +27,7 @@ Specific tool sets and MCP availability are **deferred** until each mode is desi
 - Simple chat → coding, learning, research, or play as originally requested. Simple chat → general task agent is proposed with the new mode; confirm transition semantics before implementing it.
 - Research → coding.
 - No other transitions, including any mode → simple chat, are currently allowed. The user cites tool-history and mode-specific state as reasons.
-- Open: whether an allowed transition changes the same chat's mode or starts a linked new chat, and how its messages, approvals, and memory carry over. Do not discard original history.
+- Open: the user tentatively leans toward changing the same chat's mode, but explicitly defers conversion mechanics until real chat functionality. The UI-only draft mode selector does not convert message histories. Edited-message trees/versioning are also deferred; do not discard original history.
 
 ## Memory and context direction
 

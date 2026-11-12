@@ -46,3 +46,7 @@ The Agent hero and tile retain the synchronized six-mode text/marker cycle (1500
 ## Cross-OS review gate
 
 After a GUI change, build/run on Linux, Windows, and macOS; inspect Home, About, Agent frozen phases and both model-card hover phases. Put screenshots only in `Docs/Test_Results/Unreleased/visual/` and tests/build/PE logs only in `Docs/Test_Results/Unreleased/non_visual/`. Static phase captures demonstrate distinct render states but cannot establish live motion smoothness or actual mouse movement; user hands-on review remains required. Windows release must have GUI subsystem 2, but `CompanyName=Archnemix` is not a verified code signature. Continue to ship a repository-hosted portable Windows build for review without claiming it is signed.
+
+## Agent workspace and Lab Settings UI preview
+
+The Lab navigation remains the global shell. Agent has a distinct inner conversation rail and restrained six-mode chips; selecting a mode only changes an **empty draft's UI preview**, not tools, inference, or prior-message conversion. Temporary drafts are clearly marked session-only; the composer is visibly disabled without a model. Settings lives in the Lab rail, not as a per-Agent page. Memory Light / Memory Heavy / Custom are UI-only choices with an explicit no-effect message until there is a real loader and persistence. Custom previews Agent only; unavailable future destinations cannot be preloaded. Reuse the black/silver palette, spacing and font roles above; do not alter the approved launcher Agent animation.

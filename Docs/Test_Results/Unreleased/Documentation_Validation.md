@@ -507,3 +507,7 @@ Run `43235460451` passed all three OS jobs and 8 tests each, but the macOS scree
 ## 2026-11-09: final visual/non-visual evidence and docs
 
 Source `685b8dc` run `43239295666`: Linux, Windows and macOS each passed `cargo test --locked` (8/8) and `cargo build --release --locked`. Captured final macOS tuning phase 2 is readable again with Manrope Normal-only fallback; Windows tuning phase 2 likewise has legible bounded artwork. From repository root, Pillow `ImageChops.difference` on model-panel crops for `visual/{linux,windows,macos}-{training,tuning}-hover-{1,2}.png` returned a nonempty bbox in all six OS/card comparisons. `Docs/Test_Results/Unreleased/Gui_Validation.md` records inputs, outputs, scope limits and the unsigned Windows artifact. This verifies frozen visual states, **not** pointer simulation or smoothness in real use.
+
+## 2026-11-09: Agent/Settings UI preflight (pending three-OS run)
+
+From repository root: `/home/user/.venv/bin/python` parsed `.github/workflows/gui.yml` via PyYAML and verified the sequential Linux/Windows/macOS jobs each specify `ARCHX_SNAPSHOT_PAGE=agent` and `settings` with matching `visual/{os}-{page}.png` paths. Python JSON inventory check found 85 existing tracked/untracked files and exactly six declared future screenshot outputs awaiting the CI job. `git diff --check` exited 0. No local Rust toolchain is installed; do not claim compilation/UI interaction until the workflow result and new screenshots are inspected.

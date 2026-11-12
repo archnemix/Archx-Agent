@@ -4,18 +4,20 @@ use std::sync::LazyLock;
 use iced::widget::{button, column, container, image, row, scrollable, space, text};
 use iced::{Center, ContentFit, Element, Fill, FillPortion};
 
+use crate::agent;
 use crate::agent_visual;
-use crate::app::{Message, Page};
+use crate::app::{ChatDraft, MemoryMode, Message, Page};
 use crate::app_tile::{self, Art, APPS};
+use crate::settings;
 use crate::style;
 
 static BRAND: LazyLock<image::Handle> = LazyLock::new(|| {
     image::Handle::from_bytes(include_bytes!("../assets/brand/archnemix-sidebar.png").to_vec())
 });
 
-pub fn view(page: Page, hovered: Option<Art>, phase: u8, agent_phase: u8) -> Element<'static, Message> {
+pub fn view(page: Page, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &[ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {
     container(
-        row![sidebar(page), main_content(page, hovered, phase, agent_phase)]
+        row![sidebar(page), main_content(page, hovered, phase, agent_phase, drafts, selected, memory, keep_agent)]
             .width(Fill)
             .height(Fill),
     )
@@ -36,6 +38,11 @@ fn sidebar(page: Page) -> Element<'static, Message> {
         .padding([12, 15])
         .on_press(Message::Navigate(Page::Home))
         .style(move |theme, status| style::nav(page == Page::Home, theme, status));
+    let settings = button(text("Settings").size(style::TYPE_BODY).font(style::LABEL))
+        .width(Fill)
+        .padding([12, 15])
+        .on_press(Message::Navigate(Page::Settings))
+        .style(move |theme, status| style::nav(page == Page::Settings, theme, status));
     let about = button(text("About").size(style::TYPE_BODY).font(style::LABEL))
         .width(Fill)
         .padding([12, 15])
@@ -56,10 +63,15 @@ fn sidebar(page: Page) -> Element<'static, Message> {
             .padding([12, 15]),
         space().height(7),
         about,
+        space().height(7),
+        settings,
         space().height(34),
         text("YOUR APPS").size(10).color(style::DIM),
         space().height(16),
-        text("    Archx Agent").size(13).color(style::GREY),
+        button(text("Archx Agent").size(13).color(style::WHITE))
+            .width(Fill).padding([10, 14])
+            .on_press(Message::Navigate(Page::Agent))
+            .style(move |theme, status| style::nav(page == Page::Agent, theme, status)),
         space().height(15),
         text("    Model Training").size(13).color(style::DIM),
         space().height(15),
@@ -78,14 +90,15 @@ fn sidebar(page: Page) -> Element<'static, Message> {
         .into()
 }
 
-fn main_content(page: Page, hovered: Option<Art>, phase: u8, agent_phase: u8) -> Element<'static, Message> {
-    scrollable(match page {
-        Page::Home => home(hovered, phase, agent_phase),
-        Page::About => about(),
-    })
-    .width(Fill)
-    .height(Fill)
-    .into()
+fn main_content(page: Page, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &[ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {
+    match page {
+        Page::Agent => agent::view(drafts, selected),
+        Page::Settings => settings::view(memory, keep_agent),
+        Page::Home | Page::About => scrollable(match page {
+            Page::Home => home(hovered, phase, agent_phase),
+            _ => about(),
+        }).width(Fill).height(Fill).into(),
+    }
 }
 
 fn home(hovered: Option<Art>, phase: u8, agent_phase: u8) -> Element<'static, Message> {
@@ -106,9 +119,10 @@ fn home(hovered: Option<Art>, phase: u8, agent_phase: u8) -> Element<'static, Me
                     .size(14)
                     .color(style::GREY),
                 space().height(18),
-                container(text("IN DEVELOPMENT").size(11).color(style::WHITE))
+                button(text("OPEN AGENT UI  →").size(11).color(style::WHITE))
                     .padding([10, 14])
-                    .style(style::badge)
+                    .on_press(Message::Navigate(Page::Agent))
+                    .style(style::quiet_button)
             ]
             .spacing(0)
             .width(FillPortion(1))

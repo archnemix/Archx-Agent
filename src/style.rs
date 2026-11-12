@@ -109,6 +109,23 @@ pub fn badge(_: &Theme) -> container::Style {
         })
 }
 
+pub fn quiet_button(_: &Theme, status: button::Status) -> button::Style {
+    button::Style {
+        background: Some(if matches!(status, button::Status::Hovered) {
+            Color::from_rgb8(56, 56, 59)
+        } else {
+            Color::from_rgb8(36, 36, 38)
+        }.into()),
+        text_color: WHITE,
+        border: Border {
+            color: Color::from_rgb8(76, 76, 80),
+            width: 1.0,
+            radius: 8.0.into(),
+        },
+        ..button::Style::default()
+    }
+}
+
 pub fn nav(active: bool, _theme: &Theme, status: button::Status) -> button::Style {
     if active {
         let glass = gradient::Linear::new(Radians::PI)

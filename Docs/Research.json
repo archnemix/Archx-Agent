@@ -124,6 +124,14 @@
     "iced_0_14_numeric_token_types": {
       "summary": "Iced 0.14 Pixels and Length implement From<f32> (and u32), while Padding implements From<f32> (and u16). Shared typography/spacing tokens must be f32 to work across Text::size, Space::height and Container::padding. Run 43227366516 showed u16 fails for size/height; corrected shared constants to f32.",
       "url": "https://github.com/iced-rs/iced/blob/0.14.0/core/src/pixels.rs"
+    },
+    "iced_0_14_ui_skeleton": {
+      "summary": "Iced 0.14 widget APIs: button::on_press for native navigation, TextInput::new(placeholder,value) without on_input is disabled, and container/scrollable/row/column are native layout widgets. A disabled composer is preferable to simulating AI chat when no model/backend exists.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/text_input.rs"
+    },
+    "iced_0_14_button_navigation": {
+      "summary": "Iced button on_press(message) sends a message on activation; selected navigation reuses existing native button styling. No new chat persistence or model runtime is implied by UI state.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/button.rs"
     }
   }
 }

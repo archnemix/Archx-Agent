@@ -55,6 +55,10 @@ jobs:
           done
           xvfb-run -a env ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-about.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/linux-about.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-agent.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/linux-agent.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-settings.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/linux-settings.png
       - name: Record results in repository
         if: always()
         shell: bash
@@ -104,6 +108,10 @@ jobs:
           done
           ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-about.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/windows-about.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-agent.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/windows-agent.png
+          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-settings.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/windows-settings.png
           cp target/release/archx-ai-lab.exe deliverables/Unreleased/windows/archx-ai-lab.exe
       - name: Record results and Windows build in repository
         if: always()
@@ -151,6 +159,10 @@ jobs:
           done
           ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-about.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/macos-about.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-agent.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/macos-agent.png
+          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-settings.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/macos-settings.png
       - name: Record results in repository
         if: always()
         shell: bash

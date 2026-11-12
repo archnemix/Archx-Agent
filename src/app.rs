@@ -13,12 +13,32 @@ use crate::home;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Page {
     Home,
+    Agent,
+    Settings,
     About,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MemoryMode {
+    Light,
+    Heavy,
+    Custom,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ChatDraft {
+    pub id: u32,
+    pub mode: u8,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     Navigate(Page),
+    NewChat,
+    OpenChat(u32),
+    SelectMode(u8),
+    MemoryPreview(MemoryMode),
+    ToggleAgentPreview,
     TileHover(Art, bool),
     Animate,
     AgentPulse,
@@ -28,6 +48,10 @@ pub enum Message {
 
 pub struct App {
     page: Page,
+    drafts: Vec<ChatDraft>,
+    selected_draft: u32,
+    memory_preview: MemoryMode,
+    keep_agent_preview: bool,
     snapshot: Option<PathBuf>,
     snapshot_requested: bool,
     hovered: Option<Art>,
@@ -39,10 +63,13 @@ pub struct App {
 impl App {
     pub fn new() -> Self {
         let snapshot = std::env::var_os("ARCHX_SNAPSHOT").map(PathBuf::from);
-        let page = if snapshot.is_some()
-            && std::env::var("ARCHX_SNAPSHOT_PAGE").as_deref() == Ok("about")
-        {
-            Page::About
+        let page = if snapshot.is_some() {
+            match std::env::var("ARCHX_SNAPSHOT_PAGE").as_deref() {
+                Ok("about") => Page::About,
+                Ok("agent") => Page::Agent,
+                Ok("settings") => Page::Settings,
+                _ => Page::Home,
+            }
         } else {
             Page::Home
         };
@@ -74,6 +101,10 @@ impl App {
         };
         Self {
             page,
+            drafts: vec![ChatDraft { id: 1, mode: 0 }],
+            selected_draft: 1,
+            memory_preview: MemoryMode::Light,
+            keep_agent_preview: false,
             snapshot,
             snapshot_requested: false,
             hovered: preview_art,
@@ -88,6 +119,25 @@ impl App {
             Message::Navigate(page) => {
                 self.page = page;
                 self.hovered = None;
+            }
+            Message::NewChat if self.page == Page::Agent => {
+                let id = self.drafts.last().map_or(1, |draft| draft.id + 1);
+                self.drafts.push(ChatDraft { id, mode: 0 });
+                self.selected_draft = id;
+            }
+            Message::OpenChat(id) if self.page == Page::Agent && self.drafts.iter().any(|draft| draft.id == id) => {
+                self.selected_draft = id;
+            }
+            Message::SelectMode(mode) if self.page == Page::Agent && mode < MODE_COUNT => {
+                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == self.selected_draft) {
+                    draft.mode = mode;
+                }
+            }
+            Message::MemoryPreview(memory) if self.page == Page::Settings => {
+                self.memory_preview = memory;
+            }
+            Message::ToggleAgentPreview if self.page == Page::Settings && self.memory_preview == MemoryMode::Custom => {
+                self.keep_agent_preview = !self.keep_agent_preview;
             }
             Message::TileHover(art, true) if self.page == Page::Home && art != Art::Agent => {
                 self.hovered = Some(art);
@@ -132,7 +182,7 @@ impl App {
     }
 
     pub fn view(&self) -> Element<'_, Message> {
-        home::view(self.page, self.hovered, self.phase, self.agent_phase)
+        home::view(self.page, self.hovered, self.phase, self.agent_phase, &self.drafts, self.selected_draft, self.memory_preview, self.keep_agent_preview)
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
@@ -181,6 +231,40 @@ mod tests {
         let _ = app.update(Message::Navigate(Page::About));
         let _ = app.update(Message::AgentPulse);
         assert_eq!(app.agent_phase, 0);
+    }
+
+    #[test]
+    fn session_only_drafts_keep_separate_mode_previews() {
+        let mut app = App::new();
+        let _ = app.update(Message::Navigate(Page::Agent));
+        let _ = app.update(Message::SelectMode(3));
+        assert_eq!(app.drafts[0].mode, 3);
+        let _ = app.update(Message::NewChat);
+        assert_eq!(app.drafts.len(), 2);
+        assert_eq!(app.selected_draft, 2);
+        assert_eq!(app.drafts[1].mode, 0);
+        let _ = app.update(Message::SelectMode(6));
+        assert_eq!(app.drafts[1].mode, 0);
+        let _ = app.update(Message::OpenChat(77));
+        assert_eq!(app.selected_draft, 2);
+        let _ = app.update(Message::OpenChat(1));
+        assert_eq!(app.drafts[0].mode, 3);
+        assert_eq!(app.selected_draft, 1);
+    }
+
+    #[test]
+    fn memory_preview_never_changes_outside_shared_settings() {
+        let mut app = App::new();
+        let _ = app.update(Message::MemoryPreview(MemoryMode::Heavy));
+        assert_eq!(app.memory_preview, MemoryMode::Light);
+        let _ = app.update(Message::Navigate(Page::Settings));
+        let _ = app.update(Message::MemoryPreview(MemoryMode::Custom));
+        let _ = app.update(Message::ToggleAgentPreview);
+        assert!(app.keep_agent_preview);
+        let _ = app.update(Message::Navigate(Page::Agent));
+        let _ = app.update(Message::ToggleAgentPreview);
+        assert!(app.keep_agent_preview);
+        assert_eq!(App::new().memory_preview, MemoryMode::Light);
     }
 
     #[test]

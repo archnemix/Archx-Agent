@@ -14,3 +14,9 @@ Iced is the selected Rust desktop UI framework; Windows, macOS, and Linux are fi
 - `build.rs`: embeds the user-supplied Archnemix ICO and company metadata only on Windows. The metadata is not a digital signature.
 - `src/style.rs`: semantic black/silver colors, higher-contrast muted text, font-role constants (Manrope Normal-only on macOS) and major spacing steps aligned with `Docs/design.md`, including a native selected-menu pill. `assets/fonts/` holds licensed Manrope and Space Grotesk; `assets/brand/` holds the supplied transparent sidebar mark and native icon derivatives.
 - `.github/workflows/gui.yml`: source-triggered three-OS compilation/test/screenshot review and repository-hosted portable Windows executable. The local sandbox has no Rust toolchain; run `43200600325` supplies Agent typography, transparent-sidebar and model hover-state build/runtime evidence. Its still screenshots do not validate physical mouse movement, 3D Agent animation or native window chrome, and the unsigned binary cannot show a verified publisher.
+
+## Step 2 UI-only shell
+
+- `src/agent.rs`: renders Agent's own inner draft rail, six preview mode buttons, empty-state copy and a disabled composer. Input is the App's transient `Vec<ChatDraft>` and selection; output is Iced `Element<Message>`; it performs no model calls or disk writes.
+- `src/settings.rs`: renders the global Lab Settings page with Memory Light, Memory Heavy and Custom preview choices and the Agent-only Custom choice. Input is transient UI preference state; output is Iced events only; it neither saves a preference nor claims to manage RAM.
+- `src/app.rs` owns navigation between Home, Agent, Settings and About, in-session draft IDs and selected mode, and UI-only memory selections. Invalid draft IDs and mode indexes are ignored. `src/home.rs` hosts the shared rail and dispatches views; model-cover visuals remain unchanged.
