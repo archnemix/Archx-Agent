@@ -310,7 +310,7 @@
       "handles": "Rust source organization"
     },
     "src/main.rs": {
-      "purpose": "Start Iced with Manrope and static Space Grotesk font instances, native brand icon and Windows GUI subsystem.",
+      "purpose": "Start Iced with Manrope on every OS, conditional static Space Grotesk on Linux/Windows (macOS glyph fallback), native icon and Windows GUI subsystem.",
       "inputs": [
         "Application UI and brand PNG"
       ],
@@ -340,7 +340,7 @@
       "handles": "Home presentation"
     },
     "src/style.rs": {
-      "purpose": "Centralize typography, palette and spacing tokens with selected glass nav, Agent and model-workspace gradients.",
+      "purpose": "Centralize two-font roles (Manrope display fallback on macOS), contrast palette, spacing and native surface styles.",
       "inputs": [
         "Selected and hover state"
       ],
@@ -810,6 +810,36 @@
         "Native Iced glyphs"
       ],
       "handles": "Display font instance"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux-tuning-hover-2.png": {
+      "purpose": "Capture linux refinement-lab third typographic phase for visual review.",
+      "inputs": [
+        "linux snapshot mode tuning phase 2"
+      ],
+      "outputs": [
+        "Visual screenshot evidence"
+      ],
+      "handles": "linux tuning motion state"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows-tuning-hover-2.png": {
+      "purpose": "Capture windows refinement-lab third typographic phase for visual review.",
+      "inputs": [
+        "windows snapshot mode tuning phase 2"
+      ],
+      "outputs": [
+        "Visual screenshot evidence"
+      ],
+      "handles": "windows tuning motion state"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos-tuning-hover-2.png": {
+      "purpose": "Capture macos refinement-lab third typographic phase for visual review.",
+      "inputs": [
+        "macos snapshot mode tuning phase 2"
+      ],
+      "outputs": [
+        "Visual screenshot evidence"
+      ],
+      "handles": "macos tuning motion state"
     }
   }
 }

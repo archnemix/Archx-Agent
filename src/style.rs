@@ -11,13 +11,18 @@ pub const GREY: Color = Color::from_rgb8(178, 178, 178);
 pub const DIM: Color = Color::from_rgb8(145, 145, 145);
 
 // Type roles and spacing are specified once in Docs/design.md and reused by views.
+#[cfg(not(target_os = "macos"))]
+const DISPLAY_FAMILY: font::Family = font::Family::Name("Space Grotesk");
+#[cfg(target_os = "macos")]
+const DISPLAY_FAMILY: font::Family = font::Family::Name("Manrope");
+
 pub const DISPLAY: Font = Font {
-    family: font::Family::Name("Space Grotesk"),
+    family: DISPLAY_FAMILY,
     weight: font::Weight::Medium,
     ..Font::DEFAULT
 };
 pub const DISPLAY_BOLD: Font = Font {
-    family: font::Family::Name("Space Grotesk"),
+    family: DISPLAY_FAMILY,
     weight: font::Weight::Semibold,
     ..Font::DEFAULT
 };

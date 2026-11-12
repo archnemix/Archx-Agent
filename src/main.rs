@@ -18,7 +18,7 @@ fn brand_icon() -> window::Icon {
 }
 
 fn main() -> iced::Result {
-    iced::application(app::App::new, app::App::update, app::App::view)
+    let application = iced::application(app::App::new, app::App::update, app::App::view)
         .title("Archx AI Lab")
         .window(window::Settings {
             size: (1280.0, 800.0).into(),
@@ -27,9 +27,15 @@ fn main() -> iced::Result {
         })
         .subscription(app::App::subscription)
         .theme(|_: &app::App| Theme::Dark)
-        .font(include_bytes!("../assets/fonts/Manrope.ttf").as_slice())
+        .font(include_bytes!("../assets/fonts/Manrope.ttf").as_slice());
+
+    // Registering a second font family distorted glyph advances on the macOS
+    // runner. Keep that OS on the already-validated Manrope family until the
+    // renderer issue can be isolated without compromising the Agent visual.
+    #[cfg(not(target_os = "macos"))]
+    let application = application
         .font(include_bytes!("../assets/fonts/SpaceGrotesk-Medium.ttf").as_slice())
-        .font(include_bytes!("../assets/fonts/SpaceGrotesk-SemiBold.ttf").as_slice())
-        .default_font(Font::with_name("Manrope"))
-        .run()
+        .font(include_bytes!("../assets/fonts/SpaceGrotesk-SemiBold.ttf").as_slice());
+
+    application.default_font(Font::with_name("Manrope")).run()
 }

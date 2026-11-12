@@ -495,3 +495,7 @@ Run `43227366516`, source `111b142`, failed Linux `cargo test --locked` with `er
 ## 2026-11-09: visual regression after passing cross-OS tests
 
 Run `43227832253` passed all three runner jobs and 8 tests per OS but macOS `visual/macos-tuning-hover-2.png` has visibly overlapping letters throughout the window. Old macOS image from `1793958` is legible; Windows current image is legible. This is **not** a visually passing revision. A follow-up changes the registered Space Grotesk font from variable to two static instances. Until a new macOS screenshot is inspected, the fix is unverified. Relevant exact generation: `/home/user/.venv/bin/python` with FontTools `TTFont('assets/fonts/SpaceGrotesk.ttf')` and `instantiateVariableFont(font, {'wght':500 or 600}, inplace=True)`; source and licenses remain bundled.
+
+## 2026-11-09: second macOS font capture
+
+Run `43231859324` passed 8 tests per OS and release builds, but `visual/macos-tuning-hover-2.png` still shows glyph overlap with two **static** Space Grotesk instances registered. Thus the static-instance change did not fix the macOS rendering problem. A platform-scoped fallback now registers only Manrope on macOS and maps display roles to that family; Linux/Windows retain static Space Grotesk. This requires another full run and visual review before acceptance.
