@@ -23,7 +23,7 @@ The selected navigation pill retains the restrained graphite gradient, silver ri
 
 ## Font roles and weight budget
 
-Bundle licensed **Manrope** for regular body copy, navigation and utility labels; use **Space Grotesk** selectively for editorial headings and kinetic model-workspace words. Agent's accepted `ARCHX / AGENT` kinetic visual stays in Manrope, preserving its current character. `src/style.rs` holds reusable `DISPLAY` (Space Grotesk Medium), `DISPLAY_BOLD` (Space Grotesk Semibold) and `LABEL` (Manrope Medium) definitions. Both font binaries are registered in `src/main.rs`; default body remains Manrope Regular.
+Bundle licensed **Manrope** for regular body copy, navigation and utility labels; use **Space Grotesk** selectively for editorial headings and kinetic model-workspace words. Agent's accepted `ARCHX / AGENT` kinetic visual stays in Manrope, preserving its current character. `src/style.rs` holds reusable `DISPLAY` (Space Grotesk Medium), `DISPLAY_BOLD` (Space Grotesk Semibold) and `LABEL` (Manrope Medium) definitions. Manrope and **static 500/600-weight instances** of Space Grotesk are registered in `src/main.rs`; the original Space Grotesk variable source is bundled for provenance but not registered after a macOS glyph-spacing regression. Default body remains Manrope Regular.
 
 | Role | Size | Weight | Where |
 | --- | --- | --- | --- |

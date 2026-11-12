@@ -310,7 +310,7 @@
       "handles": "Rust source organization"
     },
     "src/main.rs": {
-      "purpose": "Start Iced app with bundled Manrope/Space Grotesk, native brand icon and Windows GUI subsystem.",
+      "purpose": "Start Iced with Manrope and static Space Grotesk font instances, native brand icon and Windows GUI subsystem.",
       "inputs": [
         "Application UI and brand PNG"
       ],
@@ -770,7 +770,7 @@
       "handles": "macOS test evidence"
     },
     "assets/fonts/SpaceGrotesk.ttf": {
-      "purpose": "Bundled OFL-licensed Space Grotesk variable font for editorial display and model-workspace words.",
+      "purpose": "Preserve original variable Space Grotesk font source for reproducible licensed static instances; not registered at runtime.",
       "inputs": [
         "Google Fonts ofl/spacegrotesk"
       ],
@@ -788,6 +788,28 @@
         "Font licensing evidence"
       ],
       "handles": "Font license"
+    },
+    "assets/fonts/SpaceGrotesk-Medium.ttf": {
+      "purpose": "Static 500-weight OFL Space Grotesk instance for cross-platform display typography.",
+      "inputs": [
+        "assets/fonts/SpaceGrotesk.ttf",
+        "FontTools varLib.instancer"
+      ],
+      "outputs": [
+        "Native Iced glyphs"
+      ],
+      "handles": "Display font instance"
+    },
+    "assets/fonts/SpaceGrotesk-SemiBold.ttf": {
+      "purpose": "Static 600-weight OFL Space Grotesk instance for cross-platform display typography.",
+      "inputs": [
+        "assets/fonts/SpaceGrotesk.ttf",
+        "FontTools varLib.instancer"
+      ],
+      "outputs": [
+        "Native Iced glyphs"
+      ],
+      "handles": "Display font instance"
     }
   }
 }

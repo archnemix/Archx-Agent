@@ -491,3 +491,7 @@ Observed: `PASS: YAML and all three OS visual/non-visual paths`; `PASS: 78 files
 ## 2026-11-09: failed first workbench compile and correction
 
 Run `43227366516`, source `111b142`, failed Linux `cargo test --locked` with `error[E0277]: the trait bound iced::Pixels: From<u16> is not satisfied` in `src/app_tile.rs` and `src/home.rs`, and `iced::Length: From<u16>` for spacing. Exact stdout/stderr is preserved in `non_visual/linux.log` at this run's evidence commit `190d02c`; Windows/macOS jobs were skipped. After verifying Iced's `Pixels`, `Length` and `Padding` conversions, shared type/spacing constants were corrected to `f32`. Re-run is required before visual or cross-OS success claims.
+
+## 2026-11-09: visual regression after passing cross-OS tests
+
+Run `43227832253` passed all three runner jobs and 8 tests per OS but macOS `visual/macos-tuning-hover-2.png` has visibly overlapping letters throughout the window. Old macOS image from `1793958` is legible; Windows current image is legible. This is **not** a visually passing revision. A follow-up changes the registered Space Grotesk font from variable to two static instances. Until a new macOS screenshot is inspected, the fix is unverified. Relevant exact generation: `/home/user/.venv/bin/python` with FontTools `TTFont('assets/fonts/SpaceGrotesk.ttf')` and `instantiateVariableFont(font, {'wght':500 or 600}, inplace=True)`; source and licenses remain bundled.
