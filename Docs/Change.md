@@ -54,3 +54,8 @@
 
 - **Correction:** The user no longer wants 3D objects for Training or Fine-tuning. Only Archx Agent should ultimately have an approved animated visual; the user has a model to upload later. For now, the Agent shelf/hero retain clearly temporary art. Model Training and Fine-tuning should use text-based animations. Model Monitor/observation is removed from the current launcher, not ruled out permanently.
 - **Current slice:** Remove the other three JPEG covers and the Monitor destination; use hover-triggered stage-emphasis typography in the two remaining unavailable model-workspace cards. Keep their labels Coming Later, without claiming that any training is occurring. Do not start chat UI or pretend the Agent asset has been integrated. Three-OS validation is required for this GUI change.
+
+## 2026-11-09 — Three-card text-motion validation
+
+- **Evidence:** Actions run `43186966425` passed 5 focused tests per OS, release builds and 15 screenshots total on Linux/Windows/macOS. Home/About and Training/Tuning synthetic hover phases captured; reviewed representative captures. Windows GUI subsystem `2` and descriptive Archnemix metadata still pass; executable is unsigned. Full commands, outputs and limitations are in `Docs/Test_Results/Unreleased/Gui_Validation.md`.
+- **Still open:** Agent animation needs the user's approved 3D/model or image asset; desktop hover smoothness and reduced-motion/low-resource preferences need later design and tests. No chat UI started.

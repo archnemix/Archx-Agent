@@ -1,5 +1,24 @@
 <!-- Purpose: Records current three-OS GUI test commands, outputs, screenshots, visual review, and Windows delivery. -->
-# AI Lab launcher validation — brand follow-up and earlier review
+# AI Lab launcher validation — text-hover follow-up and prior reviews
+
+## Three-app text-hover follow-up (2026-11-09)
+
+Source commit `57694f0`, Actions run `43186966425` (passed sequential Linux, Windows, macOS). The user revised scope: only Archx Agent should eventually receive an approved animated model; this run **does not** include that model. The temporary Agent hero/tile art remains unchanged. The current shelf and sidebar show only Agent, Model Training and Fine-tuning; no Model Monitor destination remains. Training and Fine-tuning now have native typography panels with a three-word, hover-only highlight cycle instead of JPEG artwork. Both still say `COMING LATER`; animation represents a concept, not operational progress.
+
+Each runner ran `cargo test --locked` (observed `5 passed; 0 failed`), `cargo build --release --locked`, and normal Home/About screenshot commands documented below. In addition, per OS (replace `OS` with `linux`, `windows`, or `macos`; Linux wraps each run with `xvfb-run -a env`):
+
+```sh
+for phase in 1 2; do
+  ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/OS-training-hover-$phase.png ./target/release/archx-ai-lab
+  test -s Docs/Test_Results/Unreleased/visual/OS-training-hover-$phase.png
+done
+ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=1 ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/OS-tuning-hover-1.png ./target/release/archx-ai-lab
+test -s Docs/Test_Results/Unreleased/visual/OS-tuning-hover-1.png
+```
+
+Windows uses `./target/release/archx-ai-lab.exe`. The workflow also compares each phase-1 file to its Home rest file using `cmp -s`; all six OS/card comparisons logged `PASS: ... hover phase differs from rest`. This file comparison alone is not a pixel-level animation test; macOS's 1024-wide desktop even varied by three pixels of height between launches. The focused state test exercises pointer-entry/exit messages and timer-driven phase progression. **Visual inspection** of Windows rest/training/tuning, Linux training phase 2 and macOS training phase 1 confirms the highlight visibly moves only on the intended text card and is legible; the compact macOS viewport cuts off below the top of the shelf but remains scrollable. This is not proof of physical mouse-pointer movement or animation smoothness on all user devices. No 3D Agent animation, settings modes or verified Windows publisher is claimed.
+
+Windows also logged `PASS: Windows GUI subsystem 2 (no console)` and `PASS: Archnemix Windows product metadata (not a digital signature)`. Refreshed portable unsigned build: `deliverables/Unreleased/windows/archx-ai-lab.exe`, 21,051,392 bytes, SHA-256 `5f37821710fc11faf4d73b7996fe9e6a1da0dc4d1b1e3a242535bae462b6c0d4`. Full logs and five PNGs per OS (Home, About, Training phases 1/2, Tuning phase 1) are under `build/` and `visual/`. Step 1 remains open pending the Agent asset and user review.
 
 ## Brand follow-up (2026-11-09)
 

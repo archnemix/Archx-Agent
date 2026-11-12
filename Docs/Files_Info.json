@@ -628,6 +628,96 @@
         "Dated rough-idea reminders"
       ],
       "handles": "Idea parking lot"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux-training-hover-1.png": {
+      "purpose": "Show training-hover-1 typographic card state on linux.",
+      "inputs": [
+        "linux CI screenshot preview-only hover/phase inputs"
+      ],
+      "outputs": [
+        "linux PNG review evidence"
+      ],
+      "handles": "Cross-OS hover typography review"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux-training-hover-2.png": {
+      "purpose": "Show training-hover-2 typographic card state on linux.",
+      "inputs": [
+        "linux CI screenshot preview-only hover/phase inputs"
+      ],
+      "outputs": [
+        "linux PNG review evidence"
+      ],
+      "handles": "Cross-OS hover typography review"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux-tuning-hover-1.png": {
+      "purpose": "Show tuning-hover-1 typographic card state on linux.",
+      "inputs": [
+        "linux CI screenshot preview-only hover/phase inputs"
+      ],
+      "outputs": [
+        "linux PNG review evidence"
+      ],
+      "handles": "Cross-OS hover typography review"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows-training-hover-1.png": {
+      "purpose": "Show training-hover-1 typographic card state on windows.",
+      "inputs": [
+        "windows CI screenshot preview-only hover/phase inputs"
+      ],
+      "outputs": [
+        "windows PNG review evidence"
+      ],
+      "handles": "Cross-OS hover typography review"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows-training-hover-2.png": {
+      "purpose": "Show training-hover-2 typographic card state on windows.",
+      "inputs": [
+        "windows CI screenshot preview-only hover/phase inputs"
+      ],
+      "outputs": [
+        "windows PNG review evidence"
+      ],
+      "handles": "Cross-OS hover typography review"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows-tuning-hover-1.png": {
+      "purpose": "Show tuning-hover-1 typographic card state on windows.",
+      "inputs": [
+        "windows CI screenshot preview-only hover/phase inputs"
+      ],
+      "outputs": [
+        "windows PNG review evidence"
+      ],
+      "handles": "Cross-OS hover typography review"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos-training-hover-1.png": {
+      "purpose": "Show training-hover-1 typographic card state on macos.",
+      "inputs": [
+        "macos CI screenshot preview-only hover/phase inputs"
+      ],
+      "outputs": [
+        "macos PNG review evidence"
+      ],
+      "handles": "Cross-OS hover typography review"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos-training-hover-2.png": {
+      "purpose": "Show training-hover-2 typographic card state on macos.",
+      "inputs": [
+        "macos CI screenshot preview-only hover/phase inputs"
+      ],
+      "outputs": [
+        "macos PNG review evidence"
+      ],
+      "handles": "Cross-OS hover typography review"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos-tuning-hover-1.png": {
+      "purpose": "Show tuning-hover-1 typographic card state on macos.",
+      "inputs": [
+        "macos CI screenshot preview-only hover/phase inputs"
+      ],
+      "outputs": [
+        "macos PNG review evidence"
+      ],
+      "handles": "Cross-OS hover typography review"
     }
   }
 }

@@ -409,3 +409,18 @@ git diff --check
 ```
 
 Rust toolchain remains unavailable locally. Compilation, focused tests, release snapshots, and phase-difference checks still need the triggered three-OS CI run; no runtime or user hover success is claimed by this precheck.
+
+## 2026-11-09: text-motion post-CI inventory
+
+CI generated nine frozen-phase PNGs across Linux, Windows and macOS. Added each to `Docs/Files_Info.json`. From repository root:
+
+```sh
+python - <<'PY'
+import json
+from pathlib import Path
+r=Path('.'); files={p.as_posix() for p in r.rglob('*') if p.is_file() and '.git' not in p.parts}; indexed=set(json.loads((r/'Docs/Files_Info.json').read_text())['files']); assert files==indexed,(sorted(files-indexed),sorted(indexed-files)); print('PASS:',len(files),'files inventoried')
+PY
+# output: PASS: 71 files inventoried
+git diff --check
+# output: none; exit 0
+```
