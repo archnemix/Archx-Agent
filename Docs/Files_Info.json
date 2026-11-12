@@ -230,7 +230,7 @@
       "handles": "CI organization"
     },
     ".github/workflows/gui.yml": {
-      "purpose": "Build/test on three OSes; capture Home/About and check Windows GUI subsystem and company metadata.",
+      "purpose": "Build/test all three OSes and capture Home/About plus Agent/model-card phase states.",
       "inputs": [
         "Source changes and intentional trigger"
       ],
@@ -310,7 +310,7 @@
       "handles": "Rust source organization"
     },
     "src/main.rs": {
-      "purpose": "Start the native Iced app with bundled Archnemix window icon and Windows GUI subsystem.",
+      "purpose": "Start Iced app with Agent visual module, native icon and Windows GUI subsystem.",
       "inputs": [
         "Application UI and brand PNG"
       ],
@@ -320,7 +320,7 @@
       "handles": "Application entry point"
     },
     "src/app.rs": {
-      "purpose": "Handle navigation, a hover-only typography animation timer, and delayed Home/About snapshots with optional frozen stage phase.",
+      "purpose": "Handle navigation, Agent six-mode pulse, model-card hover timer, and opt-in deterministic screenshots.",
       "inputs": [
         "User navigation and snapshot trigger"
       ],
@@ -330,7 +330,7 @@
       "handles": "Shell state"
     },
     "src/home.rs": {
-      "purpose": "Render the three-app AI Lab launcher and About view without Model Monitor.",
+      "purpose": "Render the three-app launcher and About, including transparent smaller brand mark and animated Agent hero.",
       "inputs": [
         "Current page"
       ],
@@ -340,7 +340,7 @@
       "handles": "Home presentation"
     },
     "src/style.rs": {
-      "purpose": "Provide the black/silver native launcher styles and selected-glass navigation.",
+      "purpose": "Provide palette, selected glass nav, and restrained native Agent gradient/phase marker styles.",
       "inputs": [
         "Selected and hover state"
       ],
@@ -499,18 +499,8 @@
       ],
       "handles": "User testing"
     },
-    "assets/agent-cover.png": {
-      "purpose": "Provide original monochrome editorial artwork for the Agent feature.",
-      "inputs": [
-        "Generated artwork asset"
-      ],
-      "outputs": [
-        "Bundled launcher feature image"
-      ],
-      "handles": "Home artwork"
-    },
     "src/app_tile.rs": {
-      "purpose": "Render the Agent temporary image and two hover-animated text panels for unavailable model apps.",
+      "purpose": "Render a kinetic Agent tile and two hover-animated text cards for unavailable model apps.",
       "inputs": [
         "App metadata and status"
       ],
@@ -518,16 +508,6 @@
         "Monochrome app tiles"
       ],
       "handles": "App-shelf presentation"
-    },
-    "assets/agent-tile.jpg": {
-      "purpose": "Provide a cropped, 800 × 480 Agent app-shelf cover.",
-      "inputs": [
-        "Original Agent feature art"
-      ],
-      "outputs": [
-        "Embedded Agent tile illustration"
-      ],
-      "handles": "App identity"
     },
     "Docs/Test_Results/Unreleased/visual/linux-about.png": {
       "purpose": "Show the selected About navigation on linux.",
@@ -583,16 +563,6 @@
       "purpose": "Original transparent Archnemix logo provided by the user.",
       "inputs": [
         "User-supplied logo"
-      ],
-      "outputs": [
-        "Bundled brand imagery"
-      ],
-      "handles": "Visual identity"
-    },
-    "assets/brand/archnemix-lockup.png": {
-      "purpose": "Black-backed cropped logo for the sidebar.",
-      "inputs": [
-        "assets/brand/archnemix-source.png"
       ],
       "outputs": [
         "Bundled brand imagery"
@@ -718,6 +688,26 @@
         "macos PNG review evidence"
       ],
       "handles": "Cross-OS hover typography review"
+    },
+    "assets/brand/archnemix-sidebar.png": {
+      "purpose": "Small transparent crop of the user-supplied Archnemix mark for the rail.",
+      "inputs": [
+        "assets/brand/archnemix-source.png"
+      ],
+      "outputs": [
+        "Sidebar brand image with alpha"
+      ],
+      "handles": "Desktop rail identity"
+    },
+    "src/agent_visual.rs": {
+      "purpose": "Render animated six-mode Agent typography in hero and app shelf.",
+      "inputs": [
+        "Agent phase from App"
+      ],
+      "outputs": [
+        "Native typographic panels"
+      ],
+      "handles": "Agent kinetic visual"
     }
   }
 }

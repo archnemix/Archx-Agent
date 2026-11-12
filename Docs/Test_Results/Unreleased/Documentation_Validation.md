@@ -424,3 +424,27 @@ PY
 git diff --check
 # output: none; exit 0
 ```
+
+## 2026-11-09: Agent type and transparent sidebar pre-CI
+
+Inputs: cropped alpha logo, Agent visual source and existing three-app shell, updated CI workflow. Commands run in repository root:
+
+```sh
+/home/user/.venv/bin/python - <<'PY'
+import yaml
+with open('.github/workflows/gui.yml') as fp: jobs=yaml.safe_load(fp)['jobs']
+for os in ('linux','windows','macos'):
+    run=next(step['run'] for step in jobs[os]['steps'] if step.get('name')=='Build, test, and screenshot')
+    assert f'{os}-agent-phase-$phase.png' in run
+    assert f'{os}-training-hover-$phase.png' in run
+print('PASS: three-OS Agent and model phase capture YAML')
+PY
+python - <<'PY'
+import json
+from pathlib import Path
+r=Path('.'); files={p.as_posix() for p in r.rglob('*') if p.is_file() and '.git' not in p.parts}; index=set(json.loads((r/'Docs/Files_Info.json').read_text())['files']); assert files==index; assert (r/'src/agent_visual.rs').read_text().startswith('//! Purpose:'); print('PASS:',len(files),'inventoried files and new Rust purpose header')
+PY
+git diff --check
+```
+
+Observed `PASS: three-OS Agent and model phase capture YAML` and `PASS: 70 inventoried files and new Rust purpose header`; `git diff --check` exited successfully with no output. CI compile/test, screenshots and Windows build are **not** yet claimed by this check.

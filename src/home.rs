@@ -4,20 +4,18 @@ use std::sync::LazyLock;
 use iced::widget::{button, column, container, image, row, scrollable, space, text};
 use iced::{Center, ContentFit, Element, Fill, FillPortion};
 
+use crate::agent_visual;
 use crate::app::{Message, Page};
 use crate::app_tile::{self, Art, APPS};
 use crate::style;
 
-static AGENT_COVER: LazyLock<image::Handle> = LazyLock::new(|| {
-    image::Handle::from_bytes(include_bytes!("../assets/agent-cover.png").to_vec())
-});
 static BRAND: LazyLock<image::Handle> = LazyLock::new(|| {
-    image::Handle::from_bytes(include_bytes!("../assets/brand/archnemix-lockup.png").to_vec())
+    image::Handle::from_bytes(include_bytes!("../assets/brand/archnemix-sidebar.png").to_vec())
 });
 
-pub fn view(page: Page, hovered: Option<Art>, phase: u8) -> Element<'static, Message> {
+pub fn view(page: Page, hovered: Option<Art>, phase: u8, agent_phase: u8) -> Element<'static, Message> {
     container(
-        row![sidebar(page), main_content(page, hovered, phase)]
+        row![sidebar(page), main_content(page, hovered, phase, agent_phase)]
             .width(Fill)
             .height(Fill),
     )
@@ -29,8 +27,8 @@ pub fn view(page: Page, hovered: Option<Art>, phase: u8) -> Element<'static, Mes
 
 fn sidebar(page: Page) -> Element<'static, Message> {
     let identity = image(BRAND.clone())
-        .width(160)
-        .height(160)
+        .width(116)
+        .height(116)
         .content_fit(ContentFit::Contain);
 
     let discover = button(text("Discover").size(14))
@@ -80,9 +78,9 @@ fn sidebar(page: Page) -> Element<'static, Message> {
         .into()
 }
 
-fn main_content(page: Page, hovered: Option<Art>, phase: u8) -> Element<'static, Message> {
+fn main_content(page: Page, hovered: Option<Art>, phase: u8, agent_phase: u8) -> Element<'static, Message> {
     scrollable(match page {
-        Page::Home => home(hovered, phase),
+        Page::Home => home(hovered, phase, agent_phase),
         Page::About => about(),
     })
     .width(Fill)
@@ -90,7 +88,7 @@ fn main_content(page: Page, hovered: Option<Art>, phase: u8) -> Element<'static,
     .into()
 }
 
-fn home(hovered: Option<Art>, phase: u8) -> Element<'static, Message> {
+fn home(hovered: Option<Art>, phase: u8, agent_phase: u8) -> Element<'static, Message> {
     let topbar = row![
         text("DISCOVER").size(11).color(style::GREY).width(Fill),
         text("ARCHX AI LAB    /    ARCHNEMIX").size(11).color(style::DIM)
@@ -115,10 +113,7 @@ fn home(hovered: Option<Art>, phase: u8) -> Element<'static, Message> {
             .spacing(0)
             .width(FillPortion(1))
             .padding(iced::Padding::new(22.0).right(0).left(30)),
-            image(AGENT_COVER.clone())
-                .width(FillPortion(1))
-                .height(248)
-                .content_fit(ContentFit::Contain)
+            agent_visual::hero(agent_phase)
         ]
         .height(248)
         .align_y(Center),
@@ -138,9 +133,9 @@ fn home(hovered: Option<Art>, phase: u8) -> Element<'static, Message> {
     .align_y(Center);
 
     let apps = row![
-        app_tile::view(&APPS[0], 0),
-        app_tile::view(&APPS[1], if hovered == Some(Art::Training) { phase } else { 0 }),
-        app_tile::view(&APPS[2], if hovered == Some(Art::Tuning) { phase } else { 0 })
+        app_tile::view(&APPS[0], 0, agent_phase),
+        app_tile::view(&APPS[1], if hovered == Some(Art::Training) { phase } else { 0 }, agent_phase),
+        app_tile::view(&APPS[2], if hovered == Some(Art::Tuning) { phase } else { 0 }, agent_phase)
     ]
     .spacing(17);
 

@@ -1,9 +1,8 @@
-//! Purpose: Renders the Agent placeholder and two unavailable AI apps as restrained animated type.
-use std::sync::LazyLock;
+//! Purpose: Renders three unavailable AI apps with distinct Agent and model-workspace typography.
+use iced::widget::{column, container, mouse_area, row, space, text};
+use iced::{Element, Fill, FillPortion};
 
-use iced::widget::{column, container, image, mouse_area, row, space, text};
-use iced::{ContentFit, Element, Fill, FillPortion};
-
+use crate::agent_visual;
 use crate::app::Message;
 use crate::style;
 
@@ -26,24 +25,9 @@ pub const APPS: [AppTile; 3] = [
     AppTile { name: "Fine-tuning", category: "REFINE MODELS", art: Art::Tuning },
 ];
 
-static AGENT: LazyLock<image::Handle> = LazyLock::new(|| {
-    image::Handle::from_bytes(include_bytes!("../assets/agent-tile.jpg").to_vec())
-});
-
-pub fn view(tile: &'static AppTile, phase: u8) -> Element<'static, Message> {
+pub fn view(tile: &'static AppTile, phase: u8, agent_phase: u8) -> Element<'static, Message> {
     let cover: Element<'static, Message> = match tile.art {
-        Art::Agent => container(
-            image(AGENT.clone())
-                .width(Fill)
-                .height(Fill)
-                .content_fit(ContentFit::Contain)
-                .border_radius(10),
-        )
-        .width(Fill)
-        .height(140)
-        .clip(true)
-        .style(style::cover)
-        .into(),
+        Art::Agent => agent_visual::tile(agent_phase),
         Art::Training | Art::Tuning => {
             let (eyebrow, headline, steps) = match tile.art {
                 Art::Training => ("MODEL / TRAINING", "Build from data.", ["DATA", "LEARN", "REVIEW"]),
@@ -103,10 +87,4 @@ mod tests {
         assert!(APPS.iter().all(|app| app.art != Art::Agent || app.name == "Archx Agent"));
     }
 
-    #[test]
-    fn agent_placeholder_decodes() {
-        let cover = ::image::load_from_memory(include_bytes!("../assets/agent-tile.jpg"))
-            .expect("Bundled Agent cover should decode");
-        assert_eq!((cover.width(), cover.height()), (800, 480));
-    }
 }

@@ -6,6 +6,7 @@ use iced::time;
 use iced::window;
 use iced::{Element, Subscription, Task};
 
+use crate::agent_visual::MODE_COUNT;
 use crate::app_tile::Art;
 use crate::home;
 
@@ -20,6 +21,7 @@ pub enum Message {
     Navigate(Page),
     TileHover(Art, bool),
     Animate,
+    AgentPulse,
     SnapshotTick,
     SnapshotReady(window::screenshot::Screenshot),
 }
@@ -30,6 +32,7 @@ pub struct App {
     snapshot_requested: bool,
     hovered: Option<Art>,
     phase: u8,
+    agent_phase: u8,
     frozen_snapshot_phase: bool,
 }
 
@@ -60,12 +63,22 @@ impl App {
         } else {
             None
         };
+        let agent_phase = if snapshot.is_some() {
+            std::env::var("ARCHX_SNAPSHOT_AGENT_PHASE")
+                .ok()
+                .and_then(|value| value.parse::<u8>().ok())
+                .filter(|phase| *phase < MODE_COUNT)
+                .unwrap_or(0)
+        } else {
+            0
+        };
         Self {
             page,
             snapshot,
             snapshot_requested: false,
             hovered: preview_art,
             phase: phase.unwrap_or(0),
+            agent_phase,
             frozen_snapshot_phase: phase.is_some(),
         }
     }
@@ -86,6 +99,9 @@ impl App {
             }
             Message::Animate if self.hovered.is_some() && !self.frozen_snapshot_phase => {
                 self.phase = (self.phase + 1) % 3;
+            }
+            Message::AgentPulse if self.page == Page::Home && self.snapshot.is_none() => {
+                self.agent_phase = (self.agent_phase + 1) % MODE_COUNT;
             }
             Message::SnapshotTick if self.snapshot.is_some() && !self.snapshot_requested => {
                 self.snapshot_requested = true;
@@ -116,7 +132,7 @@ impl App {
     }
 
     pub fn view(&self) -> Element<'_, Message> {
-        home::view(self.page, self.hovered, self.phase)
+        home::view(self.page, self.hovered, self.phase, self.agent_phase)
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
@@ -130,7 +146,12 @@ impl App {
         } else {
             Subscription::none()
         };
-        Subscription::batch([snapshot, animation])
+        let agent = if self.page == Page::Home && self.snapshot.is_none() {
+            time::every(Duration::from_millis(1500)).map(|_| Message::AgentPulse)
+        } else {
+            Subscription::none()
+        };
+        Subscription::batch([snapshot, animation, agent])
     }
 }
 
@@ -146,6 +167,20 @@ mod tests {
         assert_eq!(app.page, Page::About);
         let _ = app.update(Message::Navigate(Page::Home));
         assert_eq!(app.page, Page::Home);
+    }
+
+    #[test]
+    fn agent_kinetic_type_cycles_only_on_home() {
+        let mut app = App::new();
+        for _ in 0..MODE_COUNT - 1 {
+            let _ = app.update(Message::AgentPulse);
+        }
+        assert_eq!(app.agent_phase, MODE_COUNT - 1);
+        let _ = app.update(Message::AgentPulse);
+        assert_eq!(app.agent_phase, 0);
+        let _ = app.update(Message::Navigate(Page::About));
+        let _ = app.update(Message::AgentPulse);
+        assert_eq!(app.agent_phase, 0);
     }
 
     #[test]

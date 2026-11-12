@@ -92,6 +92,14 @@
     "iced_0_14_subscription_batch": {
       "summary": "Iced 0.14 Subscription::batch combines independent subscriptions, allowing snapshot and hover animation timers to coexist.",
       "url": "https://github.com/iced-rs/iced/blob/0.14.0/futures/src/subscription.rs"
+    },
+    "iced_0_14_container_gradient": {
+      "summary": "Iced 0.14 container::Style::background accepts a native gradient Background; use for restrained Agent kinetic typography panel, not a shader or prerecorded image.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/container.rs"
+    },
+    "pillow_alpha_sidebar_crop": {
+      "summary": "Pillow Image.getchannel(A).getbbox finds nonzero alpha bounds and Image.crop preserves the transparent background. Used to derive a smaller faithful sidebar mark from the supplied source without black backing.",
+      "url": "https://pillow.readthedocs.io/en/stable/reference/Image.html"
     }
   }
 }

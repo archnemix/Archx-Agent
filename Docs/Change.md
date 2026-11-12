@@ -59,3 +59,8 @@
 
 - **Evidence:** Actions run `43186966425` passed 5 focused tests per OS, release builds and 15 screenshots total on Linux/Windows/macOS. Home/About and Training/Tuning synthetic hover phases captured; reviewed representative captures. Windows GUI subsystem `2` and descriptive Archnemix metadata still pass; executable is unsigned. Full commands, outputs and limitations are in `Docs/Test_Results/Unreleased/Gui_Validation.md`.
 - **Still open:** Agent animation needs the user's approved 3D/model or image asset; desktop hover smoothness and reduced-motion/low-resource preferences need later design and tests. No chat UI started.
+
+## 2026-11-09 — Agent kinetic typography and transparent smaller sidebar mark
+
+- **Correction:** The user rejected the Agent sculpture as too generic. They want the Agent hero/shelf to read as a designed animated **text visual**, more distinctive than the model-workspace typography, instead of an image or 3D object. The supplied Archnemix logo was too large and its black-backed square looked wrong on the rail; keep alpha transparency and display a smaller crop.
+- **Implementation slice:** Use a six-mode kinetic type identity for Agent on Home, replacing both generated sculpture assets; crop the user-supplied transparent logo without recompositing on black, display at 116 × 116. The two model-workspace hover panels and three-app shelf remain. CI captures Agent phase 1/3 on each OS; no feature becomes clickable or functional. Step 1 still needs three-OS evidence and hands-on user approval; signing remains separate and blocked.

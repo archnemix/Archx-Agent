@@ -29,6 +29,24 @@ pub fn surface(_: &Theme) -> container::Style {
         })
 }
 
+pub fn agent_surface(_: &Theme) -> container::Style {
+    container::Style::default()
+        .background(
+            gradient::Linear::new(Radians::PI)
+                .add_stop(0.0, Color::from_rgb8(25, 25, 27))
+                .add_stop(1.0, Color::from_rgb8(11, 11, 12)),
+        )
+        .border(Border {
+            color: LINE,
+            width: 1.0,
+            radius: 10.0.into(),
+        })
+}
+
+pub fn mode_marker(_: &Theme, active: bool) -> container::Style {
+    container::Style::default().background(if active { WHITE } else { LINE })
+}
+
 pub fn cover(_: &Theme) -> container::Style {
     container::Style::default()
         .background(RAISED)

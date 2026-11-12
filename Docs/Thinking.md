@@ -107,3 +107,8 @@
 - `mouse_area::on_enter/on_exit` and a batched timer subscription in Iced 0.14 provide a small native implementation; CI can capture two frozen phases per OS and test a changed text crop. Synthetic phase captures and unit transitions are evidence for rendering/state, but cannot by themselves prove physical mouse movement or timing smoothness on a user's machine.
 
 - Run `43186966425` passed the three-OS source tests and snapshots. Representative PNGs show three cards, no Model Monitor, and text highlights moving between conceptual stages. macOS captures only the top of the shelf in its smaller desktop, as before. CI synthetic phase captures do not prove actual pointer movement; Windows hands-on review remains necessary. The Agent picture is still explicitly temporary until the user supplies an approved model/animation.
+
+## Agent typographic visual correction (2026-11-09)
+
+- User hands-on screenshot showed a 160px black-backed sidebar square contrasting poorly with the rail, and rejected the Agent sculpture. The crop of the original RGBA mark has transparent corners and is rendered at 116px. Native window/PE icon assets are intentionally left unchanged.
+- A dedicated `agent_visual` module gives the hero and shelf a consistent but more editorial typographic hierarchy than the simple Training/Fine-tuning cards. It cycles six actual *mode names* and a six-step marker, not a fictitious operational task/progress bar. One low-frequency Home-only timer advances the phase; CI snapshot mode freezes it for deterministic phase review. Live interaction smoothness still needs human validation.
