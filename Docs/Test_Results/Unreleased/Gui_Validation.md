@@ -1,5 +1,32 @@
 <!-- Purpose: Records current three-OS GUI test commands, outputs, screenshots, visual review, and Windows delivery. -->
-# AI Lab launcher validation — text-hover follow-up and prior reviews
+# AI Lab launcher validation — Agent kinetic type and prior reviews
+
+## Agent typography / transparent sidebar revision (2026-11-09)
+
+Source commit `28b880c`, Actions run `43200600325` passed sequential Linux, Windows, macOS. The user rejected the old Agent sculpture image and large black-backed sidebar logo. Both Agent hero and shelf now render native, six-mode **typographic artwork** instead of a generated image, cycling a mode label and matching segment highlight every 1500ms on Home (paused on About). Training/Fine-tuning retain hover-only type motion; all three destinations remain unavailable. The supplied Archnemix logo now uses a 116 × 116 transparent crop on the rail, while the native window/PE icon assets remain unchanged. No 3D assets or functioning Agent modes are claimed.
+
+Each OS ran `cargo test --locked` (`6 passed; 0 failed`), `cargo build --release --locked`, Home and About screenshots, the prior three text-hover-phase captures, and two new Agent phase captures. Per OS (`OS=linux|windows|macos`, Linux wraps each executable with `xvfb-run -a env`; Windows adds `.exe`):
+
+```sh
+for phase in 1 3; do
+  ARCHX_SNAPSHOT_AGENT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/OS-agent-phase-$phase.png ./target/release/archx-ai-lab
+  test -s Docs/Test_Results/Unreleased/visual/OS-agent-phase-$phase.png
+  if cmp -s Docs/Test_Results/Unreleased/visual/OS.png Docs/Test_Results/Unreleased/visual/OS-agent-phase-$phase.png; then exit 1; fi
+done
+```
+
+Observed logs include `PASS: <OS> Agent phase 1 differs from rest`, `PASS: <OS> Agent phase 3 differs from rest`, and prior Training/Tuning hover-state differences on each OS. Windows also logged `PASS: Windows GUI subsystem 2 (no console)` and `PASS: Archnemix Windows product metadata (not a digital signature)`. Reviewed Home and both Agent phases on Windows and Home/phase 3 on macOS plus Home on Linux: typography remains inside its panels and mode/marker move consistently. The macOS runner's smaller viewport shows only the top of the shelf, which remains scrollable. Comparing files and reviewing frozen frames does **not** measure live animation smoothness or prove a user saw every frame. The logo source crop's corner alpha is zero; on each OS, screenshot `(23,23)` matches the rail `(210,35)` at RGB `(13,13,13)`, showing the black backing has been removed from the sidebar mark.
+
+| Agent phase output | Dimensions | SHA-256 |
+| --- | --- | --- |
+| `visual/linux-agent-phase-1.png` | 1280 × 800 | `eb1e4c78a83e28e33acec9dd945b4f65df2e0138ad6434d71df0f44c7bb24457` |
+| `visual/linux-agent-phase-3.png` | 1280 × 800 | `bb12aa885781b11d70e0fb5742a40c22c77dead76c49386da8b65141fb4e29b6` |
+| `visual/windows-agent-phase-1.png` | 1280 × 800 | `ba1bdc2c5a94d8f00600928eb2c87c855a6507916943485e67fcb49502029430` |
+| `visual/windows-agent-phase-3.png` | 1280 × 800 | `2113e77b528d8136d9eadeabe6e37cb35827ea3800b9f7467dd466b76d52f834` |
+| `visual/macos-agent-phase-1.png` | 1024 × 645 | `d35168d0667bbb9e90070007e3be0219e35548584c670be97ad7308feb3459bb` |
+| `visual/macos-agent-phase-3.png` | 1024 × 645 | `a9aa1d97fceefa4b1bfe4d8eff884197d6f9394df2d7970591552ffb78bdeef9` |
+
+Windows review executable: `deliverables/Unreleased/windows/archx-ai-lab.exe` (19,562,496 bytes), SHA-256 `0fcd4df555324ee04928c4945161e5e7f96462945e0cc9acb4cebe36343ccff7`. It remains unsigned and is not claimed to be a verified publisher build. User hands-on acceptance is still pending; Step 2 is blocked.
 
 ## Three-app text-hover follow-up (2026-11-09)
 

@@ -708,6 +708,66 @@
         "Native typographic panels"
       ],
       "handles": "Agent kinetic visual"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux-agent-phase-1.png": {
+      "purpose": "Show Agent kinetic typography phase 1 on linux.",
+      "inputs": [
+        "linux CI frozen Agent phase"
+      ],
+      "outputs": [
+        "linux PNG evidence"
+      ],
+      "handles": "Agent visual phase review"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux-agent-phase-3.png": {
+      "purpose": "Show Agent kinetic typography phase 3 on linux.",
+      "inputs": [
+        "linux CI frozen Agent phase"
+      ],
+      "outputs": [
+        "linux PNG evidence"
+      ],
+      "handles": "Agent visual phase review"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows-agent-phase-1.png": {
+      "purpose": "Show Agent kinetic typography phase 1 on windows.",
+      "inputs": [
+        "windows CI frozen Agent phase"
+      ],
+      "outputs": [
+        "windows PNG evidence"
+      ],
+      "handles": "Agent visual phase review"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows-agent-phase-3.png": {
+      "purpose": "Show Agent kinetic typography phase 3 on windows.",
+      "inputs": [
+        "windows CI frozen Agent phase"
+      ],
+      "outputs": [
+        "windows PNG evidence"
+      ],
+      "handles": "Agent visual phase review"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos-agent-phase-1.png": {
+      "purpose": "Show Agent kinetic typography phase 1 on macos.",
+      "inputs": [
+        "macos CI frozen Agent phase"
+      ],
+      "outputs": [
+        "macos PNG evidence"
+      ],
+      "handles": "Agent visual phase review"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos-agent-phase-3.png": {
+      "purpose": "Show Agent kinetic typography phase 3 on macos.",
+      "inputs": [
+        "macos CI frozen Agent phase"
+      ],
+      "outputs": [
+        "macos PNG evidence"
+      ],
+      "handles": "Agent visual phase review"
     }
   }
 }

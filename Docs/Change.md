@@ -64,3 +64,8 @@
 
 - **Correction:** The user rejected the Agent sculpture as too generic. They want the Agent hero/shelf to read as a designed animated **text visual**, more distinctive than the model-workspace typography, instead of an image or 3D object. The supplied Archnemix logo was too large and its black-backed square looked wrong on the rail; keep alpha transparency and display a smaller crop.
 - **Implementation slice:** Use a six-mode kinetic type identity for Agent on Home, replacing both generated sculpture assets; crop the user-supplied transparent logo without recompositing on black, display at 116 × 116. The two model-workspace hover panels and three-app shelf remain. CI captures Agent phase 1/3 on each OS; no feature becomes clickable or functional. Step 1 still needs three-OS evidence and hands-on user approval; signing remains separate and blocked.
+
+## 2026-11-09 — Agent typography validation
+
+- **Result:** Run `43200600325` passed Linux/Windows/macOS (six tests per OS, release builds, Home/About plus five synthetic phase captures per OS). Reviewed six representative PNGs: old Agent artwork is gone, synchronized six-mode labels and markers fit in hero/shelf, and sidebar logo background is transparent and size reduced. Windows PE GUI subsystem and Archnemix descriptive metadata pass; digital signature remains absent. See `Docs/Test_Results/Unreleased/Gui_Validation.md` for exact commands, outputs, hashes and limitations.
+- **Gate:** The user's normal Windows experience and design acceptance are still required; motion smoothness is not proven by frozen screenshots. Chat UI remains unstarted.

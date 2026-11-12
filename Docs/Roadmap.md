@@ -1,7 +1,7 @@
 <!-- Purpose: Tracks ordered, complete implementation milestones derived from the agreed product plan. -->
 # Roadmap
 
-**Status: Step 0 done; Step 1 under visual revision: replace the rejected Agent image with kinetic six-mode typography, shrink the transparent Archnemix sidebar mark, and validate Home/About and animation states on three OSes. Training/Fine-tuning stay text-hover cards; Model Monitor stays hidden. Signing is blocked pending a verified publisher certificate/secure signing method. Do not start Step 2 until user approval.** The user directs what to build next and can request revisions. Suggest missing dependencies or risks before moving a step, but do not silently expand scope. Complete and validate one step before starting the next; a UI placeholder must be visibly unavailable, not presented as a working feature.
+**Status: Step 0 done; Step 1 Agent-type and transparent-logo revision technically validated by three-OS run `43200600325` (six tests per OS, Home/About and frozen animation states). Await the user's normal Windows launch and visual approval. Training/Fine-tuning remain text-hover cards; Model Monitor remains hidden. Verified publisher signing is blocked pending an identity-validated certificate/secure signing method. Do not start Step 2.** The user directs what to build next and can request revisions. Suggest missing dependencies or risks before moving a step, but do not silently expand scope. Complete and validate one step before starting the next; a UI placeholder must be visibly unavailable, not presented as a working feature.
 
 ## Shared completion rule
 

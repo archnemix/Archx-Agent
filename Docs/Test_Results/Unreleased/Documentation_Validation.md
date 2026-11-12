@@ -448,3 +448,18 @@ git diff --check
 ```
 
 Observed `PASS: three-OS Agent and model phase capture YAML` and `PASS: 70 inventoried files and new Rust purpose header`; `git diff --check` exited successfully with no output. CI compile/test, screenshots and Windows build are **not** yet claimed by this check.
+
+## 2026-11-09: Agent-type post-CI inventory
+
+The CI run added six Agent-phase screenshots. Exact inventory check from the repository root:
+
+```sh
+python - <<'PY'
+import json
+from pathlib import Path
+r=Path('.'); files={p.as_posix() for p in r.rglob('*') if p.is_file() and '.git' not in p.parts}; index=set(json.loads((r/'Docs/Files_Info.json').read_text())['files']); assert files==index,(sorted(files-index),sorted(index-files)); print('PASS:',len(files),'inventoried files')
+PY
+# observed: PASS: 76 inventoried files
+git diff --check
+# observed: no output; exit 0
+```
