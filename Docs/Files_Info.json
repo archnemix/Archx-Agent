@@ -230,7 +230,7 @@
       "handles": "CI organization"
     },
     ".github/workflows/gui.yml": {
-      "purpose": "Build/test all three OSes and capture Home/About, Agent/Settings and frozen typography phases.",
+      "purpose": "Build/test all three OSes and capture Home/About, Agent/Settings default and alternate states and typography phases.",
       "inputs": [
         "Source changes and intentional trigger"
       ],
@@ -320,7 +320,7 @@
       "handles": "Application entry point"
     },
     "src/app.rs": {
-      "purpose": "Manage Home/Agent/Settings/About navigation, session-only drafts and mode/memory previews, plus screenshot capture.",
+      "purpose": "Own navigation, in-session drafts/mode previews, shared memory preview and screenshot modes/state capture.",
       "inputs": [
         "User navigation and snapshot trigger"
       ],
@@ -340,7 +340,7 @@
       "handles": "Home presentation"
     },
     "src/style.rs": {
-      "purpose": "Centralize font/contrast/spacing tokens and native styles for launcher and UI-only destinations.",
+      "purpose": "Centralize font/color/spacing tokens and native styles including legible disabled chat composer.",
       "inputs": [
         "Selected and hover state"
       ],
@@ -920,6 +920,66 @@
         "Review screenshot"
       ],
       "handles": "Visual UI evidence"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux-coding.png": {
+      "purpose": "Capture linux alternate coding preview state.",
+      "inputs": [
+        "linux native GUI screenshot flag"
+      ],
+      "outputs": [
+        "Visual UI state evidence"
+      ],
+      "handles": "UI preview variant"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux-custom.png": {
+      "purpose": "Capture linux alternate custom preview state.",
+      "inputs": [
+        "linux native GUI screenshot flag"
+      ],
+      "outputs": [
+        "Visual UI state evidence"
+      ],
+      "handles": "UI preview variant"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows-coding.png": {
+      "purpose": "Capture windows alternate coding preview state.",
+      "inputs": [
+        "windows native GUI screenshot flag"
+      ],
+      "outputs": [
+        "Visual UI state evidence"
+      ],
+      "handles": "UI preview variant"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows-custom.png": {
+      "purpose": "Capture windows alternate custom preview state.",
+      "inputs": [
+        "windows native GUI screenshot flag"
+      ],
+      "outputs": [
+        "Visual UI state evidence"
+      ],
+      "handles": "UI preview variant"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos-coding.png": {
+      "purpose": "Capture macos alternate coding preview state.",
+      "inputs": [
+        "macos native GUI screenshot flag"
+      ],
+      "outputs": [
+        "Visual UI state evidence"
+      ],
+      "handles": "UI preview variant"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos-custom.png": {
+      "purpose": "Capture macos alternate custom preview state.",
+      "inputs": [
+        "macos native GUI screenshot flag"
+      ],
+      "outputs": [
+        "Visual UI state evidence"
+      ],
+      "handles": "UI preview variant"
     }
   }
 }

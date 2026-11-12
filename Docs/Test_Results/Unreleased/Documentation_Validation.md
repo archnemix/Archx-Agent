@@ -511,3 +511,7 @@ Source `685b8dc` run `43239295666`: Linux, Windows and macOS each passed `cargo 
 ## 2026-11-09: Agent/Settings UI preflight (pending three-OS run)
 
 From repository root: `/home/user/.venv/bin/python` parsed `.github/workflows/gui.yml` via PyYAML and verified the sequential Linux/Windows/macOS jobs each specify `ARCHX_SNAPSHOT_PAGE=agent` and `settings` with matching `visual/{os}-{page}.png` paths. Python JSON inventory check found 85 existing tracked/untracked files and exactly six declared future screenshot outputs awaiting the CI job. `git diff --check` exited 0. No local Rust toolchain is installed; do not claim compilation/UI interaction until the workflow result and new screenshots are inspected.
+
+## 2026-11-09: first Agent/Settings UI run and visual refinement
+
+Run `43250400631` passed sequential Linux, Windows and macOS, 11 tests each with release builds and nonempty default `visual/{os}-{agent,settings}.png` captures. Windows and macOS default-state visual review: all main elements are in bounds; macOS text legible. The disabled text input was visually too bright and its placeholder too dim, so a new charcoal style was added without an `on_input` handler. New snapshot-only selected-state screenshots (`coding`, `custom`) require a rerun before declaring final visual validation.

@@ -88,7 +88,8 @@ pub fn view(drafts: &[ChatDraft], selected: u32) -> Element<'static, Message> {
             space().height(10),
             text_input("Messaging becomes available when a model is connected", "")
                 .padding([14, 16])
-                .size(14),
+                .size(14)
+                .style(style::disabled_composer),
             space().height(9),
             text("Sending, history, edits and mode conversion are not available in this UI preview.")
                 .size(11)

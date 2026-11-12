@@ -132,6 +132,10 @@
     "iced_0_14_button_navigation": {
       "summary": "Iced button on_press(message) sends a message on activation; selected navigation reuses existing native button styling. No new chat persistence or model runtime is implied by UI state.",
       "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/button.rs"
+    },
+    "iced_0_14_disabled_text_input_style": {
+      "summary": "Iced TextInput::Style has background, border, icon, placeholder, value and selection; the default Disabled status uses a brighter weak surface and dark placeholder. A custom disabled class can retain no on_input while styling the faux composer to the Lab charcoal surface and legible muted placeholder.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/text_input.rs"
     }
   }
 }

@@ -99,11 +99,21 @@ impl App {
         } else {
             0
         };
+        let preview_mode = if snapshot.is_some() && page == Page::Agent {
+            std::env::var("ARCHX_SNAPSHOT_MODE").ok()
+                .and_then(|value| value.parse::<u8>().ok())
+                .filter(|mode| *mode < MODE_COUNT)
+                .unwrap_or(0)
+        } else { 0 };
+        let preview_memory = if snapshot.is_some() && page == Page::Settings
+            && std::env::var("ARCHX_SNAPSHOT_MEMORY").as_deref() == Ok("custom") {
+            MemoryMode::Custom
+        } else { MemoryMode::Light };
         Self {
             page,
-            drafts: vec![ChatDraft { id: 1, mode: 0 }],
+            drafts: vec![ChatDraft { id: 1, mode: preview_mode }],
             selected_draft: 1,
-            memory_preview: MemoryMode::Light,
+            memory_preview: preview_memory,
             keep_agent_preview: false,
             snapshot,
             snapshot_requested: false,

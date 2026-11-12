@@ -1,6 +1,6 @@
 //! Purpose: Provides the black-and-silver palette and restrained launcher widget styles.
-use iced::widget::{button, container};
-use iced::{font, gradient, Border, Color, Font, Radians, Shadow, Theme, Vector};
+use iced::widget::{button, container, text_input};
+use iced::{font, gradient, Background, Border, Color, Font, Radians, Shadow, Theme, Vector};
 
 pub const BLACK: Color = Color::from_rgb8(8, 8, 8);
 pub const RAIL: Color = Color::from_rgb8(13, 13, 13);
@@ -107,6 +107,21 @@ pub fn badge(_: &Theme) -> container::Style {
             width: 1.0,
             radius: 6.0.into(),
         })
+}
+
+pub fn disabled_composer(_: &Theme, _: text_input::Status) -> text_input::Style {
+    text_input::Style {
+        background: Background::Color(Color::from_rgb8(28, 28, 30)),
+        border: Border {
+            color: Color::from_rgb8(65, 65, 68),
+            width: 1.0,
+            radius: 8.0.into(),
+        },
+        icon: GREY,
+        placeholder: GREY,
+        value: GREY,
+        selection: LINE,
+    }
 }
 
 pub fn quiet_button(_: &Theme, status: button::Status) -> button::Style {
