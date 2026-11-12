@@ -1,7 +1,7 @@
 <!-- Purpose: Tracks ordered, complete implementation milestones derived from the agreed product plan. -->
 # Roadmap
 
-**Status: Step 0 done; Step 1 Agent-type and transparent-logo revision technically validated by three-OS run `43200600325` (six tests per OS, Home/About and frozen animation states). Await the user's normal Windows launch and visual approval. Training/Fine-tuning remain text-hover cards; Model Monitor remains hidden. Verified publisher signing is blocked pending an identity-validated certificate/secure signing method. Do not start Step 2.** The user directs what to build next and can request revisions. Suggest missing dependencies or risks before moving a step, but do not silently expand scope. Complete and validate one step before starting the next; a UI placeholder must be visibly unavailable, not presented as a working feature.
+**Status: Step 0 done; Step 1 reopened for a final workbench-typography and font-hierarchy review. Agent visual remains unchanged. Model Forge/Refinement Studio replace small corner-stage text; `Docs/design.md` now sets the palette, two-font roles, emphasis and spacing rules. Three-OS GUI/non-visual evidence and user hands-on approval are required before Step 2. Model Monitor stays hidden; verified publisher signing remains blocked pending an identity-validated certificate/secure method.** The user directs what to build next and can request revisions. Suggest missing dependencies or risks before moving a step, but do not silently expand scope. Complete and validate one step before starting the next; a UI placeholder must be visibly unavailable, not presented as a working feature.
 
 ## Shared completion rule
 

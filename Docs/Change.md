@@ -69,3 +69,9 @@
 
 - **Result:** Run `43200600325` passed Linux/Windows/macOS (six tests per OS, release builds, Home/About plus five synthetic phase captures per OS). Reviewed six representative PNGs: old Agent artwork is gone, synchronized six-mode labels and markers fit in hero/shelf, and sidebar logo background is transparent and size reduced. Windows PE GUI subsystem and Archnemix descriptive metadata pass; digital signature remains absent. See `Docs/Test_Results/Unreleased/Gui_Validation.md` for exact commands, outputs, hashes and limitations.
 - **Gate:** The user's normal Windows experience and design acceptance are still required; motion smoothness is not proven by frozen screenshots. Chat UI remains unstarted.
+
+## 2026-11-09 — Final workbench-art, font and evidence-directory correction
+
+- **Feedback:** The Agent animation looks good and should not be changed. The Training/Fine-tuning cards are still too plain: a small text change in the corner is insufficient. Rename their *visual concepts* (not yet working destinations) to **Model Forge** and **Refinement Studio**, enlarge the changing word to the center of each card, and add a three-part animated marker. Replace the generic `THE COLLECTION / Your AI apps` section with `EXPLORE / AI workspaces`.
+- **Typography:** After reviewing Space Grotesk from Google Fonts, use it selectively for display headings and the two workbench cards while keeping Manrope body/navigation and the accepted Agent artwork. `Docs/design.md` is the one visual-token specification: font weight budget, contrast roles, major spacing steps and hierarchy. No font is chosen solely by trend or applied everywhere.
+- **Evidence:** Route CI build/test/PE logs to `Docs/Test_Results/Unreleased/non_visual/` and screenshots to `.../visual/`. Maintain three-OS tests/captures and Windows GUI build; inspect visuals before offering Step 1 for acceptance. Signing remains a separate unresolved prerequisite.

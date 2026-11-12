@@ -1,15 +1,39 @@
 //! Purpose: Provides the black-and-silver palette and restrained launcher widget styles.
 use iced::widget::{button, container};
-use iced::{gradient, Border, Color, Radians, Shadow, Theme, Vector};
+use iced::{font, gradient, Border, Color, Font, Radians, Shadow, Theme, Vector};
 
 pub const BLACK: Color = Color::from_rgb8(8, 8, 8);
 pub const RAIL: Color = Color::from_rgb8(13, 13, 13);
 pub const SURFACE: Color = Color::from_rgb8(20, 20, 20);
-pub const RAISED: Color = Color::from_rgb8(32, 32, 32);
 pub const LINE: Color = Color::from_rgb8(51, 51, 51);
 pub const WHITE: Color = Color::from_rgb8(244, 244, 244);
 pub const GREY: Color = Color::from_rgb8(178, 178, 178);
-pub const DIM: Color = Color::from_rgb8(117, 117, 117);
+pub const DIM: Color = Color::from_rgb8(145, 145, 145);
+
+// Type roles and spacing are specified once in Docs/design.md and reused by views.
+pub const DISPLAY: Font = Font {
+    family: font::Family::Name("Space Grotesk"),
+    weight: font::Weight::Medium,
+    ..Font::DEFAULT
+};
+pub const DISPLAY_BOLD: Font = Font {
+    family: font::Family::Name("Space Grotesk"),
+    weight: font::Weight::Semibold,
+    ..Font::DEFAULT
+};
+pub const LABEL: Font = Font {
+    family: font::Family::Name("Manrope"),
+    weight: font::Weight::Medium,
+    ..Font::DEFAULT
+};
+pub const TYPE_LABEL: u16 = 11;
+pub const TYPE_BODY: u16 = 14;
+pub const TYPE_SECTION: u16 = 24;
+pub const TYPE_PAGE: u16 = 38;
+pub const SPACE_1: u16 = 8;
+pub const SPACE_2: u16 = 16;
+pub const SPACE_3: u16 = 24;
+pub const SPACE_4: u16 = 36;
 
 pub fn canvas(_: &Theme) -> container::Style {
     container::Style::default().background(BLACK)
@@ -47,9 +71,14 @@ pub fn mode_marker(_: &Theme, active: bool) -> container::Style {
     container::Style::default().background(if active { WHITE } else { LINE })
 }
 
-pub fn cover(_: &Theme) -> container::Style {
+pub fn workbench_surface(_: &Theme, tuning: bool) -> container::Style {
+    let start = if tuning { Color::from_rgb8(26, 26, 28) } else { Color::from_rgb8(24, 27, 29) };
     container::Style::default()
-        .background(RAISED)
+        .background(
+            gradient::Linear::new(Radians::PI)
+                .add_stop(0.0, start)
+                .add_stop(1.0, Color::from_rgb8(12, 12, 13)),
+        )
         .border(Border {
             color: LINE,
             width: 1.0,
@@ -113,5 +142,13 @@ mod tests {
         let selected = nav(true, &Theme::Dark, button::Status::Active);
         assert!(matches!(selected.background, Some(Background::Gradient(_))));
         assert!(selected.shadow.blur_radius > 0.0);
+    }
+
+    #[test]
+    fn model_labs_use_native_gradient_and_selective_display_weight() {
+        assert!(matches!(workbench_surface(&Theme::Dark, false).background, Some(Background::Gradient(_))));
+        assert!(matches!(workbench_surface(&Theme::Dark, true).background, Some(Background::Gradient(_))));
+        assert_eq!(DISPLAY.weight, font::Weight::Medium);
+        assert_eq!(DISPLAY_BOLD.weight, font::Weight::Semibold);
     }
 }

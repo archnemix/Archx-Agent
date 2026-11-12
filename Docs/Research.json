@@ -100,6 +100,26 @@
     "pillow_alpha_sidebar_crop": {
       "summary": "Pillow Image.getchannel(A).getbbox finds nonzero alpha bounds and Image.crop preserves the transparent background. Used to derive a smaller faithful sidebar mark from the supplied source without black backing.",
       "url": "https://pillow.readthedocs.io/en/stable/reference/Image.html"
+    },
+    "space_grotesk_font": {
+      "summary": "Google Fonts ofl/spacegrotesk provides 300–700 variable weight Space Grotesk by Florian Karsten with SIL OFL. Bundle for selective editorial headings and kinetic model-workspace words, while keeping Manrope for body/navigation and unchanged Agent wordmark.",
+      "url": "https://github.com/google/fonts/tree/main/ofl/spacegrotesk"
+    },
+    "iced_0_14_font_weight": {
+      "summary": "Iced 0.14 Font has Family::Name and Weight::Medium/Semibold; text::font selects a registered family for chosen roles. Register Space Grotesk bytes alongside Manrope, do not change default body family.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/core/src/font.rs"
+    },
+    "carbon_typographic_hierarchy": {
+      "summary": "Carbon productive headings use a restrained range of weights/sizes and distinguish headings from body; informs one emphasized display word per model card and lighter page/section headings rather than bold everywhere.",
+      "url": "https://v10.carbondesignsystem.com/guidelines/typography/productive/"
+    },
+    "material_expressive_hierarchy": {
+      "summary": "Material 3 expressive guidance uses type weight/size and space to make key information editorial without adding decorative clutter; informs our two-family hierarchy and model card emphasis, not copied visual elements.",
+      "url": "https://m3.material.io/blog/building-with-m3-expressive"
+    },
+    "material_accessibility_contrast": {
+      "summary": "Material accessibility quotes W3C 4.5:1 small-text and 3:1 large-text contrast guidance; DIM was raised to #919191, measured 5.17:1 even against #202020 surface; other text roles remain brighter.",
+      "url": "https://m1.material.io/usability/accessibility.html"
     }
   }
 }

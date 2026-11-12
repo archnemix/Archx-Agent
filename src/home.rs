@@ -31,12 +31,12 @@ fn sidebar(page: Page) -> Element<'static, Message> {
         .height(116)
         .content_fit(ContentFit::Contain);
 
-    let discover = button(text("Discover").size(14))
+    let discover = button(text("Discover").size(style::TYPE_BODY).font(style::LABEL))
         .width(Fill)
         .padding([12, 15])
         .on_press(Message::Navigate(Page::Home))
         .style(move |theme, status| style::nav(page == Page::Home, theme, status));
-    let about = button(text("About").size(14))
+    let about = button(text("About").size(style::TYPE_BODY).font(style::LABEL))
         .width(Fill)
         .padding([12, 15])
         .on_press(Message::Navigate(Page::About))
@@ -123,9 +123,9 @@ fn home(hovered: Option<Art>, phase: u8, agent_phase: u8) -> Element<'static, Me
 
     let shelf_heading = row![
         column![
-            text("THE COLLECTION").size(10).color(style::DIM),
-            space().height(7),
-            text("Your AI apps").size(24).color(style::WHITE)
+            text("EXPLORE").size(style::TYPE_LABEL).font(style::LABEL).color(style::DIM),
+            space().height(style::SPACE_1),
+            text("AI workspaces").size(style::TYPE_SECTION).font(style::DISPLAY).color(style::WHITE)
         ]
         .width(Fill),
         text("03 APPS   /   MORE TO COME").size(11).color(style::DIM)
@@ -147,14 +147,14 @@ fn home(hovered: Option<Art>, phase: u8, agent_phase: u8) -> Element<'static, Me
     column![
         topbar,
         space().height(24),
-        text("The Lab").size(38).color(style::WHITE),
-        space().height(8),
+        text("The Lab").size(style::TYPE_PAGE).font(style::DISPLAY).color(style::WHITE),
+        space().height(style::SPACE_1),
         text("One place for the AI apps you make your own.").size(15).color(style::GREY),
-        space().height(22),
+        space().height(style::SPACE_3),
         hero,
-        space().height(30),
+        space().height(style::SPACE_4),
         shelf_heading,
-        space().height(20),
+        space().height(style::SPACE_2),
         apps,
         space().height(46),
         footer
@@ -168,7 +168,7 @@ fn about() -> Element<'static, Message> {
     column![
         text("ARCHX  /  ABOUT").size(11).color(style::DIM),
         space().height(31),
-        text("More than a chat window.").size(35).color(style::WHITE),
+        text("More than a chat window.").size(35).font(style::DISPLAY).color(style::WHITE),
         space().height(16),
         text("Archx AI Lab is the Archnemix launcher for AI tools and experiences.")
             .size(16)

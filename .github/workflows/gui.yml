@@ -30,28 +30,30 @@ jobs:
         run: |
           set -o pipefail
           sudo apt-get update -qq && sudo apt-get install -y -qq libxkbcommon-dev libxkbcommon-x11-0 libwayland-dev libasound2-dev xvfb > /dev/null
-          mkdir -p Docs/Test_Results/Unreleased/{build,visual}
-          cargo generate-lockfile > Docs/Test_Results/Unreleased/build/linux.log 2>&1
-          (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
-          xvfb-run -a env ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
+          mkdir -p Docs/Test_Results/Unreleased/{non_visual,visual}
+          cargo generate-lockfile > Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          xvfb-run -a env ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/linux.png
           for phase in 1 3; do
-            xvfb-run -a env ARCHX_SNAPSHOT_AGENT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-agent-phase-$phase.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
+            xvfb-run -a env ARCHX_SNAPSHOT_AGENT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-agent-phase-$phase.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
             test -s Docs/Test_Results/Unreleased/visual/linux-agent-phase-$phase.png
-            if cmp -s Docs/Test_Results/Unreleased/visual/linux.png Docs/Test_Results/Unreleased/visual/linux-agent-phase-$phase.png; then echo "FAIL: Linux Agent phase $phase matches rest" >> Docs/Test_Results/Unreleased/build/linux.log; exit 1; fi
-            echo "PASS: Linux Agent phase $phase differs from rest" >> Docs/Test_Results/Unreleased/build/linux.log
+            if cmp -s Docs/Test_Results/Unreleased/visual/linux.png Docs/Test_Results/Unreleased/visual/linux-agent-phase-$phase.png; then echo "FAIL: Linux Agent phase $phase matches rest" >> Docs/Test_Results/Unreleased/non_visual/linux.log; exit 1; fi
+            echo "PASS: Linux Agent phase $phase differs from rest" >> Docs/Test_Results/Unreleased/non_visual/linux.log
           done
           for phase in 1 2; do
-            xvfb-run -a env ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-training-hover-$phase.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
+            xvfb-run -a env ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-training-hover-$phase.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
             test -s Docs/Test_Results/Unreleased/visual/linux-training-hover-$phase.png
           done
-          xvfb-run -a env ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=1 ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-tuning-hover-1.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-tuning-hover-1.png
-          for card in training tuning; do
-            if cmp -s Docs/Test_Results/Unreleased/visual/linux.png Docs/Test_Results/Unreleased/visual/linux-$card-hover-1.png; then echo "FAIL: Linux $card hover matches rest" >> Docs/Test_Results/Unreleased/build/linux.log; exit 1; fi
-            echo "PASS: Linux $card hover phase differs from rest" >> Docs/Test_Results/Unreleased/build/linux.log
+          for phase in 1 2; do
+            xvfb-run -a env ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-tuning-hover-$phase.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+            test -s Docs/Test_Results/Unreleased/visual/linux-tuning-hover-$phase.png
           done
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-about.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/linux.log 2>&1
+          for card in training tuning; do
+            if cmp -s Docs/Test_Results/Unreleased/visual/linux.png Docs/Test_Results/Unreleased/visual/linux-$card-hover-1.png; then echo "FAIL: Linux $card hover matches rest" >> Docs/Test_Results/Unreleased/non_visual/linux.log; exit 1; fi
+            echo "PASS: Linux $card hover phase differs from rest" >> Docs/Test_Results/Unreleased/non_visual/linux.log
+          done
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-about.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/linux-about.png
       - name: Record results in repository
         if: always()
@@ -59,7 +61,7 @@ jobs:
         run: |
           git config user.name 'archx-ci[bot]'
           git config user.email 'archx-ci[bot]@users.noreply.github.com'
-          git add -A Docs/Test_Results/Unreleased/build/ Docs/Test_Results/Unreleased/visual/
+          git add -A Docs/Test_Results/Unreleased/non_visual/ Docs/Test_Results/Unreleased/visual/
           if test -f Cargo.lock; then git add Cargo.lock; fi
           git diff --cached --quiet || (git commit -m 'Record Linux GUI validation' && git push origin HEAD:arena/d45bc2a4-archx-agent)
 
@@ -76,29 +78,31 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          mkdir -p Docs/Test_Results/Unreleased/{build,visual} deliverables/Unreleased/windows
-          (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) > Docs/Test_Results/Unreleased/build/windows.log 2>&1
-          python -c 'import pathlib,struct; data=pathlib.Path("target/release/archx-ai-lab.exe").read_bytes(); pe=struct.unpack_from("<I",data,0x3c)[0]; subsystem=struct.unpack_from("<H",data,pe+92)[0]; assert subsystem==2, f"Expected GUI subsystem 2, found {subsystem}"; print("PASS: Windows GUI subsystem 2 (no console)")' >> Docs/Test_Results/Unreleased/build/windows.log 2>&1
-          powershell.exe -NoProfile -Command '$info=(Get-Item "target/release/archx-ai-lab.exe").VersionInfo; if ($info.CompanyName -ne "Archnemix" -or $info.ProductName -ne "Archx AI Lab") { throw "Incorrect PE product metadata" }; Write-Output "PASS: Archnemix Windows product metadata (not a digital signature)"' >> Docs/Test_Results/Unreleased/build/windows.log 2>&1
-          ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/build/windows.log 2>&1
+          mkdir -p Docs/Test_Results/Unreleased/{non_visual,visual} deliverables/Unreleased/windows
+          (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) > Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          python -c 'import pathlib,struct; data=pathlib.Path("target/release/archx-ai-lab.exe").read_bytes(); pe=struct.unpack_from("<I",data,0x3c)[0]; subsystem=struct.unpack_from("<H",data,pe+92)[0]; assert subsystem==2, f"Expected GUI subsystem 2, found {subsystem}"; print("PASS: Windows GUI subsystem 2 (no console)")' >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          powershell.exe -NoProfile -Command '$info=(Get-Item "target/release/archx-ai-lab.exe").VersionInfo; if ($info.CompanyName -ne "Archnemix" -or $info.ProductName -ne "Archx AI Lab") { throw "Incorrect PE product metadata" }; Write-Output "PASS: Archnemix Windows product metadata (not a digital signature)"' >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/windows.png
           for phase in 1 3; do
-            ARCHX_SNAPSHOT_AGENT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-agent-phase-$phase.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/build/windows.log 2>&1
+            ARCHX_SNAPSHOT_AGENT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-agent-phase-$phase.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
             test -s Docs/Test_Results/Unreleased/visual/windows-agent-phase-$phase.png
-            if cmp -s Docs/Test_Results/Unreleased/visual/windows.png Docs/Test_Results/Unreleased/visual/windows-agent-phase-$phase.png; then echo "FAIL: Windows Agent phase $phase matches rest" >> Docs/Test_Results/Unreleased/build/windows.log; exit 1; fi
-            echo "PASS: Windows Agent phase $phase differs from rest" >> Docs/Test_Results/Unreleased/build/windows.log
+            if cmp -s Docs/Test_Results/Unreleased/visual/windows.png Docs/Test_Results/Unreleased/visual/windows-agent-phase-$phase.png; then echo "FAIL: Windows Agent phase $phase matches rest" >> Docs/Test_Results/Unreleased/non_visual/windows.log; exit 1; fi
+            echo "PASS: Windows Agent phase $phase differs from rest" >> Docs/Test_Results/Unreleased/non_visual/windows.log
           done
           for phase in 1 2; do
-            ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-training-hover-$phase.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/build/windows.log 2>&1
+            ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-training-hover-$phase.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
             test -s Docs/Test_Results/Unreleased/visual/windows-training-hover-$phase.png
           done
-          ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=1 ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-tuning-hover-1.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/build/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-tuning-hover-1.png
-          for card in training tuning; do
-            if cmp -s Docs/Test_Results/Unreleased/visual/windows.png Docs/Test_Results/Unreleased/visual/windows-$card-hover-1.png; then echo "FAIL: Windows $card hover matches rest" >> Docs/Test_Results/Unreleased/build/windows.log; exit 1; fi
-            echo "PASS: Windows $card hover phase differs from rest" >> Docs/Test_Results/Unreleased/build/windows.log
+          for phase in 1 2; do
+            ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-tuning-hover-$phase.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+            test -s Docs/Test_Results/Unreleased/visual/windows-tuning-hover-$phase.png
           done
-          ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-about.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/build/windows.log 2>&1
+          for card in training tuning; do
+            if cmp -s Docs/Test_Results/Unreleased/visual/windows.png Docs/Test_Results/Unreleased/visual/windows-$card-hover-1.png; then echo "FAIL: Windows $card hover matches rest" >> Docs/Test_Results/Unreleased/non_visual/windows.log; exit 1; fi
+            echo "PASS: Windows $card hover phase differs from rest" >> Docs/Test_Results/Unreleased/non_visual/windows.log
+          done
+          ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-about.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/windows-about.png
           cp target/release/archx-ai-lab.exe deliverables/Unreleased/windows/archx-ai-lab.exe
       - name: Record results and Windows build in repository
@@ -107,7 +111,7 @@ jobs:
         run: |
           git config user.name 'archx-ci[bot]'
           git config user.email 'archx-ci[bot]@users.noreply.github.com'
-          git add -A Docs/Test_Results/Unreleased/build/ Docs/Test_Results/Unreleased/visual/ deliverables/Unreleased/windows/
+          git add -A Docs/Test_Results/Unreleased/non_visual/ Docs/Test_Results/Unreleased/visual/ deliverables/Unreleased/windows/
           git diff --cached --quiet || (git commit -m 'Record Windows GUI validation and build' && git push origin HEAD:arena/d45bc2a4-archx-agent)
 
   macos:
@@ -123,27 +127,29 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          mkdir -p Docs/Test_Results/Unreleased/{build,visual}
-          (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) > Docs/Test_Results/Unreleased/build/macos.log 2>&1
-          ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/macos.log 2>&1
+          mkdir -p Docs/Test_Results/Unreleased/{non_visual,visual}
+          (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) > Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/macos.png
           for phase in 1 3; do
-            ARCHX_SNAPSHOT_AGENT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-agent-phase-$phase.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/macos.log 2>&1
+            ARCHX_SNAPSHOT_AGENT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-agent-phase-$phase.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
             test -s Docs/Test_Results/Unreleased/visual/macos-agent-phase-$phase.png
-            if cmp -s Docs/Test_Results/Unreleased/visual/macos.png Docs/Test_Results/Unreleased/visual/macos-agent-phase-$phase.png; then echo "FAIL: macOS Agent phase $phase matches rest" >> Docs/Test_Results/Unreleased/build/macos.log; exit 1; fi
-            echo "PASS: macOS Agent phase $phase differs from rest" >> Docs/Test_Results/Unreleased/build/macos.log
+            if cmp -s Docs/Test_Results/Unreleased/visual/macos.png Docs/Test_Results/Unreleased/visual/macos-agent-phase-$phase.png; then echo "FAIL: macOS Agent phase $phase matches rest" >> Docs/Test_Results/Unreleased/non_visual/macos.log; exit 1; fi
+            echo "PASS: macOS Agent phase $phase differs from rest" >> Docs/Test_Results/Unreleased/non_visual/macos.log
           done
           for phase in 1 2; do
-            ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-training-hover-$phase.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/macos.log 2>&1
+            ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-training-hover-$phase.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
             test -s Docs/Test_Results/Unreleased/visual/macos-training-hover-$phase.png
           done
-          ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=1 ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-tuning-hover-1.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-tuning-hover-1.png
-          for card in training tuning; do
-            if cmp -s Docs/Test_Results/Unreleased/visual/macos.png Docs/Test_Results/Unreleased/visual/macos-$card-hover-1.png; then echo "FAIL: macOS $card hover matches rest" >> Docs/Test_Results/Unreleased/build/macos.log; exit 1; fi
-            echo "PASS: macOS $card hover phase differs from rest" >> Docs/Test_Results/Unreleased/build/macos.log
+          for phase in 1 2; do
+            ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-tuning-hover-$phase.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+            test -s Docs/Test_Results/Unreleased/visual/macos-tuning-hover-$phase.png
           done
-          ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-about.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/build/macos.log 2>&1
+          for card in training tuning; do
+            if cmp -s Docs/Test_Results/Unreleased/visual/macos.png Docs/Test_Results/Unreleased/visual/macos-$card-hover-1.png; then echo "FAIL: macOS $card hover matches rest" >> Docs/Test_Results/Unreleased/non_visual/macos.log; exit 1; fi
+            echo "PASS: macOS $card hover phase differs from rest" >> Docs/Test_Results/Unreleased/non_visual/macos.log
+          done
+          ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-about.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/macos-about.png
       - name: Record results in repository
         if: always()
@@ -151,5 +157,5 @@ jobs:
         run: |
           git config user.name 'archx-ci[bot]'
           git config user.email 'archx-ci[bot]@users.noreply.github.com'
-          git add -A Docs/Test_Results/Unreleased/build/ Docs/Test_Results/Unreleased/visual/
+          git add -A Docs/Test_Results/Unreleased/non_visual/ Docs/Test_Results/Unreleased/visual/
           git diff --cached --quiet || (git commit -m 'Record macOS GUI validation' && git push origin HEAD:arena/d45bc2a4-archx-agent)

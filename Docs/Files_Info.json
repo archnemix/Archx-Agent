@@ -230,7 +230,7 @@
       "handles": "CI organization"
     },
     ".github/workflows/gui.yml": {
-      "purpose": "Build/test all three OSes and capture Home/About plus Agent/model-card phase states.",
+      "purpose": "Build/test across three OSes, save non-visual logs separately and capture Home/About and phase states visually.",
       "inputs": [
         "Source changes and intentional trigger"
       ],
@@ -250,7 +250,7 @@
       "handles": "Rust build configuration"
     },
     "Docs/design.md": {
-      "purpose": "Record AI Lab visual system and cross-OS review criteria",
+      "purpose": "Specify visual tokens, font hierarchy, spacing rhythm and animation rules as one design authority.",
       "inputs": [
         "User visual direction"
       ],
@@ -270,7 +270,7 @@
       "handles": "Assets"
     },
     "assets/fonts/README.md": {
-      "purpose": "Document bundled font and license",
+      "purpose": "Document Manrope body and Space Grotesk heading roles and source licenses.",
       "inputs": [
         "Font provenance"
       ],
@@ -310,7 +310,7 @@
       "handles": "Rust source organization"
     },
     "src/main.rs": {
-      "purpose": "Start Iced app with Agent visual module, native icon and Windows GUI subsystem.",
+      "purpose": "Start Iced app with bundled Manrope/Space Grotesk, native brand icon and Windows GUI subsystem.",
       "inputs": [
         "Application UI and brand PNG"
       ],
@@ -330,7 +330,7 @@
       "handles": "Shell state"
     },
     "src/home.rs": {
-      "purpose": "Render the three-app launcher and About, including transparent smaller brand mark and animated Agent hero.",
+      "purpose": "Render the AI Lab launcher with Explore / AI workspaces section, selected font hierarchy and About page.",
       "inputs": [
         "Current page"
       ],
@@ -340,7 +340,7 @@
       "handles": "Home presentation"
     },
     "src/style.rs": {
-      "purpose": "Provide palette, selected glass nav, and restrained native Agent gradient/phase marker styles.",
+      "purpose": "Centralize typography, palette and spacing tokens with selected glass nav, Agent and model-workspace gradients.",
       "inputs": [
         "Selected and hover state"
       ],
@@ -358,16 +358,6 @@
         "GUI workflow run"
       ],
       "handles": "Manual CI workaround"
-    },
-    "Docs/Test_Results/Unreleased/build/README.md": {
-      "purpose": "Explain per-OS build logs",
-      "inputs": [
-        "Build job commands and output"
-      ],
-      "outputs": [
-        "Test evidence navigation"
-      ],
-      "handles": "CI results"
     },
     "Docs/Test_Results/Unreleased/visual/README.md": {
       "purpose": "Explain OS screenshots",
@@ -419,16 +409,6 @@
       ],
       "handles": "Build reproducibility"
     },
-    "Docs/Test_Results/Unreleased/build/linux.log": {
-      "purpose": "Record Linux CI compilation/test output, including current failure diagnostics.",
-      "inputs": [
-        "Linux cargo test and release build"
-      ],
-      "outputs": [
-        "Observed Linux build result"
-      ],
-      "handles": "Linux CI evidence"
-    },
     "Docs/Test_Results/Unreleased/Gui_Validation.md": {
       "purpose": "Document three-OS test commands, inputs, outputs, hashes, and visual review",
       "inputs": [
@@ -438,26 +418,6 @@
         "Validation record"
       ],
       "handles": "GUI test evidence"
-    },
-    "Docs/Test_Results/Unreleased/build/windows.log": {
-      "purpose": "Preserve Windows cargo test/build and app screenshot output",
-      "inputs": [
-        "Windows CI job"
-      ],
-      "outputs": [
-        "Observed Windows log"
-      ],
-      "handles": "Windows test evidence"
-    },
-    "Docs/Test_Results/Unreleased/build/macos.log": {
-      "purpose": "Preserve macOS cargo test/build and app screenshot output",
-      "inputs": [
-        "macOS CI job"
-      ],
-      "outputs": [
-        "Observed macOS log"
-      ],
-      "handles": "macOS test evidence"
     },
     "Docs/Test_Results/Unreleased/visual/linux.png": {
       "purpose": "Show Linux home screen from running Iced app",
@@ -500,7 +460,7 @@
       "handles": "User testing"
     },
     "src/app_tile.rs": {
-      "purpose": "Render a kinetic Agent tile and two hover-animated text cards for unavailable model apps.",
+      "purpose": "Render distinct hover-animated Model Forge/Refinement Studio type panels and the Agent panel.",
       "inputs": [
         "App metadata and status"
       ],
@@ -768,6 +728,66 @@
         "macos PNG evidence"
       ],
       "handles": "Agent visual phase review"
+    },
+    "Docs/Test_Results/Unreleased/non_visual/README.md": {
+      "purpose": "Explain build, test and PE-check evidence kept apart from screenshots.",
+      "inputs": [
+        "Build job commands and output"
+      ],
+      "outputs": [
+        "Test evidence navigation"
+      ],
+      "handles": "CI results"
+    },
+    "Docs/Test_Results/Unreleased/non_visual/linux.log": {
+      "purpose": "Record Linux CI compilation/test output, including current failure diagnostics.",
+      "inputs": [
+        "Linux cargo test and release build"
+      ],
+      "outputs": [
+        "Observed Linux build result"
+      ],
+      "handles": "Linux CI evidence"
+    },
+    "Docs/Test_Results/Unreleased/non_visual/windows.log": {
+      "purpose": "Preserve Windows cargo test/build and app screenshot output",
+      "inputs": [
+        "Windows CI job"
+      ],
+      "outputs": [
+        "Observed Windows log"
+      ],
+      "handles": "Windows test evidence"
+    },
+    "Docs/Test_Results/Unreleased/non_visual/macos.log": {
+      "purpose": "Preserve macOS cargo test/build and app screenshot output",
+      "inputs": [
+        "macOS CI job"
+      ],
+      "outputs": [
+        "Observed macOS log"
+      ],
+      "handles": "macOS test evidence"
+    },
+    "assets/fonts/SpaceGrotesk.ttf": {
+      "purpose": "Bundled OFL-licensed Space Grotesk variable font for editorial display and model-workspace words.",
+      "inputs": [
+        "Google Fonts ofl/spacegrotesk"
+      ],
+      "outputs": [
+        "Native heading glyphs"
+      ],
+      "handles": "Selective visual typography"
+    },
+    "assets/fonts/SpaceGrotesk-OFL.txt": {
+      "purpose": "Preserve verbatim SIL OFL license for Space Grotesk.",
+      "inputs": [
+        "Google Fonts license text"
+      ],
+      "outputs": [
+        "Font licensing evidence"
+      ],
+      "handles": "Font license"
     }
   }
 }

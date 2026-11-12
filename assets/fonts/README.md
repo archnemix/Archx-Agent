@@ -1,4 +1,4 @@
-<!-- Purpose: Documents the bundled Manrope font and its original license. -->
+<!-- Purpose: Documents the two bundled typefaces, their roles, and original licenses. -->
 # Fonts
 
-`Manrope.ttf` is the variable Manrope typeface from [Google Fonts](https://github.com/google/fonts/tree/main/ofl/manrope). `OFL.txt` is its unmodified SIL Open Font License. The binary font and verbatim license cannot begin with a source-code comment; preserve their formats.
+`Manrope.ttf` is the variable [Manrope](https://github.com/google/fonts/tree/main/ofl/manrope) typeface used for body, navigation and labels; `OFL.txt` is its unmodified SIL OFL license. `SpaceGrotesk.ttf` is variable [Space Grotesk](https://github.com/google/fonts/tree/main/ofl/spacegrotesk) (300–700 weight) used selectively for display headings and animated model-workspace words; `SpaceGrotesk-OFL.txt` is its unmodified license. Both come from Google Fonts. The binary fonts and licenses keep their source formats without file-purpose comments.

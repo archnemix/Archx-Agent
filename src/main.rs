@@ -28,6 +28,7 @@ fn main() -> iced::Result {
         .subscription(app::App::subscription)
         .theme(|_: &app::App| Theme::Dark)
         .font(include_bytes!("../assets/fonts/Manrope.ttf").as_slice())
+        .font(include_bytes!("../assets/fonts/SpaceGrotesk.ttf").as_slice())
         .default_font(Font::with_name("Manrope"))
         .run()
 }

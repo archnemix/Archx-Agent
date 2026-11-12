@@ -463,3 +463,27 @@ PY
 git diff --check
 # observed: no output; exit 0
 ```
+
+## 2026-11-09: workbench/font revision pre-CI
+
+Inputs: Space Grotesk binary and unmodified OFL, design tokens, workbench panels, three-OS workflow split between `visual/` and `non_visual/`. Exact checks from repository root:
+
+```sh
+/home/user/.venv/bin/python - <<'PY'
+import yaml
+from pathlib import Path
+jobs=yaml.safe_load(Path('.github/workflows/gui.yml').read_text())['jobs']; assert set(jobs)=={'linux','windows','macos'}
+for os in jobs:
+    script=next(step['run'] for step in jobs[os]['steps'] if step.get('name')=='Build, test, and screenshot')
+    assert f'non_visual/{os}.log' in script and f'visual/{os}-tuning-hover-$phase.png' in script
+print('PASS: YAML and all three OS visual/non-visual paths')
+PY
+python - <<'PY'
+import json
+from pathlib import Path
+r=Path('.'); files={p.as_posix() for p in r.rglob('*') if p.is_file() and '.git' not in p.parts}; index=set(json.loads((r/'Docs/Files_Info.json').read_text())['files']); assert files==index,(sorted(files-index),sorted(index-files)); assert 'SIL OPEN FONT LICENSE' in (r/'assets/fonts/SpaceGrotesk-OFL.txt').read_text(); print('PASS:',len(files),'files inventoried; font license present')
+PY
+git diff --check
+```
+
+Observed: `PASS: YAML and all three OS visual/non-visual paths`; `PASS: 78 files inventoried; font license present`; diff check exited 0 without output. These are documentation/config checks, not a claim that the new font renders properly or animation works before CI.
