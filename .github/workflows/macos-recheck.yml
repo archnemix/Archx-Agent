@@ -1,0 +1,47 @@
+# Purpose: Recheck macOS GUI evidence independently when the sequential runner is cancelled in queue.
+name: macOS compact-rail recheck
+
+on:
+  push:
+    branches: [arena/d45bc2a4-archx-agent]
+    paths:
+      - 'internels/ci-trigger-macos.txt'
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: arena/d45bc2a4-archx-agent
+          persist-credentials: true
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build, test, and screenshot compact rail
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p Docs/Test_Results/Unreleased/{non_visual,visual}
+          (echo 'COMMAND: cargo test --locked'; cargo test --locked; echo 'COMMAND: cargo build --release --locked'; cargo build --release --locked) > Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          for page in home agent settings; do
+            page_env=()
+            filename=macos-collapsed.png
+            if [[ "$page" != home ]]; then
+              page_env=(ARCHX_SNAPSHOT_PAGE="$page")
+              filename="macos-$page-collapsed.png"
+            fi
+            env "${page_env[@]}" ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT="Docs/Test_Results/Unreleased/visual/$filename" ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+            test -s "Docs/Test_Results/Unreleased/visual/$filename"
+          done
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-agent.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/macos-agent.png
+      - name: Record macOS evidence in repository
+        if: always()
+        shell: bash
+        run: |
+          git config user.name 'archx-ci[bot]'
+          git config user.email 'archx-ci[bot]@users.noreply.github.com'
+          git add -A Docs/Test_Results/Unreleased/non_visual/ Docs/Test_Results/Unreleased/visual/
+          git diff --cached --quiet || (git commit -m 'Record independent macOS compact-rail validation' && git push origin HEAD:arena/d45bc2a4-archx-agent)

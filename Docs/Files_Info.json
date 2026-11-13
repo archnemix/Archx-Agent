@@ -1100,6 +1100,27 @@
         "Visual compact navigation evidence"
       ],
       "handles": "Global sidebar review"
+    },
+    ".github/workflows/macos-recheck.yml": {
+      "purpose": "Run focused macOS tests/build and compact rail screenshots when a queued sequential macOS job is cancelled.",
+      "inputs": [
+        "internels/ci-trigger-macos.txt",
+        "Tracked Rust source"
+      ],
+      "outputs": [
+        "macOS non-visual log and compact visual captures"
+      ],
+      "handles": "Independent macOS CI recovery"
+    },
+    "internels/ci-trigger-macos.txt": {
+      "purpose": "Deliberately trigger a focused macOS UI validation without retriggering the three-OS workflow.",
+      "inputs": [
+        "Explicit change by development agent"
+      ],
+      "outputs": [
+        "macOS-only CI run"
+      ],
+      "handles": "CI trigger"
     }
   }
 }
