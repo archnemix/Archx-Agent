@@ -30,7 +30,7 @@ impl CallError {
     pub fn message(self) -> String {
         match self {
             Self::InvalidInput => "Choose a valid model and enter a short message (up to 4,000 characters).".into(),
-            Self::Transport => "Could not reach the provider securely. Check your network and try again.".into(),
+            Self::Transport => "The secure request failed or timed out. The provider may already have received it; retry only if you accept possible duplicate billing.".into(),
             Self::Rejected(code) => format!("Provider returned HTTP {code}. Check the selected model, key and account; no automatic retry occurred."),
             Self::Oversized => "Provider response exceeded the local size limit.".into(),
             Self::InvalidResponse => "The provider returned no supported plain-text reply.".into(),

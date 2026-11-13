@@ -1,4 +1,4 @@
-//! Purpose: Owns home-shell navigation state and opt-in cross-platform screenshot capture.
+//! Purpose: Owns navigation, ephemeral Chat/Settings state, explicit provider actions, and screenshots.
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -64,6 +64,7 @@ pub enum Message {
     RemoveKey(u64),
     KeyRemoved(Provider, Result<(), VaultError>),
     RevealKey(u64),
+    HideKey,
     KeyRevealed(u64, u64, Result<SecretText, VaultError>),
     RevealExpired(u64),
     EditModel(String),
@@ -233,7 +234,7 @@ impl App {
                 self.settings.clear_secret();
                 self.settings.section = section;
             }
-            Message::SelectProvider(provider) if self.page == Page::Settings => {
+            Message::SelectProvider(provider) if self.page == Page::Settings && !self.settings.key_busy => {
                 self.settings.clear_secret();
                 self.settings.provider = provider;
                 self.settings.model_entry.clear();
@@ -244,7 +245,8 @@ impl App {
             Message::EditKey(value) if self.page == Page::Settings && self.settings.section == Section::Providers => {
                 if value.0.len() <= 1024 { self.settings.key_entry = value; }
             }
-            Message::SaveKey if self.page == Page::Settings && self.settings.section == Section::Providers => {
+            Message::SaveKey if self.page == Page::Settings && self.settings.section == Section::Providers && !self.settings.key_entry.0.is_empty() && !self.settings.key_busy => {
+                self.settings.key_busy = true;
                 let provider = self.settings.provider;
                 let secret = std::mem::take(&mut self.settings.key_entry).0;
                 self.settings.clear_secret();
@@ -254,7 +256,8 @@ impl App {
                         .await.unwrap_or(Err(VaultError::Unavailable))
                 }, move |result| Message::KeySaved(provider, result));
             }
-            Message::KeySaved(provider, result) if self.page == Page::Settings && self.settings.provider == provider => {
+            Message::KeySaved(provider, result) if self.settings.provider == provider => {
+                self.settings.key_busy = false;
                 self.settings.status = match result {
                     Ok(_) => "Saved to OS vault. Select a model before chatting.".into(),
                     Err(error) => error.message().into(),
@@ -274,7 +277,8 @@ impl App {
                     Err(error) => { self.settings.key_ids.clear(); self.settings.status = error.message().into(); }
                 }
             }
-            Message::RemoveKey(id) if self.page == Page::Settings && self.settings.key_ids.contains(&id) => {
+            Message::RemoveKey(id) if self.page == Page::Settings && !self.settings.key_busy && self.settings.key_ids.contains(&id) => {
+                self.settings.key_busy = true;
                 self.settings.clear_secret();
                 let provider = self.settings.provider;
                 return Task::perform(async move {
@@ -282,10 +286,12 @@ impl App {
                         .await.unwrap_or(Err(VaultError::Unavailable))
                 }, move |result| Message::KeyRemoved(provider, result));
             }
-            Message::KeyRemoved(provider, result) if self.page == Page::Settings && self.settings.provider == provider => {
+            Message::KeyRemoved(provider, result) if self.settings.provider == provider => {
+                self.settings.key_busy = false;
                 self.settings.status = match result { Ok(()) => "Key removed from OS vault.".into(), Err(error) => error.message().into() };
                 return self.update(Message::RefreshKeys);
             }
+            Message::HideKey if self.page == Page::Settings => self.settings.clear_secret(),
             Message::RevealKey(id) if self.page == Page::Settings && self.snapshot.is_none() && self.settings.key_ids.contains(&id) => {
                 self.settings.clear_secret();
                 let provider = self.settings.provider;
@@ -335,7 +341,15 @@ impl App {
                     draft.busy = false;
                     match result {
                         Ok(reply) => draft.turns.push(Turn { role: "assistant", content: reply.0.to_string() }),
-                        Err(error) => draft.error = Some(error),
+                        Err(error) => {
+                            // A timeout can occur after a provider accepted the request.
+                            // Restore the draft instead of silently resending it as context.
+                            if let Some(last) = draft.turns.pop() {
+                                if last.role == "user" { draft.text = last.content; }
+                                else { draft.turns.push(last); }
+                            }
+                            draft.error = Some(error);
+                        },
                     }
                 }
             }
@@ -455,6 +469,32 @@ mod tests {
         let _ = app.update(Message::SendChat);
         assert!(app.drafts[0].turns.is_empty());
         assert_eq!(App::new().settings.selected_model(), None);
+    }
+
+    #[test]
+    fn failed_send_restores_draft_without_reusing_it_as_hidden_context() {
+        let mut app = App::new();
+        app.drafts[0].busy = true;
+        app.drafts[0].turns.push(Turn { role: "user", content: "synthetic prompt".into() });
+        let _ = app.update(Message::ChatResult(1, Err("synthetic transport failure".into())));
+        assert!(!app.drafts[0].busy);
+        assert_eq!(app.drafts[0].text, "synthetic prompt");
+        assert!(app.drafts[0].turns.is_empty());
+    }
+
+    #[test]
+    fn a_pending_key_write_blocks_duplicate_submissions_and_provider_switches() {
+        let mut app = App::new();
+        let _ = app.update(Message::Navigate(Page::Settings));
+        let _ = app.update(Message::EditKey(SecretText::new("synthetic-key".into())));
+        let _ = app.update(Message::SaveKey); // Task is not run in this state test.
+        assert!(app.settings.key_busy);
+        assert!(app.settings.key_entry.0.is_empty());
+        let _ = app.update(Message::SelectProvider(Provider::Gemini));
+        assert_eq!(app.settings.provider, Provider::OpenRouter);
+        let _ = app.update(Message::SaveKey);
+        let _ = app.update(Message::KeySaved(Provider::OpenRouter, Err(VaultError::Unavailable)));
+        assert!(!app.settings.key_busy);
     }
 
     #[test]

@@ -129,15 +129,18 @@ pub fn composer_input(_: &Theme, status: text_input::Status) -> text_input::Styl
 }
 
 pub fn quiet_button(_: &Theme, status: button::Status) -> button::Style {
+    let disabled = matches!(status, button::Status::Disabled);
     button::Style {
-        background: Some(if matches!(status, button::Status::Hovered) {
+        background: Some(if disabled {
+            Color::from_rgb8(22, 22, 23)
+        } else if matches!(status, button::Status::Hovered) {
             Color::from_rgb8(56, 56, 59)
         } else {
             Color::from_rgb8(36, 36, 38)
         }.into()),
-        text_color: WHITE,
+        text_color: if disabled { DIM } else { WHITE },
         border: Border {
-            color: Color::from_rgb8(76, 76, 80),
+            color: if disabled { LINE } else { Color::from_rgb8(76, 76, 80) },
             width: 1.0,
             radius: 8.0.into(),
         },

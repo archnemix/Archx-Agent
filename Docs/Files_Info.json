@@ -320,7 +320,7 @@
       "handles": "Application entry point"
     },
     "src/app.rs": {
-      "purpose": "Own navigation, draft/chat state, Settings key lifecycle and user-triggered provider calls.",
+      "purpose": "Own navigation, draft/chat state, bounded reveal, serialized per-window Settings key tasks and explicit provider calls.",
       "inputs": [
         "User navigation and snapshot trigger"
       ],
@@ -340,7 +340,7 @@
       "handles": "Home presentation"
     },
     "src/style.rs": {
-      "purpose": "Provide dark palette, glassy selected navigation and subdued rail toggle styles.",
+      "purpose": "Provide dark palette, glassy selected navigation, subdued rail toggle and clear disabled-button styles.",
       "inputs": [
         "Selected and hover state"
       ],
@@ -852,7 +852,7 @@
       "handles": "UI-only destination"
     },
     "src/settings.rs": {
-      "purpose": "Render Lab preview, OS-vault key management and session-only manual model selection in separate Settings pages.",
+      "purpose": "Render Lab preview, OS-vault key management with Hide/reveal and session-only model selection in separate pages.",
       "inputs": [
         "Transient App UI state"
       ],

@@ -79,7 +79,7 @@ fn sidebar(page: Page, expanded: bool) -> Element<'static, Message> {
         space().height(15),
         text("    Fine-tuning").size(13).color(style::DIM),
         space().height(Fill),
-        button(text("‹    Collapse navigation").size(11).color(style::GREY))
+        button(text("‹   Collapse navigation").size(12).color(style::GREY))
             .width(Fill)
             .padding([11, 13])
             .on_press(Message::ToggleSidebar)
@@ -119,7 +119,7 @@ fn compact_sidebar(page: Page) -> Element<'static, Message> {
         space().height(9),
         compact_item("Settings", Page::Settings, page == Page::Settings),
         space().height(Fill),
-        button(text("Expand ›").size(10).color(style::GREY))
+        button(text("Expand ›").size(12).color(style::GREY))
             .width(Fill)
             .padding([11, 2])
             .on_press(Message::ToggleSidebar)

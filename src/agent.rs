@@ -1,4 +1,4 @@
-//! Purpose: Renders the UI-only Archx Agent workspace, draft navigation, and six mode previews.
+//! Purpose: Renders session-only plain Chat and non-networked previews of other Agent modes.
 use iced::widget::{button, column, container, row, scrollable, space, text, text_input};
 use iced::{Center, Element, Fill};
 
@@ -89,12 +89,16 @@ pub fn view(drafts: &[ChatDraft], selected: u32, settings: &SettingsState) -> El
             text(lead).size(15).color(style::GREY),
             space().height(23),
             container(text(if active_mode != 0 { "PREVIEW ONLY  /  NO TOOLS" }
-                else if connected { "PLAIN CHAT  /  EXPLICIT SEND ONLY" }
+                else if connected { "MODEL SELECTED  /  KEY CHECK ON SEND" }
                 else { "ADD A KEY AND MODEL IN SETTINGS" }).size(11).color(style::GREY))
                 .padding([9, 13]).style(style::badge)
         ].align_x(Center)).center_x(Fill).center_y(Fill).into()
     };
 
+    let error_notice: Element<'static, Message> = match current.and_then(|draft| draft.error.as_deref()) {
+        Some(error) => text(error.to_owned()).size(12).color(style::GREY).into(),
+        None => space().height(0).into(),
+    };
     let composer = container(
         column![
             row![
@@ -121,8 +125,9 @@ pub fn view(drafts: &[ChatDraft], selected: u32, settings: &SettingsState) -> El
                     .padding([10, 16]).style(style::quiet_button)
             ].align_y(Center),
             space().height(7),
-            text("Only Chat sends when you click Send. Messages stay in this process until the Lab closes; provider requests may cost money.")
-                .size(11).color(style::DIM)
+            text("Send shares up to 12 recent turns with the chosen provider. No disk history or tools; requests may cost money.")
+                .size(11).color(style::DIM),
+            error_notice
         ]
         .width(Fill)
     )

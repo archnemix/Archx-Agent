@@ -41,13 +41,14 @@ pub struct SettingsState {
     pub chosen: [Option<usize>; 3],
     pub status: String,
     pub test_busy: bool,
+    pub key_busy: bool,
 }
 impl Default for SettingsState {
     fn default() -> Self {
         Self { section: Section::Providers, provider: Provider::OpenRouter,
             key_entry: SecretText::default(), key_ids: Vec::new(), reveal: None,
             reveal_nonce: 0, model_entry: String::new(), models: std::array::from_fn(|_| Vec::new()),
-            chosen: [None; 3], status: String::new(), test_busy: false }
+            chosen: [None; 3], status: String::new(), test_busy: false, key_busy: false }
     }
 }
 impl SettingsState {
@@ -96,11 +97,11 @@ pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Elem
     scrollable(content).width(Fill).height(Fill).into()
 }
 
-fn provider_tabs(current: Provider) -> Element<'static, Message> {
+fn provider_tabs(current: Provider, busy: bool) -> Element<'static, Message> {
     Provider::ALL.into_iter().fold(row![].spacing(8), |row, provider| {
         let selected = current == provider;
         row.push(button(text(provider.name()).size(12).color(if selected { style::WHITE } else { style::GREY }))
-            .padding([11, 14]).on_press(Message::SelectProvider(provider))
+            .padding([11, 14]).on_press_maybe((!busy).then_some(Message::SelectProvider(provider)))
             .style(move |theme, status| style::nav(selected, theme, status)))
     }).into()
 }
@@ -108,7 +109,7 @@ fn provider_tabs(current: Provider) -> Element<'static, Message> {
 fn providers(state: &SettingsState) -> Element<'static, Message> {
     let mut keys = column![text("SAVED KEY SLOTS").size(11).color(style::DIM)].spacing(10);
     if state.key_ids.is_empty() {
-        keys = keys.push(text("No keys listed. Open your OS credential store to add one.").size(13).color(style::GREY));
+        keys = keys.push(text("No saved keys for this provider. Paste one above to store it in your OS vault.").size(13).color(style::GREY));
     }
     for id in &state.key_ids {
         let id = *id;
@@ -119,13 +120,13 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
         keys = keys.push(row![
             text(label).size(13).color(style::WHITE).width(Fill),
             button(text(if showing { "Hide" } else { "Reveal 15s" }).size(11))
-                .on_press(Message::RevealKey(id)).style(style::quiet_button),
-            button(text("Remove").size(11)).on_press(Message::RemoveKey(id)).style(style::quiet_button)
+                .on_press(if showing { Message::HideKey } else { Message::RevealKey(id) }).style(style::quiet_button),
+            button(text("Remove").size(11)).on_press_maybe((!state.key_busy).then_some(Message::RemoveKey(id))).style(style::quiet_button)
         ].spacing(10));
     }
     surface(column![
         text("PROVIDERS  /  OS VAULT").size(11).color(style::DIM),
-        space().height(12), provider_tabs(state.provider),
+        space().height(12), provider_tabs(state.provider, state.key_busy),
         space().height(17),
         text("Keys are held in your OS credential store. The Lab never saves a plaintext key file.")
             .size(13).color(style::GREY),
@@ -134,7 +135,7 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
             .on_input(|value| Message::EditKey(SecretText::new(value)))
             .padding([13, 15]).style(style::composer_input),
         space().height(10),
-        button(text("Save key to OS vault").size(12)).on_press_maybe((!state.key_entry.0.is_empty()).then_some(Message::SaveKey))
+        button(text("Save key to OS vault").size(12)).on_press_maybe((!state.key_busy && !state.key_entry.0.is_empty()).then_some(Message::SaveKey))
             .padding([11, 15]).style(style::quiet_button),
         space().height(26), keys,
         space().height(12),
@@ -157,7 +158,7 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
     }
     surface(column![
         text("MODELS  /  MANUAL IDENTIFIERS").size(11).color(style::DIM),
-        space().height(12), provider_tabs(state.provider),
+        space().height(12), provider_tabs(state.provider, state.key_busy),
         space().height(18),
         text("Type the exact provider model ID. IDs are not verified until a live request; a :free OpenRouter variant is distinct from its paid model.")
             .size(13).color(style::GREY),
