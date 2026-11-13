@@ -519,3 +519,7 @@ Run `43250400631` passed sequential Linux, Windows and macOS, 11 tests each with
 ## 2026-11-09: final Agent/Settings UI-only review
 
 Run `43253945098` (source `9038f01`) passed `cargo test --locked` (11/11) and `cargo build --release --locked` on Linux, Windows and macOS. `visual/{os}-{agent,settings,coding,custom}.png` all exist; visually inspected final Windows Coding/Custom and macOS Coding, including readable charcoal disabled composer and bounded controls. Latest Windows PE check and metadata are in `non_visual/windows.log`. `Docs/Test_Results/Unreleased/Gui_Validation.md` records the review and the unsigned artifact. Inventory JSON lists **97 existing files**, including all 12 new Agent/Settings screenshots. `git diff --check` exits clean. State-change tests do not prove pointer interaction or real memory behavior.
+
+## 2026-11-09: unsent draft UI preflight (CI pending)
+
+Code inputs: Iced 0.14 text-input callbacks and optional button events; no model or storage dependency. Updated workflow captures a fixed nonpersonal `ARCHX_SNAPSHOT_DRAFT='Sketch a new idea for a project'` state on Linux, Windows and macOS in `visual/{os}-agent-draft.png`. Draft-state tests cover per-ID isolation, clear and reset. Cross-OS commands/results and visual inspection are pending; do not treat this preflight as test success.

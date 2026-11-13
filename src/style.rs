@@ -109,17 +109,21 @@ pub fn badge(_: &Theme) -> container::Style {
         })
 }
 
-pub fn disabled_composer(_: &Theme, _: text_input::Status) -> text_input::Style {
+pub fn composer_input(_: &Theme, status: text_input::Status) -> text_input::Style {
     text_input::Style {
         background: Background::Color(Color::from_rgb8(28, 28, 30)),
         border: Border {
-            color: Color::from_rgb8(65, 65, 68),
+            color: if matches!(status, text_input::Status::Focused { .. }) {
+                Color::from_rgb8(130, 130, 135)
+            } else {
+                Color::from_rgb8(65, 65, 68)
+            },
             width: 1.0,
             radius: 8.0.into(),
         },
         icon: GREY,
         placeholder: GREY,
-        value: GREY,
+        value: WHITE,
         selection: LINE,
     }
 }

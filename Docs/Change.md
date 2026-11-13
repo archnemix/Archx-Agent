@@ -80,3 +80,7 @@
 
 - User accepts proceeding from launcher design to the Archx Agent destination. Prioritize **sleek, professional, minimal** chat and mode-navigation UI *before* backend logic. UI-only navigation may create temporary empty chats and select a draft mode; do not simulate responses, send messages or imply an AI model is installed. No decision yet on how edited-message trees and existing-history mode conversions work; defer until real chat behavior is scoped.
 - There is **one** app, not two editions. Settings belong to the AI Lab launcher and grow with each destination, not isolated per-app settings pages. A future Memory area should offer Memory Light, Memory Heavy and Custom: Custom chooses what stays loaded versus unloads on exit. For the first UI slice cover Agent only, and label controls honestly as UI preview, not real RAM optimization or persisted preference; real resources do not exist to load/unload yet.
+
+## 2026-11-09 — Continue Step 2 without backend
+
+User asked for a progress summary and to continue. Keep work inside the Agent UI step: make the composer editable for **unsent per-draft, in-session text**, allow clearing it, and keep Send unavailable. Do not select a model, add simulated responses, persist chat history or implement message-tree editing/conversion. This allows hands-on review of typing and switching drafts without implying a functional AI agent.

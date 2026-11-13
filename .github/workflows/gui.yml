@@ -57,6 +57,8 @@ jobs:
           test -s Docs/Test_Results/Unreleased/visual/linux-about.png
           xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-agent.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/linux-agent.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_DRAFT='Sketch a new idea for a project' ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-agent-draft.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/linux-agent-draft.png
           xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-settings.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/linux-settings.png
           xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_MODE=3 ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-coding.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
@@ -114,6 +116,8 @@ jobs:
           test -s Docs/Test_Results/Unreleased/visual/windows-about.png
           ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-agent.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/windows-agent.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_DRAFT='Sketch a new idea for a project' ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-agent-draft.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/windows-agent-draft.png
           ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-settings.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/windows-settings.png
           ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_MODE=3 ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-coding.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
@@ -169,6 +173,8 @@ jobs:
           test -s Docs/Test_Results/Unreleased/visual/macos-about.png
           ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-agent.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/macos-agent.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_DRAFT='Sketch a new idea for a project' ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-agent-draft.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/macos-agent-draft.png
           ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-settings.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/macos-settings.png
           ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_MODE=3 ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-coding.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1

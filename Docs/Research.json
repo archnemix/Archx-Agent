@@ -136,6 +136,14 @@
     "iced_0_14_disabled_text_input_style": {
       "summary": "Iced TextInput::Style has background, border, icon, placeholder, value and selection; the default Disabled status uses a brighter weak surface and dark placeholder. A custom disabled class can retain no on_input while styling the faux composer to the Lab charcoal surface and legible muted placeholder.",
       "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/text_input.rs"
+    },
+    "iced_0_14_editable_unsent_draft": {
+      "summary": "Iced 0.14 TextInput::new copies placeholder/current value; .on_input emits String updates but .on_submit is independent and can be omitted to prevent submission. Button::on_press_maybe(None) disables an unavailable action. TextInput::Style status includes Focused { is_hovered }, so a focused silver border can aid input navigation while keeping a dark surface. Dependencies: iced 0.14 already in Cargo.toml; no storage/backend crate.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/text_input.rs"
+    },
+    "iced_0_14_optional_button_event": {
+      "summary": "Button::on_press_maybe accepts Option<Message>; None means no action. Use for Clear when no text, and keep Send unbound until a model/backend is intentionally designed.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/button.rs"
     }
   }
 }

@@ -25,10 +25,11 @@ pub enum MemoryMode {
     Custom,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct ChatDraft {
     pub id: u32,
     pub mode: u8,
+    pub text: String,
 }
 
 #[derive(Debug, Clone)]
@@ -37,6 +38,8 @@ pub enum Message {
     NewChat,
     OpenChat(u32),
     SelectMode(u8),
+    EditDraft(u32, String),
+    ClearDraft(u32),
     MemoryPreview(MemoryMode),
     ToggleAgentPreview,
     TileHover(Art, bool),
@@ -109,9 +112,13 @@ impl App {
             && std::env::var("ARCHX_SNAPSHOT_MEMORY").as_deref() == Ok("custom") {
             MemoryMode::Custom
         } else { MemoryMode::Light };
+        // CI may capture an unsent draft state. Normal launches always start empty.
+        let preview_text = if snapshot.is_some() && page == Page::Agent {
+            std::env::var("ARCHX_SNAPSHOT_DRAFT").unwrap_or_default()
+        } else { String::new() };
         Self {
             page,
-            drafts: vec![ChatDraft { id: 1, mode: preview_mode }],
+            drafts: vec![ChatDraft { id: 1, mode: preview_mode, text: preview_text }],
             selected_draft: 1,
             memory_preview: preview_memory,
             keep_agent_preview: false,
@@ -132,7 +139,7 @@ impl App {
             }
             Message::NewChat if self.page == Page::Agent => {
                 let id = self.drafts.last().map_or(1, |draft| draft.id + 1);
-                self.drafts.push(ChatDraft { id, mode: 0 });
+                self.drafts.push(ChatDraft { id, mode: 0, text: String::new() });
                 self.selected_draft = id;
             }
             Message::OpenChat(id) if self.page == Page::Agent && self.drafts.iter().any(|draft| draft.id == id) => {
@@ -141,6 +148,16 @@ impl App {
             Message::SelectMode(mode) if self.page == Page::Agent && mode < MODE_COUNT => {
                 if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == self.selected_draft) {
                     draft.mode = mode;
+                }
+            }
+            Message::EditDraft(id, text) if self.page == Page::Agent && self.selected_draft == id => {
+                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) {
+                    draft.text = text;
+                }
+            }
+            Message::ClearDraft(id) if self.page == Page::Agent && self.selected_draft == id => {
+                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) {
+                    draft.text.clear();
                 }
             }
             Message::MemoryPreview(memory) if self.page == Page::Settings => {
@@ -260,6 +277,25 @@ mod tests {
         let _ = app.update(Message::OpenChat(1));
         assert_eq!(app.drafts[0].mode, 3);
         assert_eq!(app.selected_draft, 1);
+    }
+
+    #[test]
+    fn unsent_input_stays_in_its_session_draft_and_cannot_be_submitted() {
+        let mut app = App::new();
+        let _ = app.update(Message::Navigate(Page::Agent));
+        let _ = app.update(Message::EditDraft(1, "First idea ✓".into()));
+        let _ = app.update(Message::NewChat);
+        assert!(app.drafts[1].text.is_empty());
+        let _ = app.update(Message::EditDraft(1, "wrong draft".into()));
+        let _ = app.update(Message::EditDraft(2, "Second idea".into()));
+        let _ = app.update(Message::OpenChat(1));
+        assert_eq!(app.drafts[0].text, "First idea ✓");
+        assert_eq!(app.drafts[1].text, "Second idea");
+        let _ = app.update(Message::ClearDraft(2));
+        assert_eq!(app.drafts[1].text, "Second idea");
+        let _ = app.update(Message::ClearDraft(1));
+        assert!(app.drafts[0].text.is_empty());
+        assert!(App::new().drafts[0].text.is_empty());
     }
 
     #[test]

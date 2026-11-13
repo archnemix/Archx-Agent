@@ -18,6 +18,7 @@ fn action(label: &'static str, message: Message) -> Element<'static, Message> {
 pub fn view(drafts: &[ChatDraft], selected: u32) -> Element<'static, Message> {
     let current = drafts.iter().find(|draft| draft.id == selected);
     let active_mode = current.map_or(0, |draft| draft.mode);
+    let draft_text = current.map_or("", |draft| draft.text.as_str());
 
     let mut history = column![
         text("WORKSPACE  /  ARCHX AGENT").size(11).color(style::DIM),
@@ -44,7 +45,7 @@ pub fn view(drafts: &[ChatDraft], selected: u32) -> Element<'static, Message> {
         ).push(space().height(6));
     }
     history = history.push(space().height(24)).push(
-        text("Drafts disappear when you close the Lab.\nNo messages are saved yet.")
+        text("Unsent text stays with each draft.\nEverything disappears when you close the Lab.")
             .size(11)
             .color(style::DIM)
     );
@@ -84,16 +85,29 @@ pub fn view(drafts: &[ChatDraft], selected: u32) -> Element<'static, Message> {
 
     let composer = container(
         column![
-            text("COMPOSE").size(10).color(style::DIM),
+            row![
+                text("UNSENT DRAFT").size(10).color(style::DIM).width(Fill),
+                text(format!("{} CHARACTERS  /  THIS SESSION ONLY", draft_text.chars().count()))
+                    .size(10).color(style::DIM)
+            ],
             space().height(10),
-            text_input("Messaging becomes available when a model is connected", "")
+            text_input("Write a thought here — it will not be sent", draft_text)
                 .padding([14, 16])
                 .size(14)
-                .style(style::disabled_composer),
-            space().height(9),
-            text("Sending, history, edits and mode conversion are not available in this UI preview.")
-                .size(11)
-                .color(style::DIM)
+                .on_input(move |value| Message::EditDraft(selected, value))
+                .style(style::composer_input),
+            space().height(10),
+            row![
+                button(text("Clear draft").size(11).color(style::GREY))
+                    .padding([8, 10])
+                    .on_press_maybe((!draft_text.is_empty()).then_some(Message::ClearDraft(selected)))
+                    .style(style::quiet_button),
+                space().width(Fill),
+                text("SEND UNAVAILABLE  /  NO MODEL CONNECTED").size(11).color(style::DIM)
+            ].align_y(Center),
+            space().height(7),
+            text("You can test typing and switching drafts. No message, history or mode conversion is created.")
+                .size(11).color(style::DIM)
         ]
         .width(Fill)
     )
