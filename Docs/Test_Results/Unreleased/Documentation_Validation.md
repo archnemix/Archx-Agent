@@ -543,3 +543,7 @@ Source `2c44933` full run `43440351034`: Linux and Windows each passed `cargo te
 ## 2026-11-09: provider credential foundation preflight (CI pending)
 
 Source inputs: `keyring = 4.2` v1 OS-specific native stores, `zeroize = 1.8`, no API/network client yet. `/home/user/.venv/bin/python` parsed the GUI workflow YAML, verified Linux commits a regenerated Cargo.lock before Windows/macOS and lockfile-only bot commits cannot retrigger the workflow; Python inventory scan matched 113 files; `git diff --check` exited 0. Focused synthetic vault tests and cross-OS compilation are **pending**. No real OS credential store/key or provider endpoint was used in this preflight.
+
+## 2026-11-09: provider foundation CI follow-up
+
+`gh run watch 43462052311 --exit-status --interval 90` exited 0. The Linux/Windows/macOS jobs each reported 15 passing unit tests and release GUI builds in the tracked logs; the OS credential store was **not accessed** by synthetic fake-store tests. `git fetch` followed by `git merge --ff-only origin/arena/d45bc2a4-archx-agent` retrieved CI evidence commits through `965efde`; repository-hosted Windows executable SHA-256 `dbff85569379bbc746a858ec9bd84dd49a1a35ff51ce5d416fa23aefb49904b0`. Settings UI remains unchanged; generated pictures do not show key entry or 15-second reveal.

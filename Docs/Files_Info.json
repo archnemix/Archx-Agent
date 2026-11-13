@@ -179,7 +179,7 @@
       "handles": "Pre-release test organization"
     },
     "Docs/Test_Results/Unreleased/Documentation_Validation.md": {
-      "purpose": "Record documentation validation inputs, commands, and outputs.",
+      "purpose": "Record file inventory, workflow and evidence documentation validation.",
       "inputs": [
         "Documentation files",
         "Validation command"
@@ -410,7 +410,7 @@
       "handles": "Build reproducibility"
     },
     "Docs/Test_Results/Unreleased/Gui_Validation.md": {
-      "purpose": "Document three-OS test commands, inputs, outputs, hashes, and visual review",
+      "purpose": "Summarize native GUI CI evidence, including provider-vault foundation compilation and limits.",
       "inputs": [
         "CI runner results"
       ],
