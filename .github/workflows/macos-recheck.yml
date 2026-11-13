@@ -26,17 +26,17 @@ jobs:
           mkdir -p Docs/Test_Results/Unreleased/{non_visual,visual}
           (echo 'COMMAND: cargo test --locked'; cargo test --locked; echo 'COMMAND: cargo build --release --locked'; cargo build --release --locked) > Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
           for page in home agent settings; do
-            page_env=()
             filename=macos-collapsed.png
             if [[ "$page" != home ]]; then
-              page_env=(ARCHX_SNAPSHOT_PAGE="$page")
               filename="macos-$page-collapsed.png"
             fi
-            env "${page_env[@]}" ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT="Docs/Test_Results/Unreleased/visual/$filename" ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-            test -s "Docs/Test_Results/Unreleased/visual/$filename"
+            echo "CAPTURE: $page compact rail -> $filename" >> Docs/Test_Results/Unreleased/non_visual/macos.log
+            env ARCHX_SNAPSHOT_PAGE="$page" ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT="Docs/Test_Results/Unreleased/visual/$filename" ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1 || { code=$?; echo "FAIL: $page launch exited $code" >> Docs/Test_Results/Unreleased/non_visual/macos.log; exit "$code"; }
+            test -s "Docs/Test_Results/Unreleased/visual/$filename" || { echo "FAIL: missing $filename" >> Docs/Test_Results/Unreleased/non_visual/macos.log; exit 1; }
           done
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-agent.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-agent.png
+          echo 'CAPTURE: expanded Agent baseline' >> Docs/Test_Results/Unreleased/non_visual/macos.log
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-agent.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1 || { code=$?; echo "FAIL: expanded Agent launch exited $code" >> Docs/Test_Results/Unreleased/non_visual/macos.log; exit "$code"; }
+          test -s Docs/Test_Results/Unreleased/visual/macos-agent.png || { echo 'FAIL: missing expanded Agent PNG' >> Docs/Test_Results/Unreleased/non_visual/macos.log; exit 1; }
       - name: Record macOS evidence in repository
         if: always()
         shell: bash

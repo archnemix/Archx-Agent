@@ -1,2 +1,2 @@
 # Purpose: Deliberate macOS-only GUI recheck after run 43440351034 was cancelled before a runner was assigned.
-compact-rail-macos-recheck: 1
+compact-rail-macos-recheck: 2

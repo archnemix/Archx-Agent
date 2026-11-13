@@ -531,3 +531,7 @@ Source `bfafaf6`, CI `43428503990` completed sequential Linux/Windows/macOS jobs
 ## 2026-11-09: compact rail pre-CI
 
 Input: Iced 0.14 `button.on_press`, `image.content_fit` and native column/row widgets; shared rail toggle state plus three screenshot-only compact pages per OS. Exact preflight: `/home/user/.venv/bin/python` parsed workflow YAML and asserted 3 occurrences of `ARCHX_SNAPSHOT_SIDEBAR=collapsed` for each of Linux/Windows/macOS; Python inventory scan matched 100 existing files plus nine declared pending PNGs; roadmap numbered steps 0–10; `git diff --check` exited 0. These checks do not establish compilation, runtime clicks or legible screenshots. Provider security design remains a planning-only follow-up.
+
+## 2026-11-09: independent macOS recheck failed screenshot step
+
+Run `43445741356` on source `a01092c` passed `cargo test --locked` (**13 passed**) and `cargo build --release --locked` on macOS, but `Build, test, and screenshot compact rail` exited 1 after the build, producing **no** compact PNGs. The `non_visual/macos.log` checked in by CI ends after a successful release build. The retry workflow used an empty Bash array with `set -u` for Home; suspected shell expansion failure is not confirmed. A follow-up simplifies to an explicit page environment variable and logs each capture/failure; rerun must pass before the macOS UI is accepted.
