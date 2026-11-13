@@ -551,3 +551,5 @@ Source inputs: `keyring = 4.2` v1 OS-specific native stores, `zeroize = 1.8`, no
 ## 2026-11-09: provider UI/chat experiment preflight (CI pending)
 
 Local Rust toolchain is absent. Reviewed authoritative Iced 0.14 text-input secure/button and reqwest 0.12 client-builder APIs through GitHub source, and official provider REST reference pages through web search; exact findings recorded in `Docs/Research.json`. Parsed three-job GUI workflow YAML using PyYAML; inventory matched 114 existing files plus three pending model-page native screenshots; `git diff --check` exited 0. Cross-OS compilation, OS keychain interaction, visual fit and real provider access are **not yet established**. CI must use synthetic prompts and no credentials.
+
+First provider integration CI `43476402313` **failed Linux** before tests due `src/credentials.rs:229` synthetic assertion type mismatch (`Option<&String>` vs `Option<&str>`); Windows/macOS were skipped. Corrected the assertion to use `.as_ref().map(|value| value.as_str())`; no success claimed until a fresh run.

@@ -226,7 +226,7 @@ mod tests {
         let vault = Vault { store: FakeStore::default() };
         vault.store.set("openrouter/key/1", "existing-orphan").unwrap();
         assert_eq!(vault.add(Provider::OpenRouter, Zeroizing::new("replacement".into())), Err(VaultError::IndexCorrupt));
-        assert_eq!(vault.store.get("openrouter/key/1").unwrap().as_deref(), Some("existing-orphan"));
+        assert_eq!(vault.store.get("openrouter/key/1").unwrap().as_ref().map(|value| value.as_str()), Some("existing-orphan"));
     }
 
     #[test]
