@@ -31,3 +31,7 @@ Product-level behaviors under discussion (not implemented flows): chat and mode 
 ## Shared Lab rail collapse (Step 2 follow-up)
 
 - Expanded **Hide <** / compact **Open >** → `Message::ToggleSidebar` → `App.sidebar_expanded` flips, independently of `Page`; `home::view` renders either `sidebar` or `compact_sidebar`, then the same page content. Compact buttons still navigate to Home, Agent, About, Settings. Navigation does not reset rail state, drafts, or preview Settings. Screenshot-only `ARCHX_SNAPSHOT_SIDEBAR=collapsed` selects compact layout when `ARCHX_SNAPSHOT` is set; normal startup defaults expanded. No disk writes or model calls.
+
+## Provider credential vault foundation (not yet user-facing)
+
+- Future Settings Add Key → validate no whitespace/control chars → `credentials::Vault::add(provider, Zeroizing<String>)` writes the secret under a provider-specific OS credential account and then updates the protected index; failed index write triggers deletion rollback, with explicit partial-failure state if cleanup fails. `list(provider)` reads only IDs, validates version/sorted uniqueness and fails closed on corruption. `remove` deletes the OS credential then updates index, reporting partial removal if index update fails. `with_key(provider,id,callback)` reads one selected secret only for callback duration, then zeroizes its Rust allocation. The current App does **not** call any of these paths; live key entry/reveal/API requests are unimplemented. CI uses fake-store unit tests, never actual keys.

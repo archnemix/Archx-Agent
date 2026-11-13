@@ -164,6 +164,26 @@
     "rust_keyring_storage_caveats": {
       "summary": "The keyring crate documentation describes platform credential stores; newer core/store backends may be needed for deliberate Windows/macOS/Linux semantics. OS credential storage protects at rest, but a key must briefly be plaintext in process memory for an HTTP request; scattered-memory security cannot be guaranteed. Verify backend availability and fail closed before implementing.",
       "url": "https://docs.rs/keyring/latest/keyring/"
+    },
+    "owasp_secrets_lifecycle": {
+      "summary": "OWASP recommends least-privilege access, lifecycle rotation/revocation, and never logging secrets. App will use OS credential stores, short-lived reads, explicit deletion, redacted errors, no plaintext config/log files; OS user-session compromise remains a caveat.",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html"
+    },
+    "microsoft_credential_manager": {
+      "summary": "Microsoft recommends CredWrite/CredRead in Windows Credential Manager for app credentials, collecting late and discarding early, avoiding hardcoded/plaintext/logged secrets. Windows same-user process access remains a caveat; no verified publisher is implied.",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/secbp/handling-passwords"
+    },
+    "apple_keychain_generic": {
+      "summary": "Apple Keychain Services supports generic-password items and SecItemAdd/SecItemCopyMatching; native keyring implementation uses Keychain service/account entries. Unsigned developer builds may prompt for access; do not promise Secure Enclave for retrievable API keys.",
+      "url": "https://developer.apple.com/documentation/security/1401659-secitemadd"
+    },
+    "freedesktop_secret_service": {
+      "summary": "Secret Service stores secrets in a user login service, uses sessions for transfer, and may require unlock prompts. Linux GUI may have no Secret Service; fail closed rather than falling back to plaintext or unprotected keyutils.",
+      "url": "https://specifications.freedesktop.org/secret-service-spec/latest/description.html"
+    },
+    "keyring_v4_2_platform_impl": {
+      "summary": "keyring 4.2 v1 Entry::new/set_password/get_password/delete_credential defaults to Apple Keychain, Windows Credential store and zbus Secret Service on Linux. It does not use a plaintext fallback. Verify real storage on user desktop; three-OS CI can only prove compilation and fake-store tests.",
+      "url": "https://github.com/open-source-cooperative/keyring-rs/blob/main/src/v1.rs"
     }
   }
 }

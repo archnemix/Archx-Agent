@@ -8,6 +8,8 @@ publish = false
 [dependencies]
 iced = { version = "0.14.0", features = ["tokio", "image"] }
 image = { version = "0.25", default-features = false, features = ["png"] }
+keyring = { version = "4.2", default-features = true }
+zeroize = "1.8"
 
 [target.'cfg(windows)'.build-dependencies]
 tauri-winres = "0.3.7"

@@ -5,6 +5,7 @@ mod agent;
 mod agent_visual;
 mod app;
 mod app_tile;
+mod credentials;
 mod home;
 mod settings;
 mod style;

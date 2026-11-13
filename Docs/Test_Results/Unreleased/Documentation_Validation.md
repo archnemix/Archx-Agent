@@ -539,3 +539,7 @@ Run `43445741356` on source `a01092c` passed `cargo test --locked` (**13 passed*
 ## 2026-11-09: completed compact rail cross-OS evidence
 
 Source `2c44933` full run `43440351034`: Linux and Windows each passed `cargo test --locked` (**13 passed**) and release build; `visual/{linux,windows}-{collapsed,agent-collapsed,settings-collapsed}.png` are nonempty. Mac was **cancelled before runner assignment**. Focused source `eb9d48f` macOS run `43447873895` passed `cargo test --locked` (**13 passed**), release build, and `visual/macos-{collapsed,agent-collapsed,settings-collapsed}.png`. Visually inspected final Windows and macOS compact Home/Agent captures; controls and text remain legible in visible viewport. `Docs/Test_Results/Unreleased/Gui_Validation.md` records commands and failure scope. No actual pointer clicks or API-provider tests are implied.
+
+## 2026-11-09: provider credential foundation preflight (CI pending)
+
+Source inputs: `keyring = 4.2` v1 OS-specific native stores, `zeroize = 1.8`, no API/network client yet. `/home/user/.venv/bin/python` parsed the GUI workflow YAML, verified Linux commits a regenerated Cargo.lock before Windows/macOS and lockfile-only bot commits cannot retrigger the workflow; Python inventory scan matched 113 files; `git diff --check` exited 0. Focused synthetic vault tests and cross-OS compilation are **pending**. No real OS credential store/key or provider endpoint was used in this preflight.

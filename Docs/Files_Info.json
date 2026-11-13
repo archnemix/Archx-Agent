@@ -230,7 +230,7 @@
       "handles": "CI organization"
     },
     ".github/workflows/gui.yml": {
-      "purpose": "Build/test all three OSes and capture expanded/compact navigation plus Agent, Settings and frozen artwork states.",
+      "purpose": "Build/test three OSes with lockfile generated on Linux and committed before Windows/macOS; capture native GUI evidence.",
       "inputs": [
         "Source changes and intentional trigger"
       ],
@@ -240,7 +240,7 @@
       "handles": "Cross-platform CI"
     },
     "Cargo.toml": {
-      "purpose": "Declare Rust GUI application dependencies",
+      "purpose": "Declare native Iced GUI, OS keyring/zeroization and Windows icon build dependencies.",
       "inputs": [
         "Selected framework and screenshot libraries"
       ],
@@ -310,7 +310,7 @@
       "handles": "Rust source organization"
     },
     "src/main.rs": {
-      "purpose": "Start Iced with native fonts/icon, Agent and Settings UI modules, macOS fallback and Windows GUI subsystem.",
+      "purpose": "Start native Iced GUI with icon/fonts, register provider vault module, and hide Windows release console.",
       "inputs": [
         "Application UI and brand PNG"
       ],
@@ -1121,6 +1121,27 @@
         "macOS-only CI run"
       ],
       "handles": "CI trigger"
+    },
+    "src/credentials.rs": {
+      "purpose": "Provide platform-native credential vault foundation and synthetic provider-key lifecycle tests.",
+      "inputs": [
+        "OS credential stores through keyring 4.2",
+        "Sensitive key material only after future explicit UI action"
+      ],
+      "outputs": [
+        "Provider-scoped key IDs or redacted vault errors"
+      ],
+      "handles": "Credential isolation and short-lived access"
+    },
+    "Docs/Security_Design.md": {
+      "purpose": "Describe OS-specific provider secret controls, limits and staged security gates.",
+      "inputs": [
+        "Official OS, OWASP and keyring documentation"
+      ],
+      "outputs": [
+        "Auditable threat model and implementation boundary"
+      ],
+      "handles": "Security architecture"
     }
   }
 }
