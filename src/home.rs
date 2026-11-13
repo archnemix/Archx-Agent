@@ -35,11 +35,6 @@ fn sidebar(page: Page, expanded: bool) -> Element<'static, Message> {
         .width(116)
         .height(116)
         .content_fit(ContentFit::Contain);
-    let toggle = button(text("Hide <").size(11).color(style::GREY))
-        .padding([8, 9])
-        .on_press(Message::ToggleSidebar)
-        .style(style::quiet_button);
-
     let discover = button(text("Discover").size(style::TYPE_BODY).font(style::LABEL))
         .width(Fill)
         .padding([12, 15])
@@ -57,7 +52,7 @@ fn sidebar(page: Page, expanded: bool) -> Element<'static, Message> {
         .style(move |theme, status| style::nav(page == Page::About, theme, status));
 
     let navigation = column![
-        row![identity, space().width(Fill), toggle].align_y(Center),
+        identity,
         space().height(18),
         text("BROWSE").size(10).color(style::DIM),
         space().height(16),
@@ -84,6 +79,12 @@ fn sidebar(page: Page, expanded: bool) -> Element<'static, Message> {
         space().height(15),
         text("    Fine-tuning").size(13).color(style::DIM),
         space().height(Fill),
+        button(text("‹    Collapse navigation").size(11).color(style::GREY))
+            .width(Fill)
+            .padding([11, 13])
+            .on_press(Message::ToggleSidebar)
+            .style(style::rail_toggle),
+        space().height(16),
         text("ARCHNEMIX").size(10).color(style::DIM)
     ]
     .width(Fill)
@@ -108,12 +109,6 @@ fn compact_item(label: &'static str, target: Page, selected: bool) -> Element<'s
 
 fn compact_sidebar(page: Page) -> Element<'static, Message> {
     let navigation = column![
-        button(text("Open >").size(11).color(style::WHITE))
-            .width(Fill)
-            .padding([9, 4])
-            .on_press(Message::ToggleSidebar)
-            .style(style::quiet_button),
-        space().height(19),
         image(BRAND.clone()).width(44).height(48).content_fit(ContentFit::Contain),
         space().height(31),
         compact_item("Home", Page::Home, page == Page::Home),
@@ -124,7 +119,11 @@ fn compact_sidebar(page: Page) -> Element<'static, Message> {
         space().height(9),
         compact_item("Settings", Page::Settings, page == Page::Settings),
         space().height(Fill),
-        text("LAB").size(10).color(style::DIM)
+        button(text("Expand ›").size(10).color(style::GREY))
+            .width(Fill)
+            .padding([11, 2])
+            .on_press(Message::ToggleSidebar)
+            .style(style::rail_toggle)
     ]
     .align_x(Center)
     .width(Fill)

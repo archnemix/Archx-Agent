@@ -145,6 +145,21 @@ pub fn quiet_button(_: &Theme, status: button::Status) -> button::Style {
     }
 }
 
+// Rail affordance is deliberately quieter than navigation selection and stays
+// at the same bottom edge in both widths.
+pub fn rail_toggle(_: &Theme, status: button::Status) -> button::Style {
+    button::Style {
+        background: Some(if matches!(status, button::Status::Hovered | button::Status::Pressed) {
+            Color::from_rgb8(33, 33, 35)
+        } else {
+            RAIL
+        }.into()),
+        text_color: GREY,
+        border: Border { color: LINE, width: 1.0, radius: 8.0.into() },
+        ..button::Style::default()
+    }
+}
+
 pub fn nav(active: bool, _theme: &Theme, status: button::Status) -> button::Style {
     if active {
         let glass = gradient::Linear::new(Radians::PI)

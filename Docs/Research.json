@@ -184,6 +184,18 @@
     "keyring_v4_2_platform_impl": {
       "summary": "keyring 4.2 v1 Entry::new/set_password/get_password/delete_credential defaults to Apple Keychain, Windows Credential store and zbus Secret Service on Linux. It does not use a plaintext fallback. Verify real storage on user desktop; three-OS CI can only prove compilation and fake-store tests.",
       "url": "https://github.com/open-source-cooperative/keyring-rs/blob/main/src/v1.rs"
+    },
+    "fluent2_navigation_toggle": {
+      "summary": "Fluent 2 Nav advises a predictable collapse/expand affordance and explicit Expand navigation/Collapse navigation labels; use a stable bottom-aligned labelled button in both states, not a cramped button alongside the logo.",
+      "url": "https://fluent2.microsoft.design/components/web/react/core/nav/usage"
+    },
+    "atlassian_nav_space": {
+      "summary": "Atlassian layout guidance reserves distinct compact and expanded side-nav widths; avoid placing full text controls in compact width.",
+      "url": "https://atlassian.design/foundations/grid-beta"
+    },
+    "iced_rail_buttons": {
+      "summary": "Iced 0.14 button on_press emits rail toggle; column height(Fill) and space height(Fill) anchor toggle at bottom while preserving native button focus.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/button.rs"
     }
   }
 }

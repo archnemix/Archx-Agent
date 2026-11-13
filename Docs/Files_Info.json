@@ -330,7 +330,7 @@
       "handles": "Shell state"
     },
     "src/home.rs": {
-      "purpose": "Render expanded/compact shared Lab rail and route launcher, Agent and Settings pages while preserving Agent artwork.",
+      "purpose": "Render launcher pages and bottom-aligned expand/collapse control for the shared navigation rail.",
       "inputs": [
         "Current page"
       ],
@@ -340,7 +340,7 @@
       "handles": "Home presentation"
     },
     "src/style.rs": {
-      "purpose": "Centralize fonts/colors/spacing and dark focused composer style for UI-only destinations.",
+      "purpose": "Provide dark palette, glassy selected navigation and subdued rail toggle styles.",
       "inputs": [
         "Selected and hover state"
       ],
