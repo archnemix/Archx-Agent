@@ -523,3 +523,7 @@ Run `43253945098` (source `9038f01`) passed `cargo test --locked` (11/11) and `c
 ## 2026-11-09: unsent draft UI preflight (CI pending)
 
 Code inputs: Iced 0.14 text-input callbacks and optional button events; no model or storage dependency. Updated workflow captures a fixed nonpersonal `ARCHX_SNAPSHOT_DRAFT='Sketch a new idea for a project'` state on Linux, Windows and macOS in `visual/{os}-agent-draft.png`. Draft-state tests cover per-ID isolation, clear and reset. Cross-OS commands/results and visual inspection are pending; do not treat this preflight as test success.
+
+## 2026-11-09: completed unsent draft review
+
+Source `bfafaf6`, CI `43428503990` completed sequential Linux/Windows/macOS jobs; each passed `cargo test --locked` (12/12), release build, and nonempty default/unsent Agent, Settings and legacy launcher screenshots. Visual inspection of final Windows and macOS `visual/{os}-agent-draft.png` found legible populated composer, counter and unavailable Send status, without overlap; physical typing was not tested in these frozen captures. Full output is in `non_visual/*.log`, images in `visual/`, reviewed artifact SHA-256 and exact command are in `Gui_Validation.md`. Inventory matches **100 files** and `git diff --check` exited 0.

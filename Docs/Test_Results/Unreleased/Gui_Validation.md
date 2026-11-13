@@ -1,5 +1,24 @@
 <!-- Purpose: Records current three-OS GUI test commands, outputs, screenshots, visual review, and Windows delivery. -->
-# AI Lab launcher validation — Agent/Settings UI preview
+# AI Lab launcher validation — unsent Agent draft UI preview
+
+## Current Step 2 composer follow-up (2026-11-09)
+
+Source `bfafaf6`, [CI run `43428503990`](https://github.com/archnemix/Archx-Agent/actions/runs/43428503990): sequential Linux, Windows and macOS **all passed**. Each ran `cargo test --locked` (**12 passed; 0 failed**), `cargo build --release --locked`, Home/About, Agent and Settings default/alternate previews, prior frozen animation states, and an Agent UI screenshot with a fixed, nonpersonal **unsent** sentence. Per-OS exact commands/output are in `non_visual/{linux,windows,macos}.log`; all screenshots are in `visual/`. Linux GUI uses `xvfb-run -a env`; Windows uses the `.exe` path. Windows log contains `PASS: Windows GUI subsystem 2 (no console)` and `PASS: Archnemix Windows product metadata (not a digital signature)`.
+
+The composer now accepts text **only into the selected in-memory draft**; Clear empties that draft, while New draft and draft switching retain separate unsent values for this session. It has no Send event or Enter submit handler; nothing is transmitted or stored on disk. The mode selector still changes only the UI preview, not a message's underlying mode; Settings Memory Light/Heavy/Custom choices are likewise non-persistent and do not manage RAM. Focused tests check two drafts retain distinct values, wrong-ID edits/clears do not cross boundaries, and new App construction starts blank.
+
+The screenshot input for each OS (Linux prefixes `xvfb-run -a env`, Windows appends `.exe`) was:
+
+```sh
+ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_DRAFT='Sketch a new idea for a project' ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/OS-agent-draft.png ./target/release/archx-ai-lab
+```
+
+Visual inspection of final Windows and macOS `visual/{os}-agent-draft.png`: unsent text appears within the dark editor, counter is visible, Clear is inside the card, and **SEND UNAVAILABLE / NO MODEL CONNECTED** remains clear without overlap in 1280 × 800 and 1024 × 645 windows. The capture does not prove physical typing or mouse/keyboard accessibility in the user's environment; hands-on review is still needed. The accepted launcher Agent artwork remains unchanged.
+
+Windows portable review binary: [`deliverables/Unreleased/windows/archx-ai-lab.exe`](../../../deliverables/Unreleased/windows/archx-ai-lab.exe), **19,931,648 bytes**, SHA-256 `66b5ac2521762da156c13466601166861b98c44970b101bbe0722333c4fe64e4`. **Unsigned**, not an installer or a verified publisher. Step 2 remains open for user UI acceptance; Step 3 backend decisions are deferred.
+
+## Previous evidence (historical; hashes/build sizes below refer to earlier revisions)
+
 
 ## Current Step 2 UI-only review (2026-11-09)
 
