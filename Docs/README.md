@@ -13,4 +13,5 @@
 - [Workaround](Workaround.md): access and tooling workarounds.
 - [Secrets](Secrets.md): GitHub secret names and descriptions, never values.
 - [Research.json](Research.json): source-backed research index.
+- [Security design](Security_Design.md) and [local provider trial](Provider_Trial.md): threat model, user-run test steps and unverified limits.
 - [Test_Results/](Test_Results/README.md): versioned test commands, inputs, and outputs.

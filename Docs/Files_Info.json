@@ -13,7 +13,7 @@
       "handles": "Repository orientation"
     },
     "Docs/README.md": {
-      "purpose": "Guide readers to documentation, including the rough-ideas parking lot.",
+      "purpose": "Index documentation, including security design and local provider trial.",
       "inputs": [
         "Documentation layout"
       ],
@@ -53,7 +53,7 @@
       "handles": "Product planning"
     },
     "Docs/Roadmap.md": {
-      "purpose": "Order complete and testable implementation milestones.",
+      "purpose": "Track staged scope and three-OS evidence without treating provider compilation as live validation.",
       "inputs": [
         "Agreed plan",
         "Approved scope changes"
@@ -179,7 +179,7 @@
       "handles": "Pre-release test organization"
     },
     "Docs/Test_Results/Unreleased/Documentation_Validation.md": {
-      "purpose": "Record file inventory, workflow and evidence documentation validation.",
+      "purpose": "Record inventory, workflow and final evidence validation.",
       "inputs": [
         "Documentation files",
         "Validation command"
@@ -410,7 +410,7 @@
       "handles": "Build reproducibility"
     },
     "Docs/Test_Results/Unreleased/Gui_Validation.md": {
-      "purpose": "Summarize native GUI CI evidence, including provider-vault foundation compilation and limits.",
+      "purpose": "Summarize native GUI CI evidence and provider-vault/request prototype limitations.",
       "inputs": [
         "CI runner results"
       ],
@@ -1182,6 +1182,16 @@
         "Native GUI PNG"
       ],
       "handles": "Visual evidence only, not live connectivity"
+    },
+    "Docs/Provider_Trial.md": {
+      "purpose": "Give local provider-test steps, cost warnings, privacy limits and safe redacted reporting without soliciting secrets.",
+      "inputs": [
+        "Implemented Settings/Chat flow and CI evidence"
+      ],
+      "outputs": [
+        "User-run validation guide"
+      ],
+      "handles": "Opt-in real provider trial and threat disclosure"
     }
   }
 }

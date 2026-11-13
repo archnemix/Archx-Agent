@@ -557,3 +557,5 @@ First provider integration CI `43476402313` **failed Linux** before tests due `s
 Second CI `43476793962` compiled Linux and ran 20 tests: 19 passed, 1 failed (`provider_api::tests::endpoints_are_fixed_and_model_paths_are_constrained`: URL-shaped model accepted). Windows/macOS skipped. Fixed validator to reject `//`, `..` and `://`; removed private-bounds warning. Needs fresh CI before functionality claims.
 
 Final visual/security adjustment preflight: `git diff --check` and complete inventory scan before CI. New synthetic tests for duplicate key-write guard and failed-request draft restoration must run on all three OSes. Real keyring and provider behavior cannot be inferred from these tests.
+
+CI `43482937372` completed successfully. Fetched bot evidence commits through `2b16a11`: logs show 22/22 unit tests passed on each OS; release builds and native captures succeeded. Inspected final Windows Agent/Connections/Models/compact Home and macOS Connections. Windows artifact SHA-256 `f6960c00773172eb7931c94cdd5332d47acb8bb00cfd0d7caad59979a8718b08`, unsigned. Synthetic tests/visual captures do not establish live API or OS keychain behavior.
