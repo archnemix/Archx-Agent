@@ -40,6 +40,7 @@ impl CallError {
 
 pub fn valid_model(provider: Provider, model: &str) -> bool {
     !model.is_empty() && model.len() <= 100 && !model.starts_with('/') &&
+        !model.contains("//") && !model.contains("..") && !model.contains("://") &&
         model.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'/' | b'-' | b'_' | b'.' | b':' | b'+')) &&
         (provider != Provider::Gemini || !model.contains('/'))
 }

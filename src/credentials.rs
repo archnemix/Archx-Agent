@@ -60,7 +60,7 @@ impl VaultError {
 
 // The store adapter is intentionally small so state/failure tests never touch a
 // developer's OS vault. All production writes use the platform's native store.
-trait CredentialStore {
+pub(crate) trait CredentialStore {
     fn get(&self, account: &str) -> Result<Option<Zeroizing<String>>, VaultError>;
     fn set(&self, account: &str, secret: &str) -> Result<(), VaultError>;
     fn delete(&self, account: &str) -> Result<(), VaultError>;
