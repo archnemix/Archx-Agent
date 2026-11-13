@@ -535,3 +535,7 @@ Input: Iced 0.14 `button.on_press`, `image.content_fit` and native column/row wi
 ## 2026-11-09: independent macOS recheck failed screenshot step
 
 Run `43445741356` on source `a01092c` passed `cargo test --locked` (**13 passed**) and `cargo build --release --locked` on macOS, but `Build, test, and screenshot compact rail` exited 1 after the build, producing **no** compact PNGs. The `non_visual/macos.log` checked in by CI ends after a successful release build. The retry workflow used an empty Bash array with `set -u` for Home; suspected shell expansion failure is not confirmed. A follow-up simplifies to an explicit page environment variable and logs each capture/failure; rerun must pass before the macOS UI is accepted.
+
+## 2026-11-09: completed compact rail cross-OS evidence
+
+Source `2c44933` full run `43440351034`: Linux and Windows each passed `cargo test --locked` (**13 passed**) and release build; `visual/{linux,windows}-{collapsed,agent-collapsed,settings-collapsed}.png` are nonempty. Mac was **cancelled before runner assignment**. Focused source `eb9d48f` macOS run `43447873895` passed `cargo test --locked` (**13 passed**), release build, and `visual/macos-{collapsed,agent-collapsed,settings-collapsed}.png`. Visually inspected final Windows and macOS compact Home/Agent captures; controls and text remain legible in visible viewport. `Docs/Test_Results/Unreleased/Gui_Validation.md` records commands and failure scope. No actual pointer clicks or API-provider tests are implied.

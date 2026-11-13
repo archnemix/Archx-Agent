@@ -1,5 +1,16 @@
 <!-- Purpose: Records current three-OS GUI test commands, outputs, screenshots, visual review, and Windows delivery. -->
-# AI Lab launcher validation — unsent Agent draft UI preview
+# AI Lab launcher validation — collapsible Lab rail
+
+## Current shared navigation revision (2026-11-09)
+
+Source `2c44933`, full GUI run [`43440351034`](https://github.com/archnemix/Archx-Agent/actions/runs/43440351034): Linux and Windows jobs passed `cargo test --locked` (**13 passed; 0 failed** each), `cargo build --release --locked`, expanded Home/Agent/Settings screenshots and three additional compact-state screenshots per OS. Its macOS job **did not run**: runner assignment was cancelled after 15 minutes in queue; this run is therefore **not** a three-OS success. Focused macOS run [`43447873895`](https://github.com/archnemix/Archx-Agent/actions/runs/43447873895) separately passed `cargo test --locked` (**13 passed; 0 failed**), `cargo build --release --locked`, and compact Home/Agent/Settings plus expanded Agent native captures. First focused attempt `43445741356` compiled/tests passed but failed before screenshots due to a shell capture bug; it is not counted as visual evidence. Current per-OS outputs are in `non_visual/{linux,windows,macos}.log`, screenshots only in `visual/`. The Windows log also reports GUI subsystem 2 (no console) and Archnemix product metadata (not a signature).
+
+The shared 220px Lab rail now has **Hide <**; it collapses to an 84px rail with **Open >**, transparent smaller mark and labelled Home/Agent/About/Settings buttons. Its state persists during *this process session* across navigation; no new settings persistence is implied. The separate inner Agent conversation rail is unchanged. CI uses `ARCHX_SNAPSHOT_SIDEBAR=collapsed` with `ARCHX_SNAPSHOT` to capture `visual/{OS}-collapsed.png`, `{OS}-agent-collapsed.png`, and `{OS}-settings-collapsed.png`. A focused state test toggles collapse, navigates Agent → Settings, and reopens without resetting the page. Inspected Windows Home/Agent and macOS Home/Agent compact captures: visible Open control, selected route, typography and reflow stay within their panels. Frozen captures do **not** simulate physical clicks, screen reader use, or user-device interaction.
+
+Latest portable review build: [`deliverables/Unreleased/windows/archx-ai-lab.exe`](../../../deliverables/Unreleased/windows/archx-ai-lab.exe), **19,945,984 bytes**, SHA-256 `041ccf093d4e49c40372515baeb23a6a455002ca56727f488346f7c9b8f4a0bd`. It is **unsigned**, not a verified-publisher build. Provider Settings/API calls are **not in this executable**. They are the next security-critical step and require an honest credential/memory threat model; do not claim connection tests from a mock or inaccessible API.
+
+## Previous evidence (historical; hashes/build sizes below refer to earlier revisions)
+
 
 ## Current Step 2 composer follow-up (2026-11-09)
 
