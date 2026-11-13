@@ -15,9 +15,9 @@ static BRAND: LazyLock<image::Handle> = LazyLock::new(|| {
     image::Handle::from_bytes(include_bytes!("../assets/brand/archnemix-sidebar.png").to_vec())
 });
 
-pub fn view(page: Page, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &[ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {
+pub fn view(page: Page, sidebar_expanded: bool, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &[ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {
     container(
-        row![sidebar(page), main_content(page, hovered, phase, agent_phase, drafts, selected, memory, keep_agent)]
+        row![sidebar(page, sidebar_expanded), main_content(page, hovered, phase, agent_phase, drafts, selected, memory, keep_agent)]
             .width(Fill)
             .height(Fill),
     )
@@ -27,11 +27,18 @@ pub fn view(page: Page, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts
     .into()
 }
 
-fn sidebar(page: Page) -> Element<'static, Message> {
+fn sidebar(page: Page, expanded: bool) -> Element<'static, Message> {
+    if !expanded {
+        return compact_sidebar(page);
+    }
     let identity = image(BRAND.clone())
         .width(116)
         .height(116)
         .content_fit(ContentFit::Contain);
+    let toggle = button(text("Hide <").size(11).color(style::GREY))
+        .padding([8, 9])
+        .on_press(Message::ToggleSidebar)
+        .style(style::quiet_button);
 
     let discover = button(text("Discover").size(style::TYPE_BODY).font(style::LABEL))
         .width(Fill)
@@ -50,7 +57,7 @@ fn sidebar(page: Page) -> Element<'static, Message> {
         .style(move |theme, status| style::nav(page == Page::About, theme, status));
 
     let navigation = column![
-        identity,
+        row![identity, space().width(Fill), toggle].align_y(Center),
         space().height(18),
         text("BROWSE").size(10).color(style::DIM),
         space().height(16),
@@ -88,6 +95,42 @@ fn sidebar(page: Page) -> Element<'static, Message> {
         .height(Fill)
         .style(style::rail)
         .into()
+}
+
+fn compact_item(label: &'static str, target: Page, selected: bool) -> Element<'static, Message> {
+    button(text(label).size(11).color(if selected { style::WHITE } else { style::GREY }))
+        .width(Fill)
+        .padding([11, 3])
+        .on_press(Message::Navigate(target))
+        .style(move |theme, status| style::nav(selected, theme, status))
+        .into()
+}
+
+fn compact_sidebar(page: Page) -> Element<'static, Message> {
+    let navigation = column![
+        button(text("Open >").size(11).color(style::WHITE))
+            .width(Fill)
+            .padding([9, 4])
+            .on_press(Message::ToggleSidebar)
+            .style(style::quiet_button),
+        space().height(19),
+        image(BRAND.clone()).width(44).height(48).content_fit(ContentFit::Contain),
+        space().height(31),
+        compact_item("Home", Page::Home, page == Page::Home),
+        space().height(9),
+        compact_item("Agent", Page::Agent, page == Page::Agent),
+        space().height(9),
+        compact_item("About", Page::About, page == Page::About),
+        space().height(9),
+        compact_item("Settings", Page::Settings, page == Page::Settings),
+        space().height(Fill),
+        text("LAB").size(10).color(style::DIM)
+    ]
+    .align_x(Center)
+    .width(Fill)
+    .height(Fill)
+    .padding([22, 9]);
+    container(navigation).width(84).height(Fill).style(style::rail).into()
 }
 
 fn main_content(page: Page, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &[ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {

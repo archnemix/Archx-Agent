@@ -50,3 +50,7 @@ After a GUI change, build/run on Linux, Windows, and macOS; inspect Home, About,
 ## Agent workspace and Lab Settings UI preview
 
 The Lab navigation remains the global shell. Agent has a distinct inner conversation rail and restrained six-mode chips; selecting a mode only changes an **unsent draft's UI preview**, not tools, inference, or prior-message conversion. Temporary drafts and their unsent text are clearly marked session-only; the composer accepts typing, but **Send remains unavailable** without a model and Enter does not submit. Settings lives in the Lab rail, not as a per-Agent page. Memory Light / Memory Heavy / Custom are UI-only choices with an explicit no-effect message until there is a real loader and persistence. Custom previews Agent only; unavailable future destinations cannot be preloaded. Reuse the black/silver palette, spacing and font roles above; do not alter the approved launcher Agent animation.
+
+## Shared navigation density
+
+The Lab rail is expanded at 220px by default, showing the transparent 116px Archnemix mark and text navigation. **Hide <** collapses it to an 84px rail with a 44px mark, visible **Open >** control, and labelled Home/Agent/About/Settings buttons (not ambiguous icon-only controls). The active route keeps the existing silver-rim selected treatment; navigation between routes retains the chosen rail width for the current session. This is layout state, not a display mode or saved memory setting. The content area reflows rather than stretching the accepted Agent typography itself.

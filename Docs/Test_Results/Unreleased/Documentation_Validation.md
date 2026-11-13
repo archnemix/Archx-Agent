@@ -527,3 +527,7 @@ Code inputs: Iced 0.14 text-input callbacks and optional button events; no model
 ## 2026-11-09: completed unsent draft review
 
 Source `bfafaf6`, CI `43428503990` completed sequential Linux/Windows/macOS jobs; each passed `cargo test --locked` (12/12), release build, and nonempty default/unsent Agent, Settings and legacy launcher screenshots. Visual inspection of final Windows and macOS `visual/{os}-agent-draft.png` found legible populated composer, counter and unavailable Send status, without overlap; physical typing was not tested in these frozen captures. Full output is in `non_visual/*.log`, images in `visual/`, reviewed artifact SHA-256 and exact command are in `Gui_Validation.md`. Inventory matches **100 files** and `git diff --check` exited 0.
+
+## 2026-11-09: compact rail pre-CI
+
+Input: Iced 0.14 `button.on_press`, `image.content_fit` and native column/row widgets; shared rail toggle state plus three screenshot-only compact pages per OS. Exact preflight: `/home/user/.venv/bin/python` parsed workflow YAML and asserted 3 occurrences of `ARCHX_SNAPSHOT_SIDEBAR=collapsed` for each of Linux/Windows/macOS; Python inventory scan matched 100 existing files plus nine declared pending PNGs; roadmap numbered steps 0–10; `git diff --check` exited 0. These checks do not establish compilation, runtime clicks or legible screenshots. Provider security design remains a planning-only follow-up.

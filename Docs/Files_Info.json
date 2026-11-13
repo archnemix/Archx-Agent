@@ -230,7 +230,7 @@
       "handles": "CI organization"
     },
     ".github/workflows/gui.yml": {
-      "purpose": "Build/test three OSes and capture Agent default/unsent draft, Settings, alternate UI and launcher artwork phases.",
+      "purpose": "Build/test all three OSes and capture expanded/compact navigation plus Agent, Settings and frozen artwork states.",
       "inputs": [
         "Source changes and intentional trigger"
       ],
@@ -320,7 +320,7 @@
       "handles": "Application entry point"
     },
     "src/app.rs": {
-      "purpose": "Own navigation, per-draft unsent text/mode preview and shared memory preview with no backend or persistence.",
+      "purpose": "Own UI page navigation and rail visibility, session-only drafts and memory preview, and screenshot state capture.",
       "inputs": [
         "User navigation and snapshot trigger"
       ],
@@ -330,7 +330,7 @@
       "handles": "Shell state"
     },
     "src/home.rs": {
-      "purpose": "Render shared Lab navigation and route launcher, Agent and Settings pages without changing approved Agent artwork.",
+      "purpose": "Render expanded/compact shared Lab rail and route launcher, Agent and Settings pages while preserving Agent artwork.",
       "inputs": [
         "Current page"
       ],
@@ -1010,6 +1010,96 @@
         "Visual draft editor evidence"
       ],
       "handles": "Agent composer preview"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux-collapsed.png": {
+      "purpose": "Native linux screenshot of compact shared Lab rail on collapsed page.",
+      "inputs": [
+        "linux CI snapshot with collapsed rail"
+      ],
+      "outputs": [
+        "Visual compact navigation evidence"
+      ],
+      "handles": "Global sidebar review"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux-agent-collapsed.png": {
+      "purpose": "Native linux screenshot of compact shared Lab rail on agent-collapsed page.",
+      "inputs": [
+        "linux CI snapshot with collapsed rail"
+      ],
+      "outputs": [
+        "Visual compact navigation evidence"
+      ],
+      "handles": "Global sidebar review"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux-settings-collapsed.png": {
+      "purpose": "Native linux screenshot of compact shared Lab rail on settings-collapsed page.",
+      "inputs": [
+        "linux CI snapshot with collapsed rail"
+      ],
+      "outputs": [
+        "Visual compact navigation evidence"
+      ],
+      "handles": "Global sidebar review"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows-collapsed.png": {
+      "purpose": "Native windows screenshot of compact shared Lab rail on collapsed page.",
+      "inputs": [
+        "windows CI snapshot with collapsed rail"
+      ],
+      "outputs": [
+        "Visual compact navigation evidence"
+      ],
+      "handles": "Global sidebar review"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows-agent-collapsed.png": {
+      "purpose": "Native windows screenshot of compact shared Lab rail on agent-collapsed page.",
+      "inputs": [
+        "windows CI snapshot with collapsed rail"
+      ],
+      "outputs": [
+        "Visual compact navigation evidence"
+      ],
+      "handles": "Global sidebar review"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows-settings-collapsed.png": {
+      "purpose": "Native windows screenshot of compact shared Lab rail on settings-collapsed page.",
+      "inputs": [
+        "windows CI snapshot with collapsed rail"
+      ],
+      "outputs": [
+        "Visual compact navigation evidence"
+      ],
+      "handles": "Global sidebar review"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos-collapsed.png": {
+      "purpose": "Native macos screenshot of compact shared Lab rail on collapsed page.",
+      "inputs": [
+        "macos CI snapshot with collapsed rail"
+      ],
+      "outputs": [
+        "Visual compact navigation evidence"
+      ],
+      "handles": "Global sidebar review"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos-agent-collapsed.png": {
+      "purpose": "Native macos screenshot of compact shared Lab rail on agent-collapsed page.",
+      "inputs": [
+        "macos CI snapshot with collapsed rail"
+      ],
+      "outputs": [
+        "Visual compact navigation evidence"
+      ],
+      "handles": "Global sidebar review"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos-settings-collapsed.png": {
+      "purpose": "Native macos screenshot of compact shared Lab rail on settings-collapsed page.",
+      "inputs": [
+        "macos CI snapshot with collapsed rail"
+      ],
+      "outputs": [
+        "Visual compact navigation evidence"
+      ],
+      "handles": "Global sidebar review"
     }
   }
 }

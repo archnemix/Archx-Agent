@@ -144,6 +144,26 @@
     "iced_0_14_optional_button_event": {
       "summary": "Button::on_press_maybe accepts Option<Message>; None means no action. Use for Clear when no text, and keep Send unbound until a model/backend is intentionally designed.",
       "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/button.rs"
+    },
+    "iced_0_14_collapsible_lab_rail": {
+      "summary": "Iced button.on_press emits a toggle message; widget image.width/height/content_fit shrink the transparent brand mark; row.align_y and Length keep compact/full rails in one native layout. No new library needed.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/button.rs"
+    },
+    "openrouter_free_variants": {
+      "summary": "OpenRouter models API exposes IDs/pricing, and :free is a separate catalog variant with its own rate limits. Paid fallbacks can be billed, so never silently fall back to paid from :free.",
+      "url": "https://openrouter.ai/docs/guides/routing/model-variants/free"
+    },
+    "xai_chat_completions": {
+      "summary": "xAI documents https://api.x.ai/v1/chat/completions with Bearer auth and a model ID; exact model support must be discovered from provider rather than hardcoded stale Grok IDs.",
+      "url": "https://docs.x.ai/developers/model-capabilities/legacy/chat-completions"
+    },
+    "gemini_interactions_catalog": {
+      "summary": "Gemini lists distinct model IDs/capabilities; user-typed model IDs should remain possible because provider catalogs and availability change. Must verify current REST list endpoint and auth before implementation.",
+      "url": "https://ai.google.dev/gemini-api/docs/interactions-overview"
+    },
+    "rust_keyring_storage_caveats": {
+      "summary": "The keyring crate documentation describes platform credential stores; newer core/store backends may be needed for deliberate Windows/macOS/Linux semantics. OS credential storage protects at rest, but a key must briefly be plaintext in process memory for an HTTP request; scattered-memory security cannot be guaranteed. Verify backend availability and fail closed before implementing.",
+      "url": "https://docs.rs/keyring/latest/keyring/"
     }
   }
 }

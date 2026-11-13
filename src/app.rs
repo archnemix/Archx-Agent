@@ -35,6 +35,7 @@ pub struct ChatDraft {
 #[derive(Debug, Clone)]
 pub enum Message {
     Navigate(Page),
+    ToggleSidebar,
     NewChat,
     OpenChat(u32),
     SelectMode(u8),
@@ -51,6 +52,7 @@ pub enum Message {
 
 pub struct App {
     page: Page,
+    sidebar_expanded: bool,
     drafts: Vec<ChatDraft>,
     selected_draft: u32,
     memory_preview: MemoryMode,
@@ -118,6 +120,8 @@ impl App {
         } else { String::new() };
         Self {
             page,
+            sidebar_expanded: !(snapshot.is_some()
+                && std::env::var("ARCHX_SNAPSHOT_SIDEBAR").as_deref() == Ok("collapsed")),
             drafts: vec![ChatDraft { id: 1, mode: preview_mode, text: preview_text }],
             selected_draft: 1,
             memory_preview: preview_memory,
@@ -136,6 +140,9 @@ impl App {
             Message::Navigate(page) => {
                 self.page = page;
                 self.hovered = None;
+            }
+            Message::ToggleSidebar => {
+                self.sidebar_expanded = !self.sidebar_expanded;
             }
             Message::NewChat if self.page == Page::Agent => {
                 let id = self.drafts.last().map_or(1, |draft| draft.id + 1);
@@ -209,7 +216,7 @@ impl App {
     }
 
     pub fn view(&self) -> Element<'_, Message> {
-        home::view(self.page, self.hovered, self.phase, self.agent_phase, &self.drafts, self.selected_draft, self.memory_preview, self.keep_agent_preview)
+        home::view(self.page, self.sidebar_expanded, self.hovered, self.phase, self.agent_phase, &self.drafts, self.selected_draft, self.memory_preview, self.keep_agent_preview)
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
@@ -277,6 +284,20 @@ mod tests {
         let _ = app.update(Message::OpenChat(1));
         assert_eq!(app.drafts[0].mode, 3);
         assert_eq!(app.selected_draft, 1);
+    }
+
+    #[test]
+    fn shared_sidebar_toggle_survives_navigation_and_reopens() {
+        let mut app = App::new();
+        assert!(app.sidebar_expanded);
+        let _ = app.update(Message::ToggleSidebar);
+        assert!(!app.sidebar_expanded);
+        let _ = app.update(Message::Navigate(Page::Agent));
+        let _ = app.update(Message::Navigate(Page::Settings));
+        assert!(!app.sidebar_expanded);
+        let _ = app.update(Message::ToggleSidebar);
+        assert!(app.sidebar_expanded);
+        assert_eq!(app.page, Page::Settings);
     }
 
     #[test]

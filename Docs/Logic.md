@@ -27,3 +27,7 @@ Product-level behaviors under discussion (not implemented flows): chat and mode 
 - `ARCHX_SNAPSHOT_PAGE=agent|settings` with `ARCHX_SNAPSHOT=<path>` selects those pages for native screenshot capture; previously supported Home/About and frozen visual phases remain supported. A snapshot is evidence of a rendered page, not proof of interactive pointer/key behavior.
 
 - Additional screenshot-only states: `ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_MODE=3` selects an empty Coding draft preview; `ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_MEMORY=custom` shows Agent's Custom memory preview. These environment variables are ignored unless a screenshot path is provided and the corresponding page is selected. `ARCHX_SNAPSHOT_DRAFT='Sketch a new idea for a project'` with an Agent snapshot shows a fixed nonpersonal unsent text state; normal startup remains empty. The composer is editable but Send remains unavailable.
+
+## Shared Lab rail collapse (Step 2 follow-up)
+
+- Expanded **Hide <** / compact **Open >** → `Message::ToggleSidebar` → `App.sidebar_expanded` flips, independently of `Page`; `home::view` renders either `sidebar` or `compact_sidebar`, then the same page content. Compact buttons still navigate to Home, Agent, About, Settings. Navigation does not reset rail state, drafts, or preview Settings. Screenshot-only `ARCHX_SNAPSHOT_SIDEBAR=collapsed` selects compact layout when `ARCHX_SNAPSHOT` is set; normal startup defaults expanded. No disk writes or model calls.

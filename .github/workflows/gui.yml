@@ -61,6 +61,12 @@ jobs:
           test -s Docs/Test_Results/Unreleased/visual/linux-agent-draft.png
           xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-settings.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/linux-settings.png
+          xvfb-run -a env ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-collapsed.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/linux-collapsed.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-agent-collapsed.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/linux-agent-collapsed.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-settings-collapsed.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/linux-settings-collapsed.png
           xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_MODE=3 ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-coding.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/linux-coding.png
           xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_MEMORY=custom ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-custom.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
@@ -120,6 +126,12 @@ jobs:
           test -s Docs/Test_Results/Unreleased/visual/windows-agent-draft.png
           ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-settings.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/windows-settings.png
+          ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-collapsed.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/windows-collapsed.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-agent-collapsed.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/windows-agent-collapsed.png
+          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-settings-collapsed.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/windows-settings-collapsed.png
           ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_MODE=3 ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-coding.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/windows-coding.png
           ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_MEMORY=custom ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-custom.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
@@ -177,6 +189,12 @@ jobs:
           test -s Docs/Test_Results/Unreleased/visual/macos-agent-draft.png
           ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-settings.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/macos-settings.png
+          ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-collapsed.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/macos-collapsed.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-agent-collapsed.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/macos-agent-collapsed.png
+          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-settings-collapsed.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/macos-settings-collapsed.png
           ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_MODE=3 ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-coding.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/macos-coding.png
           ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_MEMORY=custom ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-custom.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
