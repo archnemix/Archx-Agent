@@ -196,6 +196,30 @@
     "iced_rail_buttons": {
       "summary": "Iced 0.14 button on_press emits rail toggle; column height(Fill) and space height(Fill) anchor toggle at bottom while preserving native button focus.",
       "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/button.rs"
+    },
+    "openrouter_chat_rest": {
+      "summary": "OpenRouter POST https://openrouter.ai/api/v1/chat/completions with Bearer and JSON model/messages/max_tokens; :free is a distinct variant, not a generic free flag. No unrequested fallbacks.",
+      "url": "https://openrouter.ai/docs/api-reference/chat-completion"
+    },
+    "xai_chat_rest": {
+      "summary": "xAI documents POST https://api.x.ai/v1/chat/completions with Bearer and JSON model/messages; avoid assuming a particular model is always offered.",
+      "url": "https://docs.x.ai/developers/model-capabilities/legacy/chat-completions"
+    },
+    "gemini_generate_rest": {
+      "summary": "Gemini REST models/{model}:generateContent accepts contents text parts and generationConfig maxOutputTokens; authentication via x-goog-api-key as documented in Gemini text generation.",
+      "url": "https://ai.google.dev/api/generate-content"
+    },
+    "gemini_rest_auth": {
+      "summary": "Gemini text generation REST uses an x-goog-api-key header for a direct HTTPS call; no key in URL or logs.",
+      "url": "https://ai.google.dev/gemini-api/docs/text-generation"
+    },
+    "reqwest_0_12_client": {
+      "summary": "reqwest 0.12 ClientBuilder supports timeout, https_only, redirect policy and no_proxy; use fixed HTTPS origins, reject redirects and sanitize network errors. Verified tagged source in GitHub.",
+      "url": "https://github.com/seanmonstar/reqwest/blob/v0.12.28/src/async_impl/client.rs"
+    },
+    "iced_0_14_secret_input": {
+      "summary": "Iced 0.14 TextInput::secure(true) masks rendered text. Entered key is still transiently in widget/event/app memory and is not protected from same-process inspection.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/text_input.rs"
     }
   }
 }

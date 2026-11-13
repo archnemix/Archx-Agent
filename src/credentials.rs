@@ -148,6 +148,10 @@ impl<S: CredentialStore> Vault<S> {
         }
         let id = ids.last().copied().unwrap_or(0).checked_add(1).ok_or(VaultError::LimitReached)?;
         let account = Self::key_account(provider, id);
+        // Never overwrite an orphan from an interrupted index update or deletion.
+        if self.store.get(&account)?.is_some() {
+            return Err(VaultError::IndexCorrupt);
+        }
         self.store.set(&account, &secret)?;
         ids.push(id);
         if let Err(error) = self.write_index(provider, &ids) {
@@ -215,6 +219,14 @@ mod tests {
         vault.remove(Provider::OpenRouter, one).unwrap();
         assert_eq!(vault.with_key(Provider::OpenRouter, one, str::len), Err(VaultError::MissingKey));
         assert_eq!(vault.list(Provider::Gemini).unwrap(), vec![1]);
+    }
+
+    #[test]
+    fn orphaned_account_cannot_be_overwritten() {
+        let vault = Vault { store: FakeStore::default() };
+        vault.store.set("openrouter/key/1", "existing-orphan").unwrap();
+        assert_eq!(vault.add(Provider::OpenRouter, Zeroizing::new("replacement".into())), Err(VaultError::IndexCorrupt));
+        assert_eq!(vault.store.get("openrouter/key/1").unwrap().as_deref(), Some("existing-orphan"));
     }
 
     #[test]

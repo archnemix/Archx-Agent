@@ -4,6 +4,7 @@ use iced::{Center, Element, Fill};
 
 use crate::app::{ChatDraft, Message};
 use crate::style;
+use crate::settings::{SecretText, SettingsState};
 
 pub const MODES: [&str; 6] = ["Chat", "Tasks", "Research", "Coding", "Learning", "Play"];
 
@@ -15,10 +16,11 @@ fn action(label: &'static str, message: Message) -> Element<'static, Message> {
         .into()
 }
 
-pub fn view(drafts: &[ChatDraft], selected: u32) -> Element<'static, Message> {
+pub fn view(drafts: &[ChatDraft], selected: u32, settings: &SettingsState) -> Element<'static, Message> {
     let current = drafts.iter().find(|draft| draft.id == selected);
     let active_mode = current.map_or(0, |draft| draft.mode);
     let draft_text = current.map_or("", |draft| draft.text.as_str());
+    let connected = settings.selected_model().is_some();
 
     let mut history = column![
         text("WORKSPACE  /  ARCHX AGENT").size(11).color(style::DIM),
@@ -45,7 +47,7 @@ pub fn view(drafts: &[ChatDraft], selected: u32) -> Element<'static, Message> {
         ).push(space().height(6));
     }
     history = history.push(space().height(24)).push(
-        text("Unsent text stays with each draft.\nEverything disappears when you close the Lab.")
+        text("Chat stays in this process only.\nEverything disappears when you close the Lab.")
             .size(11)
             .color(style::DIM)
     );
@@ -66,22 +68,32 @@ pub fn view(drafts: &[ChatDraft], selected: u32) -> Element<'static, Message> {
         )
     });
     let lead = if active_mode == 0 { "A place for your next conversation." } else { "A workspace for what comes next." };
-    let center = container(
-        column![
+    let center: Element<'static, Message> = if active_mode == 0 && current.is_some_and(|draft| !draft.turns.is_empty()) {
+        let draft = current.expect("checked above");
+        let mut log = column![text("SESSION CHAT  /  NO DISK HISTORY").size(11).color(style::DIM)].spacing(16);
+        for turn in &draft.turns {
+            let who = if turn.role == "user" { "YOU" } else { "ASSISTANT" };
+            log = log.push(container(column![
+                text(who).size(10).color(style::DIM),
+                text(turn.content.clone()).size(14).color(style::WHITE)
+            ].spacing(8)).width(Fill).padding(16).style(style::surface));
+        }
+        if let Some(error) = &draft.error { log = log.push(text(error.clone()).size(12).color(style::GREY)); }
+        scrollable(log.padding([20, 8])).height(Fill).width(Fill).into()
+    } else {
+        container(column![
             text("ARCHX  /  AGENT").size(11).color(style::DIM),
             space().height(12),
             text(MODES[usize::from(active_mode)]).size(36).font(style::DISPLAY).color(style::WHITE),
             space().height(12),
             text(lead).size(15).color(style::GREY),
             space().height(23),
-            container(text("UI PREVIEW  /  NO MODEL CONNECTED").size(11).color(style::GREY))
-                .padding([9, 13])
-                .style(style::badge)
-        ]
-        .align_x(Center)
-    )
-    .center_x(Fill)
-    .center_y(Fill);
+            container(text(if active_mode != 0 { "PREVIEW ONLY  /  NO TOOLS" }
+                else if connected { "PLAIN CHAT  /  EXPLICIT SEND ONLY" }
+                else { "ADD A KEY AND MODEL IN SETTINGS" }).size(11).color(style::GREY))
+                .padding([9, 13]).style(style::badge)
+        ].align_x(Center)).center_x(Fill).center_y(Fill).into()
+    };
 
     let composer = container(
         column![
@@ -91,10 +103,10 @@ pub fn view(drafts: &[ChatDraft], selected: u32) -> Element<'static, Message> {
                     .size(10).color(style::DIM)
             ],
             space().height(10),
-            text_input("Write a thought here — it will not be sent", draft_text)
+            text_input(if active_mode == 0 && connected { "Write a message — click Send to share it" } else { "Write a draft — only Chat can send" }, draft_text)
                 .padding([14, 16])
                 .size(14)
-                .on_input(move |value| Message::EditDraft(selected, value))
+                .on_input(move |value| Message::EditDraft(selected, SecretText::new(value)))
                 .style(style::composer_input),
             space().height(10),
             row![
@@ -103,10 +115,13 @@ pub fn view(drafts: &[ChatDraft], selected: u32) -> Element<'static, Message> {
                     .on_press_maybe((!draft_text.is_empty()).then_some(Message::ClearDraft(selected)))
                     .style(style::quiet_button),
                 space().width(Fill),
-                text("SEND UNAVAILABLE  /  NO MODEL CONNECTED").size(11).color(style::DIM)
+                button(text(if current.is_some_and(|draft| draft.busy) { "Waiting…" } else { "Send ↗" }).size(12))
+                    .on_press_maybe((active_mode == 0 && connected && !draft_text.trim().is_empty()
+                        && current.is_some_and(|draft| !draft.busy)).then_some(Message::SendChat))
+                    .padding([10, 16]).style(style::quiet_button)
             ].align_y(Center),
             space().height(7),
-            text("You can test typing and switching drafts. No message, history or mode conversion is created.")
+            text("Only Chat sends when you click Send. Messages stay in this process until the Lab closes; provider requests may cost money.")
                 .size(11).color(style::DIM)
         ]
         .width(Fill)
@@ -119,7 +134,7 @@ pub fn view(drafts: &[ChatDraft], selected: u32) -> Element<'static, Message> {
         row![
             text("ARCHX AGENT").size(12).color(style::WHITE),
             space().width(Fill),
-            text("DRAFT WORKSPACE  /  NOT CONNECTED").size(11).color(style::DIM)
+            text(if connected { "SESSION ONLY  /  NO TOOLS" } else { "DRAFT WORKSPACE  /  NOT CONNECTED" }).size(11).color(style::DIM)
         ],
         space().height(24),
         scrollable(modes).width(Fill),

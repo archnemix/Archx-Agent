@@ -230,7 +230,7 @@
       "handles": "CI organization"
     },
     ".github/workflows/gui.yml": {
-      "purpose": "Build/test three OSes with lockfile generated on Linux and committed before Windows/macOS; capture native GUI evidence.",
+      "purpose": "Build/test three OSes, capture expanded/compact rail and separate Settings surfaces, and record GUI evidence/build.",
       "inputs": [
         "Source changes and intentional trigger"
       ],
@@ -240,7 +240,7 @@
       "handles": "Cross-platform CI"
     },
     "Cargo.toml": {
-      "purpose": "Declare native Iced GUI, OS keyring/zeroization and Windows icon build dependencies.",
+      "purpose": "Declare native GUI, native keyring, zeroization, HTTPS client, JSON and async runtime dependencies.",
       "inputs": [
         "Selected framework and screenshot libraries"
       ],
@@ -310,7 +310,7 @@
       "handles": "Rust source organization"
     },
     "src/main.rs": {
-      "purpose": "Start native Iced GUI with icon/fonts, register provider vault module, and hide Windows release console.",
+      "purpose": "Start native Iced GUI and register credential/network/settings modules without a Windows console.",
       "inputs": [
         "Application UI and brand PNG"
       ],
@@ -320,7 +320,7 @@
       "handles": "Application entry point"
     },
     "src/app.rs": {
-      "purpose": "Own UI page navigation and rail visibility, session-only drafts and memory preview, and screenshot state capture.",
+      "purpose": "Own navigation, draft/chat state, Settings key lifecycle and user-triggered provider calls.",
       "inputs": [
         "User navigation and snapshot trigger"
       ],
@@ -842,7 +842,7 @@
       "handles": "macos tuning motion state"
     },
     "src/agent.rs": {
-      "purpose": "Render Agent session drafts, six mode previews and editable unsent composer with no send action.",
+      "purpose": "Render session-only plain Chat conversation and explicit send button; other modes stay UI previews.",
       "inputs": [
         "Transient App UI state"
       ],
@@ -852,7 +852,7 @@
       "handles": "UI-only destination"
     },
     "src/settings.rs": {
-      "purpose": "Render shared Lab memory preference UI preview without resource side effects.",
+      "purpose": "Render Lab preview, OS-vault key management and session-only manual model selection in separate Settings pages.",
       "inputs": [
         "Transient App UI state"
       ],
@@ -1142,6 +1142,46 @@
         "Auditable threat model and implementation boundary"
       ],
       "handles": "Security architecture"
+    },
+    "src/provider_api.rs": {
+      "purpose": "Build fixed-origin provider chat requests and parse bounded responses with redacted errors.",
+      "inputs": [
+        "Manually selected provider/model, short session turns and one transient OS-vault key"
+      ],
+      "outputs": [
+        "Plain reply or sanitized error"
+      ],
+      "handles": "Explicit network egress only; no tools, redirects or body logging"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux-models.png": {
+      "purpose": "Capture the linux manual model Settings page without real credentials.",
+      "inputs": [
+        "CI snapshot mode without keys"
+      ],
+      "outputs": [
+        "Native GUI PNG"
+      ],
+      "handles": "Visual evidence only, not live connectivity"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows-models.png": {
+      "purpose": "Capture the windows manual model Settings page without real credentials.",
+      "inputs": [
+        "CI snapshot mode without keys"
+      ],
+      "outputs": [
+        "Native GUI PNG"
+      ],
+      "handles": "Visual evidence only, not live connectivity"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos-models.png": {
+      "purpose": "Capture the macos manual model Settings page without real credentials.",
+      "inputs": [
+        "CI snapshot mode without keys"
+      ],
+      "outputs": [
+        "Native GUI PNG"
+      ],
+      "handles": "Visual evidence only, not live connectivity"
     }
   }
 }

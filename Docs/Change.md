@@ -97,3 +97,6 @@ User reiterates that decrypted API-key bytes must remain split across randomly m
 
 ## 2026-11-09 — Plain chat first and rail affordance correction
 The user rejected the awkward Hide/Open rail controls and requested visual review on every new visual change; use a consistent bottom-edge expand/collapse control with clear labels and test both states on native runners. They prioritized a simple working API-backed Chat mode and navigable multi-page Settings, not speculative tools, database or memory. No model call should happen until an explicit send action and user-selected provider/model; do not mislabel UI previews as functioning chat.
+
+## 2026-11-09 — Session-only API experiment before archive/memory
+The user now explicitly prioritizes a simple working Chat API test and says no database or memory at this stage; the plain-chat slice may be implemented directly after provider key setup, with no persistence or tool execution. Multi-page Settings must make provider keys and manual model IDs navigable. A live provider call is user-initiated and may be billable. Catalog/stats remain provider-dependent follow-up; do not treat synthetic contract tests as a live test.

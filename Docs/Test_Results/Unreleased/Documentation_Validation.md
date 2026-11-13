@@ -547,3 +547,7 @@ Source inputs: `keyring = 4.2` v1 OS-specific native stores, `zeroize = 1.8`, no
 ## 2026-11-09: provider foundation CI follow-up
 
 `gh run watch 43462052311 --exit-status --interval 90` exited 0. The Linux/Windows/macOS jobs each reported 15 passing unit tests and release GUI builds in the tracked logs; the OS credential store was **not accessed** by synthetic fake-store tests. `git fetch` followed by `git merge --ff-only origin/arena/d45bc2a4-archx-agent` retrieved CI evidence commits through `965efde`; repository-hosted Windows executable SHA-256 `dbff85569379bbc746a858ec9bd84dd49a1a35ff51ce5d416fa23aefb49904b0`. Settings UI remains unchanged; generated pictures do not show key entry or 15-second reveal.
+
+## 2026-11-09: provider UI/chat experiment preflight (CI pending)
+
+Local Rust toolchain is absent. Reviewed authoritative Iced 0.14 text-input secure/button and reqwest 0.12 client-builder APIs through GitHub source, and official provider REST reference pages through web search; exact findings recorded in `Docs/Research.json`. Parsed three-job GUI workflow YAML using PyYAML; inventory matched 114 existing files plus three pending model-page native screenshots; `git diff --check` exited 0. Cross-OS compilation, OS keychain interaction, visual fit and real provider access are **not yet established**. CI must use synthetic prompts and no credentials.

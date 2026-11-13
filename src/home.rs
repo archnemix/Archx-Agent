@@ -8,16 +8,16 @@ use crate::agent;
 use crate::agent_visual;
 use crate::app::{ChatDraft, MemoryMode, Message, Page};
 use crate::app_tile::{self, Art, APPS};
-use crate::settings;
+use crate::settings::{self, SettingsState};
 use crate::style;
 
 static BRAND: LazyLock<image::Handle> = LazyLock::new(|| {
     image::Handle::from_bytes(include_bytes!("../assets/brand/archnemix-sidebar.png").to_vec())
 });
 
-pub fn view(page: Page, sidebar_expanded: bool, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &[ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {
+pub fn view(page: Page, sidebar_expanded: bool, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &[ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool, settings_state: &SettingsState) -> Element<'static, Message> {
     container(
-        row![sidebar(page, sidebar_expanded), main_content(page, hovered, phase, agent_phase, drafts, selected, memory, keep_agent)]
+        row![sidebar(page, sidebar_expanded), main_content(page, hovered, phase, agent_phase, drafts, selected, memory, keep_agent, settings_state)]
             .width(Fill)
             .height(Fill),
     )
@@ -132,10 +132,10 @@ fn compact_sidebar(page: Page) -> Element<'static, Message> {
     container(navigation).width(84).height(Fill).style(style::rail).into()
 }
 
-fn main_content(page: Page, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &[ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {
+fn main_content(page: Page, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &[ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool, settings_state: &SettingsState) -> Element<'static, Message> {
     match page {
-        Page::Agent => agent::view(drafts, selected),
-        Page::Settings => settings::view(memory, keep_agent),
+        Page::Agent => agent::view(drafts, selected, settings_state),
+        Page::Settings => settings::view(settings_state, memory, keep_agent),
         Page::Home | Page::About => scrollable(match page {
             Page::Home => home(hovered, phase, agent_phase),
             _ => about(),
