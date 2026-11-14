@@ -15,7 +15,7 @@ static BRAND: LazyLock<image::Handle> = LazyLock::new(|| {
 #[derive(Clone, Copy)]
 enum Icon { Home, Agent, About, Settings, Expand, Collapse }
 
-fn glyph(icon: Icon, selected: bool, size: u16) -> svg::Svg<'static> {
+fn glyph(icon: Icon, selected: bool, size: u32) -> svg::Svg<'static> {
     let bytes: &'static [u8] = match icon {
         Icon::Home => include_bytes!("../assets/icons/house.svg"),
         Icon::Agent => include_bytes!("../assets/icons/message-circle.svg"),

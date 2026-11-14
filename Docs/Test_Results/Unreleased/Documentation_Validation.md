@@ -563,3 +563,5 @@ CI `43482937372` completed successfully. Fetched bot evidence commits through `2
 ## 2026-11-09: icon rail / Settings layout preflight (CI pending)
 
 Read `Docs/Rules.md` before implementation. Used only the user-attached rail JPG and HTML/CSS **as design references**; no attached JavaScript was executed or copied. Checked Iced 0.14 SVG/tooltip/button APIs and upstream Lucide SVG geometry/license at pinned commit `55782beff3a0133df79c417eb68f96e8f19e2404`, recorded in `Docs/Research.json`. `python -m json.tool` parsed inventory/research, inventory matched 127 files, and `git diff --check` exited 0. Native compilation, icon rendering/hover, layout fit and actual accessibility behavior are **pending** CI and manual review. No provider key or chat content was used.
+
+First icon-rail CI `43569676394` failed during Linux compilation (`src/navigation.rs:28–29` passed `u16` to SVG width/height, which require `Length` convertible from `u32`/`f32`). Fixed glyph size to `u32`; Windows/macOS skipped and no new screenshots were captured. Revalidation pending.
