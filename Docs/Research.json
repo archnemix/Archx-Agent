@@ -236,6 +236,42 @@
     "fluent2_nav_labels": {
       "summary": "Fluent 2 suggests predictable expand/collapse affordance, recognisable icons, brief labels and tooltip on the right of truncated nav. Its web Nav explicitly does not itself support icon-only; our purpose-built native Iced rail must retain tooltips and keyboard-focus testing rather than treating this as a direct component copy.",
       "url": "https://fluent2.microsoft.design/components/web/react/core/nav/usage"
+    },
+    "openrouter_catalog_2026": {
+      "summary": "Official Models API GET /api/v1/models supports text/chat endpoint filtering, pagination and catalog variants :free; ID openrouter/free is a routing choice, not a fixed model. Pricing -1 is a dynamic-router sentinel; 0 is current zero-token price and can change. UI must separate router from specific free variants and never auto-add/auto-route.",
+      "url": "https://openrouter.ai/docs/api_reference/models"
+    },
+    "xai_language_catalog": {
+      "summary": "Official xAI GET /v1/language-models returns models[] of chat/vision language models, text output modalities, pricing and optional capabilities.reasoning_effort. Authenticate with Bearer; do not infer reasoning from model name or call every /models item chat-capable.",
+      "url": "https://docs.x.ai/developers/rest-api-reference/inference/models"
+    },
+    "gemini_models_catalog": {
+      "summary": "Gemini GET /v1beta/models returns models[] with name models/{id}, displayName, supportedGenerationMethods and thinking boolean. Filter to generateContent; use x-goog-api-key and handle pagination. No free-status field: do not infer that all catalog items are free.",
+      "url": "https://ai.google.dev/api/models"
+    },
+    "groq_models_catalog_future": {
+      "summary": "Groq (distinct from xAI Grok) documents GET https://api.groq.com/openai/v1/models with Bearer. Adapter is later slice after current catalog UI and policy gates.",
+      "url": "https://console.groq.com/docs/api-reference"
+    },
+    "ollama_models_future": {
+      "summary": "Ollama documents GET http://localhost:11434/api/tags for installed local models; local loopback needs a deliberately separate security boundary from arbitrary HTTPS custom endpoints.",
+      "url": "https://docs.ollama.com/api/tags"
+    },
+    "openai_models_future": {
+      "summary": "OpenAI API lists available developer API models at GET https://api.openai.com/v1/models using a Bearer API key; ChatGPT web subscription is not used as an API credential.",
+      "url": "https://platform.openai.com/docs/api-reference/models/list"
+    },
+    "anthropic_models_future": {
+      "summary": "Anthropic API GET /v1/models lists available models; official API uses version/auth headers. Compatible endpoints require a separate explicit protocol policy; no arbitrary headers are sent to destinations yet.",
+      "url": "https://docs.anthropic.com/en/api/models-list"
+    },
+    "catalog_transport_reqwest": {
+      "summary": "Tagged reqwest 0.12 ClientBuilder supports https_only, no_proxy, redirect policy none and timeout. Use existing disabled redirects and bounded response streaming for catalog calls. Existing Iced 0.14 Task::perform / button / scrollable APIs support explicit async fetch and results view.",
+      "url": "https://github.com/seanmonstar/reqwest/blob/v0.12.28/src/async_impl/client.rs"
+    },
+    "gemini_catalog_pagination": {
+      "summary": "ListModels GET /v1beta/models has pageSize maximum 1000 and nextPageToken/pageToken; supportedGenerationMethods includes generateContent. Cap number of pages and fail rather than show an incomplete catalog as complete.",
+      "url": "https://aistudio.google.com/api-reference/models/list-models.md"
     }
   }
 }

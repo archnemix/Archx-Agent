@@ -8,6 +8,7 @@ use zeroize::Zeroizing;
 
 use crate::app::{MemoryMode, Message};
 use crate::credentials::Provider;
+use crate::model_catalog::CatalogModel;
 use crate::style;
 
 pub struct SecretText(pub Zeroizing<String>);
@@ -37,6 +38,10 @@ pub struct SettingsState {
     pub reveal: Option<(u64, SecretText, Instant)>,
     pub reveal_nonce: u64,
     pub model_entry: String,
+    pub catalog: [Vec<CatalogModel>; 3],
+    pub search: String,
+    pub catalog_busy: bool,
+    pub catalog_nonce: u64,
     pub models: [Vec<String>; 3],
     pub chosen: [Option<usize>; 3],
     pub status: String,
@@ -47,7 +52,8 @@ impl Default for SettingsState {
     fn default() -> Self {
         Self { section: Section::Providers, provider: Provider::OpenRouter,
             key_entry: SecretText::default(), key_ids: Vec::new(), reveal: None,
-            reveal_nonce: 0, model_entry: String::new(), models: std::array::from_fn(|_| Vec::new()),
+            reveal_nonce: 0, model_entry: String::new(), catalog: std::array::from_fn(|_| Vec::new()),
+            search: String::new(), catalog_busy: false, catalog_nonce: 0, models: std::array::from_fn(|_| Vec::new()),
             chosen: [None; 3], status: String::new(), test_busy: false, key_busy: false }
     }
 }
@@ -187,6 +193,7 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
         space().height(10),
         button(text("Add model").size(12)).on_press(Message::AddModel).padding([11, 15]).style(style::quiet_button),
         space().height(23), list,
+        space().height(24), catalog_view(state),
         space().height(16),
         text("Explicit test: sends only ‘Reply with the word OK.’ to the selected provider/model. Output cap 256 tokens; this may be billable and total tokens are not guaranteed.")
             .size(12).color(style::GREY),
@@ -195,9 +202,55 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
             .on_press_maybe((state.selected_model().is_some() && !state.test_busy).then_some(Message::RunTest))
             .padding([11, 15]).style(style::quiet_button),
         space().height(18),
-        text("Catalog discovery and usage checks are not yet available. Add exact model IDs manually.")
+        text("Catalog labels reflect provider metadata at fetch time, not a price guarantee. Generation is a separate explicit action.")
             .size(12).color(style::DIM)
     ].width(Fill))
+}
+
+
+// Keep the visible result count bounded; typing a query reveals deeper catalog entries.
+fn catalog_view(state: &SettingsState) -> Element<'static, Message> {
+    let index = state.index();
+    let query = state.search.trim().to_lowercase();
+    let matching: Vec<_> = state.catalog[index].iter().enumerate()
+        .filter(|(_, model)| query.is_empty() || model.id.to_lowercase().contains(&query) || model.name.to_lowercase().contains(&query))
+        .collect();
+    let mut free = column![text("FREE AT FETCH  /  OPENROUTER ROUTER & ZERO-PRICE MODELS").size(11).color(style::DIM)].spacing(8);
+    let mut other = column![text("OTHER CATALOG MODELS  /  PRICE NOT VERIFIED HERE").size(11).color(style::DIM)].spacing(8);
+    let mut free_visible = 0;
+    let mut other_visible = 0;
+    for (slot, model) in matching.iter().copied() {
+        if (model.free && free_visible >= 20) || (!model.free && other_visible >= 20) { continue; }
+        if model.free { free_visible += 1; } else { other_visible += 1; }
+        let label = format!("{}  ·  {}{}{}", model.name, model.id,
+            if model.router { "  ·  FREE AUTO ROUTER (model varies)" } else { "" },
+            if model.reasoning { "  ·  REASONING SUPPORTED" } else { "" });
+        let already_added = state.models[index].contains(&model.id);
+        let item = row![
+            text(label).size(12).color(style::GREY).width(Fill),
+            button(text(if already_added { "Added" } else { "Add" }).size(11))
+                .on_press_maybe((!already_added && state.models[index].len() < 32).then_some(Message::AddCatalogModel(state.provider, slot)))
+                .style(style::quiet_button)
+        ].spacing(8);
+        if model.free { free = free.push(item); } else { other = other.push(item); }
+    }
+    column![
+        text("DISCOVER  /  READ-ONLY CATALOG").size(11).color(style::DIM),
+        space().height(10),
+        text("Fetch contacts only this provider. OpenRouter uses its public catalog; xAI and Gemini use the first saved OS-vault key. Nothing is added automatically.")
+            .size(12).color(style::GREY),
+        space().height(10),
+        button(text(if state.catalog_busy { "Fetching…" } else { "Fetch models  ↗" }).size(12))
+            .on_press_maybe((!state.catalog_busy).then_some(Message::FetchModels))
+            .padding([11, 15]).style(style::quiet_button),
+        space().height(10),
+        text_input("Search fetched names or IDs", &state.search).on_input(Message::SearchModels)
+            .padding([13, 15]).style(style::composer_input),
+        space().height(10),
+        text(format!("{} fetched · {} matching · showing first {}. Search to narrow results.", state.catalog[index].len(), matching.len(), free_visible + other_visible)).size(11).color(style::DIM),
+        space().height(18), free,
+        space().height(18), other
+    ].width(Fill).into()
 }
 
 fn lab(memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {

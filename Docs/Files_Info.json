@@ -149,7 +149,7 @@
       "handles": "Secret-name documentation"
     },
     "Docs/Research.json": {
-      "purpose": "Index researched topics with summaries and exact URLs.",
+      "purpose": "Record official catalog API and transport research with exact source URLs.",
       "inputs": [
         "Verified online sources"
       ],
@@ -310,7 +310,7 @@
       "handles": "Rust source organization"
     },
     "src/main.rs": {
-      "purpose": "Start native Iced GUI and register navigation/credential/network/settings modules without a Windows console.",
+      "purpose": "Start the native GUI and register app modules including model catalog.",
       "inputs": [
         "Application UI and brand PNG"
       ],
@@ -320,7 +320,7 @@
       "handles": "Application entry point"
     },
     "src/app.rs": {
-      "purpose": "Own navigation, draft/chat state, bounded reveal, serialized per-window Settings key tasks and explicit provider calls.",
+      "purpose": "Own navigation, ephemeral chat/settings state, explicit provider actions, catalog tasks and screenshots.",
       "inputs": [
         "User navigation and snapshot trigger"
       ],
@@ -852,7 +852,7 @@
       "handles": "UI-only destination"
     },
     "src/settings.rs": {
-      "purpose": "Render a persistent Settings section nav and detail panel for OS-vault key management, session model selection and Lab preview.",
+      "purpose": "Render settings, OS-vault keys, session models, local catalog search and individual add actions.",
       "inputs": [
         "Transient App UI state"
       ],
@@ -1283,6 +1283,19 @@
         "24px outlined vector icon"
       ],
       "handles": "Native compact/expanded rail icon rendering"
+    },
+    "src/model_catalog.rs": {
+      "purpose": "Fetch and parse bounded read-only model catalogs from three fixed provider endpoints.",
+      "inputs": [
+        "Explicit provider selection",
+        "Optional OS-vault key",
+        "Provider JSON metadata"
+      ],
+      "outputs": [
+        "Session catalog entries",
+        "Sanitized failure"
+      ],
+      "handles": "Catalog transport, pagination, free/router/reasoning metadata"
     }
   }
 }

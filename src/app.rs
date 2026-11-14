@@ -9,6 +9,7 @@ use iced::{Element, Subscription, Task};
 use crate::agent_visual::MODE_COUNT;
 use crate::app_tile::Art;
 use crate::home;
+use crate::model_catalog::{self, CatalogModel};
 use crate::credentials::{Provider, Vault, VaultError};
 use crate::provider_api::{self, Turn, CallError};
 use crate::settings::{SecretText, Section, SettingsState};
@@ -71,6 +72,10 @@ pub enum Message {
     AddModel,
     ChooseModel(usize),
     RemoveModel(usize),
+    FetchModels,
+    ModelsFetched(Provider, u64, Result<Vec<CatalogModel>, String>),
+    SearchModels(String),
+    AddCatalogModel(Provider, usize),
     SendChat,
     ChatResult(u32, Result<SecretText, String>),
     RunTest,
@@ -238,6 +243,9 @@ impl App {
                 self.settings.clear_secret();
                 self.settings.provider = provider;
                 self.settings.model_entry.clear();
+                self.settings.search.clear();
+                self.settings.catalog_nonce = self.settings.catalog_nonce.wrapping_add(1);
+                self.settings.catalog_busy = false;
                 self.settings.key_ids.clear();
                 self.settings.status.clear();
                 return self.update(Message::RefreshKeys);
@@ -323,6 +331,9 @@ impl App {
                     self.settings.models[index].push(model);
                     self.settings.chosen[index] = Some(self.settings.models[index].len() - 1);
                     self.settings.model_entry.clear();
+                self.settings.search.clear();
+                self.settings.catalog_nonce = self.settings.catalog_nonce.wrapping_add(1);
+                self.settings.catalog_busy = false;
                     self.settings.status = "Model selected for this session. Live requests may incur charges.".into();
                 } else { self.settings.status = "Invalid, duplicate or over-limit model ID.".into(); }
             }
@@ -333,6 +344,50 @@ impl App {
                 let index = self.settings.index();
                 self.settings.models[index].remove(slot);
                 self.settings.chosen[index] = None;
+            }
+            Message::SearchModels(query) if self.page == Page::Settings && self.settings.section == Section::Models => {
+                if query.len() <= 100 { self.settings.search = query; }
+            }
+            Message::AddCatalogModel(provider, slot) if self.page == Page::Settings && self.settings.section == Section::Models && self.settings.provider == provider => {
+                let index = self.settings.index();
+                if let Some(item) = self.settings.catalog[index].get(slot) {
+                    let model = item.id.clone();
+                    if provider_api::valid_model(provider, &model) && !self.settings.models[index].contains(&model) && self.settings.models[index].len() < 32 {
+                        self.settings.models[index].push(model);
+                        self.settings.chosen[index] = Some(self.settings.models[index].len() - 1);
+                        self.settings.status = "Model explicitly added for this session. Pricing may change; live calls may be billable.".into();
+                    }
+                }
+            }
+            Message::FetchModels if self.page == Page::Settings && self.settings.section == Section::Models && !self.settings.catalog_busy && self.snapshot.is_none() => {
+                let provider = self.settings.provider;
+                self.settings.catalog_busy = true;
+                self.settings.catalog_nonce = self.settings.catalog_nonce.wrapping_add(1);
+                let nonce = self.settings.catalog_nonce;
+                self.settings.status = "Fetching catalog; no generation request is being sent…".into();
+                return Task::perform(async move {
+                    let key = if provider == Provider::OpenRouter { None } else {
+                        let result = tokio::task::spawn_blocking(move || {
+                            let vault = Vault::os();
+                            let id = vault.list(provider)?.first().copied().ok_or(VaultError::MissingKey)?;
+                            vault.with_key(provider, id, |secret| Zeroizing::new(secret.to_owned()))
+                        }).await.map_err(|_| VaultError::Unavailable).and_then(|result| result)
+                            .map_err(|error| error.message().to_owned());
+                        match result { Ok(key) => Some(key), Err(error) => return Err(error) }
+                    };
+                    model_catalog::fetch(provider, key).await.map_err(CallError::message)
+                }, move |result| Message::ModelsFetched(provider, nonce, result));
+            }
+            Message::ModelsFetched(provider, nonce, result) if self.settings.provider == provider && self.settings.catalog_nonce == nonce => {
+                self.settings.catalog_busy = false;
+                match result {
+                    Ok(models) => {
+                        let count = models.len();
+                        self.settings.catalog[self.settings.index()] = models;
+                        self.settings.status = format!("Fetched {count} models. Search and add individual choices; no models were added automatically.");
+                    }
+                    Err(error) => self.settings.status = error,
+                }
             }
             Message::SendChat if self.page == Page::Agent => return self.send_chat(false),
             Message::RunTest if self.page == Page::Settings && !self.settings.test_busy => return self.send_chat(true),

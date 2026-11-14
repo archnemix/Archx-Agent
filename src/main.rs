@@ -8,6 +8,7 @@ mod app_tile;
 mod credentials;
 mod home;
 mod navigation;
+mod model_catalog;
 mod provider_api;
 mod settings;
 mod style;
