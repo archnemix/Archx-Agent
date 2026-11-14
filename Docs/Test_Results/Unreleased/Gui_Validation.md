@@ -1,5 +1,13 @@
 <!-- Purpose: Records current three-OS GUI test commands, outputs, screenshots, visual review, and Windows delivery. -->
-# AI Lab launcher validation — collapsible Lab rail
+# AI Lab launcher validation — provider catalog slice
+
+## Current catalog build (2026-11-09)
+
+Source `d78057e`, [CI `43607927450`](https://github.com/archnemix/Archx-Agent/actions/runs/43607927450): all three sequential Linux, Windows and macOS jobs passed `cargo test --locked` (**27 passed; 0 failed per OS**) and `cargo build --release --locked`, plus native scripted screenshots. Exact commands and outputs are in `non_visual/{linux,windows,macos}.log`. Windows log confirms GUI subsystem 2 (no console); this is not code signing. Current Windows executable: [`deliverables/Unreleased/windows/archx-ai-lab.exe`](../../../deliverables/Unreleased/windows/archx-ai-lab.exe), SHA-256 `5b6c44ea4e22fafbb32038480de3868cd4d06af4a5fdabc299884e0c247f8c5d`, **unsigned**.
+
+Inspected `visual/windows-models.png`: manual IDs, individual Add, read-only Fetch, search, separate free/other headings, and the explicit generation test are legible and do not overlap at 1280×800. Screenshot is an initial **unfetched** state; it does not demonstrate catalog results, real pricing, hover, click or vault/provider connectivity. Focused synthetic tests exercise free-router/reasoning parsing, Gemini/xAI chat filtering, explicit add-only selection, duplicate rejection and stale result isolation. No live provider request or OS-vault interaction was exercised in CI. A user-local trial with a locally entered key and actual catalog response is still needed to confirm endpoint behavior; a catalog item does not prove account access or an inference response.
+
+## Earlier revision (historical; hashes below refer to earlier builds)
 
 ## Current shared navigation revision (2026-11-09)
 

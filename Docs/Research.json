@@ -238,7 +238,7 @@
       "url": "https://fluent2.microsoft.design/components/web/react/core/nav/usage"
     },
     "openrouter_catalog_2026": {
-      "summary": "Official Models API GET /api/v1/models supports text/chat endpoint filtering, pagination and catalog variants :free; ID openrouter/free is a routing choice, not a fixed model. Pricing -1 is a dynamic-router sentinel; 0 is current zero-token price and can change. UI must separate router from specific free variants and never auto-add/auto-route.",
+      "summary": "Official Models API GET /api/v1/models supports text/chat endpoint filtering, pagination and catalog variants :free; ID openrouter/free is a routing choice, not a fixed model. Pricing -1 is a dynamic-router sentinel; 0 is current zero-token price and can change. UI must separate router from specific free variants and never auto-add/auto-route. GET /models accepts limit<=1000 and offset pagination, and endpoints=/api/v1/chat/completions filters for that request path.",
       "url": "https://openrouter.ai/docs/api_reference/models"
     },
     "xai_language_catalog": {
@@ -272,6 +272,10 @@
     "gemini_catalog_pagination": {
       "summary": "ListModels GET /v1beta/models has pageSize maximum 1000 and nextPageToken/pageToken; supportedGenerationMethods includes generateContent. Cap number of pages and fail rather than show an incomplete catalog as complete.",
       "url": "https://aistudio.google.com/api-reference/models/list-models.md"
+    },
+    "openrouter_free_router_chat": {
+      "summary": "Official OpenRouter free-router playground documents openrouter/free for POST /api/v1/chat/completions; it randomly selects a currently available free model, not a pinned checkpoint. Present as a router even if not in the filtered public model catalog, only after successful fetch.",
+      "url": "https://openrouter.ai/docs/projects/docs/cookbook/get-started/free-models-router-playground"
     }
   }
 }
