@@ -53,7 +53,7 @@
       "handles": "Product planning"
     },
     "Docs/Roadmap.md": {
-      "purpose": "Track staged scope and three-OS evidence without treating provider compilation as live validation.",
+      "purpose": "Track staged scope and updated icon-rail three-OS evidence without treating provider compilation as live validation.",
       "inputs": [
         "Agreed plan",
         "Approved scope changes"
@@ -179,7 +179,7 @@
       "handles": "Pre-release test organization"
     },
     "Docs/Test_Results/Unreleased/Documentation_Validation.md": {
-      "purpose": "Record inventory, workflow and final evidence validation.",
+      "purpose": "Record file inventory, workflow and final cross-OS GUI evidence validation.",
       "inputs": [
         "Documentation files",
         "Validation command"
@@ -410,7 +410,7 @@
       "handles": "Build reproducibility"
     },
     "Docs/Test_Results/Unreleased/Gui_Validation.md": {
-      "purpose": "Summarize native GUI CI evidence and provider-vault/request prototype limitations.",
+      "purpose": "Summarize native three-OS GUI CI evidence for purposeful icon rail, Settings and provider prototype limits.",
       "inputs": [
         "CI runner results"
       ],
