@@ -527,6 +527,26 @@ mod tests {
     }
 
     #[test]
+    fn catalog_requires_individual_add_and_ignores_stale_provider_results() {
+        let mut app = App::new();
+        let _ = app.update(Message::Navigate(Page::Settings));
+        let _ = app.update(Message::SettingsSection(Section::Models));
+        let model = CatalogModel { id: "vendor/model:free".into(), name: "Free model".into(), free: true, router: false, reasoning: false };
+        let _ = app.update(Message::ModelsFetched(Provider::OpenRouter, 0, Ok(vec![model.clone()])));
+        assert_eq!(app.settings.catalog[0].len(), 1);
+        assert!(app.settings.models[0].is_empty());
+        let _ = app.update(Message::SearchModels("free".into()));
+        assert_eq!(app.settings.search, "free");
+        let _ = app.update(Message::AddCatalogModel(Provider::OpenRouter, 0));
+        let _ = app.update(Message::AddCatalogModel(Provider::OpenRouter, 0));
+        assert_eq!(app.settings.models[0], vec![model.id]);
+        let _ = app.update(Message::SelectProvider(Provider::Gemini));
+        let _ = app.update(Message::ModelsFetched(Provider::OpenRouter, 0, Ok(Vec::new())));
+        assert_eq!(app.settings.catalog[0].len(), 1);
+        assert!(app.settings.models[2].is_empty());
+    }
+
+    #[test]
     fn failed_send_restores_draft_without_reusing_it_as_hidden_context() {
         let mut app = App::new();
         app.drafts[0].busy = true;
