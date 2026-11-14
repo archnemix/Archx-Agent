@@ -56,6 +56,52 @@ pub fn rail(_: &Theme) -> container::Style {
     container::Style::default().background(RAIL)
 }
 
+pub fn rail_divider(_: &Theme) -> container::Style {
+    container::Style::default().background(LINE)
+}
+
+pub fn settings_panel(_: &Theme) -> container::Style {
+    container::Style::default().background(Color::from_rgb8(15, 15, 16))
+        .border(Border { color: LINE, width: 1.0, radius: 0.0.into() })
+}
+
+pub fn settings_nav(active: bool, _: &Theme, status: button::Status) -> button::Style {
+    button::Style {
+        background: Some(if active { Color::from_rgb8(38, 38, 41) }
+            else if matches!(status, button::Status::Hovered | button::Status::Pressed) { Color::from_rgb8(28, 28, 30) }
+            else { Color::from_rgb8(15, 15, 16) }.into()),
+        text_color: if active { WHITE } else { GREY },
+        border: Border {
+            color: if active { Color::from_rgb8(93, 93, 100) } else { Color::from_rgba(0.0, 0.0, 0.0, 0.0) },
+            width: 1.0, radius: 10.0.into(),
+        },
+        ..button::Style::default()
+    }
+}
+
+pub fn rail_hint(_: &Theme) -> container::Style {
+    container::Style::default().background(Color::from_rgb8(34, 34, 36))
+        .border(Border { color: Color::from_rgb8(82, 82, 86), width: 1.0, radius: 8.0.into() })
+}
+
+// Compact buttons are fixed 52px squares: silver selection, no full-width pill.
+pub fn compact_nav(selected: bool, _: &Theme, status: button::Status) -> button::Style {
+    button::Style {
+        background: Some(if selected { Color::from_rgb8(42, 42, 45) }
+            else if matches!(status, button::Status::Hovered | button::Status::Pressed) { Color::from_rgb8(31, 31, 33) }
+            else { RAIL }.into()),
+        text_color: if selected { WHITE } else { GREY },
+        border: Border {
+            color: if selected { Color::from_rgb8(124, 124, 130) } else { Color::from_rgba(0.0, 0.0, 0.0, 0.0) },
+            width: 1.0,
+            radius: 14.0.into(),
+        },
+        shadow: if selected { Shadow { color: Color::from_rgba(0.75, 0.75, 0.82, 0.12), offset: Vector::new(0.0, 2.0), blur_radius: 8.0 } }
+            else { Shadow::default() },
+        ..button::Style::default()
+    }
+}
+
 pub fn surface(_: &Theme) -> container::Style {
     container::Style::default()
         .background(SURFACE)
@@ -203,6 +249,15 @@ pub fn nav(active: bool, _theme: &Theme, status: button::Status) -> button::Styl
 mod tests {
     use super::*;
     use iced::Background;
+
+    #[test]
+    fn compact_selection_is_a_bounded_silver_tile_not_an_expanded_pill() {
+        let active = compact_nav(true, &Theme::Dark, button::Status::Active);
+        let inactive = compact_nav(false, &Theme::Dark, button::Status::Active);
+        assert!(matches!(active.background, Some(Background::Color(_))));
+        assert_eq!(active.border.radius, 14.0.into());
+        assert!(active.border.color.a > inactive.border.color.a);
+    }
 
     #[test]
     fn selected_navigation_uses_glass_gradient() {

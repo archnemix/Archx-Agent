@@ -240,7 +240,7 @@
       "handles": "Cross-platform CI"
     },
     "Cargo.toml": {
-      "purpose": "Declare native GUI, native keyring, zeroization, HTTPS client, JSON and async runtime dependencies.",
+      "purpose": "Declare native GUI with SVG/image, native keyring, zeroization, HTTPS client, JSON and async runtime dependencies.",
       "inputs": [
         "Selected framework and screenshot libraries"
       ],
@@ -250,7 +250,7 @@
       "handles": "Rust build configuration"
     },
     "Docs/design.md": {
-      "purpose": "Specify visual tokens, font hierarchy, spacing rhythm and animation rules as one design authority.",
+      "purpose": "Define current visual tokens, typographic hierarchy, distinct icon-rail layout and cross-OS review criteria.",
       "inputs": [
         "User visual direction"
       ],
@@ -260,7 +260,7 @@
       "handles": "UI visual consistency"
     },
     "assets/README.md": {
-      "purpose": "Describe current embedded Agent placeholder and other bundled visual resources.",
+      "purpose": "Index brand, licensed fonts and locally bundled licensed navigation icons.",
       "inputs": [
         "Asset layout"
       ],
@@ -310,7 +310,7 @@
       "handles": "Rust source organization"
     },
     "src/main.rs": {
-      "purpose": "Start native Iced GUI and register credential/network/settings modules without a Windows console.",
+      "purpose": "Start native Iced GUI and register navigation/credential/network/settings modules without a Windows console.",
       "inputs": [
         "Application UI and brand PNG"
       ],
@@ -330,7 +330,7 @@
       "handles": "Shell state"
     },
     "src/home.rs": {
-      "purpose": "Render launcher pages and bottom-aligned expand/collapse control for the shared navigation rail.",
+      "purpose": "Render launcher home and About page while delegating the shared Lab rail to navigation.rs.",
       "inputs": [
         "Current page"
       ],
@@ -340,7 +340,7 @@
       "handles": "Home presentation"
     },
     "src/style.rs": {
-      "purpose": "Provide dark palette, glassy selected navigation, subdued rail toggle and clear disabled-button styles.",
+      "purpose": "Provide dark palette, glass selection, icon-rail tile/tooltip, Settings section and disabled-button styles.",
       "inputs": [
         "Selected and hover state"
       ],
@@ -852,7 +852,7 @@
       "handles": "UI-only destination"
     },
     "src/settings.rs": {
-      "purpose": "Render Lab preview, OS-vault key management with Hide/reveal and session-only model selection in separate pages.",
+      "purpose": "Render a persistent Settings section nav and detail panel for OS-vault key management, session model selection and Lab preview.",
       "inputs": [
         "Transient App UI state"
       ],
@@ -1192,6 +1192,97 @@
         "User-run validation guide"
       ],
       "handles": "Opt-in real provider trial and threat disclosure"
+    },
+    "src/navigation.rs": {
+      "purpose": "Render distinct expanded icon+label Lab navigation and compact icon-only rail with right-side hover hints.",
+      "inputs": [
+        "Current Lab page and session sidebar-expanded state",
+        "Bundled Archnemix brand and local SVG glyphs"
+      ],
+      "outputs": [
+        "Native Iced navigation controls and tooltip affordances"
+      ],
+      "handles": "Launcher route/navigation layout"
+    },
+    "assets/icons/README.md": {
+      "purpose": "Explain pinned, local Lucide navigation glyphs and upstream license.",
+      "inputs": [
+        "Pinned Lucide commit and icon file names"
+      ],
+      "outputs": [
+        "Asset origin and usage instructions"
+      ],
+      "handles": "Icon asset provenance"
+    },
+    "assets/icons/LICENSE": {
+      "purpose": "Preserve verbatim Lucide ISC/MIT license text for bundled navigation glyphs.",
+      "inputs": [
+        "Upstream pinned Lucide LICENSE"
+      ],
+      "outputs": [
+        "License notice"
+      ],
+      "handles": "Third-party asset attribution"
+    },
+    "assets/icons/house.svg": {
+      "purpose": "Provide a bundled Lucide house navigation glyph, with purpose comment.",
+      "inputs": [
+        "Pinned upstream Lucide geometry"
+      ],
+      "outputs": [
+        "24px outlined vector icon"
+      ],
+      "handles": "Native compact/expanded rail icon rendering"
+    },
+    "assets/icons/message-circle.svg": {
+      "purpose": "Provide a bundled Lucide message-circle navigation glyph, with purpose comment.",
+      "inputs": [
+        "Pinned upstream Lucide geometry"
+      ],
+      "outputs": [
+        "24px outlined vector icon"
+      ],
+      "handles": "Native compact/expanded rail icon rendering"
+    },
+    "assets/icons/info.svg": {
+      "purpose": "Provide a bundled Lucide info navigation glyph, with purpose comment.",
+      "inputs": [
+        "Pinned upstream Lucide geometry"
+      ],
+      "outputs": [
+        "24px outlined vector icon"
+      ],
+      "handles": "Native compact/expanded rail icon rendering"
+    },
+    "assets/icons/settings-2.svg": {
+      "purpose": "Provide a bundled Lucide settings-2 navigation glyph, with purpose comment.",
+      "inputs": [
+        "Pinned upstream Lucide geometry"
+      ],
+      "outputs": [
+        "24px outlined vector icon"
+      ],
+      "handles": "Native compact/expanded rail icon rendering"
+    },
+    "assets/icons/panel-left-open.svg": {
+      "purpose": "Provide a bundled Lucide panel-left-open navigation glyph, with purpose comment.",
+      "inputs": [
+        "Pinned upstream Lucide geometry"
+      ],
+      "outputs": [
+        "24px outlined vector icon"
+      ],
+      "handles": "Native compact/expanded rail icon rendering"
+    },
+    "assets/icons/panel-left-close.svg": {
+      "purpose": "Provide a bundled Lucide panel-left-close navigation glyph, with purpose comment.",
+      "inputs": [
+        "Pinned upstream Lucide geometry"
+      ],
+      "outputs": [
+        "24px outlined vector icon"
+      ],
+      "handles": "Native compact/expanded rail icon rendering"
     }
   }
 }

@@ -7,6 +7,7 @@ mod app;
 mod app_tile;
 mod credentials;
 mod home;
+mod navigation;
 mod provider_api;
 mod settings;
 mod style;

@@ -220,6 +220,22 @@
     "iced_0_14_secret_input": {
       "summary": "Iced 0.14 TextInput::secure(true) masks rendered text. Entered key is still transiently in widget/event/app memory and is not protected from same-process inspection.",
       "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/text_input.rs"
+    },
+    "lucide_rail_icons": {
+      "summary": "Lucide provides consistent 24px outlined SVG icons. Pin only six local files (house, message-circle, info, settings-2, panel-left-open/close) to commit 55782beff3a0133df79c417eb68f96e8f19e2404; bundle the upstream LICENSE rather than loading assets at runtime.",
+      "url": "https://github.com/lucide-icons/lucide/tree/55782beff3a0133df79c417eb68f96e8f19e2404/icons"
+    },
+    "iced_0_14_svg_icon": {
+      "summary": "Iced 0.14 SVG widget accepts in-memory Handle and sized vector content; svg::Style color filter recolors symbolic icons according to selected/idle palette. Enable iced svg feature.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/svg.rs"
+    },
+    "iced_0_14_tooltip": {
+      "summary": "Iced 0.14 Tooltip::new wraps a control with hover hint; Position::Right and gap keep icon-only rail labels available without squeezing text into 92px. Tooltip does not substitute for verified screen-reader semantics.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/tooltip.rs"
+    },
+    "fluent2_nav_labels": {
+      "summary": "Fluent 2 suggests predictable expand/collapse affordance, recognisable icons, brief labels and tooltip on the right of truncated nav. Its web Nav explicitly does not itself support icon-only; our purpose-built native Iced rail must retain tooltips and keyboard-focus testing rather than treating this as a direct component copy.",
+      "url": "https://fluent2.microsoft.design/components/web/react/core/nav/usage"
     }
   }
 }

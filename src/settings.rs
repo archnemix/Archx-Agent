@@ -63,10 +63,13 @@ impl SettingsState {
     }
 }
 
-fn tab(label: &'static str, section: Section, active: bool) -> Element<'static, Message> {
-    button(text(label).size(13).color(if active { style::WHITE } else { style::GREY }))
-        .padding([11, 18]).on_press(Message::SettingsSection(section))
-        .style(move |theme, state| style::nav(active, theme, state)).into()
+fn section_link(label: &'static str, subtitle: &'static str, section: Section, active: bool) -> Element<'static, Message> {
+    button(column![
+        text(label).size(13).font(style::LABEL).color(if active { style::WHITE } else { style::GREY }),
+        text(subtitle).size(10).color(style::DIM)
+    ].spacing(5))
+        .width(Fill).padding([13, 14]).on_press(Message::SettingsSection(section))
+        .style(move |theme, status| style::settings_nav(active, theme, status)).into()
 }
 
 fn surface(content: impl Into<Element<'static, Message>>) -> Element<'static, Message> {
@@ -74,27 +77,43 @@ fn surface(content: impl Into<Element<'static, Message>>) -> Element<'static, Me
 }
 
 pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {
-    let tabs = row![
-        tab("Connections", Section::Providers, state.section == Section::Providers),
-        tab("Models", Section::Models, state.section == Section::Models),
-        tab("Lab preview", Section::Lab, state.section == Section::Lab)
-    ].spacing(10);
-    let content = column![
-        text("LAB SETTINGS  /  SHARED ACROSS WORKSPACES").size(11).color(style::DIM),
-        space().height(14),
-        text("Settings").size(34).font(style::DISPLAY).color(style::WHITE),
-        space().height(8),
-        text("Connect a provider for plain Chat. No tools, database, or automatic network requests.").size(14).color(style::GREY),
-        space().height(24), tabs, space().height(22),
+    let section_nav = column![
+        text("SETTINGS").size(10).color(style::DIM),
+        space().height(19),
+        section_link("Connections", "Providers & keys", Section::Providers, state.section == Section::Providers),
+        space().height(7),
+        section_link("Models", "Choose & test", Section::Models, state.section == Section::Models),
+        space().height(22),
+        container(space().height(1)).width(Fill).style(style::rail_divider),
+        space().height(17),
+        section_link("Lab preview", "No effect yet", Section::Lab, state.section == Section::Lab),
+        space().height(Fill),
+        text("LOCAL SESSION").size(10).color(style::DIM)
+    ].width(Fill).height(Fill).padding([28, 14]);
+    let (heading, description) = match state.section {
+        Section::Providers => ("Connections", "Manage provider keys in your OS credential store. Nothing is sent until you explicitly test or send a chat."),
+        Section::Models => ("Models", "Choose exact provider model IDs for this session, then run a small opt-in generation test."),
+        Section::Lab => ("Lab preview", "A preview of future memory controls. These choices do not change device use."),
+    };
+    let body = column![
+        text("LAB  /  SETTINGS").size(11).color(style::DIM),
+        space().height(15),
+        text(heading).size(32).font(style::DISPLAY).color(style::WHITE),
+        space().height(9),
+        text(description).size(14).color(style::GREY),
+        space().height(27),
         match state.section {
             Section::Providers => providers(state),
             Section::Models => models(state),
             Section::Lab => lab(memory, keep_agent),
         },
-        space().height(15),
+        space().height(17),
         text(state.status.clone()).size(12).color(style::GREY)
-    ].width(Fill).padding(36);
-    scrollable(content).width(Fill).height(Fill).into()
+    ].width(Fill).padding(32);
+    row![
+        container(section_nav).width(190).height(Fill).style(style::settings_panel),
+        scrollable(body).width(Fill).height(Fill)
+    ].width(Fill).height(Fill).into()
 }
 
 fn provider_tabs(current: Provider, busy: bool) -> Element<'static, Message> {

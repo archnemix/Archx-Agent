@@ -559,3 +559,7 @@ Second CI `43476793962` compiled Linux and ran 20 tests: 19 passed, 1 failed (`p
 Final visual/security adjustment preflight: `git diff --check` and complete inventory scan before CI. New synthetic tests for duplicate key-write guard and failed-request draft restoration must run on all three OSes. Real keyring and provider behavior cannot be inferred from these tests.
 
 CI `43482937372` completed successfully. Fetched bot evidence commits through `2b16a11`: logs show 22/22 unit tests passed on each OS; release builds and native captures succeeded. Inspected final Windows Agent/Connections/Models/compact Home and macOS Connections. Windows artifact SHA-256 `f6960c00773172eb7931c94cdd5332d47acb8bb00cfd0d7caad59979a8718b08`, unsigned. Synthetic tests/visual captures do not establish live API or OS keychain behavior.
+
+## 2026-11-09: icon rail / Settings layout preflight (CI pending)
+
+Read `Docs/Rules.md` before implementation. Used only the user-attached rail JPG and HTML/CSS **as design references**; no attached JavaScript was executed or copied. Checked Iced 0.14 SVG/tooltip/button APIs and upstream Lucide SVG geometry/license at pinned commit `55782beff3a0133df79c417eb68f96e8f19e2404`, recorded in `Docs/Research.json`. `python -m json.tool` parsed inventory/research, inventory matched 127 files, and `git diff --check` exited 0. Native compilation, icon rendering/hover, layout fit and actual accessibility behavior are **pending** CI and manual review. No provider key or chat content was used.
