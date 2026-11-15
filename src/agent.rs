@@ -152,8 +152,8 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
                 .map(|_| Message::IgnoreMarkdownLink));
             log = log.push(row![avatar(true), body].spacing(16).width(Fill));
         }
-        scrollable(container(log).max_width(860).width(Fill).center_x(Fill).padding([24, 20]))
-            .width(Fill).height(Fill).into()
+        scrollable(container(container(log).max_width(860).width(Fill).padding([24, 20]))
+            .center_x(Fill)).width(Fill).height(Fill).into()
     } else {
         let lead = if active_mode == 0 { "A place for your next conversation." } else { "A workspace for what comes next." };
         container(column![
