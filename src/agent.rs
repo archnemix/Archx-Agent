@@ -1,6 +1,6 @@
 //! Purpose: Renders the native, reference-led Chat workspace and session-only mode previews.
 use iced::widget::{button, column, container, markdown, row, scrollable, space, stack, text, text_editor, text_input};
-use iced::{Center, Element, Fill, Length, keyboard};
+use iced::{Center, Element, Fill, keyboard};
 
 use crate::app::{ChatDraft, Message};
 use crate::style;
@@ -66,7 +66,7 @@ fn avatar(assistant: bool) -> Element<'static, Message> {
 }
 
 pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState,
-    model_menu_open: bool, mode_menu_open: bool, search: &str) -> Element<'a, Message> {
+    model_menu_open: bool, mode_menu_open: bool, search: &'a str) -> Element<'a, Message> {
     let current = drafts.iter().find(|draft| draft.id == selected);
     let active_mode = current.map_or(0, |draft| draft.mode);
     let draft_text = current.map_or("", |draft| draft.text.as_str());
