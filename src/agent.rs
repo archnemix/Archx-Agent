@@ -45,7 +45,7 @@ fn model_menu<'a>(settings: &SettingsState, search: &'a str) -> Element<'a, Mess
         button(text("Manage models ↗").size(11)).on_press(Message::OpenModelSettings)
             .style(style::chat_menu_choice_inactive)
     ].align_y(Center));
-    container(row![container(providers).width(155), container(scrollable(models).height(270)).width(Fill)]
+    container(row![container(providers).width(155), container(scrollable(models).height((count as f32 * 39.0 + 90.0).clamp(145.0, 290.0))).width(Fill)]
         .spacing(12).width(Fill))
         .width(540).padding(14).style(style::chat_panel).into()
 }
@@ -62,7 +62,7 @@ fn mode_menu() -> Element<'static, Message> {
 fn avatar(assistant: bool) -> Element<'static, Message> {
     container(text(if assistant { "A" } else { "Y" }).size(11)
         .color(if assistant { style::BLACK } else { style::GREY }))
-        .width(30).height(30).center_x(Fill).center_y(Fill)
+        .width(30).height(30).align_x(Center).align_y(Center)
         .style(move |t| style::chat_avatar(assistant, t)).into()
 }
 
@@ -122,7 +122,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
             ].spacing(7).width(Fill);
             if !assistant {
                 body = body.push(container(text(turn.content.clone()).size(15).color(style::WHITE))
-                    .padding([12, 16]).width(Fill).style(style::chat_user));
+                    .padding([12, 16]).style(style::chat_user));
             } else if let Some((_, content, reasoning, expanded)) = draft.formatted.iter().find(|(index, _, _, _)| *index == slot) {
                 if let Some(reasoning) = reasoning {
                     let mut thinking = column![button(text(if *expanded { "✧  Thinking  ▴" } else { "✧  Thinking  ▾" })
