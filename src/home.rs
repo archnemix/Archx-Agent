@@ -10,9 +10,9 @@ use crate::settings::{self, SettingsState};
 use crate::navigation;
 use crate::style;
 
-pub fn view<'a>(page: Page, sidebar_expanded: bool, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &'a [ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool, settings_state: &SettingsState) -> Element<'a, Message> {
+pub fn view<'a>(page: Page, sidebar_expanded: bool, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &'a [ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool, settings_state: &SettingsState, model_menu_open: bool, mode_menu_open: bool, chat_model_search: &'a str) -> Element<'a, Message> {
     container(
-        row![navigation::view(page, sidebar_expanded), main_content(page, hovered, phase, agent_phase, drafts, selected, memory, keep_agent, settings_state)]
+        row![navigation::view(page, sidebar_expanded), main_content(page, hovered, phase, agent_phase, drafts, selected, memory, keep_agent, settings_state, model_menu_open, mode_menu_open, chat_model_search)]
             .width(Fill)
             .height(Fill),
     )
@@ -22,9 +22,9 @@ pub fn view<'a>(page: Page, sidebar_expanded: bool, hovered: Option<Art>, phase:
     .into()
 }
 
-fn main_content<'a>(page: Page, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &'a [ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool, settings_state: &SettingsState) -> Element<'a, Message> {
+fn main_content<'a>(page: Page, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &'a [ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool, settings_state: &SettingsState, model_menu_open: bool, mode_menu_open: bool, chat_model_search: &'a str) -> Element<'a, Message> {
     match page {
-        Page::Agent => agent::view(drafts, selected, settings_state),
+        Page::Agent => agent::view(drafts, selected, settings_state, model_menu_open, mode_menu_open, chat_model_search),
         Page::Settings => settings::view(settings_state, memory, keep_agent),
         Page::Home | Page::About => scrollable(match page {
             Page::Home => home(hovered, phase, agent_phase),

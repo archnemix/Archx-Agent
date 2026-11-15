@@ -304,6 +304,18 @@
     "sipper_sender_01": {
       "summary": "sipper 0.1 Sender<T> is the progress sender used by Iced Task::sip. Its send(&mut self,T) is async and intentionally returns (), discarding channel-send errors; it does not implement futures Sink. Use it to pass bounded partial replies from provider adapter to native Iced task.",
       "url": "https://github.com/hecrj/sipper/blob/master/src/sender.rs"
+    },
+    "frontend_design_skill_2026": {
+      "summary": "Anthropic frontend-design skill, requested by user. Plan palette/type/layout first; avoid generic dashboard labels and repetitive cards; critique screenshots against brief. User-provided website layout takes precedence over generic recommendations. Archived with Apache 2.0 license in internels/skills.",
+      "url": "https://github.com/anthropics/skills/tree/main/skills/frontend-design"
+    },
+    "iced_stack_014": {
+      "summary": "Iced 0.14 stack widget layers elements, first child controls intrinsic size and subsequent layers draw on top; no popover widget exists at the checked path. A bounded menu overlay can be implemented with stack, keeping normal chat beneath.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/stack.rs"
+    },
+    "iced_text_input_014": {
+      "summary": "Iced 0.14 text_input supports placeholder, on_input and on_submit; use it only for local model-picker search, never for API key display or networking. Existing text_editor handles multiline Chat.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/text_input.rs"
     }
   }
 }

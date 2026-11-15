@@ -283,3 +283,45 @@ mod tests {
         }
     }
 }
+
+// Chat uses the restrained website reference's flat black, one modest user
+// bubble, and a single raised model menu/composer rather than card-per-turn UI.
+pub fn chat_panel(_: &Theme) -> container::Style {
+    container::Style::default().background(Color::from_rgb8(16, 16, 16))
+        .border(Border { color: Color::from_rgb8(64, 64, 64), width: 1.0, radius: 16.0.into() })
+}
+pub fn chat_user(_: &Theme) -> container::Style {
+    container::Style::default().background(Color::from_rgb8(22, 22, 22))
+        .border(Border { color: Color::from_rgb8(44, 44, 44), width: 1.0, radius: 12.0.into() })
+}
+pub fn chat_thinking(_: &Theme) -> container::Style {
+    container::Style::default().background(Color::from_rgb8(15, 15, 15))
+        .border(Border { color: Color::from_rgb8(55, 55, 55), width: 1.0, radius: 12.0.into() })
+}
+pub fn chat_avatar(assistant: bool, _: &Theme) -> container::Style {
+    container::Style::default().background(if assistant { WHITE } else { Color::from_rgb8(26, 26, 26) })
+        .border(Border { color: if assistant { WHITE } else { LINE }, width: 1.0, radius: 8.0.into() })
+}
+pub fn chat_button(_: &Theme, status: button::Status) -> button::Style {
+    button::Style {
+        background: Some(if matches!(status, button::Status::Hovered | button::Status::Pressed) {
+            Color::from_rgb8(32, 32, 32)
+        } else { Color::from_rgb8(16, 16, 16) }.into()),
+        text_color: WHITE,
+        border: Border { color: LINE, width: 1.0, radius: 12.0.into() },
+        ..button::Style::default()
+    }
+}
+pub fn chat_menu_choice(active: bool, _: &Theme, status: button::Status) -> button::Style {
+    button::Style {
+        background: Some(if active { Color::from_rgb8(38, 38, 38) }
+            else if matches!(status, button::Status::Hovered | button::Status::Pressed) { Color::from_rgb8(29, 29, 29) }
+            else { Color::from_rgb8(16, 16, 16) }.into()),
+        text_color: if active { WHITE } else { GREY },
+        border: Border { radius: 9.0.into(), ..Border::default() },
+        ..button::Style::default()
+    }
+}
+pub fn chat_menu_choice_inactive(theme: &Theme, status: button::Status) -> button::Style {
+    chat_menu_choice(false, theme, status)
+}

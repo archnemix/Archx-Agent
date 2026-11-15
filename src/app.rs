@@ -102,6 +102,9 @@ pub enum Message {
     ChatResult(u32, Result<SecretReply, String>),
     ToggleReasoning(u32, usize),
     ToggleStreaming,
+    ToggleModelMenu,
+    ToggleModeMenu,
+    SearchChatModels(String),
     ChatProgress(u32, SecretReply),
     IgnoreMarkdownLink,
     RunTest,
@@ -115,6 +118,9 @@ pub struct App {
     sidebar_expanded: bool,
     drafts: Vec<ChatDraft>,
     selected_draft: u32,
+    model_menu_open: bool,
+    mode_menu_open: bool,
+    chat_model_search: String,
     memory_preview: MemoryMode,
     settings: SettingsState,
     key_cursor: [usize; 3],
@@ -210,6 +216,10 @@ impl App {
                 && std::env::var("ARCHX_SNAPSHOT_SIDEBAR").as_deref() == Ok("collapsed")),
             drafts,
             selected_draft: 1,
+            model_menu_open: snapshot.is_some() && page == Page::Agent
+                && std::env::var("ARCHX_SNAPSHOT_CHAT").as_deref() == Ok("model-menu"),
+            mode_menu_open: false,
+            chat_model_search: String::new(),
             memory_preview: preview_memory,
             settings,
             key_cursor: [0; 3],
@@ -228,11 +238,15 @@ impl App {
             Message::Navigate(page) => {
                 if page != Page::Settings { self.settings.clear_secret(); }
                 self.page = page;
+                self.model_menu_open = false;
+                self.mode_menu_open = false;
                 self.hovered = None;
                 if page == Page::Settings { return self.update(Message::RefreshKeys); }
             }
             Message::OpenModelSettings => {
                 self.page = Page::Settings;
+                self.model_menu_open = false;
+                self.mode_menu_open = false;
                 self.settings.section = Section::Providers;
                 return self.update(Message::RefreshKeys);
             }
@@ -243,13 +257,18 @@ impl App {
                 let id = self.drafts.last().map_or(1, |draft| draft.id + 1);
                 self.drafts.push(ChatDraft { id, mode: 0, text: String::new(), editor: text_editor::Content::new(), formatted: Vec::new(), partial: None, turns: Vec::new(), busy: false, error: None });
                 self.selected_draft = id;
+                self.model_menu_open = false;
+                self.mode_menu_open = false;
             }
             Message::OpenChat(id) if self.page == Page::Agent && self.drafts.iter().any(|draft| draft.id == id) => {
                 self.selected_draft = id;
+                self.model_menu_open = false;
+                self.mode_menu_open = false;
             }
             Message::SelectMode(mode) if self.page == Page::Agent && mode < MODE_COUNT => {
                 if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == self.selected_draft) {
                     draft.mode = mode;
+                    self.mode_menu_open = false;
                 }
             }
             Message::EditEditor(id, EditorAction(action)) if self.page == Page::Agent && self.selected_draft == id => {
@@ -394,6 +413,7 @@ impl App {
             }
             Message::ChooseModel(slot) if matches!(self.page, Page::Settings | Page::Agent) && slot < self.settings.models[self.settings.index()].len() => {
                 let index = self.settings.index(); self.settings.chosen[index] = Some(slot);
+                if self.page == Page::Agent { self.model_menu_open = false; }
             }
             Message::RemoveModel(slot) if self.page == Page::Settings && slot < self.settings.models[self.settings.index()].len() => {
                 let index = self.settings.index();
@@ -447,6 +467,17 @@ impl App {
             Message::SendChat if self.page == Page::Agent => return self.send_chat(false),
             Message::RunTest if self.page == Page::Settings && !self.settings.test_busy => return self.send_chat(true),
             Message::IgnoreMarkdownLink => {}
+            Message::ToggleModelMenu if self.page == Page::Agent => {
+                self.model_menu_open = !self.model_menu_open;
+                self.mode_menu_open = false;
+            }
+            Message::ToggleModeMenu if self.page == Page::Agent => {
+                self.mode_menu_open = !self.mode_menu_open;
+                self.model_menu_open = false;
+            }
+            Message::SearchChatModels(value) if self.page == Page::Agent => {
+                if value.chars().count() <= 100 { self.chat_model_search = value; }
+            }
             Message::ToggleStreaming if self.page == Page::Agent => {
                 self.settings.stream_chat = !self.settings.stream_chat;
             }
@@ -565,7 +596,7 @@ impl App {
     }
 
     pub fn view(&self) -> Element<'_, Message> {
-        home::view(self.page, self.sidebar_expanded, self.hovered, self.phase, self.agent_phase, &self.drafts, self.selected_draft, self.memory_preview, self.keep_agent_preview, &self.settings)
+        home::view(self.page, self.sidebar_expanded, self.hovered, self.phase, self.agent_phase, &self.drafts, self.selected_draft, self.memory_preview, self.keep_agent_preview, &self.settings, self.model_menu_open, self.mode_menu_open, &self.chat_model_search)
     }
 
     pub fn subscription(&self) -> Subscription<Message> {

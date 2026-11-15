@@ -149,7 +149,7 @@
       "handles": "Secret-name documentation"
     },
     "Docs/Research.json": {
-      "purpose": "Index official provider catalog, stream, Markdown and widget API research.",
+      "purpose": "Index official provider, Iced widgets and user-requested skill research.",
       "inputs": [
         "Verified online sources"
       ],
@@ -250,7 +250,7 @@
       "handles": "Rust build configuration"
     },
     "Docs/design.md": {
-      "purpose": "Define current visual tokens, typographic hierarchy, distinct icon-rail layout and cross-OS review criteria.",
+      "purpose": "Define current native visual tokens, launcher artwork and binding reference-first Chat redesign criteria.",
       "inputs": [
         "User visual direction"
       ],
@@ -1546,6 +1546,39 @@
         "Native GUI visual evidence"
       ],
       "handles": "Static visual review, not live provider evidence"
+    },
+    "internels/skills/README.md": {
+      "purpose": "Archive and index user-requested Apache-2.0 frontend design guidance, license and provenance.",
+      "inputs": [
+        "Anthropic public skill",
+        "User-selected reference"
+      ],
+      "outputs": [
+        "Design guidance, not runtime assets"
+      ],
+      "handles": "Internal planning/reference"
+    },
+    "internels/skills/frontend-design.md": {
+      "purpose": "Archive and index user-requested Apache-2.0 frontend design guidance, license and provenance.",
+      "inputs": [
+        "Anthropic public skill",
+        "User-selected reference"
+      ],
+      "outputs": [
+        "Design guidance, not runtime assets"
+      ],
+      "handles": "Internal planning/reference"
+    },
+    "internels/skills/LICENSE-frontend-design.txt": {
+      "purpose": "Archive and index user-requested Apache-2.0 frontend design guidance, license and provenance.",
+      "inputs": [
+        "Anthropic public skill",
+        "User-selected reference"
+      ],
+      "outputs": [
+        "Design guidance, not runtime assets"
+      ],
+      "handles": "Internal planning/reference"
     }
   }
 }
