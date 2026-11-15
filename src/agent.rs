@@ -4,7 +4,7 @@ use iced::{Center, Element, Fill, keyboard};
 
 use crate::app::{ChatDraft, Message};
 use crate::style;
-use crate::settings::{SecretText, SettingsState};
+use crate::settings::SettingsState;
 use crate::credentials::Provider;
 
 pub const MODES: [&str; 6] = ["Chat", "Tasks", "Research", "Coding", "Learning", "Play"];
@@ -29,7 +29,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
             .on_press(Message::SelectProvider(provider))
             .padding([9, 13]).style(move |t, st| style::nav(active, t, st)));
     }
-    let mut model_row = row![].spacing(8);
+    let mut model_row: iced::widget::Row<'_, Message> = row![].spacing(8);
     for (slot, model) in settings.models[settings.index()].iter().enumerate() {
         let active = settings.chosen[settings.index()] == Some(slot);
         model_row = model_row.push(button(text(model.clone()).size(12))

@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use iced::time;
-use iced::task::{self, sipper};
+use iced::task::sipper;
 use iced::window;
 use iced::{Element, Subscription, Task};
 use iced::widget::text_editor;
@@ -199,8 +199,9 @@ impl App {
                 Turn { role: "user", content: "Show a short example".into() },
                 Turn { role: "assistant", content: "## Example\n\nA **bold** answer with `code`.\n\n- First item\n- Second item".into() },
             ];
+            let demo_answer = drafts[0].turns[1].content.clone();
             drafts[0].formatted.push((1,
-                markdown::Content::parse(&drafts[0].turns[1].content),
+                markdown::Content::parse(&demo_answer),
                 Some(markdown::Content::parse("The provider returned a synthetic explanation.")), false));
         }
         Self {
