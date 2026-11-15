@@ -198,9 +198,10 @@ impl App {
             editor: text_editor::Content::with_text(&preview_text), text: preview_text,
             formatted: Vec::new(), partial: None, turns: Vec::new(), busy: false, error: None }];
         // Only scripted CI screenshots use synthetic messages; normal launches start empty.
-        if snapshot.is_some() && page == Page::Agent && std::env::var("ARCHX_SNAPSHOT_CHAT").as_deref() == Ok("reasoning") {
+        if snapshot.is_some() && page == Page::Agent && matches!(std::env::var("ARCHX_SNAPSHOT_CHAT").as_deref(), Ok("reasoning" | "model-menu")) {
             settings.models[0] = vec!["demo/model:free".into(), "demo/another".into()];
             settings.chosen[0] = Some(0);
+            if std::env::var("ARCHX_SNAPSHOT_CHAT").as_deref() == Ok("reasoning") {
             drafts[0].turns = vec![
                 Turn { role: "user", content: "Show a short example".into() },
                 Turn { role: "assistant", content: "## Example\n\nA **bold** answer with `code`.\n\n- First item\n- Second item".into() },
@@ -209,6 +210,7 @@ impl App {
             drafts[0].formatted.push((1,
                 markdown::Content::parse(&demo_answer),
                 Some(markdown::Content::parse("The provider returned a synthetic explanation.")), false));
+            }
         }
         Self {
             page,
@@ -691,6 +693,25 @@ mod tests {
         assert!(app.settings.stream_chat);
         let _ = app.update(Message::ToggleStreaming);
         assert!(!app.settings.stream_chat);
+    }
+
+    #[test]
+    fn chat_picker_stays_collapsed_until_opened_and_closes_after_choice() {
+        let mut app = App::new();
+        let _ = app.update(Message::Navigate(Page::Agent));
+        assert!(!app.model_menu_open);
+        let _ = app.update(Message::ToggleModelMenu);
+        assert!(app.model_menu_open);
+        let _ = app.update(Message::SearchChatModels("demo".into()));
+        assert_eq!(app.chat_model_search, "demo");
+        app.settings.models[0].push("demo/model".into());
+        let _ = app.update(Message::ChooseModel(0));
+        assert_eq!(app.settings.selected_model(), Some("demo/model"));
+        assert!(!app.model_menu_open);
+        let _ = app.update(Message::ToggleModeMenu);
+        assert!(app.mode_menu_open);
+        let _ = app.update(Message::SelectMode(2));
+        assert!(!app.mode_menu_open);
     }
 
     #[test]

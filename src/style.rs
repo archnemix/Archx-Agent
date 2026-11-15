@@ -1,5 +1,5 @@
 //! Purpose: Provides the black-and-silver palette and restrained launcher widget styles.
-use iced::widget::{button, container, text_input};
+use iced::widget::{button, container, text_editor, text_input};
 use iced::{font, gradient, Background, Border, Color, Font, Radians, Shadow, Theme, Vector};
 
 pub const BLACK: Color = Color::from_rgb8(8, 8, 8);
@@ -324,4 +324,16 @@ pub fn chat_menu_choice(active: bool, _: &Theme, status: button::Status) -> butt
 }
 pub fn chat_menu_choice_inactive(theme: &Theme, status: button::Status) -> button::Style {
     chat_menu_choice(false, theme, status)
+}
+
+// Iced's default TextEditor paints a solid gray rectangle; the reference
+// composer is a single #101010 surface with an unboxed typing region.
+pub fn chat_editor(_: &Theme, _: text_editor::Status) -> text_editor::Style {
+    text_editor::Style {
+        background: Background::Color(Color::from_rgb8(16, 16, 16)),
+        border: Border::default(),
+        placeholder: GREY,
+        value: WHITE,
+        selection: LINE,
+    }
 }

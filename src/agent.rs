@@ -23,7 +23,8 @@ fn model_menu<'a>(settings: &SettingsState, search: &'a str) -> Element<'a, Mess
             .style(move |t, s| style::chat_menu_choice(active, t, s)));
     }
     let mut models = column![text_input("Filter models…", search)
-        .on_input(Message::SearchChatModels).padding([10, 12]).size(13)]
+        .on_input(Message::SearchChatModels).padding([10, 12]).size(13)
+        .style(style::composer_input)]
         .spacing(7).width(Fill);
     let mut count = 0;
     for (slot, model) in settings.models[settings.index()].iter().enumerate() {
@@ -175,6 +176,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
             .placeholder(if active_mode == 0 { "Send a message…  (Enter to send, Shift+Enter for a new line)" }
                 else { "Draft only · this mode cannot send" })
             .height(58).max_height(126).padding([8, 10]).size(15)
+            .style(style::chat_editor)
             .on_action(move |action| Message::EditEditor(selected, crate::app::EditorAction(action)))
             .key_binding(move |event| {
                 if can_send && event.key == keyboard::Key::Named(keyboard::key::Named::Enter)
@@ -194,8 +196,13 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
                 .style(style::chat_button)
         ].align_y(Center)
     ].spacing(4)).max_width(860).width(Fill).padding(12).style(style::chat_panel);
+    let error_notice: Element<'_, Message> = match current.and_then(|draft| draft.error.as_deref()) {
+        Some(error) => text(error.to_owned()).size(12).color(style::GREY).into(),
+        None => space().height(0).into(),
+    };
     let footer = column![
         container(composer).center_x(Fill),
+        error_notice,
         space().height(7),
         text("Enter sends · Shift+Enter for a new line · Up to 12 recent turns sent to your provider · Session only")
             .size(11).color(style::DIM),
@@ -208,7 +215,9 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
     ].width(Fill).height(Fill);
     let main: Element<'a, Message> = if model_menu_open || mode_menu_open {
         let menu: Element<'a, Message> = if model_menu_open { model_menu(settings, search) } else { mode_menu() };
-        stack![main, container(menu).width(Fill).height(Fill).padding([57, 12]).align_x(iced::alignment::Horizontal::Left)
+        stack![main, container(menu).width(Fill).height(Fill).padding([57, 12])
+            .align_x(if model_menu_open { iced::alignment::Horizontal::Left }
+                else { iced::alignment::Horizontal::Right })
             .align_y(iced::alignment::Vertical::Top)].width(Fill).height(Fill).into()
     } else { main.into() };
     row![rail, main].width(Fill).height(Fill).into()

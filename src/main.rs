@@ -27,7 +27,10 @@ fn main() -> iced::Result {
     let application = iced::application(app::App::new, app::App::update, app::App::view)
         .title("Archx AI Lab")
         .window(window::Settings {
-            size: (1280.0, 800.0).into(),
+            size: if std::env::var_os("ARCHX_SNAPSHOT").is_some()
+                && std::env::var("ARCHX_SNAPSHOT_SIZE").as_deref() == Ok("wide") {
+                (1568.0, 856.0).into()
+            } else { (1280.0, 800.0).into() },
             icon: Some(brand_icon()),
             ..window::Settings::default()
         })

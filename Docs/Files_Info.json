@@ -230,7 +230,7 @@
       "handles": "CI organization"
     },
     ".github/workflows/gui.yml": {
-      "purpose": "Run native Linux, Windows, macOS builds/tests and scripted Home/Settings/Chat Markdown screenshots, publish evidence and Windows GUI executable.",
+      "purpose": "Run three-OS native builds/tests, standard captures and 1568x856 Chat and model-menu visual captures; publish unsigned Windows GUI executable.",
       "inputs": [
         "Source changes and intentional trigger"
       ],
@@ -310,7 +310,7 @@
       "handles": "Rust source organization"
     },
     "src/main.rs": {
-      "purpose": "Start the native GUI and register app modules including model catalog.",
+      "purpose": "Start native GUI and register bundled fonts; allow 1568x856 only for scripted screenshot review.",
       "inputs": [
         "Application UI and brand PNG"
       ],
@@ -842,7 +842,7 @@
       "handles": "macos tuning motion state"
     },
     "src/agent.rs": {
-      "purpose": "Render session Chat, in-Chat provider/model selection, editor and inert Markdown/reasoning.",
+      "purpose": "Render reference-led Chat topbar picker, message rows, returned reasoning, composer and session-only mode previews.",
       "inputs": [
         "Transient App UI state"
       ],
@@ -1579,6 +1579,66 @@
         "Design guidance, not runtime assets"
       ],
       "handles": "Internal planning/reference"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux-chat-wide.png": {
+      "purpose": "Reference-led message flow at 1568x856, synthetic Markdown and collapsed thinking on linux.",
+      "inputs": [
+        "Synthetic screenshot state, no network call"
+      ],
+      "outputs": [
+        "Native GUI visual evidence"
+      ],
+      "handles": "Static layout only, not verified clicks or provider output"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux-model-menu.png": {
+      "purpose": "Compact header model-picker open at 1568x856, synthetic model list on linux.",
+      "inputs": [
+        "Synthetic screenshot state, no network call"
+      ],
+      "outputs": [
+        "Native GUI visual evidence"
+      ],
+      "handles": "Static layout only, not verified clicks or provider output"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows-chat-wide.png": {
+      "purpose": "Reference-led message flow at 1568x856, synthetic Markdown and collapsed thinking on windows.",
+      "inputs": [
+        "Synthetic screenshot state, no network call"
+      ],
+      "outputs": [
+        "Native GUI visual evidence"
+      ],
+      "handles": "Static layout only, not verified clicks or provider output"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows-model-menu.png": {
+      "purpose": "Compact header model-picker open at 1568x856, synthetic model list on windows.",
+      "inputs": [
+        "Synthetic screenshot state, no network call"
+      ],
+      "outputs": [
+        "Native GUI visual evidence"
+      ],
+      "handles": "Static layout only, not verified clicks or provider output"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos-chat-wide.png": {
+      "purpose": "Reference-led message flow at 1568x856, synthetic Markdown and collapsed thinking on macos.",
+      "inputs": [
+        "Synthetic screenshot state, no network call"
+      ],
+      "outputs": [
+        "Native GUI visual evidence"
+      ],
+      "handles": "Static layout only, not verified clicks or provider output"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos-model-menu.png": {
+      "purpose": "Compact header model-picker open at 1568x856, synthetic model list on macos.",
+      "inputs": [
+        "Synthetic screenshot state, no network call"
+      ],
+      "outputs": [
+        "Native GUI visual evidence"
+      ],
+      "handles": "Static layout only, not verified clicks or provider output"
     }
   }
 }
