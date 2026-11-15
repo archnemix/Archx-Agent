@@ -151,15 +151,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
         None => space().height(0).into(),
     };
     let can_enter_send = active_mode == 0 && connected && !draft_text.trim().is_empty() && current.is_some_and(|draft| !draft.busy);
-    let composer = container(
-        column![
-            row![
-                text("UNSENT DRAFT").size(10).color(style::DIM).width(Fill),
-                text(format!("{} CHARACTERS  /  THIS SESSION ONLY", draft_text.chars().count()))
-                    .size(10).color(style::DIM)
-            ],
-            space().height(10),
-            if let Some(draft) = current {
+    let editor_input: Element<'_, Message> = if let Some(draft) = current {
                 text_editor::<Message, iced::Theme, iced::Renderer>(&draft.editor)
                     .placeholder(if active_mode == 0 { "Write a message · Enter to send · Shift+Enter for newline" } else { "Draft only · this mode cannot send" })
                     .height(80).max_height(140).padding(14).size(14)
@@ -171,7 +163,16 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
                             Some(text_editor::Binding::Custom(Message::SendChat))
                         } else { text_editor::Binding::from_key_press(event) }
                     }).into()
-            } else { space().height(80).into() },
+            } else { space().height(80).into() };
+    let composer = container(
+        column![
+            row![
+                text("UNSENT DRAFT").size(10).color(style::DIM).width(Fill),
+                text(format!("{} CHARACTERS  /  THIS SESSION ONLY", draft_text.chars().count()))
+                    .size(10).color(style::DIM)
+            ],
+            space().height(10),
+            editor_input,
             space().height(10),
             row![
                 button(text("Clear draft").size(11).color(style::GREY))
