@@ -2,7 +2,7 @@
 use std::time::Duration;
 
 use reqwest::{redirect, Client};
-use iced::task::Sender;
+use sipper::Sender;
 use serde_json::{json, Value};
 use zeroize::Zeroizing;
 

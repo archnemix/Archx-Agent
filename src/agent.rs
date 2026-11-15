@@ -160,7 +160,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
             ],
             space().height(10),
             if let Some(draft) = current {
-                text_editor(&draft.editor)
+                text_editor::<Message, iced::Theme, iced::Renderer>(&draft.editor)
                     .placeholder(if active_mode == 0 { "Write a message · Enter to send · Shift+Enter for newline" } else { "Draft only · this mode cannot send" })
                     .height(80).max_height(140).padding(14).size(14)
                     .on_action(move |action| Message::EditEditor(selected, crate::app::EditorAction(action)))

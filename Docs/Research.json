@@ -300,6 +300,10 @@
     "xai_chat_reference": {
       "summary": "xAI docs recommend Responses API but it may store responses server-side by default. Existing stateless Chat Completions endpoint retained in this slice; do not change to stateful Responses API without explicit privacy review.",
       "url": "https://docs.x.ai/developers/model-capabilities/text/generate-text"
+    },
+    "sipper_sender_01": {
+      "summary": "sipper 0.1 Sender<T> is the progress sender used by Iced Task::sip. Its send(&mut self,T) is async and intentionally returns (), discarding channel-send errors; it does not implement futures Sink. Use it to pass bounded partial replies from provider adapter to native Iced task.",
+      "url": "https://github.com/hecrj/sipper/blob/master/src/sender.rs"
     }
   }
 }
