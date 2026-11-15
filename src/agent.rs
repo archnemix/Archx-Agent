@@ -98,7 +98,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
         )
     });
     let lead = if active_mode == 0 { "A place for your next conversation." } else { "A workspace for what comes next." };
-    let center: Element<'static, Message> = if active_mode == 0 && current.is_some_and(|draft| !draft.turns.is_empty()) {
+    let center: Element<'a, Message> = if active_mode == 0 && current.is_some_and(|draft| !draft.turns.is_empty()) {
         let draft = current.expect("checked above");
         let mut log = column![text("SESSION CHAT  /  NO DISK HISTORY").size(11).color(style::DIM)].spacing(16);
         for (slot, turn) in draft.turns.iter().enumerate() {
