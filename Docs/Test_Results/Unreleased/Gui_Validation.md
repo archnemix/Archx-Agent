@@ -1,5 +1,15 @@
 <!-- Purpose: Records current three-OS GUI test commands, outputs, screenshots, visual review, and Windows delivery. -->
-# AI Lab launcher validation — provider catalog slice
+# AI Lab launcher validation — native chat and unified Settings
+
+## Current user-review correction (2026-11-09)
+
+Source `702a563`, [CI `43742373398`](https://github.com/archnemix/Archx-Agent/actions/runs/43742373398): Linux, Windows and macOS jobs all passed `cargo test --locked` (**30 passed, 0 failed per OS**), `cargo build --release --locked`, and scripted native Home, Settings, Agent and synthetic Markdown/reasoning snapshots. Exact commands, inputs and outputs are in `non_visual/{linux,windows,macos}.log` and `.github/workflows/gui.yml`; screenshots are in `visual/`. Windows log confirms GUI subsystem 2 (no console) and product metadata, **not** a digital signature. Latest [Windows GUI executable](../../../deliverables/Unreleased/windows/archx-ai-lab.exe), SHA-256 `a534e38fb61a5a182dcb2b55b98d76a36b9b4da21fc848641686ba84ff385c4e`, **unsigned**.
+
+Inspected `visual/windows-settings.png`, `windows-agent.png`, `windows-agent-markdown.png` and `macos-agent-markdown.png`. The combined provider/model Settings removes the cramped middle rail; Chat shows provider/model selection, setup navigation, streaming choice, multiline composer, and an inert Markdown reply with a collapsed reasoning control. Bottom-lit selected navigation no longer has an all-around outline. The synthetic Markdown capture uses `ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_CHAT=reasoning` plus `ARCHX_SNAPSHOT=<path>` and no credentials; it does not exercise network responses. On macOS's shorter captured viewport, the composer leaves the assistant reply below the visible fold, available by scrolling; this needs hands-on review for comfort.
+
+Unit tests exercise explicit model add and provider switching, structured reasoning extraction, and delta accumulation. Static screenshots and synthetic tests do **not** establish actual clicks, physical Enter/Shift+Enter behavior, stream framing over a live connection, provider retention policies, credential-vault usability, or successful hosted inference. A user-local trial with locally entered keys and selected model is still required. Previous CI runs `43741145550`, `43741391156`, `43741692765`, `43741927023`, and `43742128265` failed Linux compilation during iterative Iced type/API integration and are superseded by this successful run; they are not counted as three-OS evidence.
+
+## Earlier catalog revision (historical; old hashes below refer to earlier builds)
 
 ## Current catalog build (2026-11-09)
 

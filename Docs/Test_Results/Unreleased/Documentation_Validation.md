@@ -567,3 +567,25 @@ Read `Docs/Rules.md` before implementation. Used only the user-attached rail JPG
 First icon-rail CI `43569676394` failed during Linux compilation (`src/navigation.rs:28–29` passed `u16` to SVG width/height, which require `Length` convertible from `u32`/`f32`). Fixed glyph size to `u32`; Windows/macOS skipped and no new screenshots were captured. Revalidation pending.
 
 Final icon-rail CI `43570039149` passed all three OS jobs. `git fetch` + `git merge --ff-only origin/arena/d45bc2a4-archx-agent` retrieved tracked logs/captures through `178a70c`. Each nonvisual log reports 24 passing unit tests and a release build. Inspected Windows compact/expanded Home+Settings and macOS compact Settings; no embedded credentials. Windows executable SHA-256 `3059491e81c27781b075658a550ba64c1a41591cb17170f378d52c2c96a1b9cc`, unsigned. Revalidated JSON inventory (127 actual files), JSON research and `git diff --check` during docs closeout. Static images cannot prove tooltip-on-hover or keyboard focus.
+
+## 2026-11-09: unified Chat/Settings and reference inventory
+
+Input: all tracked repository files including new synthetic Markdown captures, attached UI reference files and `Docs/Research.json`. Source files under `internels/reference/ui/` are preserved user-supplied examples, not executable project source and are deliberately not rewritten to add purpose comments.
+
+Commands from the repository root:
+
+```sh
+python - <<'PY'
+import json, subprocess
+files = set(subprocess.check_output(['git', 'ls-files'], text=True).splitlines())
+inventory = json.load(open('Docs/Files_Info.json'))
+research = json.load(open('Docs/Research.json'))
+assert list(inventory)[0] == list(research)[0] == '_description'
+assert set(inventory['files']) == files
+assert all(open(path).read().startswith('<!-- Purpose:') for path in files if path.endswith('.md'))
+print(f'PASS: {len(files)} inventoried files, Markdown purpose comments, JSON headers')
+PY
+git diff --check
+```
+
+Observed output: `PASS: 153 inventoried files, Markdown purpose comments, JSON headers`; `git diff --check` exited 0 without output. These documentation checks do not establish live provider behavior or physical keyboard/hover actions.

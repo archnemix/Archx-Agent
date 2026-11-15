@@ -2,7 +2,7 @@
   "_description": "File inventory with responsibilities, inputs, and outputs; update when files change.",
   "files": {
     "README.md": {
-      "purpose": "Introduce the repository and link its documentation.",
+      "purpose": "Introduce native launcher, current Chat capabilities, unsigned Windows download and validation limits.",
       "inputs": [
         "Project status",
         "Documentation links"
@@ -179,7 +179,7 @@
       "handles": "Pre-release test organization"
     },
     "Docs/Test_Results/Unreleased/Documentation_Validation.md": {
-      "purpose": "Record file inventory, workflow and final cross-OS GUI evidence validation.",
+      "purpose": "Record inventory, Markdown-purpose and research JSON validation for current docs and historical versions.",
       "inputs": [
         "Documentation files",
         "Validation command"
@@ -410,7 +410,7 @@
       "handles": "Build reproducibility"
     },
     "Docs/Test_Results/Unreleased/Gui_Validation.md": {
-      "purpose": "Summarize native three-OS GUI CI evidence for purposeful icon rail, Settings and provider prototype limits.",
+      "purpose": "Record current three-OS tests, native visual review, limits and unsigned Windows hash.",
       "inputs": [
         "CI runner results"
       ],
@@ -1308,7 +1308,7 @@
       "handles": "Internal reference, publicly visible when committed"
     },
     "internels/reference/ui/README.md": {
-      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "purpose": "Explain committed user UI and screenshot references; not runtime assets.",
       "inputs": [
         "User-supplied web UI example"
       ],
@@ -1486,6 +1486,66 @@
         "Visual and interaction reference for native Rust implementation"
       ],
       "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/image-10.png": {
+      "purpose": "Archive attached UI review screenshot for later native design comparison.",
+      "inputs": [
+        "User-supplied screenshot"
+      ],
+      "outputs": [
+        "Inert design reference"
+      ],
+      "handles": "Internal note, publicly visible when committed"
+    },
+    "internels/reference/ui/image-8.png": {
+      "purpose": "Archive attached UI review screenshot for later native design comparison.",
+      "inputs": [
+        "User-supplied screenshot"
+      ],
+      "outputs": [
+        "Inert design reference"
+      ],
+      "handles": "Internal note, publicly visible when committed"
+    },
+    "internels/reference/ui/image-9.png": {
+      "purpose": "Archive attached UI review screenshot for later native design comparison.",
+      "inputs": [
+        "User-supplied screenshot"
+      ],
+      "outputs": [
+        "Inert design reference"
+      ],
+      "handles": "Internal note, publicly visible when committed"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux-agent-markdown.png": {
+      "purpose": "Capture synthetic native Markdown and returned-reasoning chat view on linux.",
+      "inputs": [
+        "ARCHX_SNAPSHOT_CHAT=reasoning synthetic fixture"
+      ],
+      "outputs": [
+        "Native GUI visual evidence"
+      ],
+      "handles": "Static visual review, not live provider evidence"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows-agent-markdown.png": {
+      "purpose": "Capture synthetic native Markdown and returned-reasoning chat view on windows.",
+      "inputs": [
+        "ARCHX_SNAPSHOT_CHAT=reasoning synthetic fixture"
+      ],
+      "outputs": [
+        "Native GUI visual evidence"
+      ],
+      "handles": "Static visual review, not live provider evidence"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos-agent-markdown.png": {
+      "purpose": "Capture synthetic native Markdown and returned-reasoning chat view on macos.",
+      "inputs": [
+        "ARCHX_SNAPSHOT_CHAT=reasoning synthetic fixture"
+      ],
+      "outputs": [
+        "Native GUI visual evidence"
+      ],
+      "handles": "Static visual review, not live provider evidence"
     }
   }
 }
