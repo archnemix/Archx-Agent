@@ -10,7 +10,7 @@ use crate::settings::{self, SettingsState};
 use crate::navigation;
 use crate::style;
 
-pub fn view(page: Page, sidebar_expanded: bool, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &[ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool, settings_state: &SettingsState) -> Element<'static, Message> {
+pub fn view<'a>(page: Page, sidebar_expanded: bool, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &'a [ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool, settings_state: &SettingsState) -> Element<'a, Message> {
     container(
         row![navigation::view(page, sidebar_expanded), main_content(page, hovered, phase, agent_phase, drafts, selected, memory, keep_agent, settings_state)]
             .width(Fill)
@@ -22,7 +22,7 @@ pub fn view(page: Page, sidebar_expanded: bool, hovered: Option<Art>, phase: u8,
     .into()
 }
 
-fn main_content(page: Page, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &[ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool, settings_state: &SettingsState) -> Element<'static, Message> {
+fn main_content<'a>(page: Page, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &'a [ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool, settings_state: &SettingsState) -> Element<'a, Message> {
     match page {
         Page::Agent => agent::view(drafts, selected, settings_state),
         Page::Settings => settings::view(settings_state, memory, keep_agent),

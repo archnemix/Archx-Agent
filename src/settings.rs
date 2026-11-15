@@ -46,6 +46,7 @@ pub struct SettingsState {
     pub chosen: [Option<usize>; 3],
     pub status: String,
     pub test_busy: bool,
+    pub stream_chat: bool,
     pub key_busy: bool,
 }
 impl Default for SettingsState {
@@ -54,7 +55,7 @@ impl Default for SettingsState {
             key_entry: SecretText::default(), key_ids: Vec::new(), reveal: None,
             reveal_nonce: 0, model_entry: String::new(), catalog: std::array::from_fn(|_| Vec::new()),
             search: String::new(), catalog_busy: false, catalog_nonce: 0, models: std::array::from_fn(|_| Vec::new()),
-            chosen: [None; 3], status: String::new(), test_busy: false, key_busy: false }
+            chosen: [None; 3], status: String::new(), test_busy: false, stream_chat: true, key_busy: false }
     }
 }
 impl SettingsState {
@@ -69,57 +70,35 @@ impl SettingsState {
     }
 }
 
-fn section_link(label: &'static str, subtitle: &'static str, section: Section, active: bool) -> Element<'static, Message> {
-    button(column![
-        text(label).size(13).font(style::LABEL).color(if active { style::WHITE } else { style::GREY }),
-        text(subtitle).size(10).color(style::DIM)
-    ].spacing(5))
-        .width(Fill).padding([13, 14]).on_press(Message::SettingsSection(section))
-        .style(move |theme, status| style::settings_nav(active, theme, status)).into()
-}
-
 fn surface(content: impl Into<Element<'static, Message>>) -> Element<'static, Message> {
     container(content).width(Fill).padding(25).style(style::surface).into()
 }
 
 pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {
-    let section_nav = column![
-        text("SETTINGS").size(10).color(style::DIM),
-        space().height(19),
-        section_link("Connections", "Providers & keys", Section::Providers, state.section == Section::Providers),
-        space().height(7),
-        section_link("Models", "Choose & test", Section::Models, state.section == Section::Models),
-        space().height(22),
-        container(space().height(1)).width(Fill).style(style::rail_divider),
-        space().height(17),
-        section_link("Lab preview", "No effect yet", Section::Lab, state.section == Section::Lab),
-        space().height(Fill),
-        text("LOCAL SESSION").size(10).color(style::DIM)
-    ].width(Fill).height(Fill).padding([28, 14]);
     let (heading, description) = match state.section {
-        Section::Providers => ("Connections", "Manage provider keys in your OS credential store. Nothing is sent until you explicitly test or send a chat."),
-        Section::Models => ("Models", "Choose exact provider model IDs for this session, then run a small opt-in generation test."),
-        Section::Lab => ("Lab preview", "A preview of future memory controls. These choices do not change device use."),
+        Section::Lab => ("Lab preview", "These options do not yet affect device memory."),
+        _ => ("Connections & models", "Keep provider keys and session models together. Choose your active model directly from Chat."),
     };
     let body = column![
-        text("LAB  /  SETTINGS").size(11).color(style::DIM),
+        row![text("LAB  /  SETTINGS").size(11).color(style::DIM), space().width(Fill),
+            button(text(if state.section == Section::Lab { "Connections & models" } else { "Lab preview" }).size(12))
+                .on_press(Message::SettingsSection(if state.section == Section::Lab { Section::Providers } else { Section::Lab }))
+                .style(style::quiet_button)],
         space().height(15),
         text(heading).size(32).font(style::DISPLAY).color(style::WHITE),
         space().height(9),
         text(description).size(14).color(style::GREY),
         space().height(27),
         match state.section {
-            Section::Providers => providers(state),
-            Section::Models => models(state),
+            Section::Providers | Section::Models => column![
+                providers(state), space().height(22), models(state)
+            ].width(Fill).into(),
             Section::Lab => lab(memory, keep_agent),
         },
         space().height(17),
         text(state.status.clone()).size(12).color(style::GREY)
     ].width(Fill).padding(32);
-    row![
-        container(section_nav).width(190).height(Fill).style(style::settings_panel),
-        scrollable(body).width(Fill).height(Fill)
-    ].width(Fill).height(Fill).into()
+    scrollable(container(body).max_width(1080).center_x(Fill)).width(Fill).height(Fill).into()
 }
 
 fn provider_tabs(current: Provider, busy: bool) -> Element<'static, Message> {
@@ -150,7 +129,7 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
         ].spacing(10));
     }
     surface(column![
-        text("PROVIDERS  /  OS VAULT").size(11).color(style::DIM),
+        text("01  /  PROVIDER & OS VAULT").size(11).color(style::DIM),
         space().height(12), provider_tabs(state.provider, state.key_busy),
         space().height(17),
         text("Keys are held in your OS credential store. The Lab never saves a plaintext key file.")
@@ -171,7 +150,7 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
 
 fn models(state: &SettingsState) -> Element<'static, Message> {
     let index = state.index();
-    let mut list = column![text("ADDED MODELS  /  THIS SESSION").size(11).color(style::DIM)].spacing(10);
+    let mut list = column![text("ADDED MODELS  /  THIS SESSION · ACTIVE MODEL CAN ALSO BE CHANGED IN CHAT").size(11).color(style::DIM)].spacing(10);
     for (slot, name) in state.models[index].iter().enumerate() {
         let active = state.chosen[index] == Some(slot);
         list = list.push(row![
@@ -182,9 +161,8 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
         ].spacing(10));
     }
     surface(column![
-        text("MODELS  /  MANUAL IDENTIFIERS").size(11).color(style::DIM),
-        space().height(12), provider_tabs(state.provider, state.key_busy),
-        space().height(18),
+        text("02  /  MODELS  /  ADD, REMOVE & DISCOVER").size(11).color(style::DIM),
+        space().height(12),
         text("Type the exact provider model ID. IDs are not verified until a live request; a :free OpenRouter variant is distinct from its paid model.")
             .size(13).color(style::GREY),
         space().height(13),

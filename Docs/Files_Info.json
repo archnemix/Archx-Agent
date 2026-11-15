@@ -149,7 +149,7 @@
       "handles": "Secret-name documentation"
     },
     "Docs/Research.json": {
-      "purpose": "Record official catalog API and transport research with exact source URLs.",
+      "purpose": "Index official provider catalog, stream, Markdown and widget API research.",
       "inputs": [
         "Verified online sources"
       ],
@@ -230,7 +230,7 @@
       "handles": "CI organization"
     },
     ".github/workflows/gui.yml": {
-      "purpose": "Build/test three OSes, capture expanded/compact rail and separate Settings surfaces, and record GUI evidence/build.",
+      "purpose": "Run native Linux, Windows, macOS builds/tests and scripted Home/Settings/Chat Markdown screenshots, publish evidence and Windows GUI executable.",
       "inputs": [
         "Source changes and intentional trigger"
       ],
@@ -240,7 +240,7 @@
       "handles": "Cross-platform CI"
     },
     "Cargo.toml": {
-      "purpose": "Declare native GUI with SVG/image, native keyring, zeroization, HTTPS client, JSON and async runtime dependencies.",
+      "purpose": "Declare native GUI, vault, networking and Markdown features.",
       "inputs": [
         "Selected framework and screenshot libraries"
       ],
@@ -320,7 +320,7 @@
       "handles": "Application entry point"
     },
     "src/app.rs": {
-      "purpose": "Own navigation, ephemeral chat/settings state, explicit provider actions, catalog tasks and screenshots.",
+      "purpose": "Own navigation, session chat/settings state, streaming tasks, vault actions, and screenshots.",
       "inputs": [
         "User navigation and snapshot trigger"
       ],
@@ -330,7 +330,7 @@
       "handles": "Shell state"
     },
     "src/home.rs": {
-      "purpose": "Render launcher home and About page while delegating the shared Lab rail to navigation.rs.",
+      "purpose": "Render launcher home/about and route borrowed Agent views.",
       "inputs": [
         "Current page"
       ],
@@ -340,7 +340,7 @@
       "handles": "Home presentation"
     },
     "src/style.rs": {
-      "purpose": "Provide dark palette, glass selection, icon-rail tile/tooltip, Settings section and disabled-button styles.",
+      "purpose": "Define native black-and-silver UI styles including bottom-lit selection.",
       "inputs": [
         "Selected and hover state"
       ],
@@ -842,7 +842,7 @@
       "handles": "macos tuning motion state"
     },
     "src/agent.rs": {
-      "purpose": "Render session-only plain Chat conversation and explicit send button; other modes stay UI previews.",
+      "purpose": "Render session Chat, in-Chat provider/model selection, editor and inert Markdown/reasoning.",
       "inputs": [
         "Transient App UI state"
       ],
@@ -852,7 +852,7 @@
       "handles": "UI-only destination"
     },
     "src/settings.rs": {
-      "purpose": "Render settings, OS-vault keys, session models, local catalog search and individual add actions.",
+      "purpose": "Render combined provider/key and model management in one scrollable page.",
       "inputs": [
         "Transient App UI state"
       ],
@@ -1144,7 +1144,7 @@
       "handles": "Security architecture"
     },
     "src/provider_api.rs": {
-      "purpose": "Build fixed-origin provider chat requests and parse bounded responses with redacted errors.",
+      "purpose": "Send fixed-origin HTTPS chat requests, bound SSE/non-stream replies and extract returned reasoning.",
       "inputs": [
         "Manually selected provider/model, short session turns and one transient OS-vault key"
       ],
@@ -1296,6 +1296,196 @@
         "Sanitized failure"
       ],
       "handles": "Catalog transport, pagination, free/router/reasoning metadata"
+    },
+    "internels/reference/README.md": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/README.md": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/api.js": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/base.css": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/blocks.js": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/capabilities.mjs": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/chat.css": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/chat.js": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/components.css": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/dom.js": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/index.html": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/main.js": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/markdown-stream.mjs": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/markdown.js": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/pages.css": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/render.js": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/state.js": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/theme.mjs": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
+    },
+    "internels/reference/ui/ui.js": {
+      "purpose": "Store user-provided UI reference or directory guidance; never execute reference scripts.",
+      "inputs": [
+        "User-supplied web UI example"
+      ],
+      "outputs": [
+        "Visual and interaction reference for native Rust implementation"
+      ],
+      "handles": "Internal reference, publicly visible when committed"
     }
   }
 }

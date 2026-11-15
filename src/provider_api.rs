@@ -1,7 +1,8 @@
-//! Purpose: Sends only explicitly requested plain-text chat to fixed provider HTTPS origins.
+//! Purpose: Sends bounded chat requests to fixed HTTPS providers and parses structured replies.
 use std::time::Duration;
 
 use reqwest::{redirect, Client};
+use iced::futures::{Sink, SinkExt};
 use serde_json::{json, Value};
 use zeroize::Zeroizing;
 
@@ -13,6 +14,39 @@ const MAX_REPLY_BYTES: usize = 64 * 1024;
 pub struct Turn {
     pub role: &'static str,
     pub content: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct Reply {
+    pub content: String,
+    pub reasoning: Option<String>,
+}
+
+fn extract_reply(provider: Provider, body: &Value) -> Result<Reply, CallError> {
+    let (content, reasoning) = if provider == Provider::Gemini {
+        let parts = body.pointer("/candidates/0/content/parts").and_then(Value::as_array)
+            .ok_or(CallError::InvalidResponse)?;
+        let mut text = String::new();
+        let mut thought = String::new();
+        for part in parts {
+            if let Some(value) = part.get("text").and_then(Value::as_str) {
+                if part.get("thought").and_then(Value::as_bool) == Some(true) { thought.push_str(value); }
+                else { text.push_str(value); }
+            }
+        }
+        (text, thought)
+    } else {
+        let message = body.pointer("/choices/0/message").ok_or(CallError::InvalidResponse)?;
+        let text = message.get("content").and_then(Value::as_str).unwrap_or_default().to_owned();
+        let thought = message.get("reasoning_content").or_else(|| message.get("reasoning"))
+            .and_then(Value::as_str).unwrap_or_default().to_owned();
+        (text, thought)
+    };
+    if content.trim().is_empty() { return Err(CallError::InvalidResponse); }
+    Ok(Reply {
+        content: content.chars().take(16000).collect(),
+        reasoning: (!reasoning.trim().is_empty()).then(|| reasoning.chars().take(16000).collect()),
+    })
 }
 
 // Do not surface provider bodies or reqwest errors: either can echo a key,
@@ -67,7 +101,7 @@ fn payload(provider: Provider, model: &str, turns: &[Turn]) -> Value {
     }
 }
 
-pub async fn send(provider: Provider, model: String, key: Zeroizing<String>, turns: Vec<Turn>) -> Result<String, CallError> {
+pub async fn send(provider: Provider, model: String, key: Zeroizing<String>, turns: Vec<Turn>) -> Result<Reply, CallError> {
     if !valid_model(provider, &model) || turns.is_empty() || turns.len() > 12 ||
         turns.last().is_none_or(|turn| turn.role != "user") ||
         turns.iter().any(|turn| !matches!(turn.role, "user" | "assistant") || turn.content.is_empty() || turn.content.chars().count() > 4000) {
@@ -94,17 +128,110 @@ pub async fn send(provider: Provider, model: String, key: Zeroizing<String>, tur
         bytes.extend_from_slice(&chunk);
     }
     let body: Value = serde_json::from_slice(&bytes).map_err(|_| CallError::InvalidResponse)?;
-    let answer = if provider == Provider::Gemini {
-        body.pointer("/candidates/0/content/parts/0/text")
+    extract_reply(provider, &body)
+}
+
+// SSE frames are parsed only after a newline; partial UTF-8 bytes remain buffered.
+fn stream_delta(provider: Provider, body: &Value, reply: &mut Reply) {
+    if provider == Provider::Gemini {
+        if let Some(parts) = body.pointer("/candidates/0/content/parts").and_then(Value::as_array) {
+            for part in parts {
+                if let Some(text) = part.get("text").and_then(Value::as_str) {
+                    if part["thought"].as_bool() == Some(true) {
+                        reply.reasoning.get_or_insert_with(String::new).push_str(text);
+                    } else { reply.content.push_str(text); }
+                }
+            }
+        }
     } else {
-        body.pointer("/choices/0/message/content")
-    }.and_then(Value::as_str).filter(|text| !text.trim().is_empty()).ok_or(CallError::InvalidResponse)?;
-    Ok(answer.chars().take(16000).collect())
+        let delta = &body["choices"][0]["delta"];
+        if let Some(text) = delta["content"].as_str() { reply.content.push_str(text); }
+        if let Some(text) = delta["reasoning_content"].as_str().or_else(|| delta["reasoning"].as_str()) {
+            reply.reasoning.get_or_insert_with(String::new).push_str(text);
+        }
+    }
+}
+
+pub async fn send_stream<S>(provider: Provider, model: String, key: Zeroizing<String>, turns: Vec<Turn>, progress: &mut S) -> Result<Reply, CallError>
+where S: Sink<Reply> + Unpin {
+    if !valid_model(provider, &model) || turns.is_empty() || turns.len() > 12 ||
+        turns.last().is_none_or(|turn| turn.role != "user") ||
+        turns.iter().any(|turn| !matches!(turn.role, "user" | "assistant") || turn.content.is_empty() || turn.content.chars().count() > 4000) {
+        return Err(CallError::InvalidInput);
+    }
+    let client = Client::builder().https_only(true).no_proxy().redirect(redirect::Policy::none())
+        .timeout(Duration::from_secs(45)).build().map_err(|_| CallError::Transport)?;
+    let url = if provider == Provider::Gemini {
+        format!("https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse")
+    } else { endpoint(provider, &model) };
+    let mut body = payload(provider, &model, &turns);
+    if provider != Provider::Gemini { body["stream"] = Value::Bool(true); }
+    let request = client.post(url).json(&body);
+    let request = if provider == Provider::Gemini { request.header("x-goog-api-key", key.as_str()) }
+        else { request.bearer_auth(key.as_str()) };
+    let mut response = request.send().await.map_err(|_| CallError::Transport)?;
+    if !response.status().is_success() { return Err(CallError::Rejected(response.status().as_u16())); }
+    let mut pending = Vec::<u8>::new();
+    let mut read = 0usize;
+    let mut reply = Reply::default();
+    let mut done = false;
+    let mut gemini_finished = false;
+    while let Some(chunk) = response.chunk().await.map_err(|_| CallError::Transport)? {
+        read = read.saturating_add(chunk.len());
+        if read > MAX_REPLY_BYTES { return Err(CallError::Oversized); }
+        pending.extend_from_slice(&chunk);
+        while let Some(end) = pending.iter().position(|b| *b == b'\n') {
+            let line = pending.drain(..=end).collect::<Vec<u8>>();
+            let line = std::str::from_utf8(&line).map_err(|_| CallError::InvalidResponse)?.trim();
+            let Some(data) = line.strip_prefix("data:") else { continue; };
+            let data = data.trim();
+            if data == "[DONE]" { done = true; break; }
+            let frame: Value = serde_json::from_str(data).map_err(|_| CallError::InvalidResponse)?;
+            if frame.get("error").is_some() || matches!(frame["type"].as_str(), Some("response.failed" | "response.incomplete")) {
+                return Err(CallError::InvalidResponse);
+            }
+            if provider == Provider::Gemini && frame["candidates"][0].get("finishReason").is_some() {
+                gemini_finished = matches!(frame["candidates"][0]["finishReason"].as_str(), Some("STOP" | "MAX_TOKENS"));
+                if !gemini_finished { return Err(CallError::InvalidResponse); }
+            }
+            stream_delta(provider, &frame, &mut reply);
+            if reply.content.chars().count() > 16000 || reply.reasoning.as_ref().is_some_and(|r| r.chars().count() > 16000) {
+                return Err(CallError::Oversized);
+            }
+            if progress.send(reply.clone()).await.is_err() { return Err(CallError::Transport); }
+        }
+        if done { break; }
+    }
+    if reply.content.trim().is_empty() || (!done && provider != Provider::Gemini) || (provider == Provider::Gemini && !gemini_finished) { return Err(CallError::InvalidResponse); }
+    Ok(reply)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn stream_delta_tracks_returned_reasoning_without_guessing() {
+        let mut reply = Reply::default();
+        stream_delta(Provider::OpenRouter, &json!({"choices":[{"delta":{"reasoning":"Why"}}]}), &mut reply);
+        stream_delta(Provider::OpenRouter, &json!({"choices":[{"delta":{"content":"Answer"}}]}), &mut reply);
+        assert_eq!(reply.reasoning.as_deref(), Some("Why"));
+        assert_eq!(reply.content, "Answer");
+        let mut plain = Reply::default();
+        stream_delta(Provider::Gemini, &json!({"candidates":[{"content":{"parts":[{"text":"Plain"}]}}]}), &mut plain);
+        assert_eq!(plain.reasoning, None);
+    }
+
+    #[test]
+    fn reasoning_is_only_shown_when_returned_separately() {
+        let plain = extract_reply(Provider::OpenRouter, &json!({"choices":[{"message":{"content":"Hello"}}]})).unwrap();
+        assert_eq!(plain.reasoning, None);
+        let reasoned = extract_reply(Provider::Grok, &json!({"choices":[{"message":{"content":"Answer","reasoning_content":"Steps"}}]})).unwrap();
+        assert_eq!(reasoned.reasoning.as_deref(), Some("Steps"));
+        let gemini = extract_reply(Provider::Gemini, &json!({"candidates":[{"content":{"parts":[{"thought":true,"text":"Why"},{"text":"Final"}]}}]})).unwrap();
+        assert_eq!(gemini.content, "Final");
+        assert_eq!(gemini.reasoning.as_deref(), Some("Why"));
+    }
 
     #[test]
     fn endpoints_are_fixed_and_model_paths_are_constrained() {

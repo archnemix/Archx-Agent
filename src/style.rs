@@ -72,7 +72,7 @@ pub fn settings_nav(active: bool, _: &Theme, status: button::Status) -> button::
             else { Color::from_rgb8(15, 15, 16) }.into()),
         text_color: if active { WHITE } else { GREY },
         border: Border {
-            color: if active { Color::from_rgb8(93, 93, 100) } else { Color::from_rgba(0.0, 0.0, 0.0, 0.0) },
+            color: Color::from_rgba(0.0, 0.0, 0.0, 0.0),
             width: 1.0, radius: 10.0.into(),
         },
         ..button::Style::default()
@@ -87,12 +87,12 @@ pub fn rail_hint(_: &Theme) -> container::Style {
 // Compact buttons are fixed 52px squares: silver selection, no full-width pill.
 pub fn compact_nav(selected: bool, _: &Theme, status: button::Status) -> button::Style {
     button::Style {
-        background: Some(if selected { Color::from_rgb8(42, 42, 45) }
+        background: Some(if selected { Color::from_rgb8(47, 47, 50) }
             else if matches!(status, button::Status::Hovered | button::Status::Pressed) { Color::from_rgb8(31, 31, 33) }
             else { RAIL }.into()),
         text_color: if selected { WHITE } else { GREY },
         border: Border {
-            color: if selected { Color::from_rgb8(124, 124, 130) } else { Color::from_rgba(0.0, 0.0, 0.0, 0.0) },
+            color: Color::from_rgba(0.0, 0.0, 0.0, 0.0),
             width: 1.0,
             radius: 14.0.into(),
         },
@@ -212,15 +212,15 @@ pub fn rail_toggle(_: &Theme, status: button::Status) -> button::Style {
 pub fn nav(active: bool, _theme: &Theme, status: button::Status) -> button::Style {
     if active {
         let glass = gradient::Linear::new(Radians::PI)
-            .add_stop(0.0, Color::from_rgb8(21, 21, 22))
-            .add_stop(0.58, Color::from_rgb8(31, 31, 33))
-            .add_stop(1.0, Color::from_rgb8(70, 70, 74));
+            .add_stop(0.0, Color::from_rgb8(20, 20, 22))
+            .add_stop(0.60, Color::from_rgb8(31, 31, 33))
+            .add_stop(1.0, Color::from_rgb8(85, 85, 91));
 
         button::Style {
             background: Some(glass.into()),
             text_color: WHITE,
             border: Border {
-                color: Color::from_rgb8(94, 94, 98),
+                color: Color::from_rgba(0.0, 0.0, 0.0, 0.0),
                 width: 1.0,
                 radius: 17.0.into(),
             },
@@ -256,7 +256,7 @@ mod tests {
         let inactive = compact_nav(false, &Theme::Dark, button::Status::Active);
         assert!(matches!(active.background, Some(Background::Color(_))));
         assert_eq!(active.border.radius, 14.0.into());
-        assert!(active.border.color.a > inactive.border.color.a);
+        assert_eq!(active.border.color.a, inactive.border.color.a);
     }
 
     #[test]

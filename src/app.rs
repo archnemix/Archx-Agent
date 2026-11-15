@@ -3,15 +3,19 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use iced::time;
+use iced::task::{self, sipper};
 use iced::window;
 use iced::{Element, Subscription, Task};
+use iced::widget::text_editor;
+use std::fmt;
 
 use crate::agent_visual::MODE_COUNT;
 use crate::app_tile::Art;
 use crate::home;
 use crate::model_catalog::{self, CatalogModel};
 use crate::credentials::{Provider, Vault, VaultError};
-use crate::provider_api::{self, Turn, CallError};
+use crate::provider_api::{self, Turn, Reply, CallError};
+use iced::widget::markdown;
 use crate::settings::{SecretText, Section, SettingsState};
 use zeroize::Zeroizing;
 use std::time::Instant;
@@ -31,15 +35,31 @@ pub enum MemoryMode {
     Custom,
 }
 
-#[derive(Debug, Clone)]
 pub struct ChatDraft {
     pub id: u32,
     pub mode: u8,
     pub text: String,
+    pub editor: text_editor::Content,
+    pub formatted: Vec<(usize, markdown::Content, Option<markdown::Content>, bool)>,
+    pub partial: Option<(markdown::Content, Option<markdown::Content>)>,
     pub turns: Vec<Turn>,
     pub busy: bool,
     pub error: Option<String>,
 }
+
+#[derive(Clone)]
+pub struct SecretReply(pub Reply);
+impl fmt::Debug for SecretReply {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { f.write_str("[redacted reply]") }
+}
+
+
+#[derive(Clone)]
+pub struct EditorAction(pub text_editor::Action);
+impl fmt::Debug for EditorAction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { f.write_str("[redacted editor action]") }
+}
+
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -49,6 +69,7 @@ pub enum Message {
     OpenChat(u32),
     SelectMode(u8),
     EditDraft(u32, SecretText),
+    EditEditor(u32, EditorAction),
     ClearDraft(u32),
     MemoryPreview(MemoryMode),
     ToggleAgentPreview,
@@ -56,6 +77,7 @@ pub enum Message {
     Animate,
     AgentPulse,
     SettingsSection(Section),
+    OpenModelSettings,
     SelectProvider(Provider),
     EditKey(SecretText),
     SaveKey,
@@ -77,7 +99,11 @@ pub enum Message {
     SearchModels(String),
     AddCatalogModel(Provider, usize),
     SendChat,
-    ChatResult(u32, Result<SecretText, String>),
+    ChatResult(u32, Result<SecretReply, String>),
+    ToggleReasoning(u32, usize),
+    ToggleStreaming,
+    ChatProgress(u32, SecretReply),
+    IgnoreMarkdownLink,
     RunTest,
     TestResult(Result<SecretText, String>),
     SnapshotTick,
@@ -162,11 +188,26 @@ impl App {
                 _ => Section::Providers,
             };
         }
+        let mut drafts = vec![ChatDraft { id: 1, mode: preview_mode,
+            editor: text_editor::Content::with_text(&preview_text), text: preview_text,
+            formatted: Vec::new(), partial: None, turns: Vec::new(), busy: false, error: None }];
+        // Only scripted CI screenshots use synthetic messages; normal launches start empty.
+        if snapshot.is_some() && page == Page::Agent && std::env::var("ARCHX_SNAPSHOT_CHAT").as_deref() == Ok("reasoning") {
+            settings.models[0] = vec!["demo/model:free".into(), "demo/another".into()];
+            settings.chosen[0] = Some(0);
+            drafts[0].turns = vec![
+                Turn { role: "user", content: "Show a short example".into() },
+                Turn { role: "assistant", content: "## Example\n\nA **bold** answer with `code`.\n\n- First item\n- Second item".into() },
+            ];
+            drafts[0].formatted.push((1,
+                markdown::Content::parse(&drafts[0].turns[1].content),
+                Some(markdown::Content::parse("The provider returned a synthetic explanation.")), false));
+        }
         Self {
             page,
             sidebar_expanded: !(snapshot.is_some()
                 && std::env::var("ARCHX_SNAPSHOT_SIDEBAR").as_deref() == Ok("collapsed")),
-            drafts: vec![ChatDraft { id: 1, mode: preview_mode, text: preview_text, turns: Vec::new(), busy: false, error: None }],
+            drafts,
             selected_draft: 1,
             memory_preview: preview_memory,
             settings,
@@ -189,12 +230,17 @@ impl App {
                 self.hovered = None;
                 if page == Page::Settings { return self.update(Message::RefreshKeys); }
             }
+            Message::OpenModelSettings => {
+                self.page = Page::Settings;
+                self.settings.section = Section::Providers;
+                return self.update(Message::RefreshKeys);
+            }
             Message::ToggleSidebar => {
                 self.sidebar_expanded = !self.sidebar_expanded;
             }
             Message::NewChat if self.page == Page::Agent => {
                 let id = self.drafts.last().map_or(1, |draft| draft.id + 1);
-                self.drafts.push(ChatDraft { id, mode: 0, text: String::new(), turns: Vec::new(), busy: false, error: None });
+                self.drafts.push(ChatDraft { id, mode: 0, text: String::new(), editor: text_editor::Content::new(), formatted: Vec::new(), partial: None, turns: Vec::new(), busy: false, error: None });
                 self.selected_draft = id;
             }
             Message::OpenChat(id) if self.page == Page::Agent && self.drafts.iter().any(|draft| draft.id == id) => {
@@ -205,14 +251,25 @@ impl App {
                     draft.mode = mode;
                 }
             }
+            Message::EditEditor(id, EditorAction(action)) if self.page == Page::Agent && self.selected_draft == id => {
+                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) {
+                    if !draft.busy {
+                        let prior = draft.text.clone();
+                        draft.editor.perform(action);
+                        let updated = draft.editor.text();
+                        if updated.chars().count() <= 4000 { draft.text = updated; }
+                        else { draft.editor = text_editor::Content::with_text(&prior); }
+                    }
+                }
+            }
             Message::EditDraft(id, text) if self.page == Page::Agent && self.selected_draft == id => {
                 if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) {
-                    if !draft.busy && text.0.chars().count() <= 4000 { draft.text = text.0.to_string(); }
+                    if !draft.busy && text.0.chars().count() <= 4000 { draft.text = text.0.to_string(); draft.editor = text_editor::Content::with_text(&draft.text); }
                 }
             }
             Message::ClearDraft(id) if self.page == Page::Agent && self.selected_draft == id => {
                 if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) {
-                    if !draft.busy { draft.text.clear(); }
+                    if !draft.busy { draft.text.clear(); draft.editor = text_editor::Content::new(); }
                 }
             }
             Message::MemoryPreview(memory) if self.page == Page::Settings => {
@@ -239,7 +296,7 @@ impl App {
                 self.settings.clear_secret();
                 self.settings.section = section;
             }
-            Message::SelectProvider(provider) if self.page == Page::Settings && !self.settings.key_busy => {
+            Message::SelectProvider(provider) if matches!(self.page, Page::Settings | Page::Agent) && !self.settings.key_busy => {
                 self.settings.clear_secret();
                 self.settings.provider = provider;
                 self.settings.model_entry.clear();
@@ -248,12 +305,12 @@ impl App {
                 self.settings.catalog_busy = false;
                 self.settings.key_ids.clear();
                 self.settings.status.clear();
-                return self.update(Message::RefreshKeys);
+                if self.page == Page::Settings { return self.update(Message::RefreshKeys); }
             }
-            Message::EditKey(value) if self.page == Page::Settings && self.settings.section == Section::Providers => {
+            Message::EditKey(value) if self.page == Page::Settings && self.settings.section != Section::Lab => {
                 if value.0.len() <= 1024 { self.settings.key_entry = value; }
             }
-            Message::SaveKey if self.page == Page::Settings && self.settings.section == Section::Providers && !self.settings.key_entry.0.is_empty() && !self.settings.key_busy => {
+            Message::SaveKey if self.page == Page::Settings && self.settings.section != Section::Lab && !self.settings.key_entry.0.is_empty() && !self.settings.key_busy => {
                 self.settings.key_busy = true;
                 let provider = self.settings.provider;
                 let secret = std::mem::take(&mut self.settings.key_entry).0;
@@ -320,10 +377,10 @@ impl App {
                 }
             }
             Message::RevealExpired(nonce) if nonce == self.settings.reveal_nonce => self.settings.clear_secret(),
-            Message::EditModel(model) if self.page == Page::Settings && self.settings.section == Section::Models => {
+            Message::EditModel(model) if self.page == Page::Settings && self.settings.section != Section::Lab => {
                 if model.len() <= 100 { self.settings.model_entry = model; }
             }
-            Message::AddModel if self.page == Page::Settings && self.settings.section == Section::Models => {
+            Message::AddModel if self.page == Page::Settings && self.settings.section != Section::Lab => {
                 let provider = self.settings.provider;
                 let model = self.settings.model_entry.trim().to_owned();
                 let index = self.settings.index();
@@ -331,13 +388,10 @@ impl App {
                     self.settings.models[index].push(model);
                     self.settings.chosen[index] = Some(self.settings.models[index].len() - 1);
                     self.settings.model_entry.clear();
-                self.settings.search.clear();
-                self.settings.catalog_nonce = self.settings.catalog_nonce.wrapping_add(1);
-                self.settings.catalog_busy = false;
                     self.settings.status = "Model selected for this session. Live requests may incur charges.".into();
                 } else { self.settings.status = "Invalid, duplicate or over-limit model ID.".into(); }
             }
-            Message::ChooseModel(slot) if self.page == Page::Settings && slot < self.settings.models[self.settings.index()].len() => {
+            Message::ChooseModel(slot) if matches!(self.page, Page::Settings | Page::Agent) && slot < self.settings.models[self.settings.index()].len() => {
                 let index = self.settings.index(); self.settings.chosen[index] = Some(slot);
             }
             Message::RemoveModel(slot) if self.page == Page::Settings && slot < self.settings.models[self.settings.index()].len() => {
@@ -345,10 +399,10 @@ impl App {
                 self.settings.models[index].remove(slot);
                 self.settings.chosen[index] = None;
             }
-            Message::SearchModels(query) if self.page == Page::Settings && self.settings.section == Section::Models => {
+            Message::SearchModels(query) if self.page == Page::Settings && self.settings.section != Section::Lab => {
                 if query.len() <= 100 { self.settings.search = query; }
             }
-            Message::AddCatalogModel(provider, slot) if self.page == Page::Settings && self.settings.section == Section::Models && self.settings.provider == provider => {
+            Message::AddCatalogModel(provider, slot) if self.page == Page::Settings && self.settings.section != Section::Lab && self.settings.provider == provider => {
                 let index = self.settings.index();
                 if let Some(item) = self.settings.catalog[index].get(slot) {
                     let model = item.id.clone();
@@ -359,7 +413,7 @@ impl App {
                     }
                 }
             }
-            Message::FetchModels if self.page == Page::Settings && self.settings.section == Section::Models && !self.settings.catalog_busy && self.snapshot.is_none() => {
+            Message::FetchModels if self.page == Page::Settings && self.settings.section != Section::Lab && !self.settings.catalog_busy && self.snapshot.is_none() => {
                 let provider = self.settings.provider;
                 self.settings.catalog_busy = true;
                 self.settings.catalog_nonce = self.settings.catalog_nonce.wrapping_add(1);
@@ -391,16 +445,39 @@ impl App {
             }
             Message::SendChat if self.page == Page::Agent => return self.send_chat(false),
             Message::RunTest if self.page == Page::Settings && !self.settings.test_busy => return self.send_chat(true),
+            Message::IgnoreMarkdownLink => {}
+            Message::ToggleStreaming if self.page == Page::Agent => {
+                self.settings.stream_chat = !self.settings.stream_chat;
+            }
+            Message::ChatProgress(id, SecretReply(reply)) => {
+                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id && draft.busy) {
+                    draft.partial = Some((markdown::Content::parse(&reply.content), reply.reasoning.as_ref().map(|r| markdown::Content::parse(r))));
+                }
+            }
+            Message::ToggleReasoning(id, index) if self.page == Page::Agent => {
+                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) {
+                    if let Some((_, _, _, expanded)) = draft.formatted.iter_mut().find(|(slot, _, _, _)| *slot == index) {
+                        *expanded = !*expanded;
+                    }
+                }
+            }
             Message::ChatResult(id, result) => {
                 if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) {
                     draft.busy = false;
+                    draft.partial = None;
                     match result {
-                        Ok(reply) => draft.turns.push(Turn { role: "assistant", content: reply.0.to_string() }),
+                        Ok(SecretReply(reply)) => {
+                            let slot = draft.turns.len();
+                            let body = markdown::Content::parse(&reply.content);
+                            let reasoning = reply.reasoning.as_ref().map(|r| markdown::Content::parse(r));
+                            draft.formatted.push((slot, body, reasoning, false));
+                            draft.turns.push(Turn { role: "assistant", content: reply.content });
+                        },
                         Err(error) => {
                             // A timeout can occur after a provider accepted the request.
                             // Restore the draft instead of silently resending it as context.
                             if let Some(last) = draft.turns.pop() {
-                                if last.role == "user" { draft.text = last.content; }
+                                if last.role == "user" { draft.text = last.content; draft.editor = text_editor::Content::with_text(&draft.text); }
                                 else { draft.turns.push(last); }
                             }
                             draft.error = Some(error);
@@ -447,7 +524,7 @@ impl App {
         if self.snapshot.is_some() { return Task::none(); }
         let provider = self.settings.provider;
         let Some(model) = self.settings.selected_model().map(str::to_owned) else {
-            let notice = "Select a provider and model in Settings → Models first.";
+            let notice = "Select a provider and model in Chat, or add one in Settings → Connections & models.";
             if test { self.settings.status = notice.into(); }
             else if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == self.selected_draft) { draft.error = Some(notice.into()); }
             return Task::none();
@@ -465,21 +542,25 @@ impl App {
             draft.error = None;
             draft.busy = true;
             draft.turns.push(Turn { role: "user", content: std::mem::take(&mut draft.text) });
+            draft.editor = text_editor::Content::new();
             draft.turns.iter().rev().take(12).cloned().collect::<Vec<_>>().into_iter().rev().collect()
         };
         self.key_cursor[index] = cursor.wrapping_add(1);
-        let task = async move {
-            let selected = tokio::task::spawn_blocking(move || {
-                let vault = Vault::os();
-                let keys = vault.list(provider)?;
-                let key_id = keys.get(cursor % keys.len().max(1)).copied().ok_or(VaultError::MissingKey)?;
-                vault.with_key(provider, key_id, |secret| Zeroizing::new(secret.to_owned()))
-            }).await.map_err(|_| VaultError::Unavailable)
-                .and_then(|result| result).map_err(|error| error.message().to_owned())?;
-            provider_api::send(provider, model, selected, turns).await.map_err(CallError::message)
-        };
-        if test { Task::perform(task, |result| Message::TestResult(result.map(SecretText::new))) }
-        else { Task::perform(task, move |result| Message::ChatResult(id, result.map(SecretText::new))) }
+        if test || !self.settings.stream_chat {
+            let task = async move {
+                let selected = selected_key(provider, cursor).await?;
+                provider_api::send(provider, model, selected, turns).await.map_err(CallError::message)
+            };
+            if test { Task::perform(task, |result| Message::TestResult(result.map(|reply| SecretText::new(reply.content)))) }
+            else { Task::perform(task, move |result| Message::ChatResult(id, result.map(SecretReply))) }
+        } else {
+            Task::sip(sipper(async move |mut progress| {
+                let selected = selected_key(provider, cursor).await?;
+                provider_api::send_stream(provider, model, selected, turns, &mut progress)
+                    .await.map_err(CallError::message)
+            }), move |reply| Message::ChatProgress(id, SecretReply(reply)),
+                move |result| Message::ChatResult(id, result.map(SecretReply)))
+        }
     }
 
     pub fn view(&self) -> Element<'_, Message> {
@@ -504,6 +585,17 @@ impl App {
         };
         Subscription::batch([snapshot, animation, agent])
     }
+}
+
+// Select a vault key only for an explicit send/test, never during selection.
+async fn selected_key(provider: Provider, cursor: usize) -> Result<Zeroizing<String>, String> {
+    tokio::task::spawn_blocking(move || {
+        let vault = Vault::os();
+        let keys = vault.list(provider)?;
+        let key_id = keys.get(cursor % keys.len().max(1)).copied().ok_or(VaultError::MissingKey)?;
+        vault.with_key(provider, key_id, |secret| Zeroizing::new(secret.to_owned()))
+    }).await.map_err(|_| VaultError::Unavailable)
+        .and_then(|result| result).map_err(|error| error.message().to_owned())
 }
 
 #[cfg(test)]
@@ -544,6 +636,29 @@ mod tests {
         let _ = app.update(Message::ModelsFetched(Provider::OpenRouter, 0, Ok(Vec::new())));
         assert_eq!(app.settings.catalog[0].len(), 1);
         assert!(app.settings.models[2].is_empty());
+    }
+
+    #[test]
+    fn chat_setup_opens_unified_settings_and_chat_can_switch_models() {
+        let mut app = App::new();
+        let _ = app.update(Message::Navigate(Page::Agent));
+        let _ = app.update(Message::OpenModelSettings);
+        assert_eq!(app.page, Page::Settings);
+        assert_eq!(app.settings.section, Section::Providers);
+        let _ = app.update(Message::EditModel("vendor/first".into()));
+        let _ = app.update(Message::AddModel);
+        let _ = app.update(Message::EditModel("vendor/second".into()));
+        let _ = app.update(Message::AddModel);
+        let _ = app.update(Message::Navigate(Page::Agent));
+        let _ = app.update(Message::ChooseModel(0));
+        assert_eq!(app.settings.selected_model(), Some("vendor/first"));
+        let _ = app.update(Message::SelectProvider(Provider::Gemini));
+        assert_eq!(app.settings.selected_model(), None);
+        let _ = app.update(Message::SelectProvider(Provider::OpenRouter));
+        assert_eq!(app.settings.selected_model(), Some("vendor/first"));
+        assert!(app.settings.stream_chat);
+        let _ = app.update(Message::ToggleStreaming);
+        assert!(!app.settings.stream_chat);
     }
 
     #[test]

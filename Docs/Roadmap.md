@@ -21,6 +21,10 @@ For each GUI-bearing step: demonstrate the finished behavior, run relevant unit/
 9. **Learning agent.** Add interactive lessons, goals, assessments, progress, and learning memory. Implement eligible simple-chat → learning transition. Done when a learner can complete and resume a scoped lesson, and the shared gate passes.
 10. **Play agent.** Add controlled game creation, explicit game state, user/agent turn loop, and conversational play. Implement eligible simple-chat → play transition; never run generated code without agreed isolation/approval. Done when one game can be played, paused, and resumed safely, and the shared gate passes.
 
+## Current user-requested UX correction (validation pending)
+
+Combine provider/model Settings, add in-Chat selection and a working setup link, native multiline Enter/Shift+Enter, inert Markdown, returned reasoning display, default SSE with whole-response toggle, bottom-lit nav selection and versioned user UI reference. Do not claim remote provider coverage until user-local calls are tested. All three OS builds and screenshots must pass before this correction is complete.
+
 ## Accepted provider expansion, staged after current catalog slice
 
 First complete and test catalog search, individual add, free router/variants and metadata-only reasoning indicators on the three existing providers. Then add safe Markdown presentation (no active HTML or automatic remote asset loads), followed by individually tested OpenAI API, Anthropic API, Groq, Ollama, Mistral, Z.ai and compatible endpoints. Generic configurable endpoints/headers need destination-specific opt-in, credential isolation, local-network/redirect and header injection safeguards; there is no fixed remote-domain allowlist. A tiny local quantized model can test the local integration path, not remote-model quality or provider availability. Maintain the shared three-OS build and native Windows gate per slice.

@@ -1,10 +1,11 @@
 //! Purpose: Renders session-only plain Chat and non-networked previews of other Agent modes.
-use iced::widget::{button, column, container, row, scrollable, space, text, text_input};
-use iced::{Center, Element, Fill};
+use iced::widget::{button, column, container, row, scrollable, space, text, text_editor, markdown};
+use iced::{Center, Element, Fill, keyboard};
 
 use crate::app::{ChatDraft, Message};
 use crate::style;
 use crate::settings::{SecretText, SettingsState};
+use crate::credentials::Provider;
 
 pub const MODES: [&str; 6] = ["Chat", "Tasks", "Research", "Coding", "Learning", "Play"];
 
@@ -16,11 +17,39 @@ fn action(label: &'static str, message: Message) -> Element<'static, Message> {
         .into()
 }
 
-pub fn view(drafts: &[ChatDraft], selected: u32, settings: &SettingsState) -> Element<'static, Message> {
+pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState) -> Element<'a, Message> {
     let current = drafts.iter().find(|draft| draft.id == selected);
     let active_mode = current.map_or(0, |draft| draft.mode);
     let draft_text = current.map_or("", |draft| draft.text.as_str());
     let connected = settings.selected_model().is_some();
+    let mut provider_row = row![].spacing(8);
+    for provider in Provider::ALL {
+        let active = settings.provider == provider;
+        provider_row = provider_row.push(button(text(provider.name()).size(12))
+            .on_press(Message::SelectProvider(provider))
+            .padding([9, 13]).style(move |t, st| style::nav(active, t, st)));
+    }
+    let mut model_row = row![].spacing(8);
+    for (slot, model) in settings.models[settings.index()].iter().enumerate() {
+        let active = settings.chosen[settings.index()] == Some(slot);
+        model_row = model_row.push(button(text(model.clone()).size(12))
+            .on_press(Message::ChooseModel(slot))
+            .padding([9, 13]).style(move |t, st| style::nav(active, t, st)));
+    }
+    let selector = column![
+        row![text("PROVIDER").size(11).color(style::DIM), space().width(20), provider_row],
+        space().height(9),
+        row![text("MODEL").size(11).color(style::DIM), space().width(20),
+            if settings.models[settings.index()].is_empty() {
+                button(text("+ Add a model in Settings").size(12))
+                    .on_press(Message::OpenModelSettings).style(style::quiet_button).into()
+            } else { scrollable(model_row).direction(iced::widget::scrollable::Direction::Horizontal(
+                        iced::widget::scrollable::Scrollbar::default())).height(40).into() }
+        ],
+        space().height(7),
+        text("Active choice is session-only. Keys remain in the OS vault; sending may incur charges.").size(11).color(style::DIM)
+    ].width(Fill);
+
 
     let mut history = column![
         text("WORKSPACE  /  ARCHX AGENT").size(11).color(style::DIM),
@@ -71,12 +100,33 @@ pub fn view(drafts: &[ChatDraft], selected: u32, settings: &SettingsState) -> El
     let center: Element<'static, Message> = if active_mode == 0 && current.is_some_and(|draft| !draft.turns.is_empty()) {
         let draft = current.expect("checked above");
         let mut log = column![text("SESSION CHAT  /  NO DISK HISTORY").size(11).color(style::DIM)].spacing(16);
-        for turn in &draft.turns {
-            let who = if turn.role == "user" { "YOU" } else { "ASSISTANT" };
-            log = log.push(container(column![
-                text(who).size(10).color(style::DIM),
-                text(turn.content.clone()).size(14).color(style::WHITE)
-            ].spacing(8)).width(Fill).padding(16).style(style::surface));
+        for (slot, turn) in draft.turns.iter().enumerate() {
+            let who = if turn.role == "user" { "YOU" } else { "ARCHX AGENT" };
+            let mut message = column![text(who).size(10).color(style::DIM)].spacing(9);
+            if let Some((_, content, reasoning, expanded)) = draft.formatted.iter().find(|(index, _, _, _)| *index == slot) {
+                if let Some(reasoning) = reasoning {
+                    message = message.push(button(text(if *expanded { "Reasoning  ▴" } else { "Reasoning  ▾" }).size(12))
+                        .on_press(Message::ToggleReasoning(draft.id, slot)).style(style::quiet_button));
+                    if *expanded {
+                        message = message.push(container(markdown::view(reasoning.items(), iced::Theme::Dark)
+                            .map(|_| Message::IgnoreMarkdownLink)).padding(14).width(Fill).style(style::settings_panel));
+                    }
+                }
+                message = message.push(markdown::view(content.items(), iced::Theme::Dark)
+                    .map(|_| Message::IgnoreMarkdownLink));
+            } else {
+                message = message.push(text(turn.content.clone()).size(14).color(style::WHITE));
+            }
+            log = log.push(container(message).width(Fill).padding(18).style(style::surface));
+        }
+        if let Some((content, reasoning)) = &draft.partial {
+            let mut active = column![text("ARCHX AGENT  ·  STREAMING").size(10).color(style::DIM)].spacing(9);
+            if let Some(reasoning) = reasoning {
+                active = active.push(text("Reasoning received").size(11).color(style::GREY))
+                    .push(markdown::view(reasoning.items(), iced::Theme::Dark).map(|_| Message::IgnoreMarkdownLink));
+            }
+            active = active.push(markdown::view(content.items(), iced::Theme::Dark).map(|_| Message::IgnoreMarkdownLink));
+            log = log.push(container(active).width(Fill).padding(18).style(style::surface));
         }
         if let Some(error) = &draft.error { log = log.push(text(error.clone()).size(12).color(style::GREY)); }
         scrollable(log.padding([20, 8])).height(Fill).width(Fill).into()
@@ -88,10 +138,10 @@ pub fn view(drafts: &[ChatDraft], selected: u32, settings: &SettingsState) -> El
             space().height(12),
             text(lead).size(15).color(style::GREY),
             space().height(23),
-            container(text(if active_mode != 0 { "PREVIEW ONLY  /  NO TOOLS" }
+            button(text(if active_mode != 0 { "PREVIEW ONLY  /  NO TOOLS" }
                 else if connected { "MODEL SELECTED  /  KEY CHECK ON SEND" }
-                else { "ADD A KEY AND MODEL IN SETTINGS" }).size(11).color(style::GREY))
-                .padding([9, 13]).style(style::badge)
+                else { "SET UP PROVIDER & MODEL IN SETTINGS  ↗" }).size(11).color(style::GREY))
+                .on_press(Message::OpenModelSettings).padding([9, 13]).style(style::quiet_button)
         ].align_x(Center)).center_x(Fill).center_y(Fill).into()
     };
 
@@ -99,6 +149,7 @@ pub fn view(drafts: &[ChatDraft], selected: u32, settings: &SettingsState) -> El
         Some(error) => text(error.to_owned()).size(12).color(style::GREY).into(),
         None => space().height(0).into(),
     };
+    let can_enter_send = active_mode == 0 && connected && !draft_text.trim().is_empty() && current.is_some_and(|draft| !draft.busy);
     let composer = container(
         column![
             row![
@@ -107,11 +158,19 @@ pub fn view(drafts: &[ChatDraft], selected: u32, settings: &SettingsState) -> El
                     .size(10).color(style::DIM)
             ],
             space().height(10),
-            text_input(if active_mode == 0 && connected { "Write a message — click Send to share it" } else { "Write a draft — only Chat can send" }, draft_text)
-                .padding([14, 16])
-                .size(14)
-                .on_input(move |value| Message::EditDraft(selected, SecretText::new(value)))
-                .style(style::composer_input),
+            if let Some(draft) = current {
+                text_editor(&draft.editor)
+                    .placeholder(if active_mode == 0 { "Write a message · Enter to send · Shift+Enter for newline" } else { "Draft only · this mode cannot send" })
+                    .height(80).max_height(140).padding(14).size(14)
+                    .on_action(move |action| Message::EditEditor(selected, crate::app::EditorAction(action)))
+                    .key_binding(move |event| {
+                        if can_enter_send &&
+                            event.key == keyboard::Key::Named(keyboard::key::Named::Enter) &&
+                            !event.modifiers.shift() && !event.modifiers.command() && !event.modifiers.alt() {
+                            Some(text_editor::Binding::Custom(Message::SendChat))
+                        } else { text_editor::Binding::from_key_press(event) }
+                    }).into()
+            } else { space().height(80).into() },
             space().height(10),
             row![
                 button(text("Clear draft").size(11).color(style::GREY))
@@ -125,7 +184,7 @@ pub fn view(drafts: &[ChatDraft], selected: u32, settings: &SettingsState) -> El
                     .padding([10, 16]).style(style::quiet_button)
             ].align_y(Center),
             space().height(7),
-            text("Send shares up to 12 recent turns with the chosen provider. No disk history or tools; requests may cost money.")
+            text("Enter sends · Shift+Enter adds a line. Send shares up to 12 recent turns with the chosen provider. No disk history or tools; requests may cost money.")
                 .size(11).color(style::DIM),
             error_notice
         ]
@@ -143,6 +202,12 @@ pub fn view(drafts: &[ChatDraft], selected: u32, settings: &SettingsState) -> El
         ],
         space().height(24),
         scrollable(modes).width(Fill),
+        space().height(16),
+        selector,
+        space().height(10),
+        button(text(if settings.stream_chat { "Streaming ON · click for whole reply" } else { "Whole reply · click to stream" }).size(11))
+            .on_press(Message::ToggleStreaming).style(style::quiet_button),
+        space().height(12),
         center,
         composer
     ]

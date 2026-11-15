@@ -276,6 +276,30 @@
     "openrouter_free_router_chat": {
       "summary": "Official OpenRouter free-router playground documents openrouter/free for POST /api/v1/chat/completions; it randomly selects a currently available free model, not a pinned checkpoint. Present as a router even if not in the filtered public model catalog, only after successful fetch.",
       "url": "https://openrouter.ai/docs/projects/docs/cookbook/get-started/free-models-router-playground"
+    },
+    "iced_markdown_014": {
+      "summary": "Iced 0.14 markdown feature exposes markdown::Content::parse, items and markdown::view for native CommonMark rendering; only emit inert text and do not wire link click or image download to networking. The upstream example streams via Content::push_str but rebuilding bounded content is acceptable for limited replies.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/markdown.rs"
+    },
+    "iced_text_editor_014": {
+      "summary": "Iced 0.14 text_editor Content::perform(Action), text(), and key_binding with Binding::Custom(Message) let Enter submit and Shift+Enter remain a line break when editor is focused.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/text_editor.rs"
+    },
+    "iced_task_sipper_014": {
+      "summary": "Iced tagged download_progress example uses task::sipper with Task::sip to deliver async network progress and a final result to GUI, without blocking update or requiring a polling timer.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/examples/download_progress/src/download.rs"
+    },
+    "openrouter_streaming_sse": {
+      "summary": "OpenRouter stream=true emits SSE; comment keep-alives are not JSON, data:[DONE] marks termination and errors can occur mid-stream. Never surface provider error body; bounded parser checks error events.",
+      "url": "https://openrouter.ai/docs/api_reference/streaming"
+    },
+    "gemini_streaming_api": {
+      "summary": "Gemini POST /v1beta/models/{model}:streamGenerateContent supports SSE with alt=sse; candidate parts may carry thought=true for returned reasoning and finishReason indicates completion.",
+      "url": "https://ai.google.dev/api/generate-content#method:-models.streamgeneratecontent"
+    },
+    "xai_chat_reference": {
+      "summary": "xAI docs recommend Responses API but it may store responses server-side by default. Existing stateless Chat Completions endpoint retained in this slice; do not change to stateful Responses API without explicit privacy review.",
+      "url": "https://docs.x.ai/developers/model-capabilities/text/generate-text"
     }
   }
 }
