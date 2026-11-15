@@ -150,6 +150,7 @@ dependencies = [
  "keyring",
  "reqwest",
  "serde_json",
+ "sipper",
  "tauri-winres",
  "tokio",
  "zeroize",
