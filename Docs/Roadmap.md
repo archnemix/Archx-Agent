@@ -25,6 +25,10 @@ For each GUI-bearing step: demonstrate the finished behavior, run relevant unit/
 
 Combine provider/model Settings, add in-Chat selection and a working setup link, native multiline Enter/Shift+Enter, inert Markdown, returned reasoning display, default SSE with whole-response toggle, bottom-lit nav selection and versioned user UI reference. Do not claim remote provider coverage until user-local calls are tested. All three OS builds and screenshots passed CI `43742373398` (30 tests per OS); physical interaction, live hosted inference and user design acceptance are outstanding.
 
+### 2026-11-09 redesign follow-up
+
+The previous Chat layout from CI `43742373398` was explicitly **rejected** by the user despite passing builds. A reference-led native replacement is now built and visually reviewed under CI `43752776973` (31 tests per OS; Linux/Windows/macOS release builds and snapshots passed). It uses one compact header model picker, a centered avatar/message column, inline returned reasoning, and a compact composer. The 1568×856 Windows captures were compared against the user-supplied website; the redesign is ready for **user hands-on design and interaction review**, not accepted as pixel-identical and not validated against live providers or the OS vault. The new unsigned portable Windows executable is in `deliverables/Unreleased/windows/archx-ai-lab.exe`.
+
 ## Accepted provider expansion, staged after current catalog slice
 
 First complete and test catalog search, individual add, free router/variants and metadata-only reasoning indicators on the three existing providers. Then add safe Markdown presentation (no active HTML or automatic remote asset loads), followed by individually tested OpenAI API, Anthropic API, Groq, Ollama, Mistral, Z.ai and compatible endpoints. Generic configurable endpoints/headers need destination-specific opt-in, credential isolation, local-network/redirect and header injection safeguards; there is no fixed remote-domain allowlist. A tiny local quantized model can test the local integration path, not remote-model quality or provider availability. Maintain the shared three-OS build and native Windows gate per slice.
