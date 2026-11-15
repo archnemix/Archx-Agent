@@ -2,7 +2,7 @@
 use std::time::Duration;
 
 use reqwest::{redirect, Client};
-use iced::futures::{Sink, SinkExt};
+use iced::task::Sender;
 use serde_json::{json, Value};
 use zeroize::Zeroizing;
 
@@ -152,8 +152,7 @@ fn stream_delta(provider: Provider, body: &Value, reply: &mut Reply) {
     }
 }
 
-pub async fn send_stream<S>(provider: Provider, model: String, key: Zeroizing<String>, turns: Vec<Turn>, progress: &mut S) -> Result<Reply, CallError>
-where S: Sink<Reply> + Unpin {
+pub async fn send_stream(provider: Provider, model: String, key: Zeroizing<String>, turns: Vec<Turn>, progress: &mut Sender<Reply>) -> Result<Reply, CallError> {
     if !valid_model(provider, &model) || turns.is_empty() || turns.len() > 12 ||
         turns.last().is_none_or(|turn| turn.role != "user") ||
         turns.iter().any(|turn| !matches!(turn.role, "user" | "assistant") || turn.content.is_empty() || turn.content.chars().count() > 4000) {
@@ -198,7 +197,7 @@ where S: Sink<Reply> + Unpin {
             if reply.content.chars().count() > 16000 || reply.reasoning.as_ref().is_some_and(|r| r.chars().count() > 16000) {
                 return Err(CallError::Oversized);
             }
-            if progress.send(reply.clone()).await.is_err() { return Err(CallError::Transport); }
+            progress.send(reply.clone()).await;
         }
         if done { break; }
     }

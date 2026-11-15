@@ -36,16 +36,17 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
             .on_press(Message::ChooseModel(slot))
             .padding([9, 13]).style(move |t, st| style::nav(active, t, st)));
     }
+    let model_choice: Element<'_, Message> = if settings.models[settings.index()].is_empty() {
+        button(text("+ Add a model in Settings").size(12))
+            .on_press(Message::OpenModelSettings).style(style::quiet_button).into()
+    } else {
+        scrollable(model_row).direction(iced::widget::scrollable::Direction::Horizontal(
+            iced::widget::scrollable::Scrollbar::default())).height(40).into()
+    };
     let selector = column![
         row![text("PROVIDER").size(11).color(style::DIM), space().width(20), provider_row],
         space().height(9),
-        row![text("MODEL").size(11).color(style::DIM), space().width(20),
-            if settings.models[settings.index()].is_empty() {
-                button(text("+ Add a model in Settings").size(12))
-                    .on_press(Message::OpenModelSettings).style(style::quiet_button).into()
-            } else { scrollable(model_row).direction(iced::widget::scrollable::Direction::Horizontal(
-                        iced::widget::scrollable::Scrollbar::default())).height(40).into() }
-        ],
+        row![text("MODEL").size(11).color(style::DIM), space().width(20), model_choice],
         space().height(7),
         text("Active choice is session-only. Keys remain in the OS vault; sending may incur charges.").size(11).color(style::DIM)
     ].width(Fill);
