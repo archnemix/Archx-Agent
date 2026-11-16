@@ -168,8 +168,10 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
             .style(style::chat_button).into()
     };
     surface(column![
-        text("PROVIDER  /  OS KEYCHAIN").size(11).color(style::DIM),
+        text("PROVIDER  /  CONNECTION").size(11).color(style::DIM),
         space().height(12), provider_tabs(state.provider, state.key_busy),
+        space().height(17),
+        if state.provider == Provider::Custom { custom_controls(state) } else { space().height(0).into() },
         space().height(17),
         text(if state.provider.needs_key() { "Keys are held in your OS credential store. The Lab never saves a plaintext key file." }
             else { "Local Ollama: fixed loopback address 127.0.0.1:11434 · no key needed · no remote URL accepted." })
@@ -177,7 +179,6 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
         space().height(18),
         credential_control,
         space().height(26), keys,
-        if state.provider == Provider::Custom { custom_controls(state) } else { space().height(0).into() },
         space().height(12),
         text("Reveal is opt-in and hidden after 15 seconds or when you leave this page. Anyone with access to your unlocked session or screen may still see it.")
             .size(11).color(style::DIM)
