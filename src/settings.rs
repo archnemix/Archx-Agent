@@ -8,6 +8,7 @@ use zeroize::Zeroizing;
 
 use crate::app::{MemoryMode, Message};
 use crate::credentials::Provider;
+use crate::custom_endpoint::Profile;
 use crate::model_catalog::CatalogModel;
 use crate::style;
 
@@ -54,6 +55,9 @@ pub struct SettingsState {
     pub test_evidence: Option<String>,
     pub stream_chat: bool,
     pub key_busy: bool,
+    pub custom: Profile,
+    pub custom_curl: SecretText,
+    pub custom_approved: bool,
 }
 impl Default for SettingsState {
     fn default() -> Self {
@@ -62,7 +66,7 @@ impl Default for SettingsState {
             reveal_nonce: 0, model_entry: String::new(), catalog: std::array::from_fn(|_| Vec::new()),
             search: String::new(), catalog_selected: std::array::from_fn(|_| Vec::new()),
             probe_pending: false, probe_busy: false, probe_nonce: 0, probe_results: Vec::new(), catalog_busy: false, catalog_nonce: 0, models: std::array::from_fn(|_| Vec::new()),
-            chosen: [None; Provider::COUNT], status: String::new(), test_busy: false, test_evidence: None, stream_chat: true, key_busy: false }
+            chosen: [None; Provider::COUNT], status: String::new(), test_busy: false, test_evidence: None, stream_chat: true, key_busy: false, custom: Profile::default(), custom_curl: SecretText::default(), custom_approved: false }
     }
 }
 impl SettingsState {
@@ -83,7 +87,7 @@ fn surface(content: impl Into<Element<'static, Message>>) -> Element<'static, Me
 
 pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {
     let (heading, description) = match state.section {
-        Section::Providers => ("Providers", "Add a key to the OS vault, then browse this provider's models. No probe runs automatically."),
+        Section::Providers => ("Providers", "Set up a provider or custom endpoint. Nothing is sent until you choose to request or explicitly test a model."),
         Section::Models => ("Models", "Choose IDs to import; optionally test them first. A passing probe cannot guarantee future availability."),
         Section::Lab => ("Lab preview", "These options do not yet affect device memory."),
     };
@@ -128,7 +132,7 @@ fn setting_link(label: &'static str, section: Section, current: Section) -> Elem
 
 fn provider_tabs(current: Provider, busy: bool) -> Element<'static, Message> {
     let mut rows = column![].spacing(6);
-    for group in Provider::ALL.chunks(3) {
+    for group in Provider::ALL.chunks(4) {
         let mut line = row![].spacing(6);
         for provider in group.iter().copied() {
             let selected = current == provider;
@@ -144,7 +148,7 @@ fn provider_tabs(current: Provider, busy: bool) -> Element<'static, Message> {
 fn providers(state: &SettingsState) -> Element<'static, Message> {
     let mut keys = column![text("SAVED KEY SLOTS").size(11).color(style::DIM)].spacing(10);
     if state.key_ids.is_empty() {
-        keys = keys.push(text(if state.provider.needs_key() { "No saved keys for this provider. Paste one above to store it in your OS vault." } else { "No key needed. Select Models to browse the local Ollama server." }).size(13).color(style::GREY));
+        keys = keys.push(text(if state.provider.needs_key() { "No saved keys. Custom endpoints can also work without a key." } else { "No key needed. Select Models to browse the local Ollama server." }).size(13).color(style::GREY));
     }
     for id in &state.key_ids {
         let id = *id;
@@ -180,6 +184,7 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
         space().height(18),
         credential_control,
         space().height(26), keys,
+        if state.provider == Provider::Custom { custom_controls(state) } else { space().height(0).into() },
         space().height(12),
         text("Reveal is opt-in and hidden after 15 seconds or when you leave this page. Anyone with access to your unlocked session or screen may still see it.")
             .size(11).color(style::DIM)
@@ -206,7 +211,7 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
         text("Select a provider, fetch its list and check only the IDs you want. Or add an exact model ID below. Import never triggers a generation test.")
             .size(13).color(style::GREY),
         space().height(13),
-        catalog_view(state),
+        if state.provider == Provider::Custom { text("Custom endpoints have no discovery endpoint. Enter an exact model ID below; requests require separate destination approval.").size(12).color(style::GREY).into() } else { catalog_view(state) },
         space().height(26),
         text("ADD AN EXACT ID MANUALLY").size(11).color(style::DIM),
         text_input("e.g. provider/model:free", &state.model_entry)
@@ -314,4 +319,30 @@ fn lab(memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {
         ].spacing(10),
         space().height(20), custom
     ].width(Fill))
+}
+
+fn custom_controls(state: &SettingsState) -> Element<'static, Message> {
+    let p = &state.custom;
+    column![
+        space().height(20),
+        text("CUSTOM TEXT ENDPOINT  /  SESSION ONLY").size(12).color(style::WHITE),
+        text("HTTPS, or HTTP loopback only. No redirects, proxies, files, shell execution or saved profile. Your prompt and optional OS-vault key go to this exact destination only after approval.").size(12).color(style::GREY),
+        text_input("https://example.com/chat", &p.url).on_input(Message::CustomUrl).padding(11).style(style::composer_input),
+        text_input("Headers, one Name: value per line; use {{api_key}} for the OS-vault key", p.headers.as_str())
+            .on_input(|s| Message::CustomHeaders(SecretText::new(s))).padding(11).style(style::composer_input),
+        text_input("JSON body with {{prompt}} or {{messages}}", &p.body).on_input(Message::CustomBody).padding(11).style(style::composer_input),
+        text_input("Answer JSON pointer, e.g. /result/text", &p.answer_pointer).on_input(Message::CustomAnswer).padding(11).style(style::composer_input),
+        button(text(if p.stream { "Streaming: SSE data JSON" } else { "Streaming: off (JSON response)" }).size(12))
+            .on_press(Message::CustomStream).style(style::quiet_button),
+        if p.stream { text_input("SSE delta JSON pointer", &p.stream_pointer).on_input(Message::CustomDelta).padding(11).style(style::composer_input).into() }
+            else { space().height(0).into() },
+        text("Or paste a literal cURL POST request (JSON body; no shell evaluation):").size(12).color(style::GREY),
+        text_input("curl -X POST https://... -H 'Authorization: Bearer {{api_key}}' -d '{...}'", state.custom_curl.0.as_str())
+            .secure(true).on_input(|s| Message::CustomCurl(SecretText::new(s))).padding(11).style(style::composer_input),
+        button(text("Parse cURL into fields").size(12)).on_press(Message::ImportCustomCurl).style(style::quiet_button),
+        text(format!("Destination for approval: {}", if p.url.is_empty() { "not entered" } else { &p.url })).size(12).color(style::WHITE),
+        button(text(if state.custom_approved { "Approved for this session · revoke" } else { "Approve sending prompts and key to this destination" }).size(12))
+            .on_press(Message::ApproveCustom).style(style::chat_button),
+        text("Edit any field to revoke approval. Review the displayed URL and headers before sending; custom hosts can charge or retain your data.").size(11).color(style::DIM)
+    ].spacing(10).width(Fill).into()
 }

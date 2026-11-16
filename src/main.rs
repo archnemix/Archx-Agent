@@ -6,6 +6,7 @@ mod agent_visual;
 mod app;
 mod app_tile;
 mod credentials;
+mod custom_endpoint;
 mod home;
 mod navigation;
 mod model_catalog;

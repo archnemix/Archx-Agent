@@ -14,6 +14,7 @@ use crate::app_tile::Art;
 use crate::home;
 use crate::model_catalog::{self, CatalogModel};
 use crate::credentials::{Provider, Vault, VaultError};
+use crate::custom_endpoint;
 use crate::provider_api::{self, Turn, Reply, CallError};
 use iced::widget::markdown;
 use crate::settings::{SecretText, Section, SettingsState};
@@ -84,6 +85,15 @@ pub enum Message {
     OpenModelCatalogSettings,
     SelectProvider(Provider),
     EditKey(SecretText),
+    CustomUrl(String),
+    CustomHeaders(SecretText),
+    CustomBody(String),
+    CustomAnswer(String),
+    CustomDelta(String),
+    CustomStream,
+    CustomCurl(SecretText),
+    ImportCustomCurl,
+    ApproveCustom,
     SaveKey,
     KeySaved(Provider, Result<u64, VaultError>),
     RefreshKeys,
@@ -366,6 +376,7 @@ impl App {
             }
             Message::SelectProvider(provider) if matches!(self.page, Page::Settings | Page::Agent) && !self.settings.key_busy && !self.settings.probe_busy => {
                 self.settings.clear_secret();
+                self.settings.custom_approved = false;
                 self.settings.provider = provider;
                 self.settings.model_entry.clear();
                 self.settings.search.clear();
@@ -376,11 +387,53 @@ impl App {
                 self.settings.status.clear();
                 if self.page == Page::Settings { return self.update(Message::RefreshKeys); }
             }
+            Message::CustomUrl(value) if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
+                if value.len() <= 2048 { self.settings.custom.url = value; self.settings.custom_approved = false; }
+            }
+            Message::CustomHeaders(value) if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
+                if value.0.len() <= 8192 { self.settings.custom.headers = value.0; self.settings.custom_approved = false; }
+            }
+            Message::CustomBody(value) if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
+                if value.len() <= 16_384 { self.settings.custom.body = value; self.settings.custom_approved = false; }
+            }
+            Message::CustomAnswer(value) if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
+                if value.len() <= 256 { self.settings.custom.answer_pointer = value; self.settings.custom_approved = false; }
+            }
+            Message::CustomDelta(value) if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
+                if value.len() <= 256 { self.settings.custom.stream_pointer = value; self.settings.custom_approved = false; }
+            }
+            Message::CustomStream if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
+                self.settings.custom.stream = !self.settings.custom.stream; self.settings.custom_approved = false;
+            }
+            Message::CustomCurl(value) if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
+                if value.0.len() <= 24_000 { self.settings.custom_curl = value; self.settings.custom_approved = false; }
+            }
+            Message::ImportCustomCurl if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
+                match custom_endpoint::parse_curl(&self.settings.custom_curl.0) {
+                    Ok((url, headers, body)) => {
+                        self.settings.custom.url = url;
+                        self.settings.custom.headers = Zeroizing::new(headers);
+                        self.settings.custom.body = body;
+                        self.settings.custom_curl = SecretText::default();
+                        self.settings.custom_approved = false;
+                        self.settings.status = "Parsed literal cURL fields. Review destination, headers and response pointer before approval.".into();
+                    }
+                    Err(error) => self.settings.status = error.into(),
+                }
+            }
+            Message::ApproveCustom if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
+                if self.settings.custom_approved { self.settings.custom_approved = false; }
+                else { match self.settings.custom.check() {
+                    Ok(()) => { self.settings.custom_approved = true; self.settings.status = "Destination approved for this session. Add an exact model ID; send or run an explicit test when ready.".into(); }
+                    Err(error) => self.settings.status = error.into(),
+                }}
+            }
             Message::EditKey(value) if self.page == Page::Settings && self.settings.section != Section::Lab => {
                 if value.0.len() <= 1024 { self.settings.key_entry = value; }
             }
             Message::SaveKey if self.page == Page::Settings && self.settings.section != Section::Lab && !self.settings.key_entry.0.is_empty() && !self.settings.key_busy => {
                 self.settings.key_busy = true;
+                self.settings.custom_approved = false;
                 let provider = self.settings.provider;
                 let secret = std::mem::take(&mut self.settings.key_entry).0;
                 self.settings.clear_secret();
@@ -573,7 +626,7 @@ impl App {
                     Err(error) => error,
                 };
             }
-            Message::FetchModels if self.page == Page::Settings && self.settings.section != Section::Lab && !self.settings.catalog_busy && self.snapshot.is_none() => {
+            Message::FetchModels if self.settings.provider != Provider::Custom && self.page == Page::Settings && self.settings.section != Section::Lab && !self.settings.catalog_busy && self.snapshot.is_none() => {
                 let provider = self.settings.provider;
                 self.settings.catalog_busy = true;
                 self.settings.catalog_nonce = self.settings.catalog_nonce.wrapping_add(1);
@@ -731,6 +784,14 @@ impl App {
         };
         let index = self.settings.index();
         let cursor = self.key_cursor[index];
+        if provider == Provider::Custom && !self.settings.custom_approved {
+            self.settings.status = "Approve the custom destination in Settings → Providers before sending any prompt or key.".into();
+            if let Some(draft) = self.drafts.iter_mut().find(|d| d.id == self.selected_draft) {
+                draft.error = Some(self.settings.status.clone());
+            }
+            return Task::none();
+        }
+        let custom = self.settings.custom.clone();
         let id = self.selected_draft;
         let turns = if test {
             self.settings.test_busy = true;
@@ -754,7 +815,11 @@ impl App {
         if test || !self.settings.stream_chat {
             let task = async move {
                 let selected = selected_key(provider, cursor).await?;
-                provider_api::send(provider, model, selected, turns, if test { 256 } else { 4096 }).await.map_err(CallError::message)
+                if provider == Provider::Custom {
+                    custom_endpoint::send(custom, model, selected, turns, if test { 256 } else { 4096 }).await
+                } else {
+                    provider_api::send(provider, model, selected, turns, if test { 256 } else { 4096 }).await
+                }.map_err(CallError::message)
             };
             if test { Task::perform(task, |result| Message::TestResult(result.map(|reply| SecretText::new(reply.content)))) }
             else {
@@ -765,8 +830,13 @@ impl App {
         } else {
             let task = Task::sip(sipper(async move |mut progress| {
                 let selected = selected_key(provider, cursor).await?;
-                provider_api::send_stream(provider, model, selected, turns, &mut progress, 4096)
-                    .await.map_err(CallError::message)
+                if provider == Provider::Custom {
+                    // The configurable SSE parser returns a complete bounded answer. A
+                    // follow-up will expose incremental deltas in the UI as well.
+                    custom_endpoint::send(custom, model, selected, turns, 4096).await
+                } else {
+                    provider_api::send_stream(provider, model, selected, turns, &mut progress, 4096).await
+                }.map_err(CallError::message)
             }), move |reply| Message::ChatProgress(id, SecretReply(reply)),
                 move |result| Message::ChatResult(id, result.map(SecretReply)));
             let (task, handle) = task.abortable();
@@ -802,6 +872,11 @@ impl App {
 // Select a vault key only for an explicit send/test, never during selection.
 async fn selected_key(provider: Provider, cursor: usize) -> Result<Zeroizing<String>, String> {
     if !provider.needs_key() { return Ok(Zeroizing::new(String::new())); }
+    if provider == Provider::Custom {
+        let has_keys = tokio::task::spawn_blocking(|| Vault::os().list(Provider::Custom)).await
+            .map_err(|_| VaultError::Unavailable).and_then(|r| r).map_err(|e| e.message().to_owned())?;
+        if has_keys.is_empty() { return Ok(Zeroizing::new(String::new())); }
+    }
     tokio::task::spawn_blocking(move || {
         let vault = Vault::os();
         let keys = vault.list(provider)?;

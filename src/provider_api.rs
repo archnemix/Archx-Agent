@@ -101,6 +101,7 @@ fn endpoint(provider: Provider, model: &str) -> String {
         Provider::Zai => "https://api.z.ai/api/paas/v4/chat/completions".into(),
         Provider::OllamaLocal => "http://127.0.0.1:11434/v1/chat/completions".into(),
         Provider::OllamaCloud => "https://ollama.com/v1/chat/completions".into(),
+        Provider::Custom => unreachable!("Custom endpoint must use the approved custom transport"),
     }
 }
 

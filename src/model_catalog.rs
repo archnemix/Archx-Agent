@@ -110,6 +110,7 @@ pub async fn fetch(provider: Provider, key: Option<Zeroizing<String>>) -> Result
             Provider::Zai => client.get("https://api.z.ai/api/paas/v4/models")
                 .bearer_auth(key.as_ref().ok_or(CallError::InvalidInput)?.as_str()),
             Provider::OllamaLocal => client.get("http://127.0.0.1:11434/api/tags"),
+            Provider::Custom => return Err(CallError::InvalidInput),
             Provider::OllamaCloud => client.get("https://ollama.com/api/tags")
                 .bearer_auth(key.as_ref().ok_or(CallError::InvalidInput)?.as_str()),
         };

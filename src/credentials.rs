@@ -15,11 +15,12 @@ pub enum Provider {
     Zai,
     OllamaLocal,
     OllamaCloud,
+    Custom,
 }
 
 impl Provider {
-    pub const ALL: [Self; 9] = [Self::OpenRouter, Self::Grok, Self::Gemini,
-        Self::OpenAI, Self::Anthropic, Self::Groq, Self::Zai, Self::OllamaLocal, Self::OllamaCloud];
+    pub const ALL: [Self; 10] = [Self::OpenRouter, Self::Grok, Self::Gemini,
+        Self::OpenAI, Self::Anthropic, Self::Groq, Self::Zai, Self::OllamaLocal, Self::OllamaCloud, Self::Custom];
     pub const COUNT: usize = Self::ALL.len();
 
     pub fn index(self) -> usize {
@@ -38,6 +39,7 @@ impl Provider {
             Self::Zai => "Z.ai",
             Self::OllamaLocal => "Ollama · local",
             Self::OllamaCloud => "Ollama · cloud",
+            Self::Custom => "Custom URL",
         }
     }
 
@@ -52,6 +54,7 @@ impl Provider {
             Self::Zai => "zai",
             Self::OllamaLocal => "ollama-local",
             Self::OllamaCloud => "ollama-cloud",
+            Self::Custom => "custom",
         }
     }
 }
