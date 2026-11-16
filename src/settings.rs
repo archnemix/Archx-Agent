@@ -159,6 +159,17 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
             button(text("Remove").size(11)).on_press_maybe((!state.key_busy).then_some(Message::RemoveKey(id))).style(style::quiet_button)
         ].spacing(10));
     }
+    let credential_control: Element<'static, Message> = if state.provider.needs_key() {
+        column![text_input::<Message, iced::Theme, iced::Renderer>("Paste an API key", state.key_entry.0.as_str()).secure(true)
+            .on_input(|value| Message::EditKey(SecretText::new(value)))
+            .padding([13, 15]).style(style::composer_input),
+            button(text("Save key to OS vault").size(12))
+                .on_press_maybe((!state.key_busy && !state.key_entry.0.is_empty()).then_some(Message::SaveKey))
+                .padding([11, 15]).style(style::chat_button)].spacing(10).into()
+    } else {
+        button(text("Browse local Ollama models ↗").size(12)).on_press(Message::OpenModelCatalogSettings)
+            .style(style::chat_button).into()
+    };
     surface(column![
         text("PROVIDER  /  OS KEYCHAIN").size(11).color(style::DIM),
         space().height(12), provider_tabs(state.provider, state.key_busy),
@@ -167,17 +178,7 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
             else { "Local Ollama: fixed loopback address 127.0.0.1:11434 · no key needed · no remote URL accepted." })
             .size(13).color(style::GREY),
         space().height(18),
-        if state.provider.needs_key() {
-            column![text_input::<Message, iced::Theme, iced::Renderer>("Paste an API key", state.key_entry.0.as_str()).secure(true)
-                .on_input(|value| Message::EditKey(SecretText::new(value)))
-                .padding([13, 15]).style(style::composer_input),
-                button(text("Save key to OS vault").size(12))
-                    .on_press_maybe((!state.key_busy && !state.key_entry.0.is_empty()).then_some(Message::SaveKey))
-                    .padding([11, 15]).style(style::chat_button)].spacing(10).into()
-        } else {
-            button(text("Browse local Ollama models ↗").size(12)).on_press(Message::OpenModelCatalogSettings)
-                .style(style::chat_button).into()
-        },
+        credential_control,
         space().height(26), keys,
         space().height(12),
         text("Reveal is opt-in and hidden after 15 seconds or when you leave this page. Anyone with access to your unlocked session or screen may still see it.")
