@@ -2,6 +2,7 @@
 name: Real Smol Q2 wrapper integration
 on:
   workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 jobs:

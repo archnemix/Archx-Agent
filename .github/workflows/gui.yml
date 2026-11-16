@@ -16,6 +16,10 @@ permissions:
   contents: write
 
 jobs:
+  real-smol:
+    if: github.event.head_commit.message == 'Run real Smol wrapper validation'
+    uses: ./.github/workflows/smol-wrapper.yml
+
   linux:
     runs-on: ubuntu-latest
     steps:
