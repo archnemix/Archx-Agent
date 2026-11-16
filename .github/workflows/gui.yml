@@ -84,6 +84,7 @@ jobs:
           test -s Docs/Test_Results/Unreleased/visual/linux-custom.png
       - name: Record results in repository
         if: always()
+        continue-on-error: true # Concurrent evidence commits can conflict; never block OS build validation.
         shell: bash
         run: |
           git config user.name 'archx-ci[bot]'
@@ -162,6 +163,7 @@ jobs:
           cp target/release/archx-ai-lab.exe deliverables/Unreleased/windows/archx-ai-lab.exe
       - name: Record results and Windows build in repository
         if: always()
+        continue-on-error: true # Concurrent evidence commits can conflict; never block OS build validation.
         shell: bash
         run: |
           git config user.name 'archx-ci[bot]'
@@ -236,6 +238,7 @@ jobs:
           test -s Docs/Test_Results/Unreleased/visual/macos-custom.png
       - name: Record results in repository
         if: always()
+        continue-on-error: true # Concurrent evidence commits can conflict; never block OS build validation.
         shell: bash
         run: |
           git config user.name 'archx-ci[bot]'
