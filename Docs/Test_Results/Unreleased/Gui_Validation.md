@@ -1,6 +1,13 @@
 <!-- Purpose: Records current three-OS GUI test commands, outputs, screenshots, visual review, and Windows delivery. -->
 # AI Lab launcher validation — native chat and unified Settings
 
+## 2026-11-09 — Custom-endpoint implementation, validation pending
+
+The earlier fixed-provider revision (`fe9f9f5`, [run 43893694243](https://github.com/archnemix/Archx-Agent/actions/runs/43893694243)) finished **successfully on Linux, Windows and macOS**; Linux and Windows each logged 36 passing tests. This is contract/build/synthetic screenshot evidence, not real provider or vault interaction or visual acceptance. The Windows review binary from that revision is **superseded by ongoing changes**, not a validated custom-wrapper deliverable.
+
+The new session-only custom URL transport provides a literal (never executed) subset of cURL POST import, JSON request placeholders, JSON-pointer answer parsing, optional SSE delta parsing, an optional OS-vault key placeholder, explicit destination approval that edits revoke, HTTP loopback / HTTPS validation, redirect/proxy disabling, and bounded replies. One-click OpenAI- and Anthropic-compatible request presets are configurable; the generic JSON shape supports nonstandard wrappers. Its token-limited explicit test can specify an expected response word. Full three-OS CI for these changes **has not completed** at the time of this note; do not claim compile success, live compatibility or a successful SmolLM2-135M Q2_K test. The required weight/inference environment is unavailable here; no real model was downloaded or run. Unit tests for cURL/URL/JSON templates are synthetic only. Custom host keys may be copied transiently into TLS/header buffers; this cannot be guaranteed absent from process memory. Profile and conversation are session-only; a key is stored only if explicitly saved to the OS vault. User acceptance remains outstanding.
+
+
 ## Current user-review correction (2026-11-09)
 
 Source `702a563`, [CI `43742373398`](https://github.com/archnemix/Archx-Agent/actions/runs/43742373398): Linux, Windows and macOS jobs all passed `cargo test --locked` (**30 passed, 0 failed per OS**), `cargo build --release --locked`, and scripted native Home, Settings, Agent and synthetic Markdown/reasoning snapshots. Exact commands, inputs and outputs are in `non_visual/{linux,windows,macos}.log` and `.github/workflows/gui.yml`; screenshots are in `visual/`. Windows log confirms GUI subsystem 2 (no console) and product metadata, **not** a digital signature. Latest [Windows GUI executable](../../../deliverables/Unreleased/windows/archx-ai-lab.exe), SHA-256 `a534e38fb61a5a182dcb2b55b98d76a36b9b4da21fc848641686ba84ff385c4e`, **unsigned**.
