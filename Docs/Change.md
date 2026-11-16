@@ -123,3 +123,7 @@ User reported a real Windows reply dropped on "Provider response exceeded the lo
 ## 2026-11-09 — Configurable custom endpoints under an opt-in destination boundary
 
 Added a session-only arbitrary JSON text-model adapter: HTTPS or loopback HTTP, cURL literal parser (not a shell), explicit per-destination approval, typed prompt/messages/model/token/stream placeholders, optional vault-key header, RFC 6901 response selectors, optional SSE and compatible protocol presets. A configured expected word is checked in the explicit 256-output-token test. The fixed-provider 3-OS build passed before these changes; the custom adapter still requires a fresh 3-OS compile, real 135M Q2_K wrapper inference and user visual/interaction review. No live-compatibility claim.
+
+## 2026-11-09 — Real wrapper integration and Settings hierarchy correction
+
+The `real-smol` CI job loaded SmolLM2-135M-Instruct Q2_K in a llama.cpp loopback server and the Rust custom adapter returned nonempty model text (run 43910109832). Linux/Windows/macOS GUI builds and 38 ordinary tests each passed; this is not hosted-provider verification or user acceptance. Removed the extra Settings category rail in a follow-up awaiting new three-OS screenshots.
