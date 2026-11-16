@@ -127,3 +127,7 @@ Added a session-only arbitrary JSON text-model adapter: HTTPS or loopback HTTP, 
 ## 2026-11-09 — Real wrapper integration and Settings hierarchy correction
 
 The `real-smol` CI job loaded SmolLM2-135M-Instruct Q2_K in a llama.cpp loopback server and the Rust custom adapter returned nonempty model text (run 43910109832). Linux/Windows/macOS GUI builds and 38 ordinary tests each passed; this is not hosted-provider verification or user acceptance. Removed the extra Settings category rail in a follow-up awaiting new three-OS screenshots.
+
+## 2026-11-09 — Final native validation for custom endpoint review slice
+
+`eec0b04` passed Linux, Windows and macOS runner build/tests/captures, plus a separate actual SmolLM2-135M-Instruct Q2_K llama.cpp-to-Rust custom-adapter inference run (`43927254757`). Regular tests: 38 passing per OS, one opt-in real-model test ignored in the ordinary suite. The custom destination form is visible at macOS's short viewport after moving optional vault controls beneath it; screenshot fixtures remain synthetic. User hands-on/design acceptance and external provider compatibility have not been established.
