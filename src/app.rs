@@ -861,9 +861,7 @@ impl App {
             let task = Task::sip(sipper(async move |mut progress| {
                 let selected = selected_key(provider, cursor).await?;
                 if provider == Provider::Custom {
-                    // The configurable SSE parser returns a complete bounded answer. A
-                    // follow-up will expose incremental deltas in the UI as well.
-                    custom_endpoint::send(custom, model, selected, turns, 4096).await
+                    custom_endpoint::send_stream(custom, model, selected, turns, 4096, &mut progress).await
                 } else {
                     provider_api::send_stream(provider, model, selected, turns, &mut progress, 4096).await
                 }.map_err(CallError::message)

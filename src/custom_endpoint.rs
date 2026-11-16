@@ -145,6 +145,16 @@ impl Profile {
 }
 
 pub async fn send(profile: Profile, model: String, key: Zeroizing<String>, turns: Vec<Turn>, max_tokens: u32) -> Result<Reply, CallError> {
+    send_inner(profile, model, key, turns, max_tokens, None).await
+}
+
+pub async fn send_stream(profile: Profile, model: String, key: Zeroizing<String>, turns: Vec<Turn>, max_tokens: u32,
+    progress: &mut sipper::Sender<Reply>) -> Result<Reply, CallError> {
+    send_inner(profile, model, key, turns, max_tokens, Some(progress)).await
+}
+
+async fn send_inner(profile: Profile, model: String, key: Zeroizing<String>, turns: Vec<Turn>, max_tokens: u32,
+    mut progress: Option<&mut sipper::Sender<Reply>>) -> Result<Reply, CallError> {
     profile.check().map_err(|_| CallError::InvalidInput)?;
     if turns.is_empty() || max_tokens == 0 || max_tokens > 4096 { return Err(CallError::InvalidInput); }
     let client = Client::builder().no_proxy().redirect(redirect::Policy::none())
@@ -156,30 +166,38 @@ pub async fn send(profile: Profile, model: String, key: Zeroizing<String>, turns
         if line.trim().is_empty() { continue; }
         let (name, value) = line.split_once(':').ok_or(CallError::InvalidInput)?;
         validate_header(line).map_err(|_| CallError::InvalidInput)?;
-        // Header values are allowed to contain a vault key placeholder, not an
-        // environment variable, command substitution or file reference.
         let value = Zeroizing::new(value.trim().replace("{{api_key}}", key.as_str()));
         request = request.header(name.trim(), value.as_str());
     }
     let mut response = request.send().await.map_err(|_| CallError::Transport)?;
     if !response.status().is_success() { return Err(CallError::Rejected(response.status().as_u16())); }
     let mut bytes = Vec::new();
+    let mut read = 0usize;
+    let mut reply = Reply::default();
+    let mut done = false;
     while let Some(chunk) = response.chunk().await.map_err(|_| CallError::Transport)? {
-        if bytes.len().saturating_add(chunk.len()) > 2 * 1024 * 1024 { return Err(CallError::Oversized); }
+        read = read.saturating_add(chunk.len());
+        if read > 2 * 1024 * 1024 { return Err(CallError::Oversized); }
         bytes.extend_from_slice(&chunk);
+        if profile.stream {
+            while let Some(end) = bytes.iter().position(|b| *b == b'\n') {
+                let line = bytes.drain(..=end).collect::<Vec<_>>();
+                let line = std::str::from_utf8(&line).map_err(|_| CallError::InvalidResponse)?;
+                let Some(data) = line.trim().strip_prefix("data:") else { continue; };
+                if data.trim() == "[DONE]" { done = true; break; }
+                let frame: Value = serde_json::from_str(data.trim()).map_err(|_| CallError::InvalidResponse)?;
+                let delta = frame.pointer(&profile.stream_pointer).and_then(Value::as_str)
+                    .ok_or(CallError::InvalidResponse)?;
+                if reply.content.len().saturating_add(delta.len()) > 96 * 1024 { return Err(CallError::Oversized); }
+                reply.content.push_str(delta);
+                if let Some(sender) = progress.as_mut() { sender.send(reply.clone()).await; }
+            }
+            if done { break; }
+        }
     }
     if profile.stream {
-        let mut reply = Reply::default();
-        for line in bytes.split(|b| *b == b'\n') {
-            let Ok(line) = std::str::from_utf8(line) else { return Err(CallError::InvalidResponse) };
-            let Some(data) = line.trim().strip_prefix("data:") else { continue };
-            if data.trim() == "[DONE]" { break; }
-            let frame: Value = serde_json::from_str(data.trim()).map_err(|_| CallError::InvalidResponse)?;
-            let delta = frame.pointer(&profile.stream_pointer).and_then(Value::as_str).ok_or(CallError::InvalidResponse)?;
-            if reply.content.len().saturating_add(delta.len()) > 96 * 1024 { return Err(CallError::Oversized); }
-            reply.content.push_str(delta);
-        }
         if reply.content.is_empty() { return Err(CallError::InvalidResponse); }
+        // Some user-built wrappers close cleanly without a [DONE] sentinel.
         Ok(reply)
     } else {
         let body: Value = serde_json::from_slice(&bytes).map_err(|_| CallError::InvalidResponse)?;
