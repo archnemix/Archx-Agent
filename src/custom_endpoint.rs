@@ -216,6 +216,19 @@ mod tests {
         assert!(validate_url("http://example.com/ai").is_err());
         assert!(validate_url("https://user:pass@example.com/ai").is_err());
     }
+    // Opt-in CI integration: a real llama.cpp server loaded with the Q2_K
+    // SmolLM2-135M-Instruct GGUF. This is never replaced by a fixture.
+    #[test]
+    #[ignore = "requires a running real Q2_K model server; run the Smol wrapper workflow"]
+    fn real_smol_wrapper_via_custom_transport() {
+        let url = std::env::var("ARCHX_REAL_WRAPPER_URL").expect("real wrapper URL required");
+        let profile = Profile { url, ..Profile::default() };
+        profile.check().unwrap();
+        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+        let reply = rt.block_on(send(profile, "smol-wrapper".into(), Zeroizing::new(String::new()),
+            vec![Turn { role: "user", content: "Reply with the word OK.".into() }], 64)).unwrap();
+        assert!(!reply.content.trim().is_empty(), "real model returned no text");
+    }
     #[test]
     fn parses_literal_curl_and_typed_templates() {
         let (url, headers, body) = parse_curl("curl -X POST https://example.com/chat -H 'Authorization: Bearer {{api_key}}' -d '{\"prompt\":\"{{prompt}}\",\"limit\":\"{{max_tokens}}\"}'").unwrap();

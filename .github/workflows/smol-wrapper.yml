@@ -1,0 +1,41 @@
+# Purpose: Opt-in, real-model smoke test of the Rust custom transport, not a fixture.
+name: Real Smol Q2 wrapper integration
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smol-wrapper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: arena/d45bc2a4-archx-agent
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build llama.cpp CPU server and download real 135M Q2_K weights
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/ggml-org/llama.cpp.git /tmp/llama.cpp
+          cmake -S /tmp/llama.cpp -B /tmp/llama-build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_CURL=OFF
+          cmake --build /tmp/llama-build --target llama-server -j 4
+          curl -fLSs --retry 3 --max-time 240 \
+            'https://huggingface.co/tensorblock/SmolLM2-135M-Instruct-GGUF/resolve/main/SmolLM2-135M-Instruct-Q2_K.gguf?download=true' \
+            -o /tmp/smol-q2.gguf
+          test "$(stat -c %s /tmp/smol-q2.gguf)" -gt 80000000
+      - name: Run the actual model through the custom Rust endpoint adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/llama-build/bin/llama-server -m /tmp/smol-q2.gguf -a smol-wrapper -c 1024 \
+            --host 127.0.0.1 --port 18080 > /tmp/llama-server.log 2>&1 &
+          server=$!
+          trap 'kill "$server" || true; rm -f /tmp/smol-q2.gguf' EXIT
+          for i in {1..90}; do
+            if curl -fsS http://127.0.0.1:18080/health > /dev/null; then break; fi
+            if ! kill -0 "$server" 2>/dev/null; then echo 'Model server exited'; exit 1; fi
+            sleep 2
+          done
+          export ARCHX_REAL_WRAPPER_URL=http://127.0.0.1:18080/v1/chat/completions
+          cargo test --locked real_smol_wrapper_via_custom_transport -- --ignored --nocapture
