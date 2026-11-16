@@ -94,6 +94,7 @@ pub enum Message {
     CustomCurl(SecretText),
     ImportCustomCurl,
     ApproveCustom,
+    ExpectedWord(String),
     SaveKey,
     KeySaved(Provider, Result<u64, VaultError>),
     RefreshKeys,
@@ -428,6 +429,11 @@ impl App {
                     Err(error) => self.settings.status = error.into(),
                 }}
             }
+            Message::ExpectedWord(value) if self.page == Page::Settings && !self.settings.test_busy => {
+                if value.len() <= 32 && value.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+                    self.settings.expected_word = value;
+                }
+            }
             Message::EditKey(value) if self.page == Page::Settings && self.settings.section != Section::Lab => {
                 if value.0.len() <= 1024 { self.settings.key_entry = value; }
             }
@@ -593,7 +599,8 @@ impl App {
                     for (offset, id) in ids.into_iter().enumerate() {
                         let result = match selected_key(provider, cursor.wrapping_add(offset)).await {
                             Ok(key) => provider_api::send(provider, id.clone(), key,
-                                vec![Turn { role: "user", content: "Reply with the word OK.".into() }], 256)
+                                let word = if self.settings.expected_word.is_empty() { "OK" } else { &self.settings.expected_word };
+            vec![Turn { role: "user", content: format!("Reply with the word {word}.") }], 256)
                                 .await.map(|reply| SecretText::new(reply.content))
                                 .map_err(|error| error.message()),
                             Err(error) => Err(error),
@@ -736,11 +743,13 @@ impl App {
                 self.settings.status = match result {
                     Ok(content) => {
                         let received: String = content.0.chars().filter(|c| !c.is_control() || *c == '\n').take(240).collect();
-                        self.settings.test_evidence = Some(format!("Sent: Reply with the word OK.  ·  Received: {received}"));
-                        "Generation probe received text (not a permanent availability guarantee).".into()
+                        let word = if self.settings.expected_word.is_empty() { "OK" } else { &self.settings.expected_word };
+                        let passed = received.to_lowercase().contains(&word.to_lowercase());
+                        self.settings.test_evidence = Some(format!("Sent: Reply with the word {word}.  ·  Received: {received}  ·  Expected word: {}", if passed { "found" } else { "not found" }));
+                        if passed { "Generation probe received the expected word (not a permanent availability guarantee)." } else { "Generation returned text, but the expected word was not found." }.into()
                     }
                     Err(error) => {
-                        self.settings.test_evidence = Some(format!("Sent: Reply with the word OK.  ·  Failed: {error}"));
+                        self.settings.test_evidence = Some(format!("Sent: Reply with the word {}.  ·  Failed: {error}", self.settings.expected_word));
                         error
                     }
                 };
@@ -797,7 +806,8 @@ impl App {
             self.settings.test_busy = true;
             self.settings.test_evidence = None;
             self.settings.status = "Sending a small billable generation test…".into();
-            vec![Turn { role: "user", content: "Reply with the word OK.".into() }]
+            let word = if self.settings.expected_word.is_empty() { "OK" } else { &self.settings.expected_word };
+            vec![Turn { role: "user", content: format!("Reply with the word {word}.") }]
         } else {
             let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) else { return Task::none(); };
             if draft.mode != 0 || draft.busy || draft.text.trim().is_empty() || draft.text.chars().count() > 4000 { return Task::none(); }

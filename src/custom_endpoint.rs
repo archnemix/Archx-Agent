@@ -104,7 +104,8 @@ fn expand(value: &mut Value, model: &str, turns: &[Turn], limit: u32, stream: bo
 pub fn parse_answer(value: &Value, pointer: &str) -> Result<Reply, CallError> {
     if !pointer.starts_with('/') || pointer.len() > 256 { return Err(CallError::InvalidInput); }
     let content = value.pointer(pointer).and_then(Value::as_str).ok_or(CallError::InvalidResponse)?;
-    if content.is_empty() || content.chars().count() > 96 * 1024 { return Err(CallError::Oversized); }
+    if content.is_empty() { return Err(CallError::InvalidResponse); }
+    if content.chars().count() > 96 * 1024 { return Err(CallError::Oversized); }
     Ok(Reply { content: content.to_owned(), reasoning: None })
 }
 
@@ -131,7 +132,7 @@ impl Profile {
     pub fn check(&self) -> Result<(), &'static str> {
         validate_url(&self.url)?;
         if self.headers.len() > 8192 || self.body.len() > 16_384 { return Err("Custom request is too long."); }
-        for line in self.headers.lines() { validate_header(line)?; }
+        for line in self.headers.split(['\n', '|']) { if !line.trim().is_empty() { validate_header(line)?; } }
         let body: Value = serde_json::from_str(&self.body).map_err(|_| "Request body must be JSON.")?;
         if !body.to_string().contains("{{prompt}}") && !body.to_string().contains("{{messages}}") {
             return Err("Include {{prompt}} or {{messages}} in the JSON request.");
@@ -151,7 +152,8 @@ pub async fn send(profile: Profile, model: String, key: Zeroizing<String>, turns
     let mut body: Value = serde_json::from_str(&profile.body).map_err(|_| CallError::InvalidInput)?;
     expand(&mut body, &model, &turns, max_tokens, profile.stream);
     let mut request = client.post(validate_url(&profile.url).map_err(|_| CallError::InvalidInput)?).json(&body);
-    for line in profile.headers.lines() {
+    for line in profile.headers.split(['\n', '|']) {
+        if line.trim().is_empty() { continue; }
         let (name, value) = line.split_once(':').ok_or(CallError::InvalidInput)?;
         validate_header(line).map_err(|_| CallError::InvalidInput)?;
         // Header values are allowed to contain a vault key placeholder, not an

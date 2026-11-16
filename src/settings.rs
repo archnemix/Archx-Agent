@@ -58,6 +58,7 @@ pub struct SettingsState {
     pub custom: Profile,
     pub custom_curl: SecretText,
     pub custom_approved: bool,
+    pub expected_word: String,
 }
 impl Default for SettingsState {
     fn default() -> Self {
@@ -66,7 +67,7 @@ impl Default for SettingsState {
             reveal_nonce: 0, model_entry: String::new(), catalog: std::array::from_fn(|_| Vec::new()),
             search: String::new(), catalog_selected: std::array::from_fn(|_| Vec::new()),
             probe_pending: false, probe_busy: false, probe_nonce: 0, probe_results: Vec::new(), catalog_busy: false, catalog_nonce: 0, models: std::array::from_fn(|_| Vec::new()),
-            chosen: [None; Provider::COUNT], status: String::new(), test_busy: false, test_evidence: None, stream_chat: true, key_busy: false, custom: Profile::default(), custom_curl: SecretText::default(), custom_approved: false }
+            chosen: [None; Provider::COUNT], status: String::new(), test_busy: false, test_evidence: None, stream_chat: true, key_busy: false, custom: Profile::default(), custom_curl: SecretText::default(), custom_approved: false, expected_word: "OK".into() }
     }
 }
 impl SettingsState {
@@ -220,9 +221,11 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
         button(text("Add model").size(12)).on_press(Message::AddModel).padding([11, 15]).style(style::quiet_button),
         space().height(23), list,
         space().height(16),
-        text("Explicit test: sends only ‘Reply with the word OK.’ to the selected provider/model. Output cap 256 tokens; this may be billable and total tokens are not guaranteed.")
+        text("Explicit test: sends a small prompt to the selected provider/model. Output cap 256 tokens; this may be billable and total tokens are not guaranteed.")
             .size(12).color(style::GREY),
         space().height(12),
+        text_input("Expected test word (default OK)", &state.expected_word).on_input(Message::ExpectedWord)
+            .padding([11, 15]).style(style::composer_input),
         button(text("Run small generation test  ↗").size(12))
             .on_press_maybe((state.selected_model().is_some() && !state.test_busy).then_some(Message::RunTest))
             .padding([11, 15]).style(style::quiet_button),
@@ -328,7 +331,7 @@ fn custom_controls(state: &SettingsState) -> Element<'static, Message> {
         text("CUSTOM TEXT ENDPOINT  /  SESSION ONLY").size(12).color(style::WHITE),
         text("HTTPS, or HTTP loopback only. No redirects, proxies, files, shell execution or saved profile. Your prompt and optional OS-vault key go to this exact destination only after approval.").size(12).color(style::GREY),
         text_input("https://example.com/chat", &p.url).on_input(Message::CustomUrl).padding(11).style(style::composer_input),
-        text_input("Headers, one Name: value per line; use {{api_key}} for the OS-vault key", p.headers.as_str())
+        text_input("Headers: Name: value | Name: value (or use cURL); {{api_key}} for vault key", p.headers.as_str())
             .on_input(|s| Message::CustomHeaders(SecretText::new(s))).padding(11).style(style::composer_input),
         text_input("JSON body with {{prompt}} or {{messages}}", &p.body).on_input(Message::CustomBody).padding(11).style(style::composer_input),
         text_input("Answer JSON pointer, e.g. /result/text", &p.answer_pointer).on_input(Message::CustomAnswer).padding(11).style(style::composer_input),
