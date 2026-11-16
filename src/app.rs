@@ -94,6 +94,8 @@ pub enum Message {
     CustomCurl(SecretText),
     ImportCustomCurl,
     ApproveCustom,
+    CustomOpenAiPreset,
+    CustomAnthropicPreset,
     ExpectedWord(String),
     SaveKey,
     KeySaved(Provider, Result<u64, VaultError>),
@@ -387,6 +389,24 @@ impl App {
                 self.settings.key_ids.clear();
                 self.settings.status.clear();
                 if self.page == Page::Settings { return self.update(Message::RefreshKeys); }
+            }
+            Message::CustomOpenAiPreset if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
+                self.settings.custom.headers = Zeroizing::new("Authorization: Bearer {{api_key}}".into());
+                self.settings.custom.body = r#"{"model":"{{model}}","messages":"{{messages}}","max_tokens":"{{max_tokens}}","stream":"{{stream}}"}"#.into();
+                self.settings.custom.answer_pointer = "/choices/0/message/content".into();
+                self.settings.custom.stream_pointer = "/choices/0/delta/content".into();
+                self.settings.custom.stream = false;
+                self.settings.custom_approved = false;
+                self.settings.status = "OpenAI-compatible shape loaded. Enter a URL and review all fields before approval.".into();
+            }
+            Message::CustomAnthropicPreset if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
+                self.settings.custom.headers = Zeroizing::new("x-api-key: {{api_key}}|anthropic-version: 2023-06-01".into());
+                self.settings.custom.body = r#"{"model":"{{model}}","messages":"{{messages}}","max_tokens":"{{max_tokens}}","stream":"{{stream}}"}"#.into();
+                self.settings.custom.answer_pointer = "/content/0/text".into();
+                self.settings.custom.stream_pointer = "/delta/text".into();
+                self.settings.custom.stream = false;
+                self.settings.custom_approved = false;
+                self.settings.status = "Anthropic-compatible shape loaded. Enter a URL and review all fields before approval.".into();
             }
             Message::CustomUrl(value) if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
                 if value.len() <= 2048 { self.settings.custom.url = value; self.settings.custom_approved = false; }

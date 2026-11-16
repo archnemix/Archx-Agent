@@ -329,6 +329,8 @@ fn custom_controls(state: &SettingsState) -> Element<'static, Message> {
     column![
         space().height(20),
         text("CUSTOM TEXT ENDPOINT  /  SESSION ONLY").size(12).color(style::WHITE),
+        row![button(text("OpenAI-compatible preset").size(11)).on_press(Message::CustomOpenAiPreset).style(style::quiet_button),
+            button(text("Anthropic-compatible preset").size(11)).on_press(Message::CustomAnthropicPreset).style(style::quiet_button)].spacing(8),
         text("HTTPS, or HTTP loopback only. No redirects, proxies, files, shell execution or saved profile. Your prompt and optional OS-vault key go to this exact destination only after approval.").size(12).color(style::GREY),
         text_input("https://example.com/chat", &p.url).on_input(Message::CustomUrl).padding(11).style(style::composer_input),
         text_input("Headers: Name: value | Name: value (or use cURL); {{api_key}} for vault key", p.headers.as_str())

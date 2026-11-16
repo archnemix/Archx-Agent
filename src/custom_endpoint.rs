@@ -10,8 +10,8 @@ use crate::provider_api::{CallError, Reply, Turn};
 // Only these cURL options have a meaning. Reject all others rather than
 // accidentally interpreting a shell pipeline, @file body, -k or a redirect.
 pub fn parse_curl(input: &str) -> Result<(String, String, String), &'static str> {
-    let mut tokens = Vec::new();
-    let mut word = String::new();
+    let mut tokens = Zeroizing::new(Vec::new());
+    let mut word = Zeroizing::new(String::new());
     let mut quote = None;
     let mut escaped = false;
     for ch in input.chars() {
@@ -21,13 +21,13 @@ pub fn parse_curl(input: &str) -> Result<(String, String, String), &'static str>
             if ch == q { quote = None; } else { word.push(ch); }
         } else if ch == '\'' || ch == '"' { quote = Some(ch); }
         else if ch.is_whitespace() {
-            if !word.is_empty() { tokens.push(std::mem::take(&mut word)); }
+            if !word.is_empty() { tokens.push(std::mem::take(&mut *word)); }
         } else if matches!(ch, ';' | '|' | '&' | '>' | '<' | '`' | '$' | '\n') {
             return Err("Shell syntax is not supported. Supply only a literal cURL request.");
         } else { word.push(ch); }
     }
     if escaped || quote.is_some() { return Err("Unclosed cURL quote or escape."); }
-    if !word.is_empty() { tokens.push(word); }
+    if !word.is_empty() { tokens.push(std::mem::take(&mut *word)); }
     if tokens.first().map(String::as_str) != Some("curl") { return Err("Expected a literal curl command."); }
     let mut url = String::new(); let mut headers = Vec::new(); let mut body = String::new();
     let mut i = 1;
@@ -158,8 +158,8 @@ pub async fn send(profile: Profile, model: String, key: Zeroizing<String>, turns
         validate_header(line).map_err(|_| CallError::InvalidInput)?;
         // Header values are allowed to contain a vault key placeholder, not an
         // environment variable, command substitution or file reference.
-        let value = value.trim().replace("{{api_key}}", &key);
-        request = request.header(name.trim(), value);
+        let value = Zeroizing::new(value.trim().replace("{{api_key}}", key.as_str()));
+        request = request.header(name.trim(), value.as_str());
     }
     let mut response = request.send().await.map_err(|_| CallError::Transport)?;
     if !response.status().is_success() { return Err(CallError::Rejected(response.status().as_u16())); }
