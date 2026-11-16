@@ -230,7 +230,7 @@
       "handles": "CI organization"
     },
     ".github/workflows/gui.yml": {
-      "purpose": "Run three-OS native builds/tests, standard captures and 1568x856 Chat and model-menu visual captures; publish unsigned Windows GUI executable.",
+      "purpose": "Build/test/screenshot on Linux, Windows and macOS, including reply and import review fixtures.",
       "inputs": [
         "Source changes and intentional trigger"
       ],
@@ -320,7 +320,7 @@
       "handles": "Application entry point"
     },
     "src/app.rs": {
-      "purpose": "Own navigation, session chat/settings state, streaming tasks, vault actions, and screenshots.",
+      "purpose": "Manage native Chat, opt-in model probes, cancellation and session state.",
       "inputs": [
         "User navigation and snapshot trigger"
       ],
@@ -842,7 +842,7 @@
       "handles": "macos tuning motion state"
     },
     "src/agent.rs": {
-      "purpose": "Render reference-led Chat topbar picker, message rows, returned reasoning, composer and session-only mode previews.",
+      "purpose": "Render a single-rail native Chat, messages/reasoning, model picker and stoppable composer.",
       "inputs": [
         "Transient App UI state"
       ],
@@ -852,7 +852,7 @@
       "handles": "UI-only destination"
     },
     "src/settings.rs": {
-      "purpose": "Render combined provider/key and model management in one scrollable page.",
+      "purpose": "Render OS-vault provider settings, unchecked catalog import, opt-in tests and sent/received evidence.",
       "inputs": [
         "Transient App UI state"
       ],
@@ -1144,7 +1144,7 @@
       "handles": "Security architecture"
     },
     "src/provider_api.rs": {
-      "purpose": "Send fixed-origin HTTPS chat requests, bound SSE/non-stream replies and extract returned reasoning.",
+      "purpose": "Fixed-provider bounded text generation transport and safe returned reasoning parsing.",
       "inputs": [
         "Manually selected provider/model, short session turns and one transient OS-vault key"
       ],
@@ -1285,7 +1285,7 @@
       "handles": "Native compact/expanded rail icon rendering"
     },
     "src/model_catalog.rs": {
-      "purpose": "Fetch and parse bounded read-only model catalogs from three fixed provider endpoints.",
+      "purpose": "Fetch read-only bounded model IDs from fixed hosted/local catalog endpoints.",
       "inputs": [
         "Explicit provider selection",
         "Optional OS-vault key",
@@ -1639,6 +1639,186 @@
         "Native GUI visual evidence"
       ],
       "handles": "Static layout only, not verified clicks or provider output"
+    },
+    "internels/reference/ui/user-review-2026-11-16/image-13.png": {
+      "purpose": "Archive user-provided visual critique image 13; reference only.",
+      "inputs": [
+        "User attachment"
+      ],
+      "outputs": [
+        "Visual design reference"
+      ],
+      "handles": "Never an executable/runtime asset"
+    },
+    "internels/reference/ui/user-review-2026-11-16/image-14.png": {
+      "purpose": "Archive user-provided visual critique image 14; reference only.",
+      "inputs": [
+        "User attachment"
+      ],
+      "outputs": [
+        "Visual design reference"
+      ],
+      "handles": "Never an executable/runtime asset"
+    },
+    "internels/reference/ui/user-review-2026-11-16/image-15.png": {
+      "purpose": "Archive user-provided visual critique image 15; reference only.",
+      "inputs": [
+        "User attachment"
+      ],
+      "outputs": [
+        "Visual design reference"
+      ],
+      "handles": "Never an executable/runtime asset"
+    },
+    "internels/reference/ui/user-review-2026-11-16/image-16.png": {
+      "purpose": "Archive user-provided visual critique image 16; reference only.",
+      "inputs": [
+        "User attachment"
+      ],
+      "outputs": [
+        "Visual design reference"
+      ],
+      "handles": "Never an executable/runtime asset"
+    },
+    "internels/reference/ui/user-review-2026-11-16/image-17.png": {
+      "purpose": "Archive user-provided visual critique image 17; reference only.",
+      "inputs": [
+        "User attachment"
+      ],
+      "outputs": [
+        "Visual design reference"
+      ],
+      "handles": "Never an executable/runtime asset"
+    },
+    "internels/reference/ui/user-review-2026-11-16/image-18.png": {
+      "purpose": "Archive user-provided visual critique image 18; reference only.",
+      "inputs": [
+        "User attachment"
+      ],
+      "outputs": [
+        "Visual design reference"
+      ],
+      "handles": "Never an executable/runtime asset"
+    },
+    "internels/reference/ui/user-review-2026-11-16/image-19.png": {
+      "purpose": "Archive user-provided visual critique image 19; reference only.",
+      "inputs": [
+        "User attachment"
+      ],
+      "outputs": [
+        "Visual design reference"
+      ],
+      "handles": "Never an executable/runtime asset"
+    },
+    "internels/reference/ui/user-review-2026-11-16/image-20.png": {
+      "purpose": "Archive user-provided visual critique image 20; reference only.",
+      "inputs": [
+        "User attachment"
+      ],
+      "outputs": [
+        "Visual design reference"
+      ],
+      "handles": "Never an executable/runtime asset"
+    },
+    "internels/reference/ui/user-review-2026-11-16/image-21.png": {
+      "purpose": "Archive user-provided visual critique image 21; reference only.",
+      "inputs": [
+        "User attachment"
+      ],
+      "outputs": [
+        "Visual design reference"
+      ],
+      "handles": "Never an executable/runtime asset"
+    },
+    "internels/reference/ui/user-review-2026-11-16/image-22.png": {
+      "purpose": "Archive user-provided visual critique image 22; reference only.",
+      "inputs": [
+        "User attachment"
+      ],
+      "outputs": [
+        "Visual design reference"
+      ],
+      "handles": "Never an executable/runtime asset"
+    },
+    "internels/reference/ui/user-review-2026-11-16/image-23.png": {
+      "purpose": "Archive user-provided visual critique image 23; reference only.",
+      "inputs": [
+        "User attachment"
+      ],
+      "outputs": [
+        "Visual design reference"
+      ],
+      "handles": "Never an executable/runtime asset"
+    },
+    "internels/reference/ui/user-review-2026-11-16/README.md": {
+      "purpose": "Map user-supplied screenshots 13–23 to Chat, Settings, model import and reasoning critique.",
+      "inputs": [
+        "Attached image inventory"
+      ],
+      "outputs": [
+        "Internal visual reference"
+      ],
+      "handles": "Public-in-Git reference, no secrets"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux-chat-review.png": {
+      "purpose": "Synthetic chat-review native GUI capture for linux; not live provider evidence.",
+      "inputs": [
+        "CI screenshot fixture"
+      ],
+      "outputs": [
+        "Visual regression evidence"
+      ],
+      "handles": "No keys or real requests"
+    },
+    "Docs/Test_Results/Unreleased/visual/linux-import-review.png": {
+      "purpose": "Synthetic import-review native GUI capture for linux; not live provider evidence.",
+      "inputs": [
+        "CI screenshot fixture"
+      ],
+      "outputs": [
+        "Visual regression evidence"
+      ],
+      "handles": "No keys or real requests"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows-chat-review.png": {
+      "purpose": "Synthetic chat-review native GUI capture for windows; not live provider evidence.",
+      "inputs": [
+        "CI screenshot fixture"
+      ],
+      "outputs": [
+        "Visual regression evidence"
+      ],
+      "handles": "No keys or real requests"
+    },
+    "Docs/Test_Results/Unreleased/visual/windows-import-review.png": {
+      "purpose": "Synthetic import-review native GUI capture for windows; not live provider evidence.",
+      "inputs": [
+        "CI screenshot fixture"
+      ],
+      "outputs": [
+        "Visual regression evidence"
+      ],
+      "handles": "No keys or real requests"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos-chat-review.png": {
+      "purpose": "Synthetic chat-review native GUI capture for macos; not live provider evidence.",
+      "inputs": [
+        "CI screenshot fixture"
+      ],
+      "outputs": [
+        "Visual regression evidence"
+      ],
+      "handles": "No keys or real requests"
+    },
+    "Docs/Test_Results/Unreleased/visual/macos-import-review.png": {
+      "purpose": "Synthetic import-review native GUI capture for macos; not live provider evidence.",
+      "inputs": [
+        "CI screenshot fixture"
+      ],
+      "outputs": [
+        "Visual regression evidence"
+      ],
+      "handles": "No keys or real requests"
     }
   }
 }

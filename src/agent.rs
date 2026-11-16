@@ -2,7 +2,7 @@
 use iced::widget::{button, column, container, markdown, row, scrollable, space, stack, text, text_editor, text_input};
 use iced::{Center, Element, Fill, keyboard};
 
-use crate::app::{ChatDraft, Message};
+use crate::app::{ChatDraft, Message, Page};
 use crate::style;
 use crate::settings::SettingsState;
 use crate::credentials::Provider;
@@ -42,10 +42,10 @@ fn model_menu<'a>(settings: &SettingsState, search: &'a str) -> Element<'a, Mess
     models = models.push(row![
         text(format!("{count} models · this session")).size(11).color(style::DIM),
         space().width(Fill),
-        button(text("Manage models ↗").size(11)).on_press(Message::OpenModelSettings)
+        button(text("Manage models ↗").size(11)).on_press(Message::OpenModelCatalogSettings)
             .style(style::chat_menu_choice_inactive)
     ].align_y(Center));
-    container(row![container(providers).width(155), container(scrollable(models).height((count as f32 * 39.0 + 90.0).clamp(145.0, 290.0))).width(Fill)]
+    container(row![container(scrollable(providers).height(340)).width(155), container(scrollable(models).height((count as f32 * 39.0 + 90.0).clamp(145.0, 290.0))).width(Fill)]
         .spacing(12).width(Fill))
         .width(540).padding(14).style(style::chat_panel).into()
 }
@@ -74,13 +74,20 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
     let connected = settings.selected_model().is_some();
 
     let mut history = column![
-        text("ARCHX  /  AGENT").size(11).color(style::DIM),
-        space().height(18),
-        text("Chats").size(19).font(style::DISPLAY).color(style::WHITE),
-        space().height(14),
-        action("+  New chat", Message::NewChat),
-        space().height(22),
-        text("THIS SESSION").size(10).color(style::DIM),
+        text("A   Archx Agent").size(16).color(style::WHITE),
+        space().height(24),
+        button(text("◧   Chat").size(13)).width(Fill).padding([10, 12])
+            .style(|t, s| style::chat_menu_choice(true, t, s)),
+        space().height(5),
+        button(text("⚙   Settings").size(13)).width(Fill).padding([10, 12])
+            .on_press(Message::Navigate(Page::Settings)).style(style::chat_menu_choice_inactive),
+        space().height(5),
+        button(text("⌂   Discover").size(13)).width(Fill).padding([10, 12])
+            .on_press(Message::Navigate(Page::Home)).style(style::chat_menu_choice_inactive),
+        space().height(20),
+        action("＋   New chat", Message::NewChat),
+        space().height(24),
+        text("CHATS  ·  THIS SESSION").size(10).color(style::DIM),
         space().height(8)
     ];
     for draft in drafts.iter().rev() {
@@ -92,11 +99,11 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
             .style(move |t, s| style::chat_menu_choice(selected_draft, t, s)))
             .push(space().height(4));
     }
-    history = history.push(space().height(24)).push(
-        text("Chats are kept in memory only.\nClosing the Lab clears this session.")
-            .size(11).color(style::DIM));
-    let rail = container(scrollable(history.padding(18)).height(Fill))
-        .width(214).height(Fill).style(style::rail);
+    let rail = container(column![
+        scrollable(history.padding([17, 10])).height(Fill),
+        container(text("Local session · keys in OS vault").size(10).color(style::DIM))
+            .padding([12, 15]).width(Fill)
+    ].height(Fill)).width(210).height(Fill).style(style::rail);
 
     let model_label = settings.selected_model().map(|model| {
         let short = if model.chars().count() > 28 {
@@ -118,7 +125,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
         for (slot, turn) in draft.turns.iter().enumerate() {
             let assistant = turn.role != "user";
             let mut body = column![
-                text(if assistant { "Archx Agent" } else { "You" }).size(13).color(style::WHITE)
+                text(if assistant { "Assistant" } else { "You" }).size(13).color(style::WHITE)
             ].spacing(7).width(Fill);
             if !assistant {
                 body = body.push(container(text(turn.content.clone()).size(15).color(style::WHITE))
@@ -132,17 +139,20 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
                         thinking = thinking.push(container(markdown::view(reasoning.items(), iced::Theme::Dark)
                             .map(|_| Message::IgnoreMarkdownLink)).padding([5, 12]));
                     }
-                    body = body.push(container(thinking).style(style::chat_thinking));
+                    body = body.push(container(thinking).width(Fill).style(style::chat_thinking));
                 }
                 body = body.push(markdown::view(content.items(), iced::Theme::Dark)
                     .map(|_| Message::IgnoreMarkdownLink));
             } else {
                 body = body.push(text(turn.content.clone()).size(15).color(style::WHITE));
             }
-            log = log.push(row![avatar(assistant), body].spacing(16).width(Fill));
+            if assistant && draft.incomplete_slots.contains(&slot) {
+                body = body.push(text("Incomplete · excluded from future context").size(11).color(style::GREY));
+            }
+            log = log.push(row![avatar(assistant), body].spacing(14).width(Fill));
         }
         if let Some((content, reasoning)) = &draft.partial {
-            let mut body = column![text("Archx Agent  ·  responding").size(13).color(style::GREY)].spacing(8);
+            let mut body = column![text("Assistant  ·  responding").size(13).color(style::GREY)].spacing(8);
             if let Some(reasoning) = reasoning {
                 body = body.push(container(column![text("✧  Thinking").size(12).color(style::GREY),
                     markdown::view(reasoning.items(), iced::Theme::Dark).map(|_| Message::IgnoreMarkdownLink)]
@@ -155,18 +165,19 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
         scrollable(container(container(log).max_width(860).width(Fill).padding([24, 20]))
             .center_x(Fill)).width(Fill).height(Fill).into()
     } else {
-        let lead = if active_mode == 0 { "A place for your next conversation." } else { "A workspace for what comes next." };
+        let no_model = active_mode == 0 && !connected;
         container(column![
-            text("ARCHX  /  AGENT").size(11).color(style::DIM),
-            space().height(12),
-            text(MODES[usize::from(active_mode)]).size(36).font(style::DISPLAY).color(style::WHITE),
-            space().height(12),
-            text(lead).size(15).color(style::GREY),
-            space().height(23),
-            button(text(if active_mode != 0 { "PREVIEW ONLY  /  NO TOOLS" }
-                else if connected { "MODEL SELECTED  /  KEY CHECK ON SEND" }
-                else { "ADD A KEY AND MODEL IN SETTINGS  ↗" }).size(11).color(style::GREY))
-                .on_press(Message::OpenModelSettings).padding([9, 13]).style(style::chat_button)
+            text(if no_model { "▣" } else { "✧" }).size(30).color(style::GREY),
+            space().height(17),
+            text(if no_model { "No provider configured" } else if active_mode == 0 { "How can I help?" } else { MODES[usize::from(active_mode)] })
+                .size(25).font(style::DISPLAY).color(style::WHITE),
+            space().height(13),
+            text(if no_model { "Add a key and choose a model to start chatting.\nYour keys stay in the OS credential store; chats are session-only." }
+                 else if active_mode != 0 { "This mode is a preview. No tools are running." }
+                 else { "Write a message below to begin." }).size(13).color(style::GREY),
+            space().height(20),
+            button(text(if no_model { "Add a provider  ↗" } else { "Manage models  ↗" }).size(12))
+                .on_press(Message::OpenModelSettings).padding([10, 16]).style(style::chat_button)
         ].align_x(Center)).center_x(Fill).center_y(Fill).into()
     };
 
@@ -191,20 +202,22 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
             button(text(if settings.stream_chat { "Streaming  ·  on" } else { "Whole reply  ·  on" }).size(11))
                 .on_press(Message::ToggleStreaming).padding([7, 9]).style(style::chat_menu_choice_inactive),
             space().width(Fill),
-            button(text("Send  ↗").size(12))
-                .on_press_maybe(can_send.then_some(Message::SendChat)).padding([8, 15])
+            button(text(if current.is_some_and(|draft| draft.busy) { "Stop  ■" } else { "Send  ↗" }).size(12))
+                .on_press_maybe(if current.is_some_and(|draft| draft.busy) { Some(Message::StopChat) }
+                    else { can_send.then_some(Message::SendChat) }).padding([8, 15])
                 .style(style::chat_button)
         ].align_y(Center)
     ].spacing(4)).max_width(860).width(Fill).padding(12).style(style::chat_panel);
     let error_notice: Element<'_, Message> = match current.and_then(|draft| draft.error.as_deref()) {
-        Some(error) => text(error.to_owned()).size(12).color(style::GREY).into(),
+        Some(error) => container(text(error.to_owned()).size(12).color(style::WHITE))
+            .max_width(860).width(Fill).padding([7, 12]).style(style::chat_error).into(),
         None => space().height(0).into(),
     };
     let footer = column![
-        container(composer).center_x(Fill),
         error_notice,
+        container(composer).center_x(Fill),
         space().height(7),
-        text("Enter sends · Shift+Enter for a new line · Up to 12 recent turns sent to your provider · Session only")
+        text("Enter sends · Shift+Enter adds a line · Up to 12 recent turns · Session only")
             .size(11).color(style::DIM),
     ].align_x(Center).width(Fill).padding([12, 20]);
 

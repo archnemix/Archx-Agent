@@ -2,3 +2,5 @@
 # Chat and Settings UI reference
 
 The attached `index.html`, CSS, JavaScript, MJS and `image-8.png`–`image-10.png` review captures are the user's earlier browser UI, stored verbatim for future layout, Markdown, reasoning and interaction comparisons. They are **reference only**: the shipping desktop UI remains native Rust/Iced, and these scripts are never executed or bundled. Do not copy credential handling, remote-resource loading or HTML injection patterns from a browser mock into the native app. This folder is public when committed to GitHub despite its internal path. No runtime API key should be added here.
+
+The 2026-11-16 critique is archived in [`user-review-2026-11-16/`](user-review-2026-11-16/), with an image-by-image inventory. It supersedes previous native Chat screenshots as the visual review target; the prior layout was explicitly rejected.

@@ -1,4 +1,4 @@
-//! Purpose: Fetches bounded, read-only model catalogs for the three fixed providers.
+//! Purpose: Fetches bounded, read-only model catalogs from fixed, vetted provider endpoints.
 use std::collections::HashSet;
 use std::time::Duration;
 
@@ -36,11 +36,14 @@ fn parse(provider: Provider, body: &Value) -> Result<(Vec<CatalogModel>, Option<
         Provider::OpenRouter => (body.get("data").and_then(Value::as_array), body.get("next").and_then(Value::as_str)),
         Provider::Grok => (body.get("models").and_then(Value::as_array), None),
         Provider::Gemini => (body.get("models").and_then(Value::as_array), body.get("nextPageToken").and_then(Value::as_str)),
+        Provider::OllamaLocal | Provider::OllamaCloud => (body.get("models").and_then(Value::as_array), None),
+        _ => (body.get("data").and_then(Value::as_array), None),
     };
     let items = items.ok_or(CallError::InvalidResponse)?;
     let mut models = Vec::new();
     for item in items {
-        let Some(raw_id) = item.get(if provider == Provider::Gemini { "name" } else { "id" }).and_then(Value::as_str) else { continue };
+        let id_field = if matches!(provider, Provider::Gemini | Provider::OllamaLocal | Provider::OllamaCloud) { "name" } else { "id" };
+        let Some(raw_id) = item.get(id_field).and_then(Value::as_str) else { continue };
         let id = if provider == Provider::Gemini { raw_id.strip_prefix("models/").unwrap_or("") } else { raw_id };
         if provider == Provider::Gemini && !item["supportedGenerationMethods"].as_array().is_some_and(|methods| methods.iter().any(|method| method.as_str() == Some("generateContent"))) { continue; }
         if provider == Provider::Grok && !item["output_modalities"].as_array().is_some_and(|modalities| modalities.iter().any(|modality| modality.as_str() == Some("text"))) { continue; }
@@ -57,6 +60,7 @@ fn parse(provider: Provider, body: &Value) -> Result<(Vec<CatalogModel>, Option<
             Provider::OpenRouter => item["supported_parameters"].as_array().is_some_and(|parameters| parameters.iter().any(|p| p.as_str() == Some("reasoning"))),
             Provider::Grok => item["capabilities"]["reasoning_effort"].as_array().is_some_and(|efforts| !efforts.is_empty()),
             Provider::Gemini => item["thinking"].as_bool() == Some(true),
+            _ => false, // No metadata promise about reasoning on other providers.
         };
         let name = item.get(if provider == Provider::Gemini { "displayName" } else { "name" }).and_then(Value::as_str).unwrap_or(id);
         if let Some(model) = entry(provider, id, name, free, router, reasoning) { models.push(model); }
@@ -77,7 +81,7 @@ async fn read_json(mut response: reqwest::Response) -> Result<Value, CallError> 
 }
 
 pub async fn fetch(provider: Provider, key: Option<Zeroizing<String>>) -> Result<Vec<CatalogModel>, CallError> {
-    let client = Client::builder().https_only(true).no_proxy().redirect(redirect::Policy::none())
+    let client = Client::builder().https_only(provider != Provider::OllamaLocal).no_proxy().redirect(redirect::Policy::none())
         .timeout(Duration::from_secs(25)).build().map_err(|_| CallError::Transport)?;
     let mut all = Vec::new();
     let mut token: Option<String> = None;
@@ -96,6 +100,18 @@ pub async fn fetch(provider: Provider, key: Option<Zeroizing<String>>) -> Result
                 if let Some(ref page) = token { request = request.query(&[("pageToken", page)]); }
                 request
             }
+            Provider::OpenAI => client.get("https://api.openai.com/v1/models")
+                .bearer_auth(key.as_ref().ok_or(CallError::InvalidInput)?.as_str()),
+            Provider::Anthropic => client.get("https://api.anthropic.com/v1/models")
+                .header("x-api-key", key.as_ref().ok_or(CallError::InvalidInput)?.as_str())
+                .header("anthropic-version", "2023-06-01"),
+            Provider::Groq => client.get("https://api.groq.com/openai/v1/models")
+                .bearer_auth(key.as_ref().ok_or(CallError::InvalidInput)?.as_str()),
+            Provider::Zai => client.get("https://api.z.ai/api/paas/v4/models")
+                .bearer_auth(key.as_ref().ok_or(CallError::InvalidInput)?.as_str()),
+            Provider::OllamaLocal => client.get("http://127.0.0.1:11434/api/tags"),
+            Provider::OllamaCloud => client.get("https://ollama.com/api/tags")
+                .bearer_auth(key.as_ref().ok_or(CallError::InvalidInput)?.as_str()),
         };
         let body = read_json(request.send().await.map_err(|_| CallError::Transport)?).await?;
         let (items, next) = parse(provider, &body)?;
@@ -139,6 +155,17 @@ mod tests {
         assert!(models[0].router && models[0].free);
         assert!(models[1].free && models[1].reasoning);
         assert!(!models[2].free && !models[2].reasoning);
+    }
+
+    #[test]
+    fn ollama_catalog_parses_local_tags_without_assuming_reachability() {
+        let (models, _) = parse(Provider::OllamaLocal, &json!({"models": [
+            {"name":"tiny:Q2_K","details":{"quantization_level":"Q2_K"}},
+            {"name":"gemma:latest"}
+        ]})).unwrap();
+        assert_eq!(models.len(), 2);
+        assert_eq!(models[0].id, "tiny:Q2_K");
+        assert!(!models[0].free && !models[0].reasoning);
     }
 
     #[test]

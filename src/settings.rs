@@ -38,14 +38,20 @@ pub struct SettingsState {
     pub reveal: Option<(u64, SecretText, Instant)>,
     pub reveal_nonce: u64,
     pub model_entry: String,
-    pub catalog: [Vec<CatalogModel>; 3],
+    pub catalog: [Vec<CatalogModel>; Provider::COUNT],
     pub search: String,
+    pub catalog_selected: [Vec<String>; Provider::COUNT],
+    pub probe_pending: bool,
+    pub probe_busy: bool,
+    pub probe_nonce: u64,
+    pub probe_results: Vec<(String, bool, String)>,
     pub catalog_busy: bool,
     pub catalog_nonce: u64,
-    pub models: [Vec<String>; 3],
-    pub chosen: [Option<usize>; 3],
+    pub models: [Vec<String>; Provider::COUNT],
+    pub chosen: [Option<usize>; Provider::COUNT],
     pub status: String,
     pub test_busy: bool,
+    pub test_evidence: Option<String>,
     pub stream_chat: bool,
     pub key_busy: bool,
 }
@@ -54,12 +60,13 @@ impl Default for SettingsState {
         Self { section: Section::Providers, provider: Provider::OpenRouter,
             key_entry: SecretText::default(), key_ids: Vec::new(), reveal: None,
             reveal_nonce: 0, model_entry: String::new(), catalog: std::array::from_fn(|_| Vec::new()),
-            search: String::new(), catalog_busy: false, catalog_nonce: 0, models: std::array::from_fn(|_| Vec::new()),
-            chosen: [None; 3], status: String::new(), test_busy: false, stream_chat: true, key_busy: false }
+            search: String::new(), catalog_selected: std::array::from_fn(|_| Vec::new()),
+            probe_pending: false, probe_busy: false, probe_nonce: 0, probe_results: Vec::new(), catalog_busy: false, catalog_nonce: 0, models: std::array::from_fn(|_| Vec::new()),
+            chosen: [None; Provider::COUNT], status: String::new(), test_busy: false, test_evidence: None, stream_chat: true, key_busy: false }
     }
 }
 impl SettingsState {
-    pub fn index(&self) -> usize { match self.provider { Provider::OpenRouter => 0, Provider::Grok => 1, Provider::Gemini => 2 } }
+    pub fn index(&self) -> usize { self.provider.index() }
     pub fn selected_model(&self) -> Option<&str> {
         self.chosen[self.index()].and_then(|id| self.models[self.index()].get(id)).map(String::as_str)
     }
@@ -71,43 +78,67 @@ impl SettingsState {
 }
 
 fn surface(content: impl Into<Element<'static, Message>>) -> Element<'static, Message> {
-    container(content).width(Fill).padding(25).style(style::surface).into()
+    container(content).width(Fill).padding(22).style(style::chat_panel).into()
 }
 
 pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {
     let (heading, description) = match state.section {
+        Section::Providers => ("Providers", "Add a key to the OS vault, then browse this provider's models. No probe runs automatically."),
+        Section::Models => ("Models", "Choose IDs to import; optionally test them first. A passing probe cannot guarantee future availability."),
         Section::Lab => ("Lab preview", "These options do not yet affect device memory."),
-        _ => ("Connections & models", "Keep provider keys and session models together. Choose your active model directly from Chat."),
     };
-    let body = column![
-        row![text("LAB  /  SETTINGS").size(11).color(style::DIM), space().width(Fill),
-            button(text(if state.section == Section::Lab { "Connections & models" } else { "Lab preview" }).size(12))
-                .on_press(Message::SettingsSection(if state.section == Section::Lab { Section::Providers } else { Section::Lab }))
-                .style(style::quiet_button)],
+    let nav = column![
+        text("SETTINGS").size(10).color(style::DIM),
         space().height(15),
-        text(heading).size(32).font(style::DISPLAY).color(style::WHITE),
-        space().height(9),
-        text(description).size(14).color(style::GREY),
-        space().height(27),
+        setting_link("Providers", Section::Providers, state.section),
+        setting_link("Models", Section::Models, state.section),
+        space().height(14),
+        container(space().height(1)).width(Fill).style(style::rail_divider),
+        space().height(14),
+        setting_link("Lab preview", Section::Lab, state.section),
+        space().height(Fill),
+        text("Local session").size(11).color(style::DIM),
+    ].spacing(6).height(Fill).width(Fill).padding(16);
+    let body = column![
+        text("LAB  /  SETTINGS").size(10).color(style::DIM),
+        space().height(14),
+        text(heading).size(29).font(style::DISPLAY).color(style::WHITE),
+        space().height(8),
+        text(description).size(13).color(style::GREY),
+        space().height(24),
         match state.section {
-            Section::Providers | Section::Models => column![
-                providers(state), space().height(22), models(state)
-            ].width(Fill).into(),
+            Section::Providers => providers(state),
+            Section::Models => models(state),
             Section::Lab => lab(memory, keep_agent),
         },
-        space().height(17),
+        space().height(18),
         text(state.status.clone()).size(12).color(style::GREY)
-    ].width(Fill).padding(32);
-    scrollable(container(body).max_width(1080).center_x(Fill)).width(Fill).height(Fill).into()
+    ].width(Fill).padding([28, 30]);
+    row![
+        container(nav).width(170).height(Fill).style(style::rail),
+        scrollable(body).width(Fill).height(Fill)
+    ].width(Fill).height(Fill).into()
+}
+
+fn setting_link(label: &'static str, section: Section, current: Section) -> Element<'static, Message> {
+    button(text(label).size(13)).width(Fill).padding([11, 12])
+        .on_press(Message::SettingsSection(section))
+        .style(move |t, status| style::chat_menu_choice(section == current, t, status)).into()
 }
 
 fn provider_tabs(current: Provider, busy: bool) -> Element<'static, Message> {
-    Provider::ALL.into_iter().fold(row![].spacing(8), |row, provider| {
-        let selected = current == provider;
-        row.push(button(text(provider.name()).size(12).color(if selected { style::WHITE } else { style::GREY }))
-            .padding([11, 14]).on_press_maybe((!busy).then_some(Message::SelectProvider(provider)))
-            .style(move |theme, status| style::nav(selected, theme, status)))
-    }).into()
+    let mut rows = column![].spacing(6);
+    for group in Provider::ALL.chunks(3) {
+        let mut line = row![].spacing(6);
+        for provider in group.iter().copied() {
+            let selected = current == provider;
+            line = line.push(button(text(provider.name()).size(12))
+                .width(150).padding([9, 12]).on_press_maybe((!busy).then_some(Message::SelectProvider(provider)))
+                .style(move |theme, status| style::chat_menu_choice(selected, theme, status)));
+        }
+        rows = rows.push(line);
+    }
+    rows.into()
 }
 
 fn providers(state: &SettingsState) -> Element<'static, Message> {
@@ -129,18 +160,24 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
         ].spacing(10));
     }
     surface(column![
-        text("01  /  PROVIDER & OS VAULT").size(11).color(style::DIM),
+        text("PROVIDER  /  OS KEYCHAIN").size(11).color(style::DIM),
         space().height(12), provider_tabs(state.provider, state.key_busy),
         space().height(17),
-        text("Keys are held in your OS credential store. The Lab never saves a plaintext key file.")
+        text(if state.provider.needs_key() { "Keys are held in your OS credential store. The Lab never saves a plaintext key file." }
+            else { "Local Ollama: fixed loopback address 127.0.0.1:11434 · no key needed · no remote URL accepted." })
             .size(13).color(style::GREY),
         space().height(18),
-        text_input("Paste an API key", state.key_entry.0.as_str()).secure(true)
-            .on_input(|value| Message::EditKey(SecretText::new(value)))
-            .padding([13, 15]).style(style::composer_input),
-        space().height(10),
-        button(text("Save key to OS vault").size(12)).on_press_maybe((!state.key_busy && !state.key_entry.0.is_empty()).then_some(Message::SaveKey))
-            .padding([11, 15]).style(style::quiet_button),
+        if state.provider.needs_key() {
+            column![text_input("Paste an API key", state.key_entry.0.as_str()).secure(true)
+                .on_input(|value| Message::EditKey(SecretText::new(value)))
+                .padding([13, 15]).style(style::composer_input),
+                button(text("Save key to OS vault").size(12))
+                    .on_press_maybe((!state.key_busy && !state.key_entry.0.is_empty()).then_some(Message::SaveKey))
+                    .padding([11, 15]).style(style::chat_button)].spacing(10).into()
+        } else {
+            button(text("Browse local Ollama models ↗").size(12)).on_press(Message::OpenModelCatalogSettings)
+                .style(style::chat_button).into()
+        },
         space().height(26), keys,
         space().height(12),
         text("Reveal is opt-in and hidden after 15 seconds or when you leave this page. Anyone with access to your unlocked session or screen may still see it.")
@@ -161,17 +198,21 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
         ].spacing(10));
     }
     surface(column![
-        text("02  /  MODELS  /  ADD, REMOVE & DISCOVER").size(11).color(style::DIM),
+        text("MODEL CATALOG  /  EXPLICIT IMPORT").size(11).color(style::DIM),
         space().height(12),
-        text("Type the exact provider model ID. IDs are not verified until a live request; a :free OpenRouter variant is distinct from its paid model.")
+        provider_tabs(state.provider, state.key_busy || state.probe_busy),
+        space().height(14),
+        text("Select a provider, fetch its list and check only the IDs you want. Or add an exact model ID below. Import never triggers a generation test.")
             .size(13).color(style::GREY),
         space().height(13),
+        catalog_view(state),
+        space().height(26),
+        text("ADD AN EXACT ID MANUALLY").size(11).color(style::DIM),
         text_input("e.g. provider/model:free", &state.model_entry)
             .on_input(Message::EditModel).padding([13, 15]).style(style::composer_input),
         space().height(10),
         button(text("Add model").size(12)).on_press(Message::AddModel).padding([11, 15]).style(style::quiet_button),
         space().height(23), list,
-        space().height(24), catalog_view(state),
         space().height(16),
         text("Explicit test: sends only ‘Reply with the word OK.’ to the selected provider/model. Output cap 256 tokens; this may be billable and total tokens are not guaranteed.")
             .size(12).color(style::GREY),
@@ -179,6 +220,8 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
         button(text("Run small generation test  ↗").size(12))
             .on_press_maybe((state.selected_model().is_some() && !state.test_busy).then_some(Message::RunTest))
             .padding([11, 15]).style(style::quiet_button),
+        space().height(8),
+        text(state.test_evidence.clone().unwrap_or_default()).size(11).color(style::GREY),
         space().height(18),
         text("Catalog labels reflect provider metadata at fetch time, not a price guarantee. Generation is a separate explicit action.")
             .size(12).color(style::DIM)
@@ -186,49 +229,69 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
 }
 
 
-// Keep the visible result count bounded; typing a query reveals deeper catalog entries.
+// Keep the visible list bounded; search narrows large catalogs. Nothing is
+// checked or probed on fetch. A probe requires a second explicit confirmation.
 fn catalog_view(state: &SettingsState) -> Element<'static, Message> {
     let index = state.index();
     let query = state.search.trim().to_lowercase();
     let matching: Vec<_> = state.catalog[index].iter().enumerate()
         .filter(|(_, model)| query.is_empty() || model.id.to_lowercase().contains(&query) || model.name.to_lowercase().contains(&query))
         .collect();
-    let mut free = column![text("FREE AT FETCH  /  OPENROUTER ROUTER & ZERO-PRICE MODELS").size(11).color(style::DIM)].spacing(8);
-    let mut other = column![text("OTHER CATALOG MODELS  /  PRICE NOT VERIFIED HERE").size(11).color(style::DIM)].spacing(8);
-    let mut free_visible = 0;
-    let mut other_visible = 0;
-    for (slot, model) in matching.iter().copied() {
-        if (model.free && free_visible >= 20) || (!model.free && other_visible >= 20) { continue; }
-        if model.free { free_visible += 1; } else { other_visible += 1; }
-        let label = format!("{}  ·  {}{}{}", model.name, model.id,
-            if model.router { "  ·  FREE AUTO ROUTER (model varies)" } else { "" },
-            if model.reasoning { "  ·  REASONING SUPPORTED" } else { "" });
-        let already_added = state.models[index].contains(&model.id);
-        let item = row![
-            text(label).size(12).color(style::GREY).width(Fill),
-            button(text(if already_added { "Added" } else { "Add" }).size(11))
-                .on_press_maybe((!already_added && state.models[index].len() < 32).then_some(Message::AddCatalogModel(state.provider, slot)))
-                .style(style::quiet_button)
-        ].spacing(8);
-        if model.free { free = free.push(item); } else { other = other.push(item); }
+    let checked = state.catalog_selected[index].len();
+    let mut items = column![].spacing(6).width(Fill);
+    for (slot, model) in matching.iter().copied().take(24) {
+        let selected = state.catalog_selected[index].contains(&model.id);
+        let added = state.models[index].contains(&model.id);
+        let label = format!("{}  {}{}{}", if selected { "☑" } else { "□" }, model.id,
+            if model.free { "  ·  free at fetch" } else { "" },
+            if added { "  ·  in list" } else { "" });
+        let mut entry = column![button(text(label).size(12)).width(Fill)
+            .padding([8, 11]).on_press(Message::ToggleCatalogSelection(state.provider, slot))
+            .style(move |t, status| style::chat_menu_choice(selected, t, status))].spacing(4);
+        if let Some((_, ok, output)) = state.probe_results.iter().find(|(id, _, _)| id == &model.id) {
+            entry = entry.push(text(format!("{}  ·  Sent: Reply with the word OK.  ·  Received: {}",
+                if *ok { "✓ Reply received" } else { "× Probe failed" }, output))
+                .size(11).color(if *ok { style::GREY } else { style::DIM }));
+        }
+        items = items.push(entry);
     }
+    let pending: Element<'static, Message> = if state.probe_pending {
+        row![
+            text(format!("Run {checked} small generation probe(s)? Each sends a billable request with up to 256 output tokens. No automatic retries.")).size(11).color(style::WHITE).width(Fill),
+            button(text("Cancel").size(11)).on_press(Message::CancelCatalogProbe).style(style::chat_button),
+            button(text("Confirm tests ↗").size(11)).on_press(Message::ConfirmCatalogProbe).style(style::chat_button)
+        ].spacing(8).align_y(iced::Center).into()
+    } else { space().height(0).into() };
     column![
-        text("DISCOVER  /  READ-ONLY CATALOG").size(11).color(style::DIM),
+        row![
+            text("AVAILABLE FROM PROVIDER").size(11).color(style::DIM).width(Fill),
+            button(text(if state.catalog_busy { "Fetching…" } else { "Fetch models  ↗" }).size(12))
+                .on_press_maybe((!state.catalog_busy && !state.probe_busy).then_some(Message::FetchModels))
+                .padding([8, 12]).style(style::chat_button)
+        ].align_y(iced::Center),
         space().height(10),
-        text("Fetch contacts only this provider. OpenRouter uses its public catalog; xAI and Gemini use the first saved OS-vault key. Nothing is added automatically.")
-            .size(12).color(style::GREY),
+        text_input("Filter model names and IDs…", &state.search).on_input(Message::SearchModels)
+            .padding([10, 13]).style(style::composer_input),
+        space().height(8),
+        text(format!("{} available · {} matching · {} checked (limit 10). All models start unchecked.",
+            state.catalog[index].len(), matching.len(), checked)).size(11).color(style::DIM),
         space().height(10),
-        button(text(if state.catalog_busy { "Fetching…" } else { "Fetch models  ↗" }).size(12))
-            .on_press_maybe((!state.catalog_busy).then_some(Message::FetchModels))
-            .padding([11, 15]).style(style::quiet_button),
-        space().height(10),
-        text_input("Search fetched names or IDs", &state.search).on_input(Message::SearchModels)
-            .padding([13, 15]).style(style::composer_input),
-        space().height(10),
-        text(format!("{} fetched · {} matching · showing first {}. Search to narrow results.", state.catalog[index].len(), matching.len(), free_visible + other_visible)).size(11).color(style::DIM),
-        space().height(18), free,
-        space().height(18), other
-    ].width(Fill).into()
+        row![
+            button(text("Import checked IDs").size(12))
+                .on_press_maybe((checked > 0 && !state.probe_busy).then_some(Message::ImportSelectedModels))
+                .padding([9, 12]).style(style::chat_button),
+            button(text(if state.probe_busy { "Testing…" } else { "Test checked first…" }).size(12))
+                .on_press_maybe((checked > 0 && !state.probe_busy).then_some(Message::RequestCatalogProbe))
+                .padding([9, 12]).style(style::chat_button),
+            if state.probe_busy { button(text("Stop tests").size(12)).on_press(Message::CancelCatalogProbe).style(style::chat_button) }
+            else { button(text("Stop tests").size(12)).style(style::chat_menu_choice_inactive) }
+        ].spacing(8),
+        pending,
+        space().height(12),
+        items,
+        text(if matching.len() > 24 { "Showing 24 matches. Filter to find more." } else { "Catalog metadata is not a guarantee of availability or pricing." })
+            .size(11).color(style::DIM)
+    ].spacing(6).width(Fill).into()
 }
 
 fn lab(memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {

@@ -337,3 +337,8 @@ pub fn chat_editor(_: &Theme, _: text_editor::Status) -> text_editor::Style {
         selection: LINE,
     }
 }
+
+pub fn chat_error(_: &Theme) -> container::Style {
+    container::Style::default().background(Color::from_rgb8(37, 17, 18))
+        .border(Border { color: Color::from_rgb8(108, 46, 46), width: 1.0, radius: 9.0.into() })
+}

@@ -8,7 +8,10 @@ use zeroize::Zeroizing;
 
 use crate::credentials::Provider;
 
-const MAX_REPLY_BYTES: usize = 64 * 1024;
+// Bound transport bytes separately from visible text. SSE framing and escaped
+// JSON can be much larger than the rendered answer, even for normal replies.
+const MAX_REPLY_BYTES: usize = 2 * 1024 * 1024;
+const MAX_VISIBLE_CHARS: usize = 96 * 1024;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Turn {
@@ -35,6 +38,13 @@ fn extract_reply(provider: Provider, body: &Value) -> Result<Reply, CallError> {
             }
         }
         (text, thought)
+    } else if provider == Provider::Anthropic {
+        let parts = body.get("content").and_then(Value::as_array).ok_or(CallError::InvalidResponse)?;
+        let text = parts.iter().filter(|part| part["type"] == "text")
+            .filter_map(|part| part["text"].as_str()).collect::<String>();
+        let thinking = parts.iter().filter(|part| part["type"] == "thinking")
+            .filter_map(|part| part["thinking"].as_str()).collect::<String>();
+        (text, thinking)
     } else {
         let message = body.pointer("/choices/0/message").ok_or(CallError::InvalidResponse)?;
         let text = message.get("content").and_then(Value::as_str).unwrap_or_default().to_owned();
@@ -43,9 +53,10 @@ fn extract_reply(provider: Provider, body: &Value) -> Result<Reply, CallError> {
         (text, thought)
     };
     if content.trim().is_empty() { return Err(CallError::InvalidResponse); }
+    if content.chars().count() > MAX_VISIBLE_CHARS || reasoning.chars().count() > MAX_VISIBLE_CHARS { return Err(CallError::Oversized); }
     Ok(Reply {
-        content: content.chars().take(16000).collect(),
-        reasoning: (!reasoning.trim().is_empty()).then(|| reasoning.chars().take(16000).collect()),
+        content,
+        reasoning: (!reasoning.trim().is_empty()).then_some(reasoning),
     })
 }
 
@@ -66,7 +77,7 @@ impl CallError {
             Self::InvalidInput => "Choose a valid model and enter a short message (up to 4,000 characters).".into(),
             Self::Transport => "The secure request failed or timed out. The provider may already have received it; retry only if you accept possible duplicate billing.".into(),
             Self::Rejected(code) => format!("Provider returned HTTP {code}. Check the selected model, key and account; no automatic retry occurred."),
-            Self::Oversized => "Provider response exceeded the local size limit.".into(),
+            Self::Oversized => "Response exceeded the 2 MiB transport or 96,000-character display safety limit. Any received streaming text remains visible; try a shorter reply.".into(),
             Self::InvalidResponse => "The provider returned no supported plain-text reply.".into(),
         }
     }
@@ -84,16 +95,25 @@ fn endpoint(provider: Provider, model: &str) -> String {
         Provider::OpenRouter => "https://openrouter.ai/api/v1/chat/completions".into(),
         Provider::Grok => "https://api.x.ai/v1/chat/completions".into(),
         Provider::Gemini => format!("https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"),
+        Provider::OpenAI => "https://api.openai.com/v1/chat/completions".into(),
+        Provider::Anthropic => "https://api.anthropic.com/v1/messages".into(),
+        Provider::Groq => "https://api.groq.com/openai/v1/chat/completions".into(),
+        Provider::Zai => "https://api.z.ai/api/paas/v4/chat/completions".into(),
+        Provider::OllamaLocal => "http://127.0.0.1:11434/v1/chat/completions".into(),
+        Provider::OllamaCloud => "https://ollama.com/v1/chat/completions".into(),
     }
 }
 
-fn payload(provider: Provider, model: &str, turns: &[Turn]) -> Value {
+fn payload(provider: Provider, model: &str, turns: &[Turn], max_output_tokens: u32) -> Value {
     if provider == Provider::Gemini {
         json!({"contents": turns.iter().map(|turn| json!({"role": if turn.role == "assistant" { "model" } else { "user" }, "parts": [{"text": turn.content}]})).collect::<Vec<_>>(),
-            "generationConfig": {"maxOutputTokens": 256}})
+            "generationConfig": {"maxOutputTokens": max_output_tokens}})
+    } else if provider == Provider::Anthropic {
+        json!({"model": model, "max_tokens": max_output_tokens,
+            "messages": turns.iter().map(|turn| json!({"role": turn.role, "content": turn.content})).collect::<Vec<_>>()})
     } else {
         let mut body = json!({"model": model, "messages": turns.iter().map(|turn| json!({"role": turn.role, "content": turn.content})).collect::<Vec<_>>(),
-            "max_tokens": 256, "stream": false});
+            "max_tokens": max_output_tokens, "stream": false});
         if provider == Provider::OpenRouter {
             body["provider"] = json!({"allow_fallbacks": false});
         }
@@ -101,22 +121,26 @@ fn payload(provider: Provider, model: &str, turns: &[Turn]) -> Value {
     }
 }
 
-pub async fn send(provider: Provider, model: String, key: Zeroizing<String>, turns: Vec<Turn>) -> Result<Reply, CallError> {
+pub async fn send(provider: Provider, model: String, key: Zeroizing<String>, turns: Vec<Turn>, max_output_tokens: u32) -> Result<Reply, CallError> {
     if !valid_model(provider, &model) || turns.is_empty() || turns.len() > 12 ||
         turns.last().is_none_or(|turn| turn.role != "user") ||
-        turns.iter().any(|turn| !matches!(turn.role, "user" | "assistant") || turn.content.is_empty() || turn.content.chars().count() > 4000) {
+        turns.iter().any(|turn| !matches!(turn.role, "user" | "assistant") || turn.content.is_empty() || turn.content.chars().count() > if turn.role == "user" { 4000 } else { MAX_VISIBLE_CHARS }) {
         return Err(CallError::InvalidInput);
     }
+    if !(1..=8192).contains(&max_output_tokens) { return Err(CallError::InvalidInput); }
     let client = Client::builder()
-        .https_only(true)
+        .https_only(provider != Provider::OllamaLocal)
         .no_proxy()
         .redirect(redirect::Policy::none())
         .timeout(Duration::from_secs(45))
         .build().map_err(|_| CallError::Transport)?;
     let url = endpoint(provider, &model);
-    let request = client.post(url).json(&payload(provider, &model, &turns));
+    let request = client.post(url).json(&payload(provider, &model, &turns, max_output_tokens));
     let request = match provider {
         Provider::Gemini => request.header("x-goog-api-key", key.as_str()),
+        Provider::Anthropic => request.header("x-api-key", key.as_str())
+            .header("anthropic-version", "2023-06-01"),
+        Provider::OllamaLocal => request,
         _ => request.bearer_auth(key.as_str()),
     };
     let mut response = request.send().await.map_err(|_| CallError::Transport)?;
@@ -128,12 +152,25 @@ pub async fn send(provider: Provider, model: String, key: Zeroizing<String>, tur
         bytes.extend_from_slice(&chunk);
     }
     let body: Value = serde_json::from_slice(&bytes).map_err(|_| CallError::InvalidResponse)?;
-    extract_reply(provider, &body)
+    // Preserve the complete bounded answer; do not silently truncate a reply.
+    let reply = extract_reply(provider, &body)?;
+    if reply.content.chars().count() > MAX_VISIBLE_CHARS ||
+        reply.reasoning.as_ref().is_some_and(|r| r.chars().count() > MAX_VISIBLE_CHARS) {
+        return Err(CallError::Oversized);
+    }
+    Ok(reply)
 }
 
 // SSE frames are parsed only after a newline; partial UTF-8 bytes remain buffered.
 fn stream_delta(provider: Provider, body: &Value, reply: &mut Reply) {
-    if provider == Provider::Gemini {
+    if provider == Provider::Anthropic {
+        if body["type"] == "content_block_delta" {
+            if let Some(text) = body["delta"]["text"].as_str() { reply.content.push_str(text); }
+            if let Some(text) = body["delta"]["thinking"].as_str() {
+                reply.reasoning.get_or_insert_with(String::new).push_str(text);
+            }
+        }
+    } else if provider == Provider::Gemini {
         if let Some(parts) = body.pointer("/candidates/0/content/parts").and_then(Value::as_array) {
             for part in parts {
                 if let Some(text) = part.get("text").and_then(Value::as_str) {
@@ -152,22 +189,27 @@ fn stream_delta(provider: Provider, body: &Value, reply: &mut Reply) {
     }
 }
 
-pub async fn send_stream(provider: Provider, model: String, key: Zeroizing<String>, turns: Vec<Turn>, progress: &mut Sender<Reply>) -> Result<Reply, CallError> {
+pub async fn send_stream(provider: Provider, model: String, key: Zeroizing<String>, turns: Vec<Turn>, progress: &mut Sender<Reply>, max_output_tokens: u32) -> Result<Reply, CallError> {
     if !valid_model(provider, &model) || turns.is_empty() || turns.len() > 12 ||
         turns.last().is_none_or(|turn| turn.role != "user") ||
-        turns.iter().any(|turn| !matches!(turn.role, "user" | "assistant") || turn.content.is_empty() || turn.content.chars().count() > 4000) {
+        turns.iter().any(|turn| !matches!(turn.role, "user" | "assistant") || turn.content.is_empty() || turn.content.chars().count() > if turn.role == "user" { 4000 } else { MAX_VISIBLE_CHARS }) {
         return Err(CallError::InvalidInput);
     }
-    let client = Client::builder().https_only(true).no_proxy().redirect(redirect::Policy::none())
+    if !(1..=8192).contains(&max_output_tokens) { return Err(CallError::InvalidInput); }
+    let client = Client::builder().https_only(provider != Provider::OllamaLocal).no_proxy().redirect(redirect::Policy::none())
         .timeout(Duration::from_secs(45)).build().map_err(|_| CallError::Transport)?;
     let url = if provider == Provider::Gemini {
         format!("https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse")
     } else { endpoint(provider, &model) };
-    let mut body = payload(provider, &model, &turns);
+    let mut body = payload(provider, &model, &turns, max_output_tokens);
     if provider != Provider::Gemini { body["stream"] = Value::Bool(true); }
     let request = client.post(url).json(&body);
-    let request = if provider == Provider::Gemini { request.header("x-goog-api-key", key.as_str()) }
-        else { request.bearer_auth(key.as_str()) };
+    let request = match provider {
+        Provider::Gemini => request.header("x-goog-api-key", key.as_str()),
+        Provider::Anthropic => request.header("x-api-key", key.as_str()).header("anthropic-version", "2023-06-01"),
+        Provider::OllamaLocal => request,
+        _ => request.bearer_auth(key.as_str()),
+    };
     let mut response = request.send().await.map_err(|_| CallError::Transport)?;
     if !response.status().is_success() { return Err(CallError::Rejected(response.status().as_u16())); }
     let mut pending = Vec::<u8>::new();
@@ -189,12 +231,13 @@ pub async fn send_stream(provider: Provider, model: String, key: Zeroizing<Strin
             if frame.get("error").is_some() || matches!(frame["type"].as_str(), Some("response.failed" | "response.incomplete")) {
                 return Err(CallError::InvalidResponse);
             }
+            if provider == Provider::Anthropic && frame["type"] == "message_stop" { done = true; }
             if provider == Provider::Gemini && frame["candidates"][0].get("finishReason").is_some() {
                 gemini_finished = matches!(frame["candidates"][0]["finishReason"].as_str(), Some("STOP" | "MAX_TOKENS"));
                 if !gemini_finished { return Err(CallError::InvalidResponse); }
             }
             stream_delta(provider, &frame, &mut reply);
-            if reply.content.chars().count() > 16000 || reply.reasoning.as_ref().is_some_and(|r| r.chars().count() > 16000) {
+            if reply.content.chars().count() > MAX_VISIBLE_CHARS || reply.reasoning.as_ref().is_some_and(|r| r.chars().count() > MAX_VISIBLE_CHARS) {
                 return Err(CallError::Oversized);
             }
             progress.send(reply.clone()).await;
@@ -239,16 +282,39 @@ mod tests {
         assert!(!valid_model(Provider::OpenRouter, "https://example.com"));
         assert_eq!(endpoint(Provider::Grok, "any"), "https://api.x.ai/v1/chat/completions");
         assert_eq!(endpoint(Provider::Gemini, "gemini-test"), "https://generativelanguage.googleapis.com/v1beta/models/gemini-test:generateContent");
+        assert_eq!(endpoint(Provider::OllamaLocal, "any"), "http://127.0.0.1:11434/v1/chat/completions");
+        assert_eq!(endpoint(Provider::Groq, "any"), "https://api.groq.com/openai/v1/chat/completions");
+    }
+
+    #[test]
+    fn anthropic_text_and_returned_thinking_are_separated() {
+        let reply = extract_reply(Provider::Anthropic, &json!({"content": [
+            {"type":"thinking","thinking":"Thought"}, {"type":"text","text":"Answer"}
+        ]})).unwrap();
+        assert_eq!(reply.content, "Answer");
+        assert_eq!(reply.reasoning.as_deref(), Some("Thought"));
+        let turns = [Turn { role: "user", content: "Hi".into() }];
+        assert!(payload(Provider::Anthropic, "claude", &turns, 256).get("stream").is_none());
+    }
+
+    #[test]
+    fn normal_large_reply_is_not_discarded_or_silently_cut() {
+        let response = "A".repeat(20_000);
+        let body = json!({"choices":[{"message":{"content":response}}]});
+        assert_eq!(extract_reply(Provider::OpenRouter, &body).unwrap().content.len(), 20_000);
+        let too_large = "B".repeat(MAX_VISIBLE_CHARS + 1);
+        assert_eq!(extract_reply(Provider::OpenRouter,
+            &json!({"choices":[{"message":{"content":too_large}}]})), Err(CallError::Oversized));
     }
 
     #[test]
     fn payload_sends_no_tools_and_no_free_to_paid_fallback() {
         let turns = [Turn { role: "user", content: "synthetic".into() }];
-        let open = payload(Provider::OpenRouter, "vendor/model:free", &turns);
+        let open = payload(Provider::OpenRouter, "vendor/model:free", &turns, 4096);
         assert_eq!(open["model"], "vendor/model:free");
         assert_eq!(open["provider"]["allow_fallbacks"], false);
         assert!(open.get("tools").is_none());
-        let gemini = payload(Provider::Gemini, "gemini-test", &turns);
+        let gemini = payload(Provider::Gemini, "gemini-test", &turns, 256);
         assert_eq!(gemini["contents"][0]["parts"][0]["text"], "synthetic");
     }
 }

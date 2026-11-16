@@ -9,16 +9,35 @@ pub enum Provider {
     OpenRouter,
     Grok,
     Gemini,
+    OpenAI,
+    Anthropic,
+    Groq,
+    Zai,
+    OllamaLocal,
+    OllamaCloud,
 }
 
 impl Provider {
-    pub const ALL: [Self; 3] = [Self::OpenRouter, Self::Grok, Self::Gemini];
+    pub const ALL: [Self; 9] = [Self::OpenRouter, Self::Grok, Self::Gemini,
+        Self::OpenAI, Self::Anthropic, Self::Groq, Self::Zai, Self::OllamaLocal, Self::OllamaCloud];
+    pub const COUNT: usize = Self::ALL.len();
+
+    pub fn index(self) -> usize {
+        Self::ALL.iter().position(|provider| *provider == self).expect("known provider")
+    }
+    pub fn needs_key(self) -> bool { self != Self::OllamaLocal }
 
     pub fn name(self) -> &'static str {
         match self {
             Self::OpenRouter => "OpenRouter",
             Self::Grok => "Grok (xAI)",
             Self::Gemini => "Gemini",
+            Self::OpenAI => "OpenAI",
+            Self::Anthropic => "Anthropic",
+            Self::Groq => "Groq",
+            Self::Zai => "Z.ai",
+            Self::OllamaLocal => "Ollama · local",
+            Self::OllamaCloud => "Ollama · cloud",
         }
     }
 
@@ -27,6 +46,12 @@ impl Provider {
             Self::OpenRouter => "openrouter",
             Self::Grok => "xai",
             Self::Gemini => "gemini",
+            Self::OpenAI => "openai",
+            Self::Anthropic => "anthropic",
+            Self::Groq => "groq",
+            Self::Zai => "zai",
+            Self::OllamaLocal => "ollama-local",
+            Self::OllamaCloud => "ollama-cloud",
         }
     }
 }

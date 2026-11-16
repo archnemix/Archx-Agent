@@ -316,6 +316,38 @@
     "iced_text_input_014": {
       "summary": "Iced 0.14 text_input supports placeholder, on_input and on_submit; use it only for local model-picker search, never for API key display or networking. Existing text_editor handles multiline Chat.",
       "url": "https://github.com/iced-rs/iced/blob/0.14.0/widget/src/text_input.rs"
+    },
+    "ollama_auth": {
+      "summary": "Ollama local API uses no key at localhost:11434; direct cloud at https://ollama.com/api or /v1 requires Bearer key. Native app only uses fixed loopback and fixed HTTPS endpoints; do not copy Python SDK.",
+      "url": "https://docs.ollama.com/api/authentication"
+    },
+    "ollama_tags": {
+      "summary": "Ollama GET /api/tags returns installed model IDs and quantization metadata. Catalog existence is not proof of generation success.",
+      "url": "https://docs.ollama.com/api/tags"
+    },
+    "ollama_sdk": {
+      "summary": "Official Python SDK chat accepts model/messages and optionally stream=True. Implement HTTP contract in Rust; no Python runtime or SDK embedded.",
+      "url": "https://github.com/ollama/ollama-python"
+    },
+    "zai_sdk": {
+      "summary": "Official Z.ai Python SDK ZaiClient uses overseas base https://api.z.ai/api/paas/v4/ and bearer auth, chat completions support stream delta content/reasoning. Do not reproduce SDK retry/JWT defaults without review.",
+      "url": "https://github.com/zai-org/z-ai-sdk-python"
+    },
+    "groq_api": {
+      "summary": "Official Groq lists POST /openai/v1/chat/completions and GET /openai/v1/models with Bearer token; Groq and xAI Grok are separate vendors.",
+      "url": "https://console.groq.com/docs/api-reference"
+    },
+    "anthropic_messages": {
+      "summary": "Anthropic Messages API POST /v1/messages with max_tokens and version/auth header, response content blocks; thinking blocks displayed only if returned.",
+      "url": "https://docs.anthropic.com/claude/reference/messages_post"
+    },
+    "anthropic_models": {
+      "summary": "Anthropic GET /v1/models returns data array of IDs.",
+      "url": "https://docs.anthropic.com/en/api/models-list"
+    },
+    "iced_abortable_task": {
+      "summary": "Iced 0.14 Task::abortable() returns handle whose abort cancels the future stream, enabling user-initiated Stop without replaying requests.",
+      "url": "https://github.com/iced-rs/iced/blob/0.14.0/runtime/src/task.rs"
     }
   }
 }
