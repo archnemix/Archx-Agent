@@ -168,7 +168,7 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
             .size(13).color(style::GREY),
         space().height(18),
         if state.provider.needs_key() {
-            column![text_input("Paste an API key", state.key_entry.0.as_str()).secure(true)
+            column![text_input::<Message, iced::Theme, iced::Renderer>("Paste an API key", state.key_entry.0.as_str()).secure(true)
                 .on_input(|value| Message::EditKey(SecretText::new(value)))
                 .padding([13, 15]).style(style::composer_input),
                 button(text("Save key to OS vault").size(12))
