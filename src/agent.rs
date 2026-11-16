@@ -8,6 +8,38 @@ use crate::settings::SettingsState;
 use crate::credentials::Provider;
 
 pub const MODES: [&str; 6] = ["Chat", "Tasks", "Research", "Coding", "Learning", "Play"];
+// Iced's Markdown parser already keeps HTML, links and images inert. Wrap only
+// native code/table widgets to reproduce the supplied reference's hierarchy;
+// do not execute code, auto-fetch images or follow generated links.
+struct ChatViewer;
+impl<'a> markdown::Viewer<'a, Message> for ChatViewer {
+    fn on_link_click(_: markdown::Uri) -> Message { Message::IgnoreMarkdownLink }
+
+    fn code_block(&self, settings: markdown::Settings, language: Option<&'a str>, _code: &'a str,
+        lines: &'a [markdown::Text]) -> Element<'a, Message> {
+        container(column![
+            container(text(language.unwrap_or("code").to_owned()).size(11).color(style::GREY))
+                .width(Fill).padding([7, 12]).style(style::chat_code_header),
+            markdown::code_block(settings, lines, Self::on_link_click),
+        ]).width(Fill).style(style::chat_panel).into()
+    }
+
+    fn table(&self, settings: markdown::Settings, columns: &'a [markdown::Column],
+        rows: &'a [markdown::Row]) -> Element<'a, Message> {
+        container(markdown::table(self, settings, columns, rows))
+            .padding(7).width(Fill).style(style::chat_panel).into()
+    }
+}
+
+fn chat_md<'a>(items: impl IntoIterator<Item = &'a markdown::Item>) -> Element<'a, Message> {
+    let mut settings = markdown::Settings::with_text_size(14, iced::Theme::Dark);
+    settings.h1_size = 24.into();
+    settings.h2_size = 20.into();
+    settings.code_size = 12.into();
+    settings.spacing = 11.into();
+    markdown::view_with(items, settings, &ChatViewer)
+}
+
 
 fn action(label: &'static str, message: Message) -> Element<'static, Message> {
     button(text(label).size(13)).padding([9, 12])
@@ -136,13 +168,11 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
                         .size(12).color(style::GREY)).on_press(Message::ToggleReasoning(draft.id, slot))
                         .padding([8, 12]).style(style::chat_menu_choice_inactive)].spacing(4);
                     if *expanded {
-                        thinking = thinking.push(container(markdown::view(reasoning.items(), iced::Theme::Dark)
-                            .map(|_| Message::IgnoreMarkdownLink)).padding([5, 12]));
+                        thinking = thinking.push(container(chat_md(reasoning.items())).padding([5, 12]));
                     }
                     body = body.push(container(thinking).width(Fill).style(style::chat_thinking));
                 }
-                body = body.push(markdown::view(content.items(), iced::Theme::Dark)
-                    .map(|_| Message::IgnoreMarkdownLink));
+                body = body.push(chat_md(content.items()));
             } else {
                 body = body.push(text(turn.content.clone()).size(15).color(style::WHITE));
             }
@@ -155,11 +185,10 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
             let mut body = column![text("Assistant  ·  responding").size(13).color(style::GREY)].spacing(8);
             if let Some(reasoning) = reasoning {
                 body = body.push(container(column![text("✧  Thinking").size(12).color(style::GREY),
-                    markdown::view(reasoning.items(), iced::Theme::Dark).map(|_| Message::IgnoreMarkdownLink)]
+                    chat_md(reasoning.items())]
                     .spacing(8)).padding(12).style(style::chat_thinking));
             }
-            body = body.push(markdown::view(content.items(), iced::Theme::Dark)
-                .map(|_| Message::IgnoreMarkdownLink));
+            body = body.push(chat_md(content.items()));
             log = log.push(row![avatar(true), body].spacing(16).width(Fill));
         }
         scrollable(container(container(log).max_width(860).width(Fill).padding([24, 20]))

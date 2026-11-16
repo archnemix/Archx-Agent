@@ -144,7 +144,7 @@ fn provider_tabs(current: Provider, busy: bool) -> Element<'static, Message> {
 fn providers(state: &SettingsState) -> Element<'static, Message> {
     let mut keys = column![text("SAVED KEY SLOTS").size(11).color(style::DIM)].spacing(10);
     if state.key_ids.is_empty() {
-        keys = keys.push(text("No saved keys for this provider. Paste one above to store it in your OS vault.").size(13).color(style::GREY));
+        keys = keys.push(text(if state.provider.needs_key() { "No saved keys for this provider. Paste one above to store it in your OS vault." } else { "No key needed. Select Models to browse the local Ollama server." }).size(13).color(style::GREY));
     }
     for id in &state.key_ids {
         let id = *id;

@@ -342,3 +342,8 @@ pub fn chat_error(_: &Theme) -> container::Style {
     container::Style::default().background(Color::from_rgb8(37, 17, 18))
         .border(Border { color: Color::from_rgb8(108, 46, 46), width: 1.0, radius: 9.0.into() })
 }
+
+pub fn chat_code_header(_: &Theme) -> container::Style {
+    container::Style::default().background(Color::from_rgb8(23, 23, 23))
+        .border(Border { color: Color::from_rgb8(44, 44, 44), width: 1.0, radius: 0.0.into() })
+}

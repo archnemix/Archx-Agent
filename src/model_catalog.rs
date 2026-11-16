@@ -9,7 +9,7 @@ use zeroize::Zeroizing;
 use crate::credentials::Provider;
 use crate::provider_api::{valid_model, CallError};
 
-const MAX_CATALOG_BYTES: usize = 2 * 1024 * 1024;
+const MAX_CATALOG_BYTES: usize = 8 * 1024 * 1024;
 const MAX_MODELS: usize = 4000;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
