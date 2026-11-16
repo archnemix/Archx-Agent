@@ -221,6 +221,13 @@ impl App {
             };
         }
         if snapshot.is_some() && page == Page::Settings &&
+            std::env::var("ARCHX_SNAPSHOT_SETTINGS").as_deref() == Ok("custom-review") {
+            settings.provider = Provider::Custom;
+            settings.custom.url = "https://example.invalid/v1/chat/completions".into();
+            settings.custom.headers = Zeroizing::new("Authorization: Bearer {{api_key}}".into());
+            settings.status = "Synthetic fixture: no request was sent and no destination was approved.".into();
+        }
+        if snapshot.is_some() && page == Page::Settings &&
             std::env::var("ARCHX_SNAPSHOT_SETTINGS").as_deref() == Ok("import-review") {
             settings.catalog[0] = vec![
                 CatalogModel { id: "vendor/alpha:free".into(), name: "Alpha".into(), free: true, router: false, reasoning: false },
