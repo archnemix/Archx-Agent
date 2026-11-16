@@ -615,12 +615,12 @@ impl App {
                 self.settings.probe_nonce = self.settings.probe_nonce.wrapping_add(1);
                 let nonce = self.settings.probe_nonce;
                 let cursor = self.key_cursor[index];
+                let word = if self.settings.expected_word.is_empty() { "OK".to_owned() } else { self.settings.expected_word.clone() };
                 let task = Task::sip(sipper(async move |mut sender| {
                     for (offset, id) in ids.into_iter().enumerate() {
                         let result = match selected_key(provider, cursor.wrapping_add(offset)).await {
                             Ok(key) => provider_api::send(provider, id.clone(), key,
-                                let word = if self.settings.expected_word.is_empty() { "OK" } else { &self.settings.expected_word };
-            vec![Turn { role: "user", content: format!("Reply with the word {word}.") }], 256)
+                                vec![Turn { role: "user", content: format!("Reply with the word {word}.") }], 256)
                                 .await.map(|reply| SecretText::new(reply.content))
                                 .map_err(|error| error.message()),
                             Err(error) => Err(error),

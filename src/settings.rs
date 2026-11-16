@@ -339,7 +339,7 @@ fn custom_controls(state: &SettingsState) -> Element<'static, Message> {
         text_input("Answer JSON pointer, e.g. /result/text", &p.answer_pointer).on_input(Message::CustomAnswer).padding(11).style(style::composer_input),
         button(text(if p.stream { "Streaming: SSE data JSON" } else { "Streaming: off (JSON response)" }).size(12))
             .on_press(Message::CustomStream).style(style::quiet_button),
-        if p.stream { text_input("SSE delta JSON pointer", &p.stream_pointer).on_input(Message::CustomDelta).padding(11).style(style::composer_input).into() }
+        if p.stream { text_input::<Message, iced::Theme, iced::Renderer>("SSE delta JSON pointer", &p.stream_pointer).on_input(Message::CustomDelta).padding(11).style(style::composer_input).into() }
             else { space().height(0).into() },
         text("Or paste a literal cURL POST request (JSON body; no shell evaluation):").size(12).color(style::GREY),
         text_input("curl -X POST https://... -H 'Authorization: Bearer {{api_key}}' -d '{...}'", state.custom_curl.0.as_str())
