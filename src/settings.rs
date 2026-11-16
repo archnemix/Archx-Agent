@@ -92,25 +92,19 @@ pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Elem
         Section::Models => ("Models", "Choose IDs to import; optionally test them first. A passing probe cannot guarantee future availability."),
         Section::Lab => ("Lab preview", "These options do not yet affect device memory."),
     };
-    let nav = column![
-        text("SETTINGS").size(10).color(style::DIM),
-        space().height(15),
-        setting_link("Providers", Section::Providers, state.section),
-        setting_link("Models", Section::Models, state.section),
-        space().height(14),
-        container(space().height(1)).width(Fill).style(style::rail_divider),
-        space().height(14),
-        setting_link("Lab preview", Section::Lab, state.section),
-        space().height(Fill),
-        text("Local session").size(11).color(style::DIM),
-    ].spacing(6).height(Fill).width(Fill).padding(16);
     let body = column![
         text("LAB  /  SETTINGS").size(10).color(style::DIM),
         space().height(14),
         text(heading).size(29).font(style::DISPLAY).color(style::WHITE),
         space().height(8),
         text(description).size(13).color(style::GREY),
-        space().height(24),
+        space().height(22),
+        row![
+            setting_link("Providers", Section::Providers, state.section),
+            setting_link("Models", Section::Models, state.section),
+            setting_link("Lab preview", Section::Lab, state.section)
+        ].spacing(8),
+        space().height(20),
         match state.section {
             Section::Providers => providers(state),
             Section::Models => models(state),
@@ -119,10 +113,8 @@ pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Elem
         space().height(18),
         text(state.status.clone()).size(12).color(style::GREY)
     ].width(Fill).padding([28, 30]);
-    row![
-        container(nav).width(170).height(Fill).style(style::rail),
-        scrollable(body).width(Fill).height(Fill)
-    ].width(Fill).height(Fill).into()
+    scrollable(container(body).max_width(960).center_x(Fill))
+        .width(Fill).height(Fill).into()
 }
 
 fn setting_link(label: &'static str, section: Section, current: Section) -> Element<'static, Message> {
@@ -149,7 +141,7 @@ fn provider_tabs(current: Provider, busy: bool) -> Element<'static, Message> {
 fn providers(state: &SettingsState) -> Element<'static, Message> {
     let mut keys = column![text("SAVED KEY SLOTS").size(11).color(style::DIM)].spacing(10);
     if state.key_ids.is_empty() {
-        keys = keys.push(text(if state.provider.needs_key() { "No saved keys. Custom endpoints can also work without a key." } else { "No key needed. Select Models to browse the local Ollama server." }).size(13).color(style::GREY));
+        keys = keys.push(text(if state.provider.needs_key() { if state.provider == Provider::Custom { "No saved key. Custom endpoints can work without a key." } else { "No saved keys. Paste one above to store it in your OS vault." } } else { "No key needed. Select Models to browse the local Ollama server." }).size(13).color(style::GREY));
     }
     for id in &state.key_ids {
         let id = *id;
