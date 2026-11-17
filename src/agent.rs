@@ -164,7 +164,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
                     .padding([12, 16]).style(style::chat_user));
             } else if let Some((_, content, reasoning, expanded)) = draft.formatted.iter().find(|(index, _, _, _)| *index == slot) {
                 if let Some(reasoning) = reasoning {
-                    let mut thinking = column![button(text(if *expanded { "✧  Thinking  ▴" } else { "✧  Thinking  ▾" })
+                    let mut thinking = column![button(text(if *expanded { "✧  Reasoning  ▴" } else { "✧  Reasoning  ▾" })
                         .size(12).color(style::GREY)).on_press(Message::ToggleReasoning(draft.id, slot))
                         .padding([8, 12]).style(style::chat_menu_choice_inactive)].spacing(4);
                     if *expanded {
@@ -184,7 +184,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
         if let Some((content, reasoning)) = &draft.partial {
             let mut body = column![text("Assistant  ·  responding").size(13).color(style::GREY)].spacing(8);
             if let Some(reasoning) = reasoning {
-                body = body.push(container(column![text("✧  Thinking").size(12).color(style::GREY),
+                body = body.push(container(column![text("✧  Reasoning").size(12).color(style::GREY),
                     chat_md(reasoning.items())]
                     .spacing(8)).padding(12).style(style::chat_thinking));
             }
@@ -201,7 +201,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
             text(if no_model { "No provider configured" } else if active_mode == 0 { "How can I help?" } else { MODES[usize::from(active_mode)] })
                 .size(25).font(style::DISPLAY).color(style::WHITE),
             space().height(13),
-            text(if no_model { "Add a key and choose a model to start chatting.\nYour keys stay in the OS credential store; chats are session-only." }
+            text(if no_model { "Connect a provider and choose a model to start chatting.\nKeys, when needed, stay in the OS credential store." }
                  else if active_mode != 0 { "This mode is a preview. No tools are running." }
                  else { "Write a message below to begin." }).size(13).color(style::GREY),
             space().height(20),

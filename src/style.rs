@@ -2,13 +2,15 @@
 use iced::widget::{button, container, text_editor, text_input};
 use iced::{font, gradient, Background, Border, Color, Font, Radians, Shadow, Theme, Vector};
 
-pub const BLACK: Color = Color::from_rgb8(8, 8, 8);
+pub const BLACK: Color = Color::from_rgb8(0, 0, 0);
 pub const RAIL: Color = Color::from_rgb8(13, 13, 13);
 pub const SURFACE: Color = Color::from_rgb8(20, 20, 20);
 pub const LINE: Color = Color::from_rgb8(51, 51, 51);
 pub const WHITE: Color = Color::from_rgb8(244, 244, 244);
 pub const GREY: Color = Color::from_rgb8(178, 178, 178);
 pub const DIM: Color = Color::from_rgb8(145, 145, 145);
+pub const SUCCESS: Color = Color::from_rgb8(126, 207, 150);
+pub const FAILURE: Color = Color::from_rgb8(226, 139, 139);
 
 // Type roles and spacing are specified once in Docs/design.md and reused by views.
 #[cfg(not(target_os = "macos"))]
@@ -260,6 +262,12 @@ mod tests {
     }
 
     #[test]
+    fn chat_canvas_is_true_black() {
+        assert_eq!(BLACK, Color::from_rgb8(0, 0, 0));
+        assert_eq!(canvas(&Theme::Dark).background, Some(Background::Color(BLACK)));
+    }
+
+    #[test]
     fn selected_navigation_uses_glass_gradient() {
         let selected = nav(true, &Theme::Dark, button::Status::Active);
         assert!(matches!(selected.background, Some(Background::Gradient(_))));
@@ -295,8 +303,8 @@ pub fn chat_user(_: &Theme) -> container::Style {
         .border(Border { color: Color::from_rgb8(44, 44, 44), width: 1.0, radius: 12.0.into() })
 }
 pub fn chat_thinking(_: &Theme) -> container::Style {
-    container::Style::default().background(Color::from_rgb8(15, 15, 15))
-        .border(Border { color: Color::from_rgb8(55, 55, 55), width: 1.0, radius: 12.0.into() })
+    container::Style::default().background(Color::from_rgb8(12, 12, 12))
+        .border(Border { color: Color::from_rgb8(43, 43, 43), width: 1.0, radius: 9.0.into() })
 }
 pub fn chat_avatar(assistant: bool, _: &Theme) -> container::Style {
     container::Style::default().background(if assistant { WHITE } else { Color::from_rgb8(26, 26, 26) })
@@ -346,4 +354,17 @@ pub fn chat_error(_: &Theme) -> container::Style {
 pub fn chat_code_header(_: &Theme) -> container::Style {
     container::Style::default().background(Color::from_rgb8(23, 23, 23))
         .border(Border { color: Color::from_rgb8(44, 44, 44), width: 1.0, radius: 0.0.into() })
+}
+
+// Provider choices must read as controls, not loose gray words in a wide grid.
+pub fn provider_choice(active: bool, _: &Theme, status: button::Status) -> button::Style {
+    button::Style {
+        background: Some(if active { Color::from_rgb8(43, 43, 43) }
+            else if matches!(status, button::Status::Hovered | button::Status::Pressed) { Color::from_rgb8(27, 27, 27) }
+            else { Color::from_rgb8(17, 17, 17) }.into()),
+        text_color: if active { WHITE } else { GREY },
+        border: Border { color: if active { Color::from_rgb8(71, 71, 71) } else { Color::from_rgb8(35, 35, 35) },
+            width: 1.0, radius: 8.0.into() },
+        ..button::Style::default()
+    }
 }

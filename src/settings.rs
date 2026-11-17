@@ -92,6 +92,9 @@ pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Elem
         Section::Models => ("Models", "Choose IDs to import; optionally test them first. A passing probe cannot guarantee future availability."),
         Section::Lab => ("Lab preview", "These options do not yet affect device memory."),
     };
+    let status_notice: Element<'static, Message> = if state.status.is_empty() { space().height(0).into() }
+    else { container(text(state.status.clone()).size(12).color(style::WHITE))
+        .padding([9, 12]).width(Fill).style(style::chat_panel).into() };
     let body = column![
         text("LAB  /  SETTINGS").size(10).color(style::DIM),
         space().height(14),
@@ -103,15 +106,14 @@ pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Elem
             setting_link("Providers", Section::Providers, state.section),
             setting_link("Models", Section::Models, state.section),
             setting_link("Lab preview", Section::Lab, state.section)
-        ].spacing(8),
-        space().height(20),
+        ].spacing(8).width(495),
+        space().height(16),
+        status_notice,
         match state.section {
             Section::Providers => providers(state),
             Section::Models => models(state),
             Section::Lab => lab(memory, keep_agent),
-        },
-        space().height(18),
-        text(state.status.clone()).size(12).color(style::GREY)
+        }
     ].width(Fill).padding([28, 30]);
     scrollable(container(body).max_width(960).center_x(Fill))
         .width(Fill).height(Fill).into()
@@ -124,14 +126,14 @@ fn setting_link(label: &'static str, section: Section, current: Section) -> Elem
 }
 
 fn provider_tabs(current: Provider, busy: bool) -> Element<'static, Message> {
-    let mut rows = column![].spacing(6);
-    for group in Provider::ALL.chunks(4) {
+    let mut rows = column![].spacing(5);
+    for group in Provider::ALL.chunks(5) {
         let mut line = row![].spacing(6);
         for provider in group.iter().copied() {
             let selected = current == provider;
             line = line.push(button(text(provider.name()).size(12))
-                .width(150).padding([9, 12]).on_press_maybe((!busy).then_some(Message::SelectProvider(provider)))
-                .style(move |theme, status| style::chat_menu_choice(selected, theme, status)));
+                .width(135).padding([8, 10]).on_press_maybe((!busy).then_some(Message::SelectProvider(provider)))
+                .style(move |theme, status| style::provider_choice(selected, theme, status)));
         }
         rows = rows.push(line);
     }
@@ -247,13 +249,13 @@ fn catalog_view(state: &SettingsState) -> Element<'static, Message> {
         let label = format!("{}  {}{}{}", if selected { "☑" } else { "□" }, model.id,
             if model.free { "  ·  free at fetch" } else { "" },
             if added { "  ·  in list" } else { "" });
-        let mut entry = column![button(text(label).size(12)).width(Fill)
-            .padding([8, 11]).on_press(Message::ToggleCatalogSelection(state.provider, slot))
+        let mut entry = column![button(text(label).size(13)).width(Fill)
+            .padding([9, 11]).on_press(Message::ToggleCatalogSelection(state.provider, slot))
             .style(move |t, status| style::chat_menu_choice(selected, t, status))].spacing(4);
         if let Some((_, ok, output)) = state.probe_results.iter().find(|(id, _, _)| id == &model.id) {
             entry = entry.push(text(format!("{}  ·  Sent: Reply with the word OK.  ·  Received: {}",
                 if *ok { "✓ Reply received" } else { "× Probe failed" }, output))
-                .size(11).color(if *ok { style::GREY } else { style::DIM }));
+                .size(12).color(if *ok { style::SUCCESS } else { style::FAILURE }));
         }
         items = items.push(entry);
     }
@@ -263,6 +265,10 @@ fn catalog_view(state: &SettingsState) -> Element<'static, Message> {
             button(text("Cancel").size(11)).on_press(Message::CancelCatalogProbe).style(style::chat_button),
             button(text("Confirm tests ↗").size(11)).on_press(Message::ConfirmCatalogProbe).style(style::chat_button)
         ].spacing(8).align_y(iced::Center).into()
+    } else { space().height(0).into() };
+    let progress_notice: Element<'static, Message> = if state.probe_busy {
+        text(format!("Testing selected models · {} of {} results received. Stop cancels remaining requests.",
+            state.probe_results.len(), checked)).size(12).color(style::GREY).into()
     } else { space().height(0).into() };
     column![
         row![
@@ -289,6 +295,7 @@ fn catalog_view(state: &SettingsState) -> Element<'static, Message> {
             else { button(text("Stop tests").size(12)).style(style::chat_menu_choice_inactive) }
         ].spacing(8),
         pending,
+        progress_notice,
         space().height(12),
         items,
         text(if matching.len() > 24 { "Showing 24 matches. Filter to find more." } else { "Catalog metadata is not a guarantee of availability or pricing." })
@@ -320,30 +327,44 @@ fn lab(memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {
 fn custom_controls(state: &SettingsState) -> Element<'static, Message> {
     let p = &state.custom;
     let stream_control: Element<'static, Message> = if p.stream {
-        text_input::<Message, iced::Theme, iced::Renderer>("SSE delta JSON pointer", &p.stream_pointer)
-            .on_input(Message::CustomDelta).padding(11).style(style::composer_input).into()
+        column![text("SSE answer delta / JSON pointer").size(11).color(style::GREY),
+            text_input::<Message, iced::Theme, iced::Renderer>("/choices/0/delta/content", &p.stream_pointer)
+                .on_input(Message::CustomDelta).size(13).padding([9, 12]).style(style::composer_input)]
+            .spacing(5).into()
     } else { space().height(0).into() };
     column![
-        space().height(20),
-        text("CUSTOM TEXT ENDPOINT  /  SESSION ONLY").size(12).color(style::WHITE),
+        text("Custom text endpoint").size(17).color(style::WHITE),
+        text("Session only · HTTPS or loopback HTTP · approval required before sending a prompt or vault key")
+            .size(12).color(style::GREY),
         row![button(text("OpenAI-compatible preset").size(11)).on_press(Message::CustomOpenAiPreset).style(style::quiet_button),
             button(text("Anthropic-compatible preset").size(11)).on_press(Message::CustomAnthropicPreset).style(style::quiet_button)].spacing(8),
-        text("HTTPS, or HTTP loopback only. No redirects, proxies, files, shell execution or saved profile. Your prompt and optional OS-vault key go to this exact destination only after approval.").size(12).color(style::GREY),
-        text_input("https://example.com/chat", &p.url).on_input(Message::CustomUrl).padding(11).style(style::composer_input),
-        text_input("Headers: Name: value | Name: value (or use cURL); {{api_key}} for vault key", p.headers.as_str())
-            .on_input(|s| Message::CustomHeaders(SecretText::new(s))).padding(11).style(style::composer_input),
-        text_input("JSON body with {{prompt}} or {{messages}}", &p.body).on_input(Message::CustomBody).padding(11).style(style::composer_input),
-        text_input("Answer JSON pointer, e.g. /result/text", &p.answer_pointer).on_input(Message::CustomAnswer).padding(11).style(style::composer_input),
+        column![text("Destination URL").size(11).color(style::GREY),
+            text_input("https://example.com/chat", &p.url).on_input(Message::CustomUrl)
+                .size(13).padding([9, 12]).style(style::composer_input)].spacing(5),
+        column![text("Request headers  ·  separate entries with |  ·  {{api_key}} inserts the optional OS-vault key")
+            .size(11).color(style::GREY),
+            text_input("Authorization: Bearer {{api_key}}", p.headers.as_str())
+                .on_input(|s| Message::CustomHeaders(SecretText::new(s)))
+                .size(13).padding([9, 12]).style(style::composer_input)].spacing(5),
+        column![text("JSON request body  ·  use {{prompt}} or {{messages}}; {{model}}, {{max_tokens}}, {{stream}} are optional")
+            .size(11).color(style::GREY),
+            text_input("{\"prompt\":\"{{prompt}}\"}", &p.body).on_input(Message::CustomBody)
+                .size(13).padding([9, 12]).style(style::composer_input)].spacing(5),
+        column![text("Answer text / JSON pointer").size(11).color(style::GREY),
+            text_input("/choices/0/message/content", &p.answer_pointer).on_input(Message::CustomAnswer)
+                .size(13).padding([9, 12]).style(style::composer_input)].spacing(5),
         button(text(if p.stream { "Streaming: SSE data JSON" } else { "Streaming: off (JSON response)" }).size(12))
             .on_press(Message::CustomStream).style(style::quiet_button),
         stream_control,
-        text("Or paste a literal cURL POST request (JSON body; no shell evaluation):").size(12).color(style::GREY),
+        text("Or paste a literal cURL POST request · parsed as text, never executed").size(12).color(style::GREY),
         text_input("curl -X POST https://... -H 'Authorization: Bearer {{api_key}}' -d '{...}'", state.custom_curl.0.as_str())
-            .secure(true).on_input(|s| Message::CustomCurl(SecretText::new(s))).padding(11).style(style::composer_input),
+            .secure(true).on_input(|s| Message::CustomCurl(SecretText::new(s)))
+            .size(13).padding([9, 12]).style(style::composer_input),
         button(text("Parse cURL into fields").size(12)).on_press(Message::ImportCustomCurl).style(style::quiet_button),
         text(format!("Destination for approval: {}", if p.url.is_empty() { "not entered" } else { &p.url })).size(12).color(style::WHITE),
         button(text(if state.custom_approved { "Approved for this session · revoke" } else { "Approve sending prompts and key to this destination" }).size(12))
             .on_press(Message::ApproveCustom).style(style::chat_button),
-        text("Edit any field to revoke approval. Review the displayed URL and headers before sending; custom hosts can charge or retain your data.").size(11).color(style::DIM)
+        text("Edits revoke approval. No redirects, ambient proxies, files or shell execution. Review any literal header secrets before sharing your screen.")
+            .size(11).color(style::DIM)
     ].spacing(10).width(Fill).into()
 }
