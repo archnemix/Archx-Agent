@@ -11,7 +11,7 @@ These values correspond to constants in `src/style.rs`; reuse semantic roles rat
 
 | Role | Value | Use |
 | --- | --- | --- |
-| Canvas | `#080808` | Main background |
+| Canvas | `#000000` | True-black Chat and Settings background; rail remains subtly distinct |
 | Rail | `#0D0D0D` | Sidebar behind the **transparent** logo |
 | Surface | `#141414` | Featured text side and About panel |
 | Line | `#333333` | Thin boundaries and inactive phase markers |

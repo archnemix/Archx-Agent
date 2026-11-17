@@ -93,8 +93,11 @@ pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Elem
         Section::Lab => ("Lab preview", "These options do not yet affect device memory."),
     };
     let status_notice: Element<'static, Message> = if state.status.is_empty() { space().height(0).into() }
-    else { container(text(state.status.clone()).size(12).color(style::WHITE))
-        .padding([9, 12]).width(Fill).style(style::chat_panel).into() };
+    else { column![
+        container(text(state.status.clone()).size(12).color(style::WHITE))
+            .padding([9, 12]).width(Fill).style(style::chat_panel),
+        space().height(12)
+    ].into() };
     let body = column![
         text("LAB  /  SETTINGS").size(10).color(style::DIM),
         space().height(14),
