@@ -244,6 +244,8 @@ impl App {
             ];
             settings.probe_results.push(("vendor/beta".into(), true, "OK".into()));
             settings.probe_results.push(("vendor/gamma".into(), false, "HTTP 429 · account quota exceeded".into()));
+            settings.catalog_modal = true;
+            settings.catalog_selected[0] = vec!["vendor/beta".into()];
         }
         let mut drafts = vec![ChatDraft { id: 1, mode: preview_mode,
             editor: text_editor::Content::with_text(&preview_text), text: preview_text,
