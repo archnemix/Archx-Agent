@@ -1,0 +1,33 @@
+# Purpose: Fetch the public user-supplied web-app reference for inspection, without executing its code or committing an unreviewed archive.
+name: Inspect web app reference
+on:
+  push:
+    branches: [arena/d45bc2a4-archx-agent]
+    paths: ['.github/workflows/reference-import.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and inspect archive metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --max-time 300 --silent --show-error \
+            'https://drive.usercontent.google.com/download?id=1zmn-G781kvJ3yRjmm8ENaCW4H7Wpz945&export=download&confirm=t' \
+            -o /tmp/web-app-reference.tar
+          file /tmp/web-app-reference.tar
+          du -h /tmp/web-app-reference.tar
+          sha256sum /tmp/web-app-reference.tar
+          test "$(stat -c %s /tmp/web-app-reference.tar)" -lt 104857600
+          tar -tf /tmp/web-app-reference.tar > /tmp/reference-file-list.txt
+          echo "Archive contains $(wc -l < /tmp/reference-file-list.txt) entries"
+          head -40 /tmp/reference-file-list.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-app-reference-tar
+          path: /tmp/web-app-reference.tar
+          retention-days: 3
+          if-no-files-found: error
