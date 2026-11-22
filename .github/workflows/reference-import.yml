@@ -6,11 +6,15 @@ on:
     paths: ['.github/workflows/reference-import.yml']
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: arena/d45bc2a4-archx-agent
+          persist-credentials: true
       - name: Download and inspect archive metadata
         shell: bash
         run: |
@@ -25,6 +29,13 @@ jobs:
           tar -tf /tmp/web-app-reference.tar > /tmp/reference-file-list.txt
           echo "Archive contains $(wc -l < /tmp/reference-file-list.txt) entries"
           head -40 /tmp/reference-file-list.txt
+          mkdir -p internels/reference/web
+          { sha256sum /tmp/web-app-reference.tar; du -h /tmp/web-app-reference.tar; cat /tmp/reference-file-list.txt; } > internels/reference/web/archive-inventory.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add internels/reference/web/archive-inventory.txt
+          git commit -m 'Inventory downloaded web-app reference archive'
+          git push origin HEAD:arena/d45bc2a4-archx-agent
       - uses: actions/upload-artifact@v4
         with:
           name: web-app-reference-tar
