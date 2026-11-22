@@ -259,6 +259,28 @@ impl App {
                 std::env::var("ARCHX_SNAPSHOT_CHAT").as_deref() == Ok("review")));
             }
         }
+        // Offline visual review only: several distinct turns exercise plain
+        // replies, returned reasoning, long-form Markdown, code and tables.
+        // A normal Chat session never receives these fixture messages.
+        if snapshot.is_some() && page == Page::Agent &&
+            std::env::var("ARCHX_SNAPSHOT_CHAT").as_deref() == Ok("conversation-review") {
+            settings.models[0] = vec!["demo/review-model".into()];
+            settings.chosen[0] = Some(0);
+            let turns = [
+                ("user", "Hi! How are you? Also explain how SSE streaming works."),
+                ("assistant", "I'm ready to help. SSE keeps one HTTP response open while the server sends text updates. No reasoning was returned with this reply."),
+                ("user", "Can you show JavaScript and compare SSE with polling?"),
+                ("assistant", "## How SSE works\n\nA browser opens an `EventSource` and reads updates as they arrive. Unlike polling, the connection stays open.\n\n```javascript\nconst source = new EventSource('/events');\nsource.onmessage = (event) => console.log(event.data);\n```\n\n| Feature | SSE | Polling |\n| :--- | :--- | :--- |\n| Connection | Persistent | Repeated requests |\n| Direction | Server to client | Request/response |"),
+            ];
+            drafts[0].turns = turns.into_iter().map(|(role, content)| Turn { role, content: content.into() }).collect();
+            let answer_one = drafts[0].turns[1].content.clone();
+            let answer_two = drafts[0].turns[3].content.clone();
+            drafts[0].formatted = vec![
+                (1, markdown::Content::parse(&answer_one), None, false),
+                (3, markdown::Content::parse(&answer_two),
+                    Some(markdown::Content::parse("The user asked for a JavaScript example and a comparison. Explain the open connection and keep the code and table focused on that question.")), true),
+            ];
+        }
         Self {
             page,
             sidebar_expanded: !(snapshot.is_some()
