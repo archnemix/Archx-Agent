@@ -353,6 +353,7 @@ impl App {
             }
             Message::NewChat if matches!(self.page, Page::Agent | Page::Settings) => {
                 self.page = Page::Agent;
+                self.settings.clear_secret();
                 let id = self.drafts.last().map_or(1, |draft| draft.id + 1);
                 self.drafts.push(ChatDraft { id, mode: 0, text: String::new(), editor: text_editor::Content::new(), formatted: Vec::new(), partial: None, partial_raw: None, incomplete_slots: Vec::new(), request_handle: None, turns: Vec::new(), busy: false, error: None });
                 self.selected_draft = id;

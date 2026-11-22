@@ -75,8 +75,6 @@ fn compact(page: Page) -> Element<'static, Message> {
         space().height(Fill),
         divider(),
         space().height(16),
-        compact_action(Icon::About, "About", Message::Navigate(Page::About), page == Page::About),
-        space().height(10),
 
         space().height(22),
         compact_action(Icon::Expand, "Expand navigation", Message::ToggleSidebar, false)
@@ -102,8 +100,6 @@ fn expanded(page: Page) -> Element<'static, Message> {
         space().height(Fill),
         container(space().height(1)).width(Fill).style(style::rail_divider),
         space().height(12),
-        expanded_action(Icon::About, "About", Message::Navigate(Page::About), page == Page::About),
-        space().height(5),
 
         space().height(14),
         hint(button(row![glyph(Icon::Collapse, false, 19), text("Collapse navigation").size(12).color(style::GREY)]
