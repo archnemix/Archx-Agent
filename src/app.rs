@@ -132,6 +132,7 @@ pub enum Message {
     SearchChatModels(String),
     ChatProgress(u32, SecretReply),
     IgnoreMarkdownLink,
+    CopyCode(SecretText),
     RunTest,
     TestResult(Result<SecretText, String>),
     SnapshotTick,
@@ -153,6 +154,7 @@ pub struct App {
     keep_agent_preview: bool,
     snapshot: Option<PathBuf>,
     snapshot_requested: bool,
+    snapshot_scrolled: bool,
     hovered: Option<Art>,
     phase: u8,
     agent_phase: u8,
@@ -268,7 +270,7 @@ impl App {
             settings.chosen[0] = Some(0);
             let turns = [
                 ("user", "Hi! How are you? Also explain how SSE streaming works."),
-                ("assistant", "I'm ready to help. SSE keeps one HTTP response open while the server sends text updates. No reasoning was returned with this reply."),
+                ("assistant", "I'm here to help. SSE keeps one HTTP response open while the server sends updates as they happen."),
                 ("user", "Can you show JavaScript and compare SSE with polling?"),
                 ("assistant", "## How SSE works\n\nA browser opens an `EventSource` and reads updates as they arrive. Unlike polling, the connection stays open.\n\n```javascript\nconst source = new EventSource('/events');\nsource.onmessage = (event) => console.log(event.data);\n```\n\n| Feature | SSE | Polling |\n| :--- | :--- | :--- |\n| Connection | Persistent | Repeated requests |\n| Direction | Server to client | Request/response |"),
             ];
@@ -298,6 +300,7 @@ impl App {
             keep_agent_preview: false,
             snapshot,
             snapshot_requested: false,
+            snapshot_scrolled: false,
             hovered: preview_art,
             phase: phase.unwrap_or(0),
             agent_phase,
@@ -724,6 +727,10 @@ impl App {
             },
             Message::RunTest if self.page == Page::Settings && !self.settings.test_busy => return self.send_chat(true),
             Message::IgnoreMarkdownLink => {}
+            Message::CopyCode(code) if self.page == Page::Agent && self.snapshot.is_none() => {
+                // Clipboard access is an explicit user action, not code execution.
+                return iced::clipboard::write(code.0.to_string());
+            }
             Message::ToggleModelMenu if self.page == Page::Agent => {
                 self.model_menu_open = !self.model_menu_open;
                 self.mode_menu_open = false;
@@ -804,6 +811,14 @@ impl App {
                 };
             },
             Message::SnapshotTick if self.snapshot.is_some() && !self.snapshot_requested => {
+                if !self.snapshot_scrolled && self.page == Page::Agent &&
+                    std::env::var("ARCHX_SNAPSHOT_CHAT_SCROLL").as_deref() == Ok("end") {
+                    self.snapshot_scrolled = true;
+                    return Task::batch([
+                        iced::widget::operation::snap_to_end("chat-log"),
+                        Task::perform(async { tokio::time::sleep(Duration::from_millis(500)).await; }, |_| Message::SnapshotTick)
+                    ]);
+                }
                 self.snapshot_requested = true;
                 return window::latest()
                     .and_then(window::screenshot)

@@ -303,8 +303,10 @@ pub fn chat_user(_: &Theme) -> container::Style {
         .border(Border { color: Color::from_rgb8(44, 44, 44), width: 1.0, radius: 12.0.into() })
 }
 pub fn chat_thinking(_: &Theme) -> container::Style {
-    container::Style::default().background(Color::from_rgb8(12, 12, 12))
-        .border(Border { color: Color::from_rgb8(43, 43, 43), width: 1.0, radius: 9.0.into() })
+    let mut style = container::Style::default().background(Color::from_rgb8(12, 12, 12))
+        .border(Border { color: Color::from_rgb8(43, 43, 43), width: 1.0, radius: 9.0.into() });
+    style.text_color = Some(GREY);
+    style
 }
 pub fn chat_avatar(assistant: bool, _: &Theme) -> container::Style {
     container::Style::default().background(if assistant { WHITE } else { Color::from_rgb8(26, 26, 26) })

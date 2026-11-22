@@ -72,6 +72,8 @@ jobs:
           test -s Docs/Test_Results/Unreleased/visual/linux-conversation-review.png
           xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-conversation-default.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/linux-conversation-default.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT_CHAT_SCROLL=end ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-conversation-bottom.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/linux-conversation-bottom.png
           xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_SETTINGS=import-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-import-review.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/linux-import-review.png
           xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_SETTINGS=custom-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-custom-endpoint.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
@@ -156,6 +158,8 @@ jobs:
           test -s Docs/Test_Results/Unreleased/visual/windows-conversation-review.png
           ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-conversation-default.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/windows-conversation-default.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT_CHAT_SCROLL=end ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-conversation-bottom.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/windows-conversation-bottom.png
           ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_SETTINGS=import-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-import-review.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/windows-import-review.png
           ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_SETTINGS=custom-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-custom-endpoint.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
@@ -238,6 +242,8 @@ jobs:
           test -s Docs/Test_Results/Unreleased/visual/macos-conversation-review.png
           ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-conversation-default.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/macos-conversation-default.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT_CHAT_SCROLL=end ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-conversation-bottom.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s Docs/Test_Results/Unreleased/visual/macos-conversation-bottom.png
           ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_SETTINGS=import-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-import-review.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
           test -s Docs/Test_Results/Unreleased/visual/macos-import-review.png
           ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_SETTINGS=custom-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-custom-endpoint.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1

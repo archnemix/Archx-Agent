@@ -4,7 +4,7 @@ use iced::{Center, Element, Fill, keyboard};
 
 use crate::app::{ChatDraft, Message, Page};
 use crate::style;
-use crate::settings::SettingsState;
+use crate::settings::{SettingsState, SecretText};
 use crate::credentials::Provider;
 
 pub const MODES: [&str; 6] = ["Chat", "Tasks", "Research", "Coding", "Learning", "Play"];
@@ -15,19 +15,26 @@ struct ChatViewer;
 impl<'a> markdown::Viewer<'a, Message> for ChatViewer {
     fn on_link_click(_: markdown::Uri) -> Message { Message::IgnoreMarkdownLink }
 
-    fn code_block(&self, settings: markdown::Settings, language: Option<&'a str>, _code: &'a str,
+    fn code_block(&self, settings: markdown::Settings, language: Option<&'a str>, code: &'a str,
         lines: &'a [markdown::Text]) -> Element<'a, Message> {
         container(column![
-            container(text(language.unwrap_or("code").to_owned()).size(11).color(style::GREY))
-                .width(Fill).padding([7, 12]).style(style::chat_code_header),
+            container(row![
+                text(language.unwrap_or("code").to_owned()).size(11).color(style::GREY),
+                space().width(Fill),
+                button(text("Copy code").size(11)).on_press(Message::CopyCode(SecretText::new(code.to_owned())))
+                    .padding([2, 8]).style(style::chat_menu_choice_inactive)
+            ].align_y(Center)).width(Fill).padding([6, 10]).style(style::chat_code_header),
             markdown::code_block(settings, lines, Self::on_link_click),
         ]).width(Fill).style(style::chat_panel).into()
     }
 
     fn table(&self, settings: markdown::Settings, columns: &'a [markdown::Column],
         rows: &'a [markdown::Row]) -> Element<'a, Message> {
-        container(markdown::table(self, settings, columns, rows))
-            .padding(7).width(Fill).style(style::chat_panel).into()
+        container(column![
+            text(format!("Table · {} rows × {} columns", rows.len() + 1, columns.len()))
+                .size(11).color(style::GREY),
+            markdown::table(self, settings, columns, rows)
+        ].spacing(5)).padding(9).width(Fill).style(style::chat_panel).into()
     }
 }
 
@@ -191,8 +198,8 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
             body = body.push(chat_md(content.items()));
             log = log.push(row![avatar(true), body].spacing(16).width(Fill));
         }
-        scrollable(container(container(log).max_width(860).width(Fill).padding([24, 20]))
-            .center_x(Fill)).width(Fill).height(Fill).into()
+        scrollable(container(container(log).max_width(780).width(Fill).padding([24, 20]))
+            .center_x(Fill)).id("chat-log").width(Fill).height(Fill).into()
     } else {
         let no_model = active_mode == 0 && !connected;
         container(column![
@@ -236,10 +243,10 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
                     else { can_send.then_some(Message::SendChat) }).padding([8, 15])
                 .style(style::chat_button)
         ].align_y(Center)
-    ].spacing(4)).max_width(860).width(Fill).padding(12).style(style::chat_panel);
+    ].spacing(4)).max_width(780).width(Fill).padding(12).style(style::chat_panel);
     let error_notice: Element<'_, Message> = match current.and_then(|draft| draft.error.as_deref()) {
         Some(error) => container(text(error.to_owned()).size(12).color(style::WHITE))
-            .max_width(860).width(Fill).padding([7, 12]).style(style::chat_error).into(),
+            .max_width(780).width(Fill).padding([7, 12]).style(style::chat_error).into(),
         None => space().height(0).into(),
     };
     let footer = column![
