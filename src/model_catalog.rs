@@ -1,4 +1,4 @@
-//! Purpose: Fetches bounded, read-only model catalogs from fixed, vetted provider endpoints.
+//! Purpose: Fetches read-only model catalogs from vetted endpoints with transport byte bounds, not model-count quotas.
 use std::collections::HashSet;
 use std::time::Duration;
 
@@ -10,7 +10,8 @@ use crate::credentials::Provider;
 use crate::provider_api::{valid_model, CallError};
 
 const MAX_CATALOG_BYTES: usize = 8 * 1024 * 1024;
-const MAX_MODELS: usize = 4000;
+// Bound untrusted network payloads, not the number of models a user may add.
+const MAX_TOTAL_CATALOG_BYTES: usize = 64 * 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CatalogModel {
@@ -69,7 +70,7 @@ fn parse(provider: Provider, body: &Value) -> Result<(Vec<CatalogModel>, Option<
 }
 
 // Never echo provider JSON or transport errors: responses can include account data.
-async fn read_json(mut response: reqwest::Response) -> Result<Value, CallError> {
+async fn read_json(mut response: reqwest::Response) -> Result<(Value, usize), CallError> {
     let status = response.status();
     if !status.is_success() { return Err(CallError::Rejected(status.as_u16())); }
     let mut bytes = Vec::new();
@@ -77,7 +78,7 @@ async fn read_json(mut response: reqwest::Response) -> Result<Value, CallError> 
         if bytes.len().saturating_add(chunk.len()) > MAX_CATALOG_BYTES { return Err(CallError::Oversized); }
         bytes.extend_from_slice(&chunk);
     }
-    serde_json::from_slice(&bytes).map_err(|_| CallError::InvalidResponse)
+    serde_json::from_slice(&bytes).map(|body| (body, bytes.len())).map_err(|_| CallError::InvalidResponse)
 }
 
 pub async fn fetch(provider: Provider, key: Option<Zeroizing<String>>) -> Result<Vec<CatalogModel>, CallError> {
@@ -87,10 +88,11 @@ pub async fn fetch(provider: Provider, key: Option<Zeroizing<String>>) -> Result
     let mut token: Option<String> = None;
     let mut seen = HashSet::new();
     let mut page_tokens = HashSet::new();
-    for page in 0..10 {
+    let mut total_bytes = 0usize;
+    for page in 0usize.. {
         let request: RequestBuilder = match provider {
             Provider::OpenRouter => client.get("https://openrouter.ai/api/v1/models")
-                .query(&[("limit", "1000"), ("offset", &(page * 1000).to_string()), ("endpoints", "/api/v1/chat/completions")]),
+                .query(&[("limit", "1000"), ("offset", &page.saturating_mul(1000).to_string()), ("endpoints", "/api/v1/chat/completions")]),
             Provider::Grok => client.get("https://api.x.ai/v1/language-models")
                 .bearer_auth(key.as_ref().ok_or(CallError::InvalidInput)?.as_str()),
             Provider::Gemini => {
@@ -114,14 +116,20 @@ pub async fn fetch(provider: Provider, key: Option<Zeroizing<String>>) -> Result
             Provider::OllamaCloud => client.get("https://ollama.com/api/tags")
                 .bearer_auth(key.as_ref().ok_or(CallError::InvalidInput)?.as_str()),
         };
-        let body = read_json(request.send().await.map_err(|_| CallError::Transport)?).await?;
+        let (body, page_bytes) = read_json(request.send().await.map_err(|_| CallError::Transport)?).await?;
+        total_bytes = total_bytes.saturating_add(page_bytes);
+        if total_bytes > MAX_TOTAL_CATALOG_BYTES { return Err(CallError::Oversized); }
         let (items, next) = parse(provider, &body)?;
         let page_len = items.len();
+        let before = all.len();
         for model in items {
             if seen.insert(model.id.clone()) { all.push(model); }
-            if all.len() > MAX_MODELS { return Err(CallError::Oversized); }
         }
-        if provider == Provider::OpenRouter && page_len == 1000 { continue; }
+        if provider == Provider::OpenRouter && page_len == 1000 {
+            // A repeated full page is a broken pagination contract; fail safely.
+            if all.len() == before { return Err(CallError::InvalidResponse); }
+            continue;
+        }
         match next {
             Some(next) if !next.is_empty() && provider == Provider::Gemini && page_tokens.insert(next.clone()) => token = Some(next),
             Some(_) if provider == Provider::Gemini => return Err(CallError::InvalidResponse),
@@ -142,6 +150,13 @@ pub async fn fetch(provider: Provider, key: Option<Zeroizing<String>>) -> Result
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn catalog_parser_does_not_apply_a_model_count_quota() {
+        let data: Vec<_> = (0..4100).map(|n| json!({"id": format!("model-{n}")})).collect();
+        let (models, _) = parse(Provider::OpenAI, &json!({"data": data})).unwrap();
+        assert_eq!(models.len(), 4100);
+    }
 
     #[test]
     fn openrouter_free_router_is_distinct_and_reasoning_is_metadata_only() {
