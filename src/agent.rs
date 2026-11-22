@@ -39,7 +39,7 @@ impl<'a> markdown::Viewer<'a, Message> for ChatViewer {
 }
 
 fn chat_md<'a>(items: impl IntoIterator<Item = &'a markdown::Item>) -> Element<'a, Message> {
-    let mut settings = markdown::Settings::with_text_size(14, iced::Theme::Dark);
+    let mut settings = markdown::Settings::with_text_size(15, iced::Theme::Dark);
     settings.h1_size = 24.into();
     settings.h2_size = 20.into();
     settings.code_size = 12.into();
@@ -137,7 +137,7 @@ fn rail(drafts: &[ChatDraft], selected: u32, settings_open: bool) -> Element<'st
         scrollable(history.padding([17, 10])).height(Fill),
         container(text("Local session · keys in OS vault").size(10).color(style::DIM))
             .padding([12, 15]).width(Fill)
-    ].height(Fill)).width(210).height(Fill).style(style::rail);
+    ].height(Fill)).width(260).height(Fill).style(style::rail);
 
     rail.into()
 }
@@ -193,7 +193,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
             if assistant && draft.incomplete_slots.contains(&slot) {
                 body = body.push(text("Incomplete · excluded from future context").size(11).color(style::GREY));
             }
-            log = log.push(row![avatar(assistant), body].spacing(14).width(Fill));
+            log = log.push(row![avatar(assistant), body].spacing(16).width(Fill));
         }
         if let Some((content, reasoning)) = &draft.partial {
             let mut body = column![text("Assistant  ·  responding").size(13).color(style::GREY)].spacing(8);
@@ -205,7 +205,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
             body = body.push(chat_md(content.items()));
             log = log.push(row![avatar(true), body].spacing(16).width(Fill));
         }
-        scrollable(container(container(log).max_width(780).width(Fill).padding([24, 20]))
+        scrollable(container(container(log).max_width(860).width(Fill).padding([24, 20]))
             .center_x(Fill)).id("chat-log").width(Fill).height(Fill).into()
     } else {
         let no_model = active_mode == 0 && !connected;
@@ -229,7 +229,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
         text_editor::<Message, iced::Theme, iced::Renderer>(&draft.editor)
             .placeholder(if active_mode == 0 { "Send a message…  (Enter to send, Shift+Enter for a new line)" }
                 else { "Draft only · this mode cannot send" })
-            .height(58).max_height(126).padding([8, 10]).size(15)
+            .height(42).max_height(126).padding([8, 10]).size(15)
             .style(style::chat_editor)
             .on_action(move |action| Message::EditEditor(selected, crate::app::EditorAction(action)))
             .key_binding(move |event| {
@@ -238,22 +238,25 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
                     Some(text_editor::Binding::Custom(Message::SendChat))
                 } else { text_editor::Binding::from_key_press(event) }
             }).into()
-    } else { space().height(58).into() };
+    } else { space().height(42).into() };
+    let is_busy = current.is_some_and(|draft| draft.busy);
     let composer = container(column![
         editor,
         row![
             button(text(if settings.stream_chat { "Streaming  ·  on" } else { "Whole reply  ·  on" }).size(11))
                 .on_press(Message::ToggleStreaming).padding([7, 9]).style(style::chat_menu_choice_inactive),
             space().width(Fill),
-            button(text(if current.is_some_and(|draft| draft.busy) { "Stop  ■" } else { "Send  ↗" }).size(12))
+            button(text(if is_busy { "■" } else { "➤" }).size(16))
                 .on_press_maybe(if current.is_some_and(|draft| draft.busy) { Some(Message::StopChat) }
-                    else { can_send.then_some(Message::SendChat) }).padding([8, 15])
-                .style(style::chat_button)
+                    else { can_send.then_some(Message::SendChat) }).width(34).height(34).padding(0)
+                .style(move |theme, status| if is_busy {
+                    style::chat_button(theme, status)
+                } else { style::chat_send(theme, status) })
         ].align_y(Center)
-    ].spacing(4)).max_width(780).width(Fill).padding(12).style(style::chat_panel);
+    ].spacing(4)).max_width(860).width(Fill).padding(12).style(style::chat_panel);
     let error_notice: Element<'_, Message> = match current.and_then(|draft| draft.error.as_deref()) {
         Some(error) => container(text(error.to_owned()).size(12).color(style::WHITE))
-            .max_width(780).width(Fill).padding([7, 12]).style(style::chat_error).into(),
+            .max_width(860).width(Fill).padding([7, 12]).style(style::chat_error).into(),
         None => space().height(0).into(),
     };
     let footer = column![

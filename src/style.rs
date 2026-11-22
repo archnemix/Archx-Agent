@@ -3,7 +3,7 @@ use iced::widget::{button, container, text_editor, text_input};
 use iced::{font, gradient, Background, Border, Color, Font, Radians, Shadow, Theme, Vector};
 
 pub const BLACK: Color = Color::from_rgb8(0, 0, 0);
-pub const RAIL: Color = Color::from_rgb8(13, 13, 13);
+pub const RAIL: Color = Color::from_rgb8(11, 11, 11);
 pub const SURFACE: Color = Color::from_rgb8(20, 20, 20);
 pub const LINE: Color = Color::from_rgb8(51, 51, 51);
 pub const WHITE: Color = Color::from_rgb8(244, 244, 244);
@@ -375,6 +375,18 @@ pub fn provider_choice(active: bool, _: &Theme, status: button::Status) -> butto
 pub fn catalog_scrim(_: &Theme, _: button::Status) -> button::Style {
     button::Style {
         background: Some(Color::from_rgba(0.0, 0.0, 0.0, 0.78).into()),
+        ..button::Style::default()
+    }
+}
+
+/// White, compact send affordance from the supplied 1.9.0 Chat compositor.
+pub fn chat_send(_: &Theme, status: button::Status) -> button::Style {
+    button::Style {
+        background: Some(if matches!(status, button::Status::Disabled) {
+            Color::from_rgba(0.96, 0.96, 0.96, 0.4)
+        } else { WHITE }.into()),
+        text_color: BLACK,
+        border: Border { radius: 11.0.into(), ..Border::default() },
         ..button::Style::default()
     }
 }
