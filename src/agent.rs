@@ -39,7 +39,7 @@ impl<'a> markdown::Viewer<'a, Message> for ChatViewer {
 }
 
 fn chat_md<'a>(items: impl IntoIterator<Item = &'a markdown::Item>) -> Element<'a, Message> {
-    let mut settings = markdown::Settings::with_text_size(15, iced::Theme::Dark);
+    let mut settings = markdown::Settings::with_text_size(style::AGENT_BODY_SIZE, iced::Theme::Dark);
     settings.h1_size = 24.into();
     settings.h2_size = 20.into();
     settings.code_size = 12.into();
@@ -112,10 +112,10 @@ fn rail(drafts: &[ChatDraft], selected: u32, settings_open: bool) -> Element<'st
         button(text("◧   Chat").size(13)).width(Fill).padding([10, 12])
             .on_press(Message::Navigate(Page::Agent))
             .style(move |t, s| style::chat_menu_choice(!settings_open, t, s)),
-        space().height(5),
+        space().height(4),
         button(text("⚙   Settings").size(13)).width(Fill).padding([10, 12])
             .on_press(Message::Navigate(Page::Settings)).style(move |t, s| style::chat_menu_choice(settings_open, t, s)),
-        space().height(5),
+        space().height(4),
         button(text("←   Back to launcher").size(13)).width(Fill).padding([10, 12])
             .on_press(Message::Navigate(Page::Home)).style(style::chat_menu_choice_inactive),
         space().height(20),
@@ -131,7 +131,7 @@ fn rail(drafts: &[ChatDraft], selected: u32, settings_open: bool) -> Element<'st
             .size(12).color(if selected_draft { style::WHITE } else { style::GREY }))
             .width(Fill).padding([10, 12]).on_press(Message::OpenChat(id))
             .style(move |t, s| style::chat_menu_choice(selected_draft, t, s)))
-            .push(space().height(4));
+            .push(space().height(style::AGENT_GAP_TIGHT));
     }
     let rail = container(column![
         scrollable(history.padding([17, 10])).height(Fill),
@@ -167,7 +167,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
 
     let center: Element<'a, Message> = if active_mode == 0 && current.is_some_and(|d| !d.turns.is_empty()) {
         let draft = current.expect("checked above");
-        let mut log = column![].spacing(24).width(Fill);
+        let mut log = column![].spacing(style::AGENT_GAP_SECTION).width(Fill);
         for (slot, turn) in draft.turns.iter().enumerate() {
             let assistant = turn.role != "user";
             let mut body = column![
@@ -193,7 +193,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
             if assistant && draft.incomplete_slots.contains(&slot) {
                 body = body.push(text("Incomplete · excluded from future context").size(11).color(style::GREY));
             }
-            log = log.push(row![avatar(assistant), body].spacing(16).width(Fill));
+            log = log.push(row![avatar(assistant), body].spacing(style::AGENT_GAP_GROUP).width(Fill));
         }
         if let Some((content, reasoning)) = &draft.partial {
             let mut body = column![text("Assistant  ·  responding").size(13).color(style::GREY)].spacing(8);
@@ -203,10 +203,19 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
                     .spacing(8)).padding(12).style(style::chat_thinking));
             }
             body = body.push(chat_md(content.items()));
-            log = log.push(row![avatar(true), body].spacing(16).width(Fill));
+            log = log.push(row![avatar(true), body].spacing(style::AGENT_GAP_GROUP).width(Fill));
         }
-        scrollable(container(container(log).max_width(860).width(Fill).padding([24, 20]))
-            .center_x(Fill)).id("chat-log").width(Fill).height(Fill).into()
+        let list = scrollable(container(container(log).max_width(860).width(Fill).padding([24, 20]))
+            .center_x(Fill)).id("chat-log").width(Fill).height(Fill);
+        // Keep screenshot fixtures on the first turn; a live conversation starts
+        // at its latest message and preserves the user's distance from the end.
+        let list = if std::env::var_os("ARCHX_SNAPSHOT").is_some() { list }
+            else { list.anchor_bottom() };
+        let id = draft.id;
+        list.on_scroll(move |viewport| {
+            // Anchor::End stores an offset measured *from* the bottom.
+            Message::ChatScrolled(id, viewport.absolute_offset().y <= 32.0)
+        }).into()
     } else {
         let no_model = active_mode == 0 && !connected;
         container(column![
@@ -259,8 +268,13 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
             .max_width(860).width(Fill).padding([7, 12]).style(style::chat_error).into(),
         None => space().height(0).into(),
     };
+    let jump: Element<'_, Message> = if current.is_some_and(|draft| !draft.follow_tail && !draft.turns.is_empty()) {
+        button(text("↓  Jump to latest").size(12)).on_press(Message::JumpToLatest)
+            .padding([8, 12]).style(style::chat_button).into()
+    } else { space().height(0).into() };
     let footer = column![
         error_notice,
+        jump,
         container(composer).center_x(Fill),
         space().height(7),
         text("Enter sends · Shift+Enter adds a line · Up to 12 recent turns · Session only")

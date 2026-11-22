@@ -41,6 +41,13 @@ pub const DISPLAY: Font = Font::with_name("Manrope");
 pub const DISPLAY_BOLD: Font = Font::with_name("Manrope");
 #[cfg(target_os = "macos")]
 pub const LABEL: Font = Font::with_name("Manrope");
+// Agent reference's 4px-based layout rhythm (UI-RULES §2). Keep semantic
+// steps centralized: closely related controls 8/12, groups 16/20/24.
+pub const AGENT_GAP_TIGHT: f32 = 4.0;
+pub const AGENT_GAP_CONTROL: f32 = 8.0;
+pub const AGENT_GAP_GROUP: f32 = 16.0;
+pub const AGENT_GAP_SECTION: f32 = 24.0;
+pub const AGENT_BODY_SIZE: f32 = 15.0;
 pub const TYPE_LABEL: f32 = 11.0;
 pub const TYPE_BODY: f32 = 14.0;
 pub const TYPE_SECTION: f32 = 24.0;

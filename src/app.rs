@@ -1,4 +1,5 @@
 //! Purpose: Owns navigation, ephemeral Chat/Settings state, explicit provider actions, and screenshots.
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -48,6 +49,7 @@ pub struct ChatDraft {
     pub request_handle: Option<iced::task::Handle>,
     pub turns: Vec<Turn>,
     pub busy: bool,
+    pub follow_tail: bool,
     pub error: Option<String>,
 }
 
@@ -119,6 +121,7 @@ pub enum Message {
     CloseCatalogModal,
     SelectMatchingModels,
     ClearCatalogSelection,
+    ToggleCatalogVerified,
     CatalogNext,
     CatalogPrevious,
     ToggleCatalogSelection(Provider, usize),
@@ -126,7 +129,7 @@ pub enum Message {
     RequestCatalogProbe,
     CancelCatalogProbe,
     ConfirmCatalogProbe,
-    CatalogProbeProgress(Provider, u64, String, Result<SecretText, String>),
+    CatalogProbeProgress(Provider, u64, String, Result<(SecretText, u128), String>),
     CatalogProbeDone(Provider, u64, Result<(), String>),
     SendChat,
     StopChat,
@@ -137,6 +140,8 @@ pub enum Message {
     ToggleModeMenu,
     SearchChatModels(String),
     ChatProgress(u32, SecretReply),
+    ChatScrolled(u32, bool),
+    JumpToLatest,
     IgnoreMarkdownLink,
     CopyCode(SecretText),
     RunTest,
@@ -223,7 +228,7 @@ impl App {
         let mut settings = SettingsState::default();
         if snapshot.is_some() && page == Page::Settings {
             settings.section = match std::env::var("ARCHX_SNAPSHOT_SETTINGS").as_deref() {
-                Ok("models" | "import-review") => Section::Models,
+                Ok("models" | "import-review" | "import-verified-review") => Section::Models,
                 _ if preview_memory == MemoryMode::Custom => Section::Lab,
                 _ => Section::Providers,
             };
@@ -236,7 +241,7 @@ impl App {
             settings.status = "Synthetic fixture: no request was sent and no destination was approved.".into();
         }
         if snapshot.is_some() && page == Page::Settings &&
-            std::env::var("ARCHX_SNAPSHOT_SETTINGS").as_deref() == Ok("import-review") {
+            matches!(std::env::var("ARCHX_SNAPSHOT_SETTINGS").as_deref(), Ok("import-review" | "import-verified-review")) {
             settings.catalog[0] = vec![
                 CatalogModel { id: "vendor/alpha:free".into(), name: "Alpha".into(), free: true, router: false, reasoning: false },
                 CatalogModel { id: "vendor/beta".into(), name: "Beta".into(), free: false, router: false, reasoning: true },
@@ -246,10 +251,14 @@ impl App {
             settings.probe_results.push(("vendor/gamma".into(), false, "HTTP 429 · account quota exceeded".into()));
             settings.catalog_modal = true;
             settings.catalog_selected[0] = vec!["vendor/beta".into()];
+            if std::env::var("ARCHX_SNAPSHOT_SETTINGS").as_deref() == Ok("import-verified-review") {
+                settings.catalog_only_verified = true;
+                settings.catalog_selected[0].push("vendor/gamma".into());
+            }
         }
         let mut drafts = vec![ChatDraft { id: 1, mode: preview_mode,
             editor: text_editor::Content::with_text(&preview_text), text: preview_text,
-            formatted: Vec::new(), partial: None, partial_raw: None, incomplete_slots: Vec::new(), request_handle: None, turns: Vec::new(), busy: false, error: None }];
+            formatted: Vec::new(), partial: None, partial_raw: None, incomplete_slots: Vec::new(), request_handle: None, turns: Vec::new(), busy: false, follow_tail: true, error: None }];
         // Only scripted CI screenshots use synthetic messages; normal launches start empty.
         if snapshot.is_some() && page == Page::Agent && matches!(std::env::var("ARCHX_SNAPSHOT_CHAT").as_deref(), Ok("reasoning" | "model-menu" | "review")) {
             settings.models[0] = vec!["demo/model:free".into(), "demo/another".into()];
@@ -367,7 +376,7 @@ impl App {
                 self.page = Page::Agent;
                 self.settings.clear_secret();
                 let id = self.drafts.last().map_or(1, |draft| draft.id + 1);
-                self.drafts.push(ChatDraft { id, mode: 0, text: String::new(), editor: text_editor::Content::new(), formatted: Vec::new(), partial: None, partial_raw: None, incomplete_slots: Vec::new(), request_handle: None, turns: Vec::new(), busy: false, error: None });
+                self.drafts.push(ChatDraft { id, mode: 0, text: String::new(), editor: text_editor::Content::new(), formatted: Vec::new(), partial: None, partial_raw: None, incomplete_slots: Vec::new(), request_handle: None, turns: Vec::new(), busy: false, follow_tail: true, error: None });
                 self.selected_draft = id;
                 self.model_menu_open = false;
                 self.mode_menu_open = false;
@@ -378,6 +387,9 @@ impl App {
                 self.selected_draft = id;
                 self.model_menu_open = false;
                 self.mode_menu_open = false;
+                if self.drafts.iter().any(|draft| draft.id == id && draft.follow_tail && !draft.turns.is_empty()) {
+                    return iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::START);
+                }
             }
             Message::SelectMode(mode) if self.page == Page::Agent && mode < MODE_COUNT => {
                 if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == self.selected_draft) {
@@ -508,8 +520,12 @@ impl App {
                     Err(error) => self.settings.status = error.into(),
                 }}
             }
-            Message::ExpectedWord(value) if self.page == Page::Settings && !self.settings.test_busy => {
+            Message::ExpectedWord(value) if self.page == Page::Settings && !self.settings.test_busy && !self.settings.probe_busy => {
                 if value.len() <= 32 && value.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+                    if value != self.settings.expected_word {
+                        // A prior pass cannot verify a different expected word.
+                        self.settings.probe_results.clear();
+                    }
                     self.settings.expected_word = value;
                 }
             }
@@ -632,16 +648,21 @@ impl App {
             Message::CatalogPrevious if self.page == Page::Settings && self.settings.catalog_modal => {
                 self.settings.catalog_page = self.settings.catalog_page.saturating_sub(1);
             }
-            Message::ClearCatalogSelection if self.page == Page::Settings && self.settings.catalog_modal => {
+            Message::ClearCatalogSelection if self.page == Page::Settings && self.settings.catalog_modal && !self.settings.probe_busy => {
                 self.settings.catalog_selected[self.settings.index()].clear();
             }
-            Message::SelectMatchingModels if self.page == Page::Settings && self.settings.catalog_modal => {
+            Message::ToggleCatalogVerified if self.page == Page::Settings && self.settings.catalog_modal && !self.settings.probe_busy => {
+                self.settings.catalog_only_verified = !self.settings.catalog_only_verified;
+            }
+            Message::SelectMatchingModels if self.page == Page::Settings && self.settings.catalog_modal && !self.settings.probe_busy => {
                 let index = self.settings.index();
                 let query = self.settings.search.trim().to_lowercase();
+                let added: HashSet<&str> = self.settings.models[index].iter().map(String::as_str).collect();
+                let mut selected: HashSet<String> = self.settings.catalog_selected[index].iter().cloned().collect();
                 for item in &self.settings.catalog[index] {
-                    if !self.settings.models[index].contains(&item.id) &&
+                    if !added.contains(item.id.as_str()) &&
                         (query.is_empty() || item.id.to_lowercase().contains(&query) || item.name.to_lowercase().contains(&query)) &&
-                        !self.settings.catalog_selected[index].contains(&item.id) {
+                        selected.insert(item.id.clone()) {
                         self.settings.catalog_selected[index].push(item.id.clone());
                     }
                 }
@@ -656,7 +677,7 @@ impl App {
                     }
                 }
             }
-            Message::ToggleCatalogSelection(provider, slot) if self.page == Page::Settings && self.settings.provider == provider => {
+            Message::ToggleCatalogSelection(provider, slot) if self.page == Page::Settings && self.settings.provider == provider && !self.settings.probe_busy => {
                 let index = self.settings.index();
                 if let Some(item) = self.settings.catalog[index].get(slot) {
                     if let Some(where_at) = self.settings.catalog_selected[index].iter().position(|id| id == &item.id) {
@@ -668,16 +689,22 @@ impl App {
             }
             Message::ImportSelectedModels if self.page == Page::Settings && !self.settings.probe_busy => {
                 let index = self.settings.index();
+                let importable: HashSet<String> = self.settings.importable_catalog_ids().into_iter().collect();
+                if importable.is_empty() && self.settings.catalog_only_verified {
+                    self.settings.status = "No checked IDs have passed the expected-word probe. Test selected models with confirmation, or turn off verified-only.".into();
+                    return Task::none();
+                }
                 let checked = std::mem::take(&mut self.settings.catalog_selected[index]);
-                let mut added = 0;
+                let skipped = checked.len().saturating_sub(importable.len());
                 for id in checked {
-                    if self.settings.catalog[index].iter().any(|item| item.id == id) &&
-                       !self.settings.models[index].contains(&id) {
-                        self.settings.models[index].push(id);
-                        added += 1;
+                    if importable.contains(&id) { self.settings.models[index].push(id); }
+                    else if self.settings.catalog_only_verified &&
+                        self.settings.catalog[index].iter().any(|item| item.id == id) &&
+                        !self.settings.models[index].contains(&id) {
+                        self.settings.catalog_selected[index].push(id);
                     }
                 }
-                self.settings.status = format!("Added {added} chosen IDs. They are unverified until you explicitly test or send a message; no model was activated automatically.");
+                self.settings.status = format!("Added {} models · {skipped} skipped. Verification is a point-in-time test, not a future availability guarantee. No model was activated automatically.", importable.len());
                 self.settings.catalog_modal = false;
             }
             Message::RequestCatalogProbe if self.page == Page::Settings && !self.settings.probe_busy => {
@@ -698,6 +725,11 @@ impl App {
                 let provider = self.settings.provider;
                 let index = self.settings.index();
                 let ids = self.settings.catalog_selected[index].clone();
+                if provider == Provider::Custom {
+                    self.settings.probe_pending = false;
+                    self.settings.status = "Custom IDs use the single-model test after endpoint approval; batch probes are for fixed providers.".into();
+                    return Task::none();
+                }
                 self.settings.probe_pending = false;
                 self.settings.probe_busy = true;
                 self.settings.probe_results.clear();
@@ -708,10 +740,7 @@ impl App {
                 let task = Task::sip(sipper(async move |mut sender| {
                     for (offset, id) in ids.into_iter().enumerate() {
                         let result = match selected_key(provider, cursor.wrapping_add(offset)).await {
-                            Ok(key) => provider_api::send(provider, id.clone(), key,
-                                vec![Turn { role: "user", content: format!("Reply with the word {word}.") }], 256)
-                                .await.map(|reply| SecretText::new(reply.content))
-                                .map_err(|error| error.message()),
+                            Ok(key) => probe_catalog_model(provider, id.clone(), key, &word).await,
                             Err(error) => Err(error),
                         };
                         sender.send((id, result)).await;
@@ -721,14 +750,19 @@ impl App {
                     move |result| Message::CatalogProbeDone(provider, nonce, result));
                 let (task, handle) = task.abortable();
                 self.probe_handle = Some(handle);
-                self.settings.status = "Testing selected models (up to 256 output tokens each); this may be billable. Stop to cancel remaining requests.".into();
+                self.settings.status = "Testing selected models (up to 256 output tokens per attempt); transient HTTP failures may be retried once. Stop cancels remaining requests.".into();
                 return task;
             }
             Message::CatalogProbeProgress(provider, nonce, id, result) if self.page == Page::Settings &&
                 self.settings.provider == provider && self.settings.probe_busy && self.settings.probe_nonce == nonce => {
                 // Only display a bounded plain-text response. Never display auth or raw transport errors.
                 let (ok, output) = match result {
-                    Ok(text) => (true, text.0.chars().filter(|c| !c.is_control() || *c == '\n').take(240).collect()),
+                    Ok((text, ms)) => {
+                        let received: String = text.0.chars().filter(|c| !c.is_control() || *c == '\n').take(240).collect();
+                        let expected = if self.settings.expected_word.is_empty() { "OK" } else { &self.settings.expected_word };
+                        let passed = text.0.to_lowercase().contains(&expected.to_lowercase());
+                        (passed, format!("{ms} ms · {} · {received}", if passed { "expected word found" } else { "expected word missing" }))
+                    },
                     Err(error) => (false, error),
                 };
                 self.settings.probe_results.push((id, ok, output));
@@ -738,7 +772,7 @@ impl App {
                 self.settings.probe_busy = false;
                 self.probe_handle = None;
                 self.settings.status = match result {
-                    Ok(()) => "Testing finished. Only explicit selected IDs are imported; a passed probe is not a permanent availability guarantee.".into(),
+                    Ok(()) => "Testing finished. Verified-only imports require the expected word; results are not a future availability guarantee.".into(),
                     Err(error) => error,
                 };
             }
@@ -803,10 +837,24 @@ impl App {
             Message::ToggleStreaming if self.page == Page::Agent => {
                 self.settings.stream_chat = !self.settings.stream_chat;
             }
+            Message::ChatScrolled(id, at_end) if self.page == Page::Agent && self.snapshot.is_none() && id == self.selected_draft => {
+                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) {
+                    draft.follow_tail = at_end;
+                }
+            }
+            Message::JumpToLatest if self.page == Page::Agent => {
+                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == self.selected_draft) {
+                    draft.follow_tail = true;
+                    return iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::START);
+                }
+            }
             Message::ChatProgress(id, SecretReply(reply)) => {
                 if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id && draft.busy) {
                     draft.partial = Some((markdown::Content::parse(&reply.content), reply.reasoning.as_ref().map(|r| markdown::Content::parse(r))));
                     draft.partial_raw = Some(reply);
+                    if self.page == Page::Agent && self.selected_draft == id && draft.follow_tail {
+                        return iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::START);
+                    }
                 }
             }
             Message::ToggleReasoning(id, index) if self.page == Page::Agent => {
@@ -817,6 +865,8 @@ impl App {
                 }
             }
             Message::ChatResult(id, result) => {
+                let at_tail = self.page == Page::Agent && self.selected_draft == id &&
+                    self.drafts.iter().any(|draft| draft.id == id && draft.follow_tail);
                 if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id && draft.busy) {
                     draft.busy = false;
                     draft.partial = None;
@@ -850,6 +900,7 @@ impl App {
                             draft.error = Some(error);
                         },
                     }
+                    if at_tail { return iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::START); }
                 }
             }
             Message::TestResult(result) => {
@@ -873,6 +924,7 @@ impl App {
                     std::env::var("ARCHX_SNAPSHOT_CHAT_SCROLL").as_deref() == Ok("end") {
                     self.snapshot_scrolled = true;
                     return Task::batch([
+                        // Snapshot fixtures use the default top anchor, unlike live Chat.
                         iced::widget::operation::snap_to_end("chat-log"),
                         Task::perform(async { tokio::time::sleep(Duration::from_millis(500)).await; }, |_| Message::SnapshotTick)
                     ]);
@@ -936,6 +988,7 @@ impl App {
             draft.error = None;
             draft.partial_raw = None;
             draft.busy = true;
+            draft.follow_tail = true;
             draft.turns.push(Turn { role: "user", content: std::mem::take(&mut draft.text) });
             draft.editor = text_editor::Content::new();
             draft.turns.iter().enumerate().rev()
@@ -957,7 +1010,7 @@ impl App {
             else {
                 let (task, handle) = Task::perform(task, move |result| Message::ChatResult(id, result.map(SecretReply))).abortable();
                 if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) { draft.request_handle = Some(handle); }
-                task
+                Task::batch([task, iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::START)])
             }
         } else {
             let task = Task::sip(sipper(async move |mut progress| {
@@ -971,7 +1024,7 @@ impl App {
                 move |result| Message::ChatResult(id, result.map(SecretReply)));
             let (task, handle) = task.abortable();
             if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) { draft.request_handle = Some(handle); }
-            task
+            Task::batch([task, iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::START)])
         }
     }
 
@@ -997,6 +1050,30 @@ impl App {
         };
         Subscription::batch([snapshot, animation, agent])
     }
+}
+
+// Only explicit, confirmed catalog probes may retry. A rejected HTTP request
+// has no usable reply; transport timeouts are never retried because the first
+// request could already have generated and billed an answer.
+fn retryable_probe_failure(error: CallError) -> bool {
+    matches!(error, CallError::Rejected(408 | 429 | 500..=599))
+}
+
+async fn probe_catalog_model(provider: Provider, model: String, key: Zeroizing<String>, word: &str)
+    -> Result<(SecretText, u128), String> {
+    let start = Instant::now();
+    for attempt in 0..2 {
+        match provider_api::send(provider, model.clone(), key.clone(),
+            vec![Turn { role: "user", content: format!("Reply with the word {word}.") }], 256).await {
+            Ok(reply) => return Ok((SecretText::new(reply.content), start.elapsed().as_millis())),
+            Err(error) if attempt == 0 && retryable_probe_failure(error) => {
+                tokio::time::sleep(Duration::from_millis(250)).await;
+            }
+            Err(CallError::Rejected(code)) => return Err(format!("HTTP {code} after up to two attempts; check the model and quota.")),
+            Err(error) => return Err(error.message()),
+        }
+    }
+    unreachable!("Probe returns after at most two attempts")
 }
 
 // Select a vault key only for an explicit send/test, never during selection.
@@ -1111,6 +1188,46 @@ mod tests {
     }
 
     #[test]
+    fn verified_only_import_requires_expected_word_and_never_auto_tests() {
+        let mut app = App::new();
+        let _ = app.update(Message::Navigate(Page::Settings));
+        let _ = app.update(Message::SettingsSection(Section::Models));
+        app.settings.catalog[0] = ["vendor/one", "vendor/two"].into_iter().map(|id| CatalogModel {
+            id: id.into(), name: id.into(), free: false, router: false, reasoning: false,
+        }).collect();
+        let _ = app.update(Message::OpenCatalogModal);
+        let _ = app.update(Message::SelectMatchingModels);
+        let _ = app.update(Message::ToggleCatalogVerified);
+        assert!(app.settings.catalog_only_verified);
+        assert_eq!(app.settings.importable_catalog_ids().len(), 0);
+        let _ = app.update(Message::ImportSelectedModels);
+        assert!(app.settings.catalog_modal);
+        assert!(app.settings.models[0].is_empty());
+        assert!(!app.settings.probe_busy && !app.settings.probe_pending);
+        app.settings.probe_busy = true;
+        let _ = app.update(Message::CatalogProbeProgress(Provider::OpenRouter, 0, "vendor/one".into(),
+            Ok((SecretText::new("Not this time".into()), 34))));
+        let _ = app.update(Message::CatalogProbeProgress(Provider::OpenRouter, 0, "vendor/two".into(),
+            Ok((SecretText::new("OK, ready".into()), 42))));
+        app.settings.probe_busy = false;
+        assert!(!app.settings.probe_results[0].1);
+        assert!(app.settings.probe_results[1].1);
+        let _ = app.update(Message::ImportSelectedModels);
+        assert_eq!(app.settings.models[0], vec!["vendor/two"]);
+        assert_eq!(app.settings.catalog_selected[0], vec!["vendor/one"]);
+    }
+
+    #[test]
+    fn probe_retries_only_explicit_http_transients() {
+        assert!(retryable_probe_failure(CallError::Rejected(408)));
+        assert!(retryable_probe_failure(CallError::Rejected(429)));
+        assert!(retryable_probe_failure(CallError::Rejected(503)));
+        assert!(!retryable_probe_failure(CallError::Transport)); // may have been billed
+        assert!(!retryable_probe_failure(CallError::Rejected(401)));
+        assert!(!retryable_probe_failure(CallError::InvalidResponse));
+    }
+
+    #[test]
     fn chat_setup_opens_unified_settings_and_chat_can_switch_models() {
         let mut app = App::new();
         let _ = app.update(Message::Navigate(Page::Agent));
@@ -1166,6 +1283,24 @@ mod tests {
         assert_eq!(app.drafts[0].incomplete_slots, vec![1]);
         assert!(!app.drafts[0].busy);
         assert_eq!(app.drafts[0].error.as_deref(), Some("Stopped"));
+    }
+
+    #[test]
+    fn live_chat_respects_manual_scroll_and_jump_to_latest() {
+        let mut app = App::new();
+        app.page = Page::Agent;
+        app.drafts[0].busy = true;
+        app.drafts[0].turns.push(Turn { role: "user", content: "prompt".into() });
+        let _ = app.update(Message::ChatScrolled(1, false));
+        assert!(!app.drafts[0].follow_tail);
+        let _ = app.update(Message::ChatProgress(1, SecretReply(Reply { content: "half".into(), reasoning: None })));
+        assert!(!app.drafts[0].follow_tail);
+        let _ = app.update(Message::JumpToLatest);
+        assert!(app.drafts[0].follow_tail);
+        let _ = app.update(Message::ChatScrolled(42, false)); // stale chat must not steal the scroll state
+        assert!(app.drafts[0].follow_tail);
+        let _ = app.update(Message::ChatResult(1, Ok(SecretReply(Reply { content: "done".into(), reasoning: None }))));
+        assert_eq!(app.drafts[0].turns[1].content, "done");
     }
 
     #[test]

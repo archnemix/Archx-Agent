@@ -1,4 +1,5 @@
 //! Purpose: Renders separate Lab, provider-vault and session model settings surfaces.
+use std::collections::HashSet;
 use std::fmt;
 use std::time::Instant;
 
@@ -42,6 +43,7 @@ pub struct SettingsState {
     pub catalog: [Vec<CatalogModel>; Provider::COUNT],
     pub search: String,
     pub catalog_modal: bool,
+    pub catalog_only_verified: bool,
     pub catalog_page: usize,
     pub catalog_selected: [Vec<String>; Provider::COUNT],
     pub probe_pending: bool,
@@ -67,13 +69,26 @@ impl Default for SettingsState {
         Self { section: Section::Providers, provider: Provider::OpenRouter,
             key_entry: SecretText::default(), key_ids: Vec::new(), reveal: None,
             reveal_nonce: 0, model_entry: String::new(), catalog: std::array::from_fn(|_| Vec::new()),
-            search: String::new(), catalog_modal: false, catalog_page: 0, catalog_selected: std::array::from_fn(|_| Vec::new()),
+            search: String::new(), catalog_modal: false, catalog_only_verified: false, catalog_page: 0, catalog_selected: std::array::from_fn(|_| Vec::new()),
             probe_pending: false, probe_busy: false, probe_nonce: 0, probe_results: Vec::new(), catalog_busy: false, catalog_nonce: 0, models: std::array::from_fn(|_| Vec::new()),
             chosen: [None; Provider::COUNT], status: String::new(), test_busy: false, test_evidence: None, stream_chat: true, key_busy: false, custom: Profile::default(), custom_curl: SecretText::default(), custom_approved: false, expected_word: "OK".into() }
     }
 }
 impl SettingsState {
     pub fn index(&self) -> usize { self.provider.index() }
+    /// A model counts as verified only if the most recent explicit probe
+    /// returned the configured word. An untested model never passes this filter.
+    pub fn importable_catalog_ids(&self) -> Vec<String> {
+        let index = self.index();
+        let catalog: HashSet<&str> = self.catalog[index].iter().map(|item| item.id.as_str()).collect();
+        let added: HashSet<&str> = self.models[index].iter().map(String::as_str).collect();
+        let verified: HashSet<&str> = self.probe_results.iter()
+            .filter(|(_, ok, _)| *ok).map(|(id, _, _)| id.as_str()).collect();
+        self.catalog_selected[index].iter().filter(|id| {
+            catalog.contains(id.as_str()) && !added.contains(id.as_str()) &&
+            (!self.catalog_only_verified || verified.contains(id.as_str()))
+        }).cloned().collect()
+    }
     pub fn selected_model(&self) -> Option<&str> {
         self.chosen[self.index()].and_then(|id| self.models[self.index()].get(id)).map(String::as_str)
     }
@@ -118,7 +133,7 @@ pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Elem
             Section::Models => models(state),
             Section::Lab => lab(memory, keep_agent),
         }
-    ].width(Fill).padding([28, 30]);
+    ].width(Fill).padding([style::AGENT_GAP_SECTION, style::AGENT_GAP_SECTION]);
     let base = scrollable(container(body).max_width(960).center_x(Fill))
         .width(Fill).height(Fill);
     if state.section == Section::Models && state.catalog_modal {
@@ -248,8 +263,9 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
 // The catalog itself and selection set are unbounded by a fixed app quota.
 fn available_catalog<'a>(state: &'a SettingsState, query: &str) -> Vec<(usize, &'a CatalogModel)> {
     let index = state.index();
+    let added: HashSet<&str> = state.models[index].iter().map(String::as_str).collect();
     state.catalog[index].iter().enumerate()
-        .filter(|(_, model)| !state.models[index].contains(&model.id))
+        .filter(|(_, model)| !added.contains(model.id.as_str()))
         .filter(|(_, model)| query.is_empty() || model.id.to_lowercase().contains(query) || model.name.to_lowercase().contains(query))
         .collect()
 }
@@ -259,6 +275,9 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
     let query = state.search.trim().to_lowercase();
     let matching = available_catalog(state, &query);
     let checked = state.catalog_selected[index].len();
+    let importable = state.importable_catalog_ids().len();
+    let only_verified = state.catalog_only_verified;
+    let list_height = (matching.len().min(8) as f32 * 46.0 + 36.0).clamp(130.0, 260.0);
     let start = state.catalog_page.saturating_mul(60).min(matching.len());
     let mut items = column![].spacing(3).width(Fill);
     for (slot, model) in matching.iter().copied().skip(start).take(60) {
@@ -266,10 +285,10 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
         let label = format!("{}  {}{}", if selected { "☑" } else { "□" }, model.id,
             if model.free { "  ·  free at fetch" } else { "" });
         let mut entry = column![button(text(label).size(12)).width(Fill)
-            .padding([7, 10]).on_press(Message::ToggleCatalogSelection(state.provider, slot))
+            .padding([7, 10]).on_press_maybe((!state.probe_busy).then_some(Message::ToggleCatalogSelection(state.provider, slot)))
             .style(move |t, status| style::chat_menu_choice(selected, t, status))].spacing(3);
         if let Some((_, ok, output)) = state.probe_results.iter().find(|(id, _, _)| id == &model.id) {
-            entry = entry.push(text(format!("{} · {}", if *ok { "✓ reply received" } else { "× probe failed" }, output))
+            entry = entry.push(text(format!("{} · {}", if *ok { "✓ expected word found" } else { "× not verified" }, output))
                 .size(11).color(if *ok { style::SUCCESS } else { style::FAILURE }));
         }
         items = items.push(entry);
@@ -279,7 +298,7 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
     }
     let pending: Element<'static, Message> = if state.probe_pending {
         row![
-            text(format!("Probe {checked} selected models? Each sends a potentially billable request; up to 256 output tokens per test.")).size(11).color(style::WHITE).width(Fill),
+            text(format!("Probe {checked} selected models? Each may send up to two billable requests (retry only HTTP 408/429/5xx), 256 output tokens per attempt. Never auto-tests.")).size(11).color(style::WHITE).width(Fill),
             button(text("Cancel").size(11)).on_press(Message::CancelCatalogProbe).style(style::chat_button),
             button(text("Confirm tests").size(11)).on_press(Message::ConfirmCatalogProbe).style(style::chat_button)
         ].spacing(8).align_y(iced::Center).into()
@@ -302,11 +321,14 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
                 .style(style::chat_button)
         ].spacing(8),
         row![
-            text(format!("{} new · {} selected", matching.len(), checked)).size(11).color(style::DIM).width(Fill),
-            button(text("Select matching").size(11)).on_press(Message::SelectMatchingModels).style(style::chat_button),
-            button(text("Clear all").size(11)).on_press(Message::ClearCatalogSelection).style(style::chat_button)
+            text(format!("{} new · {} checked · {} eligible", matching.len(), checked, importable)).size(11).color(style::DIM).width(Fill),
+            button(text("Select matching").size(11)).on_press_maybe((!state.probe_busy).then_some(Message::SelectMatchingModels)).style(style::chat_button),
+            button(text("Clear all").size(11)).on_press_maybe((!state.probe_busy).then_some(Message::ClearCatalogSelection)).style(style::chat_button)
         ].align_y(iced::Center).spacing(8),
-        scrollable(container(items).width(Fill).padding(6).style(style::chat_panel)).height(260),
+        button(text(if state.catalog_only_verified { "☑  Add only verified models" } else { "□  Add only verified models" }).size(12))
+            .on_press_maybe((!state.probe_busy).then_some(Message::ToggleCatalogVerified))
+            .padding([8, 10]).style(move |t, status| style::chat_menu_choice(only_verified, t, status)),
+        scrollable(container(items).width(Fill).padding(8).style(style::chat_panel)).height(list_height),
         row![
             button(text("Previous").size(11)).on_press_maybe((start > 0).then_some(Message::CatalogPrevious)).style(style::chat_button),
             text(format!("{}–{} of {} new matches", start.min(matching.len()) + usize::from(!matching.is_empty()), (start + 60).min(matching.len()), matching.len()))
@@ -324,13 +346,16 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
             button(text("Stop tests").size(12)).on_press_maybe(state.probe_busy.then_some(Message::CancelCatalogProbe)).style(style::chat_button),
             space().width(Fill),
             button(text("Cancel").size(12)).on_press(Message::CloseCatalogModal).style(style::chat_button),
-            button(text("Add checked models").size(12)).on_press_maybe((checked > 0 && !state.probe_busy).then_some(Message::ImportSelectedModels)).style(style::chat_button)
+            button(text(if state.catalog_only_verified { "Add verified checked" } else { "Add checked models" }).size(12))
+                .on_press_maybe((importable > 0 && !state.probe_busy).then_some(Message::ImportSelectedModels))
+                .style(style::chat_button)
         ].align_y(iced::Center).spacing(8),
         pending, progress,
-        text("Fetching never tests. Tests may be billable; the confirmation is separate. Imported models are removed from this available list.")
+        text(state.status.clone()).size(11).color(style::GREY),
+        text("Only verified excludes untested and failed IDs. Fetching never tests; consent is separate. Imported IDs leave this list.")
             .size(11).color(style::DIM)
-    ].spacing(10).width(Fill);
-    container(dialog).max_width(760).width(Fill).padding(18).style(style::chat_panel).into()
+    ].spacing(style::AGENT_GAP_CONTROL).width(Fill);
+    container(dialog).max_width(760).width(Fill).padding(20).style(style::chat_panel).into()
 }
 
 #[cfg(test)]
