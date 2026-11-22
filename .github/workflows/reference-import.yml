@@ -31,10 +31,23 @@ jobs:
           head -40 /tmp/reference-file-list.txt
           mkdir -p internels/reference/web
           { sha256sum /tmp/web-app-reference.tar; du -h /tmp/web-app-reference.tar; cat /tmp/reference-file-list.txt; } > internels/reference/web/archive-inventory.txt
+          python3 - <<'PY'
+          import tarfile
+          from pathlib import PurePosixPath
+          with tarfile.open('/tmp/web-app-reference.tar') as archive:
+              for member in archive:
+                  path = PurePosixPath(member.name)
+                  assert path.parts[0] == 'archx-agent' and '..' not in path.parts and not path.is_absolute(), member.name
+                  assert member.isfile() or member.isdir(), member.name
+                  assert member.size < 2_000_000, member.name
+                  assert not any(part.startswith('.env') or part in ('.git', 'node_modules', 'id_rsa') for part in path.parts), member.name
+              archive.extractall('internels/reference/web', filter='data')
+          PY
+          cp /tmp/web-app-reference.tar internels/reference/web/archx-agent-reference.tar
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add internels/reference/web/archive-inventory.txt
-          git commit -m 'Inventory downloaded web-app reference archive'
+          git add internels/reference/web
+          git commit -m 'Import inspected web-app reference source and tar'
           git push origin HEAD:arena/d45bc2a4-archx-agent
       - uses: actions/upload-artifact@v4
         with:
