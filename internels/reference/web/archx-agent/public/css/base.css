@@ -1,0 +1,258 @@
+/* Archx Agent — base: tokens, reset, layout */
+
+:root, [data-theme="dark"] {
+  /* ── spacing scale (UI-RULES.md §2) — every gap/padding in the app resolves
+     to one of these steps: 2 · 4 · 8 · 12 · 16 · 20 · 24 · 32 · 40 px ── */
+  --sp-0: 2px;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 40px;
+  --bg: #000000;
+  --bg-2: #0b0b0b;
+  /* 1.7.2: surfaces/borders lifted one step so panel edges stay readable on
+     LCD panels (pure-black-on-near-black smeared on non-OLED screens). */
+  --panel: #101010;
+  --panel-2: #1a1a1a;
+  --panel-3: #232323;
+  --border: #2c2c2c;
+  --border-2: #404040;
+  --text: #f4f4f4;
+  --text-2: #d4d4d4;
+  --muted: #8a8a8a;
+  --muted-2: #5c5c5c;
+  --accent: #ffffff;
+  --accent-2: #d4d4d4;
+  --accent-ink: #000000;
+  --user-bubble: #161616;
+  --danger: #ef4444;
+  --danger-soft: rgba(239, 68, 68, .12);
+  --ok: #22c55e;
+  --warn: #eab308;
+  --code-bg: #0c0c0c;
+  --shadow: 0 12px 40px rgba(0, 0, 0, .6);
+  --shadow-sm: 0 4px 14px rgba(0, 0, 0, .4);
+  /* 1.7.3: rounder, friendlier corners everywhere (user: "sharp edges is not
+     the way"); tokens keep it consistent and themeable. */
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-sm: 8px;
+  --sidebar-w: 260px;
+}
+
+[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-2: #f7f7f7;
+  --panel: #ffffff;
+  --panel-2: #f2f2f2;
+  --panel-3: #e8e8e8;
+  --border: #e3e3e3;
+  --border-2: #c9c9c9;
+  --text: #0a0a0a;
+  --text-2: #262626;
+  /* Raised from #6b6b6b / #a3a3a3: muted copy (log timestamps, tabs, hints)
+     failed comfortable contrast on white at 11-12px. */
+  --muted: #565656;
+  --muted-2: #767676;
+  --accent: #000000;
+  --accent-2: #262626;
+  --accent-ink: #ffffff;
+  --user-bubble: #f2f2f2;
+  --danger: #dc2626;
+  --danger-soft: rgba(220, 38, 38, .10);
+  --ok: #16a34a;
+  --warn: #a16207;
+  --code-bg: #f7f7f7;
+  --shadow: 0 12px 40px rgba(0, 0, 0, .12);
+  --shadow-sm: 0 4px 14px rgba(0, 0, 0, .06);
+}
+
+/* 1.7.1: "Warm" (formerly Soft) — a genuinely warm surface: cream paper,
+   amber ink, honey borders. Deliberately far from the neutral Light theme. */
+[data-theme="soft"] {
+  --bg: #f4ecdd;
+  --bg-2: #ede3cf;
+  --panel: #fbf6ea;
+  --panel-2: #f2e9d6;
+  --panel-3: #e9ddc4;
+  --border: #e0d2b4;
+  --border-2: #c4ae83;
+  --text: #362a18;
+  --text-2: #4b3b24;
+  --muted: #7c6a4d;
+  --muted-2: #97846a;
+  --accent: #8a4b12;
+  --accent-2: #a35c17;
+  --accent-ink: #fff6e6;
+  --user-bubble: #f0e5cd;
+  --danger: #b3402e;
+  --danger-soft: rgba(179, 64, 46, .12);
+  --ok: #557a23;
+  --warn: #96660d;
+  --code-bg: #f3ead7;
+  --shadow: 0 12px 40px rgba(122, 92, 40, .18);
+  --shadow-sm: 0 4px 14px rgba(122, 92, 40, .12);
+}
+
+/* 1.8.0 (issue 15): the funky theme was retired — three calm themes remain. */
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.hidden { display: none !important; }
+
+/* Smooth theme swap: surfaces cross-fade instead of snapping. Scoped to the
+   large painted areas so hover micro-interactions keep their own timings. */
+body, .sidebar, .topbar, .page, .composer, .endpoint-badge, .provider-card,
+.set-page, .dbg-row, .msg-content, .theme-choice {
+  transition: background-color .22s ease, color .22s ease, border-color .22s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+.dim { color: var(--muted); }
+code, pre, kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+input, textarea, select { font: inherit; color: var(--text); }
+::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent-ink); }
+* { scrollbar-width: thin; scrollbar-color: var(--border-2) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
+*::-webkit-scrollbar-thumb:hover { background: var(--muted-2); background-clip: content-box; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+/* layout */
+.app { display: flex; height: 100dvh; overflow: hidden; }
+
+.sidebar {
+  width: var(--sidebar-w);
+  flex: 0 0 var(--sidebar-w);
+  background: var(--bg-2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-3);
+  transition: margin .22s ease, opacity .18s ease;
+  overflow: hidden;
+}
+body.side-hidden .sidebar { margin-left: calc(var(--sidebar-w) * -1 - 1px); opacity: 0; pointer-events: none; }
+
+.side-top { display: flex; align-items: center; justify-content: space-between; padding: 0 var(--sp-1); }
+.brand { display: flex; align-items: center; gap: var(--sp-2); font-weight: 700; letter-spacing: .2px; font-size: 14.5px; }
+.brand svg { border-radius: 7px; display: block; }
+
+.side-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--muted);
+  padding: var(--sp-1) var(--sp-2) 0;
+  display: flex;
+  gap: var(--sp-2);
+  align-items: baseline;
+}
+.chat-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: var(--sp-0); min-height: 40px; padding-right: var(--sp-0); }
+
+/* margin-top:auto keeps the footer pinned to the sidebar bottom on every
+   page — with the chat list hidden (Settings/Debug) it used to float up
+   directly under the nav. */
+.side-foot { display: flex; flex-direction: column; gap: var(--sp-2); border-top: 1px solid var(--border); padding-top: var(--sp-3); margin-top: auto; }
+.foot-row { display: flex; gap: var(--sp-1); justify-content: space-between; }
+.privacy-note { display: flex; align-items: center; gap: var(--sp-2); font-size: 11px; color: var(--muted); padding: 0 var(--sp-1) var(--sp-0); flex-wrap: wrap; row-gap: 1px; }
+/* Let the note wrap to two lines instead of ellipsizing both the message and
+   the version ("stored on this ma… v1…"); the version must stay intact. */
+.privacy-note > svg { flex: 0 0 auto; }
+.privacy-note span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.privacy-note #privacy-text { flex: 1 1 auto; white-space: normal; overflow: visible; text-overflow: clip; }
+.privacy-note #app-version { flex: 0 0 auto; margin-left: auto; white-space: nowrap; }
+
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  row-gap: var(--sp-2);
+  flex-wrap: wrap;
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  min-height: 56px;
+}
+.top-actions { margin-left: auto; display: flex; align-items: center; gap: var(--sp-2); position: relative; }
+.conn-state { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: var(--sp-2); }
+/* Neutral until a provider is actually active; green means "connected target". */
+.conn-state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted-2); transition: background .2s; }
+.conn-state.ok::before { background: var(--ok); }
+.conn-state.busy::before { background: var(--accent); animation: pulse 1s infinite; }
+.conn-state.err::before { background: var(--danger); }
+@keyframes pulse { 50% { opacity: .35; } }
+
+/* mobile sidebar */
+@media (max-width: 860px) {
+  .sidebar {
+    position: fixed;
+    z-index: 60;
+    height: 100dvh;
+    margin-left: calc(var(--sidebar-w) * -1 - 1px);
+    box-shadow: var(--shadow);
+    transition: margin .22s ease;
+  }
+  body.side-open .sidebar { margin-left: 0; opacity: 1; pointer-events: auto; }
+  body.side-open::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .55);
+    z-index: 55;
+    animation: fadeIn .15s ease;
+  }
+}
+@keyframes fadeIn { from { opacity: 0; } }
+
+/* page nav */
+.page-nav { display: flex; flex-direction: column; gap: var(--sp-0); }
+
+/* theme swatches */
+.theme-setting { display:flex; align-items:flex-start; justify-content:space-between; gap: var(--sp-5); border:1px solid var(--border); border-radius:var(--radius-lg); padding: var(--sp-4); background:var(--panel); flex-wrap:wrap; }
+.theme-setting h3 { margin: 0 0 var(--sp-1); font-size:14px; }
+.theme-choices { display:flex; gap: var(--sp-2); flex-wrap:wrap; }
+.theme-choice { display:flex; align-items:center; gap: var(--sp-2); min-width:140px; padding: var(--sp-2) var(--sp-3); border:1px solid var(--border); border-radius:var(--radius); text-align:left; background:var(--bg-2); transition: border-color .15s, background .15s; }
+.theme-choice:hover { border-color: var(--border-2); }
+.theme-choice.active { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 6%, var(--panel)); }
+.theme-choice > span:last-child { display:flex; flex-direction:column; line-height:1.3; }
+.theme-choice b { font-size:12.5px; }
+.theme-choice small { color:var(--muted); font-size:10.5px; }
+.theme-swatch { width:22px; height:22px; border:1px solid var(--border-2); border-radius:7px; flex:0 0 22px; }
+.theme-swatch.dark { background:linear-gradient(135deg, #000 0 55%, #fff 55%); }
+.theme-swatch.light { background:#fff; }
+.theme-swatch.soft { background:linear-gradient(135deg, #f4ecdd 0 55%, #8a4b12 55%); }
+
+/* system prompt wrapper in topbar */
+.system-prompt-wrap { position:relative; min-width:0; }
+.system-prompt-btn { max-width:240px; }
+.system-prompt-btn #system-prompt-label { max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.system-prompt-glyph { width:19px; height:19px; display:inline-grid; place-items:center; border:1px solid var(--border-2); border-radius:6px; font-size:10px; font-weight:800; color:var(--accent); flex: 0 0 19px; }
+.system-prompt-menu { left:0; right:auto; width:min(430px, calc(100vw - 28px)); }
+
+@media (max-width: 760px) {
+  .theme-setting { flex-direction:column; align-items:stretch; }
+  .theme-choice { flex:1 1 128px; }
+  .system-prompt-btn #system-prompt-label { max-width: 90px; }
+}

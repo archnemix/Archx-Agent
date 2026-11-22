@@ -1,0 +1,56 @@
+<!doctype html>
+<!-- 1.9.0 detailed switch bench: every theme × every state, both variants,
+     plus the real .check label context. Screenshot & pixel-measure BEFORE
+     integrating changes. -->
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<title>Switch bench v2</title>
+<link rel="stylesheet" href="/css/base.css" />
+<link rel="stylesheet" href="/css/components.css" />
+<style>
+  body { padding: 32px; display: flex; flex-direction: column; gap: 28px; }
+  h2 { margin: 0; font-size: 18px; }
+  h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .theme-block { border: 1px solid var(--border); border-radius: 12px; padding: 18px; background: var(--bg); }
+  .grid { display: grid; grid-template-columns: repeat(3, auto); gap: 18px 42px; align-items: center; }
+  .cell { display: flex; align-items: center; gap: 12px; }
+  .lbl { font-size: 12px; color: var(--muted); width: 96px; }
+  .rowctx { margin-top: 14px; }
+</style>
+</head>
+<body>
+<h2>Switch bench v2 — 3 themes × 8 states × 2 variants</h2>
+<script>
+  const STATES = [
+    ['off', ''], ['on', 'on'], ['disabled off', 'off dis'], ['disabled on', 'on dis'],
+  ];
+  const themes = ['dark', 'light', 'soft'];
+  for (const t of themes) {
+    const block = document.createElement('section');
+    block.className = 'theme-block';
+    block.dataset.themeBlock = t;
+    block.innerHTML = `<h3>theme: ${t}</h3><div class="grid"></div>
+      <label class="check rowctx"><input type="checkbox" class="sp-switch" ${''} /> inside a real .check label (off)</label>
+      <label class="check rowctx"><input type="checkbox" class="sp-switch" checked /> inside a real .check label (on)</label>`;
+    const grid = block.querySelector('.grid');
+    for (const [label, flags] of STATES) {
+      const on = flags.includes('on');
+      const dis = flags.includes('dis');
+      grid.insertAdjacentHTML('beforeend',
+        `<div class="cell"><span class="lbl">${label}</span><span class="switch${on ? ' on' : ''}" role="switch" aria-checked="${on}" data-bench="1" ${dis ? 'style="opacity:.45;cursor:not-allowed"' : ''}></span></div>
+         <div class="cell"><span class="lbl">${label} (input)</span><input type="checkbox" class="sp-switch" data-bench="1" ${on ? 'checked' : ''} ${dis ? 'disabled' : ''} /></div>`);
+    }
+    document.body.append(block);
+  }
+  // theme swap for screenshotting each block correctly
+  const setTheme = (t) => document.documentElement.dataset.theme = t;
+  window.benchTheme = setTheme;
+  const q = new URLSearchParams(location.search).get('theme');
+  if (q && themes.includes(q)) setTheme(q);
+  document.querySelectorAll('.switch[data-bench]').forEach((s) => s.addEventListener('click', () => {
+    if (s.style.cursor === 'not-allowed') return;
+    s.classList.toggle('on');
+  }));
+</script>
+</body></html>
