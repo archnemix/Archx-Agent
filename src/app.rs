@@ -319,6 +319,18 @@ impl App {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Navigate(page) => {
+                if page == Page::Home {
+                    // Leaving the Agent is an exit, not a hidden background generation.
+                    // Abort every active chat and preserve any partial answer as incomplete.
+                    let active: Vec<_> = self.drafts.iter_mut().filter(|draft| draft.busy).map(|draft| {
+                        if let Some(handle) = draft.request_handle.take() { handle.abort(); }
+                        draft.id
+                    }).collect();
+                    for id in active {
+                        let _ = self.update(Message::ChatResult(id,
+                            Err("Agent closed. Any received text was preserved as incomplete.".into())));
+                    }
+                }
                 if page != Page::Settings {
                     self.settings.clear_secret();
                     if let Some(handle) = self.probe_handle.take() { handle.abort(); }
@@ -1186,6 +1198,19 @@ mod tests {
     fn sensitive_messages_redact_their_debug_representation() {
         let message = Message::EditKey(SecretText::new("synthetic-private-value".into()));
         assert!(!format!("{message:?}").contains("synthetic-private-value"));
+    }
+
+    #[test]
+    fn leaving_agent_cancels_generation_and_restores_unanswered_input() {
+        let mut app = App::new();
+        app.page = Page::Agent;
+        app.drafts[0].busy = true;
+        app.drafts[0].turns.push(Turn { role: "user", content: "unsent after exit".into() });
+        let _ = app.update(Message::Navigate(Page::Home));
+        assert_eq!(app.page, Page::Home);
+        assert!(!app.drafts[0].busy);
+        assert!(app.drafts[0].turns.is_empty());
+        assert_eq!(app.drafts[0].text, "unsent after exit");
     }
 
     #[test]
