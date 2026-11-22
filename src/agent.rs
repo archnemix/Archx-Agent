@@ -105,23 +105,18 @@ fn avatar(assistant: bool) -> Element<'static, Message> {
         .style(move |t| style::chat_avatar(assistant, t)).into()
 }
 
-pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState,
-    model_menu_open: bool, mode_menu_open: bool, search: &'a str) -> Element<'a, Message> {
-    let current = drafts.iter().find(|draft| draft.id == selected);
-    let active_mode = current.map_or(0, |draft| draft.mode);
-    let draft_text = current.map_or("", |draft| draft.text.as_str());
-    let connected = settings.selected_model().is_some();
-
+fn rail(drafts: &[ChatDraft], selected: u32, settings_open: bool) -> Element<'static, Message> {
     let mut history = column![
         text("A   Archx Agent").size(16).color(style::WHITE),
         space().height(24),
         button(text("◧   Chat").size(13)).width(Fill).padding([10, 12])
-            .style(|t, s| style::chat_menu_choice(true, t, s)),
+            .on_press(Message::Navigate(Page::Agent))
+            .style(move |t, s| style::chat_menu_choice(!settings_open, t, s)),
         space().height(5),
         button(text("⚙   Settings").size(13)).width(Fill).padding([10, 12])
-            .on_press(Message::Navigate(Page::Settings)).style(style::chat_menu_choice_inactive),
+            .on_press(Message::Navigate(Page::Settings)).style(move |t, s| style::chat_menu_choice(settings_open, t, s)),
         space().height(5),
-        button(text("⌂   Discover").size(13)).width(Fill).padding([10, 12])
+        button(text("←   Back to launcher").size(13)).width(Fill).padding([10, 12])
             .on_press(Message::Navigate(Page::Home)).style(style::chat_menu_choice_inactive),
         space().height(20),
         action("＋   New chat", Message::NewChat),
@@ -131,7 +126,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
     ];
     for draft in drafts.iter().rev() {
         let id = draft.id;
-        let selected_draft = selected == id;
+        let selected_draft = !settings_open && selected == id;
         history = history.push(button(text(format!("Chat {:02}   ·   {}", id, MODES[usize::from(draft.mode)]))
             .size(12).color(if selected_draft { style::WHITE } else { style::GREY }))
             .width(Fill).padding([10, 12]).on_press(Message::OpenChat(id))
@@ -143,6 +138,18 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
         container(text("Local session · keys in OS vault").size(10).color(style::DIM))
             .padding([12, 15]).width(Fill)
     ].height(Fill)).width(210).height(Fill).style(style::rail);
+
+    rail.into()
+}
+
+pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState,
+    model_menu_open: bool, mode_menu_open: bool, search: &'a str) -> Element<'a, Message> {
+    let current = drafts.iter().find(|draft| draft.id == selected);
+    let active_mode = current.map_or(0, |draft| draft.mode);
+    let draft_text = current.map_or("", |draft| draft.text.as_str());
+    let connected = settings.selected_model().is_some();
+
+    let rail = rail(drafts, selected, false);
 
     let model_label = settings.selected_model().map(|model| {
         let short = if model.chars().count() > 28 {
@@ -191,7 +198,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
         if let Some((content, reasoning)) = &draft.partial {
             let mut body = column![text("Assistant  ·  responding").size(13).color(style::GREY)].spacing(8);
             if let Some(reasoning) = reasoning {
-                body = body.push(container(column![text("✧  Reasoning").size(12).color(style::GREY),
+                body = body.push(container(column![text("✧  Thinking…").size(12).color(style::GREY),
                     chat_md(reasoning.items())]
                     .spacing(8)).padding(12).style(style::chat_thinking));
             }
@@ -270,6 +277,13 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
             .align_y(iced::alignment::Vertical::Top)].width(Fill).height(Fill).into()
     } else { main.into() };
     row![rail, main].width(Fill).height(Fill).into()
+}
+
+/// Agent-owned settings share its navigation, never the launcher navigation.
+pub fn settings_shell(drafts: &[ChatDraft], selected: u32, settings: &SettingsState,
+    memory: crate::app::MemoryMode, keep_agent: bool) -> Element<'static, Message> {
+    row![rail(drafts, selected, true), crate::settings::view(settings, memory, keep_agent)]
+        .width(Fill).height(Fill).into()
 }
 
 #[cfg(test)]

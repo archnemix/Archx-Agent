@@ -2,7 +2,7 @@
 use std::fmt;
 use std::time::Instant;
 
-use iced::widget::{button, column, container, row, scrollable, space, text, text_input};
+use iced::widget::{button, column, container, row, scrollable, space, stack, text, text_input};
 use iced::{Element, Fill};
 use zeroize::Zeroizing;
 
@@ -41,6 +41,8 @@ pub struct SettingsState {
     pub model_entry: String,
     pub catalog: [Vec<CatalogModel>; Provider::COUNT],
     pub search: String,
+    pub catalog_modal: bool,
+    pub catalog_page: usize,
     pub catalog_selected: [Vec<String>; Provider::COUNT],
     pub probe_pending: bool,
     pub probe_busy: bool,
@@ -65,7 +67,7 @@ impl Default for SettingsState {
         Self { section: Section::Providers, provider: Provider::OpenRouter,
             key_entry: SecretText::default(), key_ids: Vec::new(), reveal: None,
             reveal_nonce: 0, model_entry: String::new(), catalog: std::array::from_fn(|_| Vec::new()),
-            search: String::new(), catalog_selected: std::array::from_fn(|_| Vec::new()),
+            search: String::new(), catalog_modal: false, catalog_page: 0, catalog_selected: std::array::from_fn(|_| Vec::new()),
             probe_pending: false, probe_busy: false, probe_nonce: 0, probe_results: Vec::new(), catalog_busy: false, catalog_nonce: 0, models: std::array::from_fn(|_| Vec::new()),
             chosen: [None; Provider::COUNT], status: String::new(), test_busy: false, test_evidence: None, stream_chat: true, key_busy: false, custom: Profile::default(), custom_curl: SecretText::default(), custom_approved: false, expected_word: "OK".into() }
     }
@@ -99,7 +101,7 @@ pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Elem
         space().height(12)
     ].into() };
     let body = column![
-        text("LAB  /  SETTINGS").size(10).color(style::DIM),
+        text("ARCHX AGENT  /  SETTINGS").size(10).color(style::DIM),
         space().height(14),
         text(heading).size(29).font(style::DISPLAY).color(style::WHITE),
         space().height(8),
@@ -107,8 +109,7 @@ pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Elem
         space().height(22),
         row![
             setting_link("Providers", Section::Providers, state.section),
-            setting_link("Models", Section::Models, state.section),
-            setting_link("Lab preview", Section::Lab, state.section)
+            setting_link("Models", Section::Models, state.section)
         ].spacing(8).width(495),
         space().height(16),
         status_notice,
@@ -118,8 +119,17 @@ pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Elem
             Section::Lab => lab(memory, keep_agent),
         }
     ].width(Fill).padding([28, 30]);
-    scrollable(container(body).max_width(960).center_x(Fill))
-        .width(Fill).height(Fill).into()
+    let base = scrollable(container(body).max_width(960).center_x(Fill))
+        .width(Fill).height(Fill);
+    if state.section == Section::Models && state.catalog_modal {
+        stack![
+            base,
+            button(text(" ")).width(Fill).height(Fill)
+                .on_press(Message::CloseCatalogModal).style(style::catalog_scrim),
+            container(catalog_dialog(state)).center_x(Fill).center_y(Fill)
+                .width(Fill).height(Fill)
+        ].width(Fill).height(Fill).into()
+    } else { base.into() }
 }
 
 fn setting_link(label: &'static str, section: Section, current: Section) -> Element<'static, Message> {
@@ -207,16 +217,14 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
         space().height(12),
         provider_tabs(state.provider, state.key_busy || state.probe_busy),
         space().height(14),
-        text("Select a provider, fetch its list and check only the IDs you want. Or add an exact model ID below. Import never triggers a generation test.")
+        text("Manage the models available in this Agent. The catalog only shows IDs that are not already added.")
             .size(13).color(style::GREY),
         space().height(13),
-        if state.provider == Provider::Custom { text("Custom endpoints have no discovery endpoint. Enter an exact model ID below; requests require separate destination approval.").size(12).color(style::GREY).into() } else { catalog_view(state) },
-        space().height(26),
-        text("ADD AN EXACT ID MANUALLY").size(11).color(style::DIM),
-        text_input("e.g. provider/model:free", &state.model_entry)
-            .on_input(Message::EditModel).padding([13, 15]).style(style::composer_input),
-        space().height(10),
-        button(text("Add model").size(12)).on_press(Message::AddModel).padding([11, 15]).style(style::quiet_button),
+        button(text("Add models…  ↗").size(13)).on_press(Message::OpenCatalogModal)
+            .padding([10, 14]).style(style::chat_button),
+        space().height(12),
+        text("Fetching, selecting and optional generation tests take place in the Add models dialog. No test is sent just by opening it.")
+            .size(12).color(style::DIM),
         space().height(23), list,
         space().height(16),
         text("Explicit test: sends a small prompt to the selected provider/model. Output cap 256 tokens; this may be billable and total tokens are not guaranteed.")
@@ -236,74 +244,88 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
 }
 
 
-// Keep the visible list bounded; search narrows large catalogs. Nothing is
-// checked or probed on fetch. A probe requires a second explicit confirmation.
-fn catalog_view(state: &SettingsState) -> Element<'static, Message> {
+// Paginate the native widgets for responsiveness, not as a limit on imports.
+// The catalog itself and selection set are unbounded by a fixed app quota.
+fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
     let index = state.index();
     let query = state.search.trim().to_lowercase();
     let matching: Vec<_> = state.catalog[index].iter().enumerate()
+        .filter(|(_, model)| !state.models[index].contains(&model.id))
         .filter(|(_, model)| query.is_empty() || model.id.to_lowercase().contains(&query) || model.name.to_lowercase().contains(&query))
         .collect();
     let checked = state.catalog_selected[index].len();
-    let mut items = column![].spacing(6).width(Fill);
-    for (slot, model) in matching.iter().copied().take(24) {
+    let start = state.catalog_page.saturating_mul(60).min(matching.len());
+    let mut items = column![].spacing(3).width(Fill);
+    for (slot, model) in matching.iter().copied().skip(start).take(60) {
         let selected = state.catalog_selected[index].contains(&model.id);
-        let added = state.models[index].contains(&model.id);
-        let label = format!("{}  {}{}{}", if selected { "☑" } else { "□" }, model.id,
-            if model.free { "  ·  free at fetch" } else { "" },
-            if added { "  ·  in list" } else { "" });
-        let mut entry = column![button(text(label).size(13)).width(Fill)
-            .padding([9, 11]).on_press(Message::ToggleCatalogSelection(state.provider, slot))
-            .style(move |t, status| style::chat_menu_choice(selected, t, status))].spacing(4);
+        let label = format!("{}  {}{}", if selected { "☑" } else { "□" }, model.id,
+            if model.free { "  ·  free at fetch" } else { "" });
+        let mut entry = column![button(text(label).size(12)).width(Fill)
+            .padding([7, 10]).on_press(Message::ToggleCatalogSelection(state.provider, slot))
+            .style(move |t, status| style::chat_menu_choice(selected, t, status))].spacing(3);
         if let Some((_, ok, output)) = state.probe_results.iter().find(|(id, _, _)| id == &model.id) {
-            entry = entry.push(text(format!("{}  ·  Sent: Reply with the word OK.  ·  Received: {}",
-                if *ok { "✓ Reply received" } else { "× Probe failed" }, output))
-                .size(12).color(if *ok { style::SUCCESS } else { style::FAILURE }));
+            entry = entry.push(text(format!("{} · {}", if *ok { "✓ reply received" } else { "× probe failed" }, output))
+                .size(11).color(if *ok { style::SUCCESS } else { style::FAILURE }));
         }
         items = items.push(entry);
     }
+    if matching.is_empty() && state.provider != Provider::Custom {
+        items = items.push(text(if state.catalog_busy { "Fetching…" } else { "No matching new models. Fetch, change the filter, or add an exact ID." }).size(12).color(style::GREY));
+    }
     let pending: Element<'static, Message> = if state.probe_pending {
         row![
-            text(format!("Run {checked} small generation probe(s)? Each sends a billable request with up to 256 output tokens. No automatic retries.")).size(11).color(style::WHITE).width(Fill),
+            text(format!("Probe {checked} selected models? Each sends a potentially billable request; up to 256 output tokens per test.")).size(11).color(style::WHITE).width(Fill),
             button(text("Cancel").size(11)).on_press(Message::CancelCatalogProbe).style(style::chat_button),
-            button(text("Confirm tests ↗").size(11)).on_press(Message::ConfirmCatalogProbe).style(style::chat_button)
+            button(text("Confirm tests").size(11)).on_press(Message::ConfirmCatalogProbe).style(style::chat_button)
         ].spacing(8).align_y(iced::Center).into()
     } else { space().height(0).into() };
-    let progress_notice: Element<'static, Message> = if state.probe_busy {
-        text(format!("Testing selected models · {} of {} results received. Stop cancels remaining requests.",
-            state.probe_results.len(), checked)).size(12).color(style::GREY).into()
+    let progress: Element<'static, Message> = if state.probe_busy {
+        text(format!("Testing · {} of {checked} returned · Stop cancels remaining requests", state.probe_results.len()))
+            .size(12).color(style::GREY).into()
     } else { space().height(0).into() };
-    column![
+    let dialog = column![
         row![
-            text("AVAILABLE FROM PROVIDER").size(11).color(style::DIM).width(Fill),
-            button(text(if state.catalog_busy { "Fetching…" } else { "Fetch models  ↗" }).size(12))
-                .on_press_maybe((!state.catalog_busy && !state.probe_busy).then_some(Message::FetchModels))
-                .padding([8, 12]).style(style::chat_button)
+            column![text(format!("Add models from {}", state.provider.name())).size(19).color(style::WHITE),
+                text("Only IDs not already in your Agent list appear here.").size(11).color(style::GREY)].spacing(4).width(Fill),
+            button(text("×").size(17)).on_press(Message::CloseCatalogModal).style(style::chat_button)
         ].align_y(iced::Center),
-        space().height(10),
-        text_input("Filter model names and IDs…", &state.search).on_input(Message::SearchModels)
-            .padding([10, 13]).style(style::composer_input),
-        space().height(8),
-        text(format!("{} available · {} matching · {} checked (limit 10). All models start unchecked.",
-            state.catalog[index].len(), matching.len(), checked)).size(11).color(style::DIM),
-        space().height(10),
         row![
-            button(text("Import checked IDs").size(12))
-                .on_press_maybe((checked > 0 && !state.probe_busy).then_some(Message::ImportSelectedModels))
-                .padding([9, 12]).style(style::chat_button),
-            button(text(if state.probe_busy { "Testing…" } else { "Test checked first…" }).size(12))
-                .on_press_maybe((checked > 0 && !state.probe_busy).then_some(Message::RequestCatalogProbe))
-                .padding([9, 12]).style(style::chat_button),
-            if state.probe_busy { button(text("Stop tests").size(12)).on_press(Message::CancelCatalogProbe).style(style::chat_button) }
-            else { button(text("Stop tests").size(12)).style(style::chat_menu_choice_inactive) }
+            text_input("Filter model IDs…", &state.search).on_input(Message::SearchModels)
+                .padding([9, 11]).style(style::composer_input),
+            button(text(if state.catalog_busy { "Fetching…" } else { "Fetch models" }).size(12))
+                .on_press_maybe((state.provider != Provider::Custom && !state.catalog_busy && !state.probe_busy).then_some(Message::FetchModels))
+                .style(style::chat_button)
         ].spacing(8),
-        pending,
-        progress_notice,
-        space().height(12),
-        items,
-        text(if matching.len() > 24 { "Showing 24 matches. Filter to find more." } else { "Catalog metadata is not a guarantee of availability or pricing." })
+        row![
+            text(format!("{} new · {} selected", matching.len(), checked)).size(11).color(style::DIM).width(Fill),
+            button(text("Select matching").size(11)).on_press(Message::SelectMatchingModels).style(style::chat_button),
+            button(text("Clear all").size(11)).on_press(Message::ClearCatalogSelection).style(style::chat_button)
+        ].align_y(iced::Center).spacing(8),
+        scrollable(container(items).width(Fill).padding(6).style(style::chat_panel)).height(260),
+        row![
+            button(text("Previous").size(11)).on_press_maybe((start > 0).then_some(Message::CatalogPrevious)).style(style::chat_button),
+            text(format!("{}–{} of {} new matches", start.min(matching.len()) + usize::from(!matching.is_empty()), (start + 60).min(matching.len()), matching.len()))
+                .size(11).color(style::DIM).width(Fill),
+            button(text("Next").size(11)).on_press_maybe((start + 60 < matching.len()).then_some(Message::CatalogNext)).style(style::chat_button)
+        ].align_y(iced::Center).spacing(8),
+        row![
+            text_input("Model not listed? Enter an exact ID", &state.model_entry)
+                .on_input(Message::EditModel).padding([9, 11]).style(style::composer_input),
+            button(text("Add ID").size(12)).on_press(Message::AddModel).style(style::chat_button)
+        ].spacing(8),
+        row![
+            button(text(if state.probe_busy { "Testing…" } else { "Test selected…" }).size(12))
+                .on_press_maybe((checked > 0 && !state.probe_busy).then_some(Message::RequestCatalogProbe)).style(style::chat_button),
+            button(text("Stop tests").size(12)).on_press_maybe(state.probe_busy.then_some(Message::CancelCatalogProbe)).style(style::chat_button),
+            space().width(Fill),
+            button(text("Cancel").size(12)).on_press(Message::CloseCatalogModal).style(style::chat_button),
+            button(text("Add checked models").size(12)).on_press_maybe((checked > 0 && !state.probe_busy).then_some(Message::ImportSelectedModels)).style(style::chat_button)
+        ].align_y(iced::Center).spacing(8),
+        pending, progress,
+        text("Fetching never tests. Tests may be billable; the confirmation is separate. Imported models are removed from this available list.")
             .size(11).color(style::DIM)
-    ].spacing(6).width(Fill).into()
+    ].spacing(10).width(Fill);
+    container(dialog).max_width(760).width(Fill).padding(18).style(style::chat_panel).into()
 }
 
 fn lab(memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {

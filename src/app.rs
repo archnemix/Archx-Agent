@@ -115,6 +115,12 @@ pub enum Message {
     ModelsFetched(Provider, u64, Result<Vec<CatalogModel>, String>),
     SearchModels(String),
     AddCatalogModel(Provider, usize),
+    OpenCatalogModal,
+    CloseCatalogModal,
+    SelectMatchingModels,
+    ClearCatalogSelection,
+    CatalogNext,
+    CatalogPrevious,
     ToggleCatalogSelection(Provider, usize),
     ImportSelectedModels,
     RequestCatalogProbe,
@@ -321,6 +327,7 @@ impl App {
                 self.model_menu_open = false;
                 self.mode_menu_open = false;
                 self.hovered = None;
+                self.settings.catalog_modal = false;
                 if page == Page::Settings { return self.update(Message::RefreshKeys); }
             }
             Message::OpenModelSettings => {
@@ -328,6 +335,7 @@ impl App {
                 self.model_menu_open = false;
                 self.mode_menu_open = false;
                 self.settings.section = Section::Providers;
+                self.settings.catalog_modal = false;
                 return self.update(Message::RefreshKeys);
             }
             Message::OpenModelCatalogSettings => {
@@ -335,19 +343,23 @@ impl App {
                 self.model_menu_open = false;
                 self.mode_menu_open = false;
                 self.settings.section = Section::Models;
+                self.settings.catalog_modal = false;
                 return self.update(Message::RefreshKeys);
             }
             Message::ToggleSidebar => {
                 self.sidebar_expanded = !self.sidebar_expanded;
             }
-            Message::NewChat if self.page == Page::Agent => {
+            Message::NewChat if matches!(self.page, Page::Agent | Page::Settings) => {
+                self.page = Page::Agent;
                 let id = self.drafts.last().map_or(1, |draft| draft.id + 1);
                 self.drafts.push(ChatDraft { id, mode: 0, text: String::new(), editor: text_editor::Content::new(), formatted: Vec::new(), partial: None, partial_raw: None, incomplete_slots: Vec::new(), request_handle: None, turns: Vec::new(), busy: false, error: None });
                 self.selected_draft = id;
                 self.model_menu_open = false;
                 self.mode_menu_open = false;
             }
-            Message::OpenChat(id) if self.page == Page::Agent && self.drafts.iter().any(|draft| draft.id == id) => {
+            Message::OpenChat(id) if matches!(self.page, Page::Agent | Page::Settings) && self.drafts.iter().any(|draft| draft.id == id) => {
+                self.page = Page::Agent;
+                self.settings.clear_secret();
                 self.selected_draft = id;
                 self.model_menu_open = false;
                 self.mode_menu_open = false;
@@ -571,11 +583,11 @@ impl App {
                 let provider = self.settings.provider;
                 let model = self.settings.model_entry.trim().to_owned();
                 let index = self.settings.index();
-                if provider_api::valid_model(provider, &model) && !self.settings.models[index].contains(&model) && self.settings.models[index].len() < 32 {
+                if provider_api::valid_model(provider, &model) && !self.settings.models[index].contains(&model) {
                     self.settings.models[index].push(model);
                     self.settings.model_entry.clear();
                     self.settings.status = "Model added, not verified. Choose it from Chat when ready.".into();
-                } else { self.settings.status = "Invalid, duplicate or over-limit model ID.".into(); }
+                } else { self.settings.status = "Invalid or duplicate model ID.".into(); }
             }
             Message::ChooseModel(slot) if matches!(self.page, Page::Settings | Page::Agent) && slot < self.settings.models[self.settings.index()].len() => {
                 let index = self.settings.index(); self.settings.chosen[index] = Some(slot);
@@ -587,13 +599,43 @@ impl App {
                 self.settings.chosen[index] = None;
             }
             Message::SearchModels(query) if self.page == Page::Settings && self.settings.section != Section::Lab => {
-                if query.len() <= 100 { self.settings.search = query; }
+                if query.len() <= 100 { self.settings.search = query; self.settings.catalog_page = 0; }
+            }
+            Message::OpenCatalogModal if self.page == Page::Settings && self.settings.section == Section::Models => {
+                self.settings.catalog_modal = true;
+                self.settings.catalog_page = 0;
+            }
+            Message::CloseCatalogModal if self.page == Page::Settings => {
+                self.settings.catalog_modal = false;
+                self.settings.probe_pending = false;
+                // A running probe continues only while its dialog is visible.
+                if self.settings.probe_busy { return self.update(Message::CancelCatalogProbe); }
+            }
+            Message::CatalogNext if self.page == Page::Settings && self.settings.catalog_modal => {
+                self.settings.catalog_page = self.settings.catalog_page.saturating_add(1);
+            }
+            Message::CatalogPrevious if self.page == Page::Settings && self.settings.catalog_modal => {
+                self.settings.catalog_page = self.settings.catalog_page.saturating_sub(1);
+            }
+            Message::ClearCatalogSelection if self.page == Page::Settings && self.settings.catalog_modal => {
+                self.settings.catalog_selected[self.settings.index()].clear();
+            }
+            Message::SelectMatchingModels if self.page == Page::Settings && self.settings.catalog_modal => {
+                let index = self.settings.index();
+                let query = self.settings.search.trim().to_lowercase();
+                for item in &self.settings.catalog[index] {
+                    if !self.settings.models[index].contains(&item.id) &&
+                        (query.is_empty() || item.id.to_lowercase().contains(&query) || item.name.to_lowercase().contains(&query)) &&
+                        !self.settings.catalog_selected[index].contains(&item.id) {
+                        self.settings.catalog_selected[index].push(item.id.clone());
+                    }
+                }
             }
             Message::AddCatalogModel(provider, slot) if self.page == Page::Settings && self.settings.section != Section::Lab && self.settings.provider == provider => {
                 let index = self.settings.index();
                 if let Some(item) = self.settings.catalog[index].get(slot) {
                     let model = item.id.clone();
-                    if provider_api::valid_model(provider, &model) && !self.settings.models[index].contains(&model) && self.settings.models[index].len() < 32 {
+                    if provider_api::valid_model(provider, &model) && !self.settings.models[index].contains(&model) {
                         self.settings.models[index].push(model);
                         self.settings.status = "Model added, not verified. Testing is optional and may be billable.".into();
                     }
@@ -604,9 +646,9 @@ impl App {
                 if let Some(item) = self.settings.catalog[index].get(slot) {
                     if let Some(where_at) = self.settings.catalog_selected[index].iter().position(|id| id == &item.id) {
                         self.settings.catalog_selected[index].remove(where_at);
-                    } else if self.settings.catalog_selected[index].len() < 10 {
+                    } else if !self.settings.models[index].contains(&item.id) {
                         self.settings.catalog_selected[index].push(item.id.clone());
-                    } else { self.settings.status = "Select up to 10 models per import or probe.".into(); }
+                    }
                 }
             }
             Message::ImportSelectedModels if self.page == Page::Settings && !self.settings.probe_busy => {
@@ -614,7 +656,6 @@ impl App {
                 let checked = std::mem::take(&mut self.settings.catalog_selected[index]);
                 let mut added = 0;
                 for id in checked {
-                    if self.settings.models[index].len() >= 32 { break; }
                     if self.settings.catalog[index].iter().any(|item| item.id == id) &&
                        !self.settings.models[index].contains(&id) {
                         self.settings.models[index].push(id);
@@ -622,6 +663,7 @@ impl App {
                     }
                 }
                 self.settings.status = format!("Added {added} chosen IDs. They are unverified until you explicitly test or send a message; no model was activated automatically.");
+                self.settings.catalog_modal = false;
             }
             Message::RequestCatalogProbe if self.page == Page::Settings && !self.settings.probe_busy => {
                 let count = self.settings.catalog_selected[self.settings.index()].len();
@@ -710,6 +752,7 @@ impl App {
                     Ok(models) => {
                         let count = models.len();
                         self.settings.catalog_selected[self.settings.index()].clear();
+                        self.settings.catalog_page = 0;
                         self.settings.probe_results.clear();
                         self.settings.catalog[self.settings.index()] = models;
                         self.settings.status = format!("Fetched {count} models. Search and add individual choices; no models were added automatically.");
@@ -1024,6 +1067,32 @@ mod tests {
         assert!(!app.settings.probe_busy);
         let _ = app.update(Message::CancelCatalogProbe);
         assert!(!app.settings.probe_pending);
+    }
+
+    #[test]
+    fn agent_settings_and_catalog_have_no_arbitrary_model_quota() {
+        let mut app = App::new();
+        let _ = app.update(Message::Navigate(Page::Agent));
+        let _ = app.update(Message::Navigate(Page::Settings));
+        assert_eq!(app.page, Page::Settings);
+        let _ = app.update(Message::SettingsSection(Section::Models));
+        app.settings.catalog[0] = (0..75).map(|i| CatalogModel {
+            id: format!("provider/model-{i}"), name: format!("Model {i}"),
+            free: false, router: false, reasoning: false,
+        }).collect();
+        let _ = app.update(Message::OpenCatalogModal);
+        assert!(app.settings.catalog_modal);
+        let _ = app.update(Message::SelectMatchingModels);
+        assert_eq!(app.settings.catalog_selected[0].len(), 75);
+        assert!(app.settings.models[0].is_empty());
+        let _ = app.update(Message::ImportSelectedModels);
+        assert_eq!(app.settings.models[0].len(), 75);
+        assert!(!app.settings.catalog_modal);
+        let _ = app.update(Message::OpenChat(1));
+        assert_eq!(app.page, Page::Agent);
+        let _ = app.update(Message::Navigate(Page::Home));
+        assert_eq!(app.page, Page::Home);
+        assert_eq!(app.settings.models[0].len(), 75);
     }
 
     #[test]

@@ -12,9 +12,9 @@ use crate::style;
 
 pub fn view<'a>(page: Page, sidebar_expanded: bool, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &'a [ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool, settings_state: &SettingsState, model_menu_open: bool, mode_menu_open: bool, chat_model_search: &'a str) -> Element<'a, Message> {
     let content: Element<'a, Message> = if page == Page::Agent {
-        // Chat owns one integrated rail. Two permanent sidebars made the
-        // reference's conversation feel cramped on the user's Windows screen.
         agent::view(drafts, selected, settings_state, model_menu_open, mode_menu_open, chat_model_search)
+    } else if page == Page::Settings {
+        agent::settings_shell(drafts, selected, settings_state, memory, keep_agent)
     } else {
         row![navigation::view(page, sidebar_expanded), main_content(page, hovered, phase, agent_phase, drafts, selected, memory, keep_agent, settings_state, model_menu_open, mode_menu_open, chat_model_search)]
             .width(Fill).height(Fill).into()

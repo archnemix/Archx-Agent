@@ -370,3 +370,11 @@ pub fn provider_choice(active: bool, _: &Theme, status: button::Status) -> butto
         ..button::Style::default()
     }
 }
+
+/// Dim the inactive settings page behind the Agent's model-import dialog.
+pub fn catalog_scrim(_: &Theme, _: button::Status) -> button::Style {
+    button::Style {
+        background: Some(Color::from_rgba(0.0, 0.0, 0.0, 0.78).into()),
+        ..button::Style::default()
+    }
+}
