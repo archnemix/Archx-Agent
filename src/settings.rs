@@ -246,13 +246,18 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
 
 // Paginate the native widgets for responsiveness, not as a limit on imports.
 // The catalog itself and selection set are unbounded by a fixed app quota.
+fn available_catalog<'a>(state: &'a SettingsState, query: &str) -> Vec<(usize, &'a CatalogModel)> {
+    let index = state.index();
+    state.catalog[index].iter().enumerate()
+        .filter(|(_, model)| !state.models[index].contains(&model.id))
+        .filter(|(_, model)| query.is_empty() || model.id.to_lowercase().contains(query) || model.name.to_lowercase().contains(query))
+        .collect()
+}
+
 fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
     let index = state.index();
     let query = state.search.trim().to_lowercase();
-    let matching: Vec<_> = state.catalog[index].iter().enumerate()
-        .filter(|(_, model)| !state.models[index].contains(&model.id))
-        .filter(|(_, model)| query.is_empty() || model.id.to_lowercase().contains(&query) || model.name.to_lowercase().contains(&query))
-        .collect();
+    let matching = available_catalog(state, &query);
     let checked = state.catalog_selected[index].len();
     let start = state.catalog_page.saturating_mul(60).min(matching.len());
     let mut items = column![].spacing(3).width(Fill);
@@ -326,6 +331,25 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
             .size(11).color(style::DIM)
     ].spacing(10).width(Fill);
     container(dialog).max_width(760).width(Fill).padding(18).style(style::chat_panel).into()
+}
+
+#[cfg(test)]
+mod catalog_tests {
+    use super::*;
+
+    #[test]
+    fn available_popup_excludes_every_imported_id_without_truncating_catalog() {
+        let mut state = SettingsState::default();
+        state.catalog[0] = (0..120).map(|n| CatalogModel {
+            id: format!("vendor/model-{n}"), name: format!("Model {n}"),
+            free: false, router: false, reasoning: false,
+        }).collect();
+        state.models[0] = (0..75).map(|n| format!("vendor/model-{n}")).collect();
+        let available = available_catalog(&state, "");
+        assert_eq!(available.len(), 45);
+        assert!(available.iter().all(|(_, item)| !state.models[0].contains(&item.id)));
+        assert_eq!(available_catalog(&state, "model-119").len(), 1);
+    }
 }
 
 fn lab(memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {
