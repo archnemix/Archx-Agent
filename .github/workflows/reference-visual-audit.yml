@@ -1,0 +1,44 @@
+# Purpose: Capture the original 1.9.0 browser UI for a controlled visual audit; never ship it in the native binary.
+name: Reference 1.9.0 visual audit
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: arena/d45bc2a4-archx-agent
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare isolated reference and browser
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd internels/reference/web/archx-agent
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm install --prefix "$RUNNER_TEMP/capture" --no-audit --no-fund playwright@1.58.2
+          "$RUNNER_TEMP/capture/node_modules/.bin/playwright" install chromium --with-deps
+      - name: Capture original web UI at native screenshot size
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd internels/reference/web/archx-agent
+          node bin/archx-agent.js webui --no-open --no-store --host 127.0.0.1 --port 4187 > "$RUNNER_TEMP/reference.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true; cat "$RUNNER_TEMP/reference.log"' EXIT
+          CAPTURE_MODULE="$RUNNER_TEMP/capture/node_modules/playwright" node ../../../../scripts/capture-reference.cjs
+          test -s ../../../../Docs/Test_Results/Unreleased/reference/reference-chat-1280.png
+          test -s ../../../../Docs/Test_Results/Unreleased/reference/reference-models-1280.png
+      - name: Commit unmodified browser captures
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Docs/Test_Results/Unreleased/reference/
+          git diff --cached --quiet || (git commit -m 'Capture isolated 1.9.0 browser reference for visual audit' && git push origin arena/d45bc2a4-archx-agent)
