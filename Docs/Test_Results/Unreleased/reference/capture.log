@@ -1,0 +1,12 @@
+locator.waitFor: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator('#personalization-dialog.hidden') to be visible
+    63 × locator resolved to hidden <div role="dialog" aria-modal="true" class="modal hidden" id="personalization-dialog" aria-labelledby="personalization-title">…</div>
+
+    at /home/runner/work/Archx-Agent/Archx-Agent/scripts/capture-reference.cjs:23:60 {
+  log: [
+    "  - waiting for locator('#personalization-dialog.hidden') to be visible",
+    '    63 × locator resolved to hidden <div role="dialog" aria-modal="true" class="modal hidden" id="personalization-dialog" aria-labelledby="personalization-title">…</div>'
+  ],
+  name: 'TimeoutError'
+}
