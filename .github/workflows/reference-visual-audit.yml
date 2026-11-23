@@ -2,6 +2,11 @@
 name: Reference 1.9.0 visual audit
 on:
   workflow_dispatch:
+  push:
+    branches: [arena/d45bc2a4-archx-agent]
+    paths:
+      - '.github/workflows/reference-visual-audit.yml'
+      - 'scripts/capture-reference.cjs'
 permissions:
   contents: write
 jobs:
