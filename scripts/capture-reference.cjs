@@ -20,7 +20,7 @@ fs.mkdirSync(dir, { recursive: true });
     await page.locator('#app:not(.hidden)').waitFor({ timeout: 20000 });
     if (await page.locator('#personalization-dialog:not(.hidden)').count()) {
       await page.locator('#personalization-skip').click();
-      await page.locator('#personalization-dialog.hidden').waitFor();
+      await page.locator('#personalization-dialog').waitFor({ state: 'hidden' });
     }
     await page.screenshot({ path: path.join(dir, 'reference-chat-1280.png'), animations: 'disabled' });
     await page.locator('.page-nav-btn[data-page="settings"]').click();
