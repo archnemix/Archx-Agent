@@ -158,15 +158,18 @@ pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Elem
         category,
         scrollable(container(body).max_width(960).center_x(Fill)).width(Fill).height(Fill)
     ].width(Fill).height(Fill)].width(Fill).height(Fill);
-    if state.section == Section::Models && state.catalog_modal {
-        stack![
-            base,
-            button(text(" ")).width(Fill).height(Fill)
-                .on_press(Message::CloseCatalogModal).style(style::catalog_scrim),
-            container(catalog_dialog(state)).center_x(Fill).center_y(Fill)
-                .width(Fill).height(Fill)
-        ].width(Fill).height(Fill).into()
-    } else { base.into() }
+    base.into()
+}
+
+/// The reference dialog is centered over the *entire* Agent window, not the
+/// settings content column. Agent's settings shell stacks this over its rail.
+pub fn catalog_overlay(state: &SettingsState) -> Element<'static, Message> {
+    stack![
+        button(text(" ")).width(Fill).height(Fill)
+            .on_press(Message::CloseCatalogModal).style(style::catalog_scrim),
+        container(catalog_dialog(state)).center_x(Fill).center_y(Fill)
+            .width(Fill).height(Fill)
+    ].width(Fill).height(Fill).into()
 }
 
 fn setting_link(label: &'static str, section: Section, current: Section) -> Element<'static, Message> {
@@ -379,7 +382,7 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
         text("Manual IDs are staged until import. Only verified excludes untested and failed IDs; no automatic tests. Imported IDs leave this list.")
             .size(11).color(style::DIM)
     ].spacing(style::AGENT_GAP_CONTROL).width(Fill);
-    container(dialog).max_width(760).width(Fill).padding(20).style(style::chat_panel).into()
+    container(dialog).max_width(680).width(Fill).padding(20).style(style::chat_panel).into()
 }
 
 #[cfg(test)]

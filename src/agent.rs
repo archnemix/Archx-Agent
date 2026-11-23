@@ -298,8 +298,11 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
 /// Agent-owned settings share its navigation, never the launcher navigation.
 pub fn settings_shell(drafts: &[ChatDraft], selected: u32, settings: &SettingsState,
     memory: crate::app::MemoryMode, keep_agent: bool) -> Element<'static, Message> {
-    row![rail(drafts, selected, true), crate::settings::view(settings, memory, keep_agent)]
-        .width(Fill).height(Fill).into()
+    let shell = row![rail(drafts, selected, true), crate::settings::view(settings, memory, keep_agent)]
+        .width(Fill).height(Fill);
+    if settings.section == crate::settings::Section::Models && settings.catalog_modal {
+        stack![shell, crate::settings::catalog_overlay(settings)].width(Fill).height(Fill).into()
+    } else { shell.into() }
 }
 
 #[cfg(test)]
