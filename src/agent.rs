@@ -183,7 +183,7 @@ fn rail(drafts: &[ChatDraft], selected: u32, settings: &SettingsState, settings_
     let connected = settings.selected_model().is_some();
     let badge_label = endpoint_label(settings.provider.name(), settings.selected_model());
     let mut history = column![
-        container(brand_row()).padding([4, 10, 0, 10]),
+        container(brand_row()).padding(iced::Padding { top: 4.0, right: 10.0, bottom: 0.0, left: 10.0 }),
         space().height(18),
         nav_row(Glyph::Message, "Chat", Message::Navigate(Page::Agent), !settings_open),
         space().height(2),
@@ -388,7 +388,8 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
             space().width(Fill),
             send_control
         ].align_y(Center)
-    ].spacing(6)).max_width(860).width(Fill).padding([12, 12, 8, 12]).style(style::chat_panel);
+    ].spacing(6)).max_width(860).width(Fill)
+        .padding(iced::Padding { top: 12.0, right: 12.0, bottom: 8.0, left: 12.0 }).style(style::chat_panel);
     let error_notice: Element<'_, Message> = match current.and_then(|draft| draft.error.as_deref()) {
         Some(error) => container(text(error.to_owned()).size(12).color(style::WHITE))
             .max_width(860).width(Fill).padding([7, 12]).style(style::chat_error).into(),

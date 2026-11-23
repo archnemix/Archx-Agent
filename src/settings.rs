@@ -190,7 +190,7 @@ pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Elem
             Section::Models => models(state),
             Section::Lab => lab(memory, keep_agent),
         }
-    ].width(Fill).padding([24, 28, 40, 28]);
+    ].width(Fill).padding(iced::Padding { top: 24.0, right: 28.0, bottom: 40.0, left: 28.0 });
     let base = column![page_head, row![
         category,
         scrollable(container(body).max_width(960).center_x(Fill)).width(Fill).height(Fill)
@@ -383,7 +383,7 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
         if let Some((ok, output)) = probe {
             entry = entry.push(container(row![
                 text(output.to_owned()).size(10.5).color(if ok { style::SUCCESS } else { style::FAILURE })
-            ].padding([0, 0, 0, 27])).width(Fill));
+            ].padding(iced::Padding { top: 0.0, right: 0.0, bottom: 0.0, left: 27.0 })).width(Fill));
         }
         items = items.push(entry);
     }
