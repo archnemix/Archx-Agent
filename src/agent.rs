@@ -198,9 +198,12 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
         if let Some((content, reasoning)) = &draft.partial {
             let mut body = column![text("Assistant  ·  responding").size(13).color(style::GREY)].spacing(8);
             if let Some(reasoning) = reasoning {
-                body = body.push(container(column![text("✧  Thinking…").size(12).color(style::GREY),
-                    chat_md(reasoning.items())]
-                    .spacing(8)).padding(12).style(style::chat_thinking));
+                let open = draft.partial_reasoning_open;
+                let mut disclosure = column![button(text(if open { "✧  Thinking…  ▴" } else { "✧  Thinking…  ▾" })
+                    .size(12).color(style::GREY)).on_press(Message::ToggleReasoning(draft.id, draft.turns.len()))
+                    .padding([8, 12]).style(style::chat_menu_choice_inactive)].spacing(4);
+                if open { disclosure = disclosure.push(container(chat_md(reasoning.items())).padding([5, 12])); }
+                body = body.push(container(disclosure).width(Fill).style(style::chat_thinking));
             }
             body = body.push(chat_md(content.items()));
             log = log.push(row![avatar(true), body].spacing(style::AGENT_GAP_GROUP).width(Fill));

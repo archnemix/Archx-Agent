@@ -45,6 +45,8 @@ pub struct ChatDraft {
     pub formatted: Vec<(usize, markdown::Content, Option<markdown::Content>, bool)>,
     pub partial: Option<(markdown::Content, Option<markdown::Content>)>,
     pub partial_raw: Option<Reply>,
+    pub partial_reasoning_open: bool,
+    pub partial_reasoning_touched: bool,
     pub incomplete_slots: Vec<usize>,
     pub request_handle: Option<iced::task::Handle>,
     pub turns: Vec<Turn>,
@@ -259,7 +261,7 @@ impl App {
         }
         let mut drafts = vec![ChatDraft { id: 1, mode: preview_mode,
             editor: text_editor::Content::with_text(&preview_text), text: preview_text,
-            formatted: Vec::new(), partial: None, partial_raw: None, incomplete_slots: Vec::new(), request_handle: None, turns: Vec::new(), busy: false, follow_tail: true, error: None }];
+            formatted: Vec::new(), partial: None, partial_raw: None, partial_reasoning_open: true, partial_reasoning_touched: false, incomplete_slots: Vec::new(), request_handle: None, turns: Vec::new(), busy: false, follow_tail: true, error: None }];
         // Only scripted CI screenshots use synthetic messages; normal launches start empty.
         if snapshot.is_some() && page == Page::Agent && matches!(std::env::var("ARCHX_SNAPSHOT_CHAT").as_deref(), Ok("reasoning" | "model-menu" | "review")) {
             settings.models[0] = vec!["demo/model:free".into(), "demo/another".into()];
@@ -380,7 +382,7 @@ impl App {
                 self.page = Page::Agent;
                 self.settings.clear_secret();
                 let id = self.drafts.last().map_or(1, |draft| draft.id + 1);
-                self.drafts.push(ChatDraft { id, mode: 0, text: String::new(), editor: text_editor::Content::new(), formatted: Vec::new(), partial: None, partial_raw: None, incomplete_slots: Vec::new(), request_handle: None, turns: Vec::new(), busy: false, follow_tail: true, error: None });
+                self.drafts.push(ChatDraft { id, mode: 0, text: String::new(), editor: text_editor::Content::new(), formatted: Vec::new(), partial: None, partial_raw: None, partial_reasoning_open: true, partial_reasoning_touched: false, incomplete_slots: Vec::new(), request_handle: None, turns: Vec::new(), busy: false, follow_tail: true, error: None });
                 self.selected_draft = id;
                 self.model_menu_open = false;
                 self.mode_menu_open = false;
@@ -904,7 +906,11 @@ impl App {
             }
             Message::ToggleReasoning(id, index) if self.page == Page::Agent => {
                 if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) {
-                    if let Some((_, _, _, expanded)) = draft.formatted.iter_mut().find(|(slot, _, _, _)| *slot == index) {
+                    if draft.busy && index == draft.turns.len() &&
+                        draft.partial.as_ref().is_some_and(|(_, reasoning)| reasoning.is_some()) {
+                        draft.partial_reasoning_open = !draft.partial_reasoning_open;
+                        draft.partial_reasoning_touched = true;
+                    } else if let Some((_, _, _, expanded)) = draft.formatted.iter_mut().find(|(slot, _, _, _)| *slot == index) {
                         *expanded = !*expanded;
                     }
                 }
@@ -922,7 +928,8 @@ impl App {
                             let slot = draft.turns.len();
                             let body = markdown::Content::parse(&reply.content);
                             let reasoning = reply.reasoning.as_ref().map(|r| markdown::Content::parse(r));
-                            draft.formatted.push((slot, body, reasoning, false));
+                            let open = draft.partial_reasoning_touched && draft.partial_reasoning_open;
+                            draft.formatted.push((slot, body, reasoning, open));
                             draft.turns.push(Turn { role: "assistant", content: reply.content });
                         },
                         Err(error) => {
@@ -933,7 +940,8 @@ impl App {
                                 let slot = draft.turns.len();
                                 let body = if partial.content.is_empty() { "Response interrupted before an answer.".to_owned() } else { partial.content };
                                 draft.formatted.push((slot, markdown::Content::parse(&body),
-                                    partial.reasoning.as_ref().map(|r| markdown::Content::parse(r)), false));
+                                    partial.reasoning.as_ref().map(|r| markdown::Content::parse(r)),
+                                    draft.partial_reasoning_touched && draft.partial_reasoning_open));
                                 draft.turns.push(Turn { role: "assistant", content: body });
                                 draft.incomplete_slots.push(slot);
                             } else if let Some(last) = draft.turns.pop() {
@@ -1032,6 +1040,8 @@ impl App {
             if draft.mode != 0 || draft.busy || draft.text.trim().is_empty() || draft.text.chars().count() > 4000 { return Task::none(); }
             draft.error = None;
             draft.partial_raw = None;
+            draft.partial_reasoning_open = true;
+            draft.partial_reasoning_touched = false;
             draft.busy = true;
             draft.follow_tail = true;
             draft.turns.push(Turn { role: "user", content: std::mem::take(&mut draft.text) });
@@ -1342,6 +1352,41 @@ mod tests {
         assert!(app.mode_menu_open);
         let _ = app.update(Message::SelectMode(2));
         assert!(!app.mode_menu_open);
+    }
+
+    #[test]
+    fn reasoning_auto_opens_during_stream_and_user_toggle_wins_after_completion() {
+        let mut app = App::new();
+        app.page = Page::Agent;
+        app.drafts[0].busy = true;
+        app.drafts[0].turns.push(Turn { role: "user", content: "Question".into() });
+        let partial = Reply { content: "Answer".into(), reasoning: Some("Working".into()) };
+        let _ = app.update(Message::ChatProgress(1, SecretReply(partial.clone())));
+        assert!(app.drafts[0].partial_reasoning_open);
+        let _ = app.update(Message::ToggleReasoning(1, 1));
+        assert!(!app.drafts[0].partial_reasoning_open);
+        let _ = app.update(Message::ChatProgress(1, SecretReply(partial.clone())));
+        assert!(!app.drafts[0].partial_reasoning_open);
+        let _ = app.update(Message::ToggleReasoning(1, 1));
+        let _ = app.update(Message::ChatResult(1, Ok(SecretReply(partial))));
+        assert!(app.drafts[0].formatted[0].3); // explicit user-open persists
+        let _ = app.update(Message::ToggleReasoning(1, 1));
+        assert!(!app.drafts[0].formatted[0].3);
+    }
+
+    #[test]
+    fn untouched_reasoning_collapses_when_stream_completes() {
+        let mut app = App::new();
+        app.page = Page::Agent;
+        app.drafts[0].busy = true;
+        app.drafts[0].turns.push(Turn { role: "user", content: "Question".into() });
+        let _ = app.update(Message::ChatProgress(1, SecretReply(Reply {
+            content: "Answer".into(), reasoning: Some("Working".into()),
+        })));
+        let _ = app.update(Message::ChatResult(1, Ok(SecretReply(Reply {
+            content: "Answer".into(), reasoning: Some("Working".into()),
+        }))));
+        assert!(!app.drafts[0].formatted[0].3);
     }
 
     #[test]
