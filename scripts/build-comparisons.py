@@ -7,7 +7,7 @@ Each output is the two unchanged 1280x800 screenshots side by side under a
 captures: pixels are copied 1:1.
 """
 import sys
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 REPO = "/home/user/Archx-Agent"
 VISUAL = f"{REPO}/Docs/Test_Results/Unreleased/visual"
@@ -20,13 +20,14 @@ JOBS = [
 ]
 
 BAND = 40
+FONT = ImageFont.truetype(f"{REPO}/assets/fonts/Manrope.ttf", 15)
 
 
 def label_band(width: int, left: str, right: str) -> Image.Image:
     band = Image.new("RGB", (width, BAND), (16, 16, 16))
     draw = ImageDraw.Draw(band)
-    draw.text((16, 12), left, fill=(244, 244, 244))
-    draw.text((width // 2 + 16, 12), right, fill=(244, 244, 244))
+    draw.text((16, 11), left, fill=(244, 244, 244), font=FONT)
+    draw.text((width // 2 + 16, 11), right, fill=(244, 244, 244), font=FONT)
     return band
 
 
