@@ -11,6 +11,16 @@ pub const GREY: Color = Color::from_rgb8(178, 178, 178);
 pub const DIM: Color = Color::from_rgb8(145, 145, 145);
 pub const SUCCESS: Color = Color::from_rgb8(126, 207, 150);
 pub const FAILURE: Color = Color::from_rgb8(226, 139, 139);
+// Measured 1.9.0 dark-theme tokens (public/css/base.css) for the Agent chat
+// chrome: surfaces lift one step above pure black so panel edges stay readable.
+pub const PANEL: Color = Color::from_rgb8(0x10, 0x10, 0x10);
+pub const PANEL_2: Color = Color::from_rgb8(0x1a, 0x1a, 0x1a);
+pub const PANEL_3: Color = Color::from_rgb8(0x23, 0x23, 0x23);
+pub const BORDER: Color = Color::from_rgb8(0x2c, 0x2c, 0x2c);
+pub const BORDER_2: Color = Color::from_rgb8(0x40, 0x40, 0x40);
+pub const USER_BUBBLE: Color = Color::from_rgb8(0x16, 0x16, 0x16);
+pub const MUTED_2: Color = Color::from_rgb8(0x5c, 0x5c, 0x5c);
+pub const OK: Color = Color::from_rgb8(0x22, 0xc5, 0x5e);
 
 // Type roles and spacing are specified once in Docs/design.md and reused by views.
 #[cfg(not(target_os = "macos"))]
@@ -31,6 +41,12 @@ pub const LABEL: Font = Font {
     weight: font::Weight::Medium,
     ..Font::DEFAULT
 };
+#[cfg(not(target_os = "macos"))]
+pub const STRONG: Font = Font {
+    family: font::Family::Name("Manrope"),
+    weight: font::Weight::Bold,
+    ..Font::DEFAULT
+};
 
 // Explicit non-Normal weights for the variable Manrope caused macOS glyph
 // advances to overlap across the entire window, even for unmodified Agent.
@@ -41,6 +57,8 @@ pub const DISPLAY: Font = Font::with_name("Manrope");
 pub const DISPLAY_BOLD: Font = Font::with_name("Manrope");
 #[cfg(target_os = "macos")]
 pub const LABEL: Font = Font::with_name("Manrope");
+#[cfg(target_os = "macos")]
+pub const STRONG: Font = Font::with_name("Manrope");
 // Agent reference's 4px-based layout rhythm (UI-RULES §2). Keep semantic
 // steps centralized: closely related controls 8/12, groups 16/20/24.
 pub const AGENT_GAP_TIGHT: f32 = 4.0;
@@ -72,20 +90,6 @@ pub fn rail_divider(_: &Theme) -> container::Style {
 pub fn settings_panel(_: &Theme) -> container::Style {
     container::Style::default().background(Color::from_rgb8(15, 15, 16))
         .border(Border { color: LINE, width: 1.0, radius: 0.0.into() })
-}
-
-pub fn settings_nav(active: bool, _: &Theme, status: button::Status) -> button::Style {
-    button::Style {
-        background: Some(if active { Color::from_rgb8(38, 38, 41) }
-            else if matches!(status, button::Status::Hovered | button::Status::Pressed) { Color::from_rgb8(28, 28, 30) }
-            else { Color::from_rgb8(15, 15, 16) }.into()),
-        text_color: if active { WHITE } else { GREY },
-        border: Border {
-            color: Color::from_rgba(0.0, 0.0, 0.0, 0.0),
-            width: 1.0, radius: 10.0.into(),
-        },
-        ..button::Style::default()
-    }
 }
 
 pub fn rail_hint(_: &Theme) -> container::Style {
@@ -306,8 +310,14 @@ pub fn chat_panel(_: &Theme) -> container::Style {
         .border(Border { color: Color::from_rgb8(64, 64, 64), width: 1.0, radius: 16.0.into() })
 }
 pub fn chat_user(_: &Theme) -> container::Style {
-    container::Style::default().background(Color::from_rgb8(22, 22, 22))
-        .border(Border { color: Color::from_rgb8(44, 44, 44), width: 1.0, radius: 12.0.into() })
+    // 1.9.0 chat.css .msg.user .msg-content: bubble with a tighter top-left
+    // corner (4px) and 12px elsewhere, #161616 fill on a #2c2c2c hairline.
+    container::Style::default().background(USER_BUBBLE)
+        .border(Border {
+            color: BORDER,
+            width: 1.0,
+            radius: iced::border::Radius { top_left: 4.0, top_right: 12.0, bottom_right: 12.0, bottom_left: 12.0 },
+        })
 }
 pub fn chat_thinking(_: &Theme) -> container::Style {
     let mut style = container::Style::default().background(Color::from_rgb8(12, 12, 12))
@@ -322,30 +332,6 @@ pub fn chat_avatar(assistant: bool, _: &Theme) -> container::Style {
 pub fn settings_header(_: &Theme) -> container::Style {
     container::Style::default().background(BLACK)
         .border(Border { color: LINE, width: 1.0, radius: 0.0.into() })
-}
-
-pub fn chat_button(_: &Theme, status: button::Status) -> button::Style {
-    button::Style {
-        background: Some(if matches!(status, button::Status::Hovered | button::Status::Pressed) {
-            Color::from_rgb8(32, 32, 32)
-        } else { Color::from_rgb8(16, 16, 16) }.into()),
-        text_color: WHITE,
-        border: Border { color: LINE, width: 1.0, radius: 12.0.into() },
-        ..button::Style::default()
-    }
-}
-pub fn chat_menu_choice(active: bool, _: &Theme, status: button::Status) -> button::Style {
-    button::Style {
-        background: Some(if active { Color::from_rgb8(38, 38, 38) }
-            else if matches!(status, button::Status::Hovered | button::Status::Pressed) { Color::from_rgb8(29, 29, 29) }
-            else { Color::from_rgb8(16, 16, 16) }.into()),
-        text_color: if active { WHITE } else { GREY },
-        border: Border { radius: 9.0.into(), ..Border::default() },
-        ..button::Style::default()
-    }
-}
-pub fn chat_menu_choice_inactive(theme: &Theme, status: button::Status) -> button::Style {
-    chat_menu_choice(false, theme, status)
 }
 
 // Iced's default TextEditor paints a solid gray rectangle; the reference
@@ -400,5 +386,326 @@ pub fn chat_send(_: &Theme, status: button::Status) -> button::Style {
         text_color: BLACK,
         border: Border { radius: 11.0.into(), ..Border::default() },
         ..button::Style::default()
+    }
+}
+
+// ── 1.9.0 component tokens (components.css / pages.css / chat.css) ─────────
+// Buttons follow .btn: 12px radius, #2c2c2c hairline, #101010 fill; the single
+// primary action per view is white (`.btn.primary`) with black ink.
+
+/// `.btn` default: quiet bordered control on the panel surface.
+pub fn control_button(_: &Theme, status: button::Status) -> button::Style {
+    let disabled = matches!(status, button::Status::Disabled);
+    button::Style {
+        background: Some(if matches!(status, button::Status::Hovered | button::Status::Pressed) {
+            PANEL_2
+        } else {
+            PANEL
+        }.into()),
+        text_color: if disabled { DIM } else { WHITE },
+        border: Border {
+            color: if matches!(status, button::Status::Hovered | button::Status::Pressed) { BORDER_2 } else { BORDER },
+            width: 1.0,
+            radius: 12.0.into(),
+        },
+        ..button::Style::default()
+    }
+}
+
+/// `.btn.primary`: exactly one per view — white fill, black ink.
+pub fn primary_button(_: &Theme, status: button::Status) -> button::Style {
+    button::Style {
+        background: Some(if matches!(status, button::Status::Disabled) {
+            Color::from_rgba(0.96, 0.96, 0.96, 0.45)
+        } else if matches!(status, button::Status::Hovered | button::Status::Pressed) {
+            Color::from_rgb8(0xd9, 0xd9, 0xd9)
+        } else {
+            WHITE
+        }.into()),
+        text_color: BLACK,
+        border: Border { color: WHITE, width: 1.0, radius: 12.0.into() },
+        ..button::Style::default()
+    }
+}
+
+/// `.btn.ghost`: transparent until hover, used for secondary actions.
+pub fn ghost_button(_: &Theme, status: button::Status) -> button::Style {
+    button::Style {
+        background: Some(if matches!(status, button::Status::Hovered | button::Status::Pressed) {
+            PANEL_2
+        } else {
+            Color::TRANSPARENT
+        }.into()),
+        text_color: if matches!(status, button::Status::Disabled) { DIM } else { GREY },
+        border: Border { color: Color::TRANSPARENT, width: 1.0, radius: 12.0.into() },
+        ..button::Style::default()
+    }
+}
+
+/// `.btn.tiny`: 7px radius row action from the reference toolbars.
+pub fn tiny_button(_: &Theme, status: button::Status) -> button::Style {
+    let disabled = matches!(status, button::Status::Disabled);
+    button::Style {
+        background: Some(if matches!(status, button::Status::Hovered | button::Status::Pressed) {
+            PANEL_2
+        } else {
+            Color::TRANSPARENT
+        }.into()),
+        text_color: if disabled { DIM } else { GREY },
+        border: Border {
+            color: if matches!(status, button::Status::Hovered | button::Status::Pressed) { BORDER_2 } else { BORDER },
+            width: 1.0,
+            radius: 7.0.into(),
+        },
+        ..button::Style::default()
+    }
+}
+
+/// `.page-nav-btn` / `.set-nav-btn`: compact rows with a quiet active state.
+pub fn side_nav(active: bool, _: &Theme, status: button::Status) -> button::Style {
+    button::Style {
+        background: Some(if active {
+            PANEL
+        } else if matches!(status, button::Status::Hovered | button::Status::Pressed) {
+            PANEL
+        } else {
+            Color::TRANSPARENT
+        }.into()),
+        text_color: if active { WHITE } else if matches!(status, button::Status::Hovered | button::Status::Pressed) { WHITE } else { GREY },
+        border: Border {
+            color: if active { BORDER } else { Color::TRANSPARENT },
+            width: 1.0,
+            radius: 12.0.into(),
+        },
+        ..button::Style::default()
+    }
+}
+
+/// `.model-btn` / topbar selectors: bordered pills on the panel surface.
+pub fn topbar_pill(_: &Theme, status: button::Status) -> button::Style {
+    button::Style {
+        background: Some(if matches!(status, button::Status::Hovered | button::Status::Pressed) { PANEL_2 } else { PANEL }.into()),
+        text_color: WHITE,
+        border: Border {
+            color: if matches!(status, button::Status::Hovered | button::Status::Pressed) { BORDER_2 } else { BORDER },
+            width: 1.0,
+            radius: 12.0.into(),
+        },
+        ..button::Style::default()
+    }
+}
+
+/// `.mini-toggle`: pill switch — outlined when off, white when on.
+pub fn mini_toggle(on: bool, _: &Theme, status: button::Status) -> button::Style {
+    button::Style {
+        background: Some(if on {
+            WHITE
+        } else if matches!(status, button::Status::Hovered | button::Status::Pressed) {
+            PANEL_2
+        } else {
+            Color::TRANSPARENT
+        }.into()),
+        text_color: if on { BLACK } else if matches!(status, button::Status::Hovered) { WHITE } else { GREY },
+        border: Border {
+            color: if on { WHITE } else if matches!(status, button::Status::Hovered) { BORDER_2 } else { BORDER },
+            width: 1.0,
+            radius: 20.0.into(),
+        },
+        ..button::Style::default()
+    }
+}
+
+/// `.chat-item` / `.model-import-row`: transparent list rows, 8px radius.
+pub fn list_row(selected: bool, _: &Theme, status: button::Status) -> button::Style {
+    button::Style {
+        background: Some(if selected {
+            PANEL
+        } else if matches!(status, button::Status::Hovered | button::Status::Pressed) {
+            PANEL_2
+        } else {
+            Color::TRANSPARENT
+        }.into()),
+        text_color: if selected { WHITE } else { GREY },
+        border: Border {
+            color: if selected { BORDER } else { Color::TRANSPARENT },
+            width: 1.0,
+            radius: 8.0.into(),
+        },
+        ..button::Style::default()
+    }
+}
+
+/// `.modal-card`: panel surface, lifted hairline, soft drop shadow.
+pub fn modal_card(_: &Theme) -> container::Style {
+    container::Style::default()
+        .background(PANEL)
+        .border(Border { color: BORDER_2, width: 1.0, radius: 18.0.into() })
+        .shadow(Shadow {
+            color: Color::from_rgba(0.0, 0.0, 0.0, 0.6),
+            offset: Vector::new(0.0, 12.0),
+            blur_radius: 40.0,
+        })
+}
+
+/// `.jump-latest` pill: raised rounded control above the composer.
+pub fn jump_pill(_: &Theme, status: button::Status) -> button::Style {
+    button::Style {
+        background: Some(PANEL.into()),
+        text_color: WHITE,
+        border: Border {
+            color: if matches!(status, button::Status::Hovered | button::Status::Pressed) { WHITE } else { BORDER_2 },
+            width: 1.0,
+            radius: 16.0.into(),
+        },
+        shadow: Shadow {
+            color: Color::from_rgba(0.0, 0.0, 0.0, 0.4),
+            offset: Vector::new(0.0, 4.0),
+            blur_radius: 14.0,
+        },
+        ..button::Style::default()
+    }
+}
+
+/// `.endpoint-badge`: quiet status chip with a colored dot in the rail footer.
+pub fn endpoint_badge(_: &Theme, status: button::Status) -> button::Style {
+    button::Style {
+        background: Some(Color::TRANSPARENT.into()),
+        text_color: if matches!(status, button::Status::Hovered | button::Status::Pressed) { WHITE } else { GREY },
+        border: Border {
+            color: if matches!(status, button::Status::Hovered | button::Status::Pressed) { BORDER_2 } else { BORDER },
+            width: 1.0,
+            radius: 12.0.into(),
+        },
+        ..button::Style::default()
+    }
+}
+
+/// 7px `.conn-state` dot: muted until a model is actually selected.
+pub fn status_dot(connected: bool, _: &Theme) -> container::Style {
+    container::Style::default()
+        .background(if connected { OK } else { MUTED_2 })
+        .border(Border { radius: 6.0.into(), ..Border::default() })
+}
+
+/// Import-dialog checkbox (17px): white fill when checked, hairline when not.
+pub fn checkbox(checked: bool, _: &Theme) -> container::Style {
+    container::Style::default()
+        .background(if checked { WHITE } else { Color::TRANSPARENT })
+        .border(Border {
+            color: if checked { WHITE } else { BORDER_2 },
+            width: 1.0,
+            radius: 4.0.into(),
+        })
+}
+
+/// Small outlined status pill (`.free`, `✓ works`, `✗ HTTP 429`) on list rows.
+pub fn tag_badge(ok: Option<bool>, _: &Theme) -> container::Style {
+    let color = match ok {
+        Some(true) => OK,
+        Some(false) => FAILURE,
+        None => BORDER_2,
+    };
+    container::Style::default()
+        .background(Color::TRANSPARENT)
+        .border(Border { color, width: 1.0, radius: 999.0.into() })
+}
+
+/// `.panel`-filled card with the softer `--border` hairline (settings pages).
+pub fn card(_: &Theme) -> container::Style {
+    container::Style::default()
+        .background(PANEL)
+        .border(Border { color: BORDER, width: 1.0, radius: 16.0.into() })
+}
+
+/// Import-row status dot: muted before a probe, green/red after one.
+pub fn probe_dot(ok: Option<bool>, _: &Theme) -> container::Style {
+    let color = match ok {
+        Some(true) => OK,
+        Some(false) => FAILURE,
+        None => MUTED_2,
+    };
+    container::Style::default()
+        .background(color)
+        .border(Border { radius: 6.0.into(), ..Border::default() })
+}
+
+#[cfg(test)]
+mod reference_token_tests {
+    use super::*;
+    use iced::Background;
+
+    #[test]
+    fn chat_tokens_match_the_190_dark_theme() {
+        assert_eq!(PANEL, Color::from_rgb8(0x10, 0x10, 0x10));
+        assert_eq!(BORDER, Color::from_rgb8(0x2c, 0x2c, 0x2c));
+        assert_eq!(BORDER_2, Color::from_rgb8(0x40, 0x40, 0x40));
+        assert_eq!(USER_BUBBLE, Color::from_rgb8(0x16, 0x16, 0x16));
+    }
+
+    #[test]
+    fn user_bubble_keeps_the_asymmetric_reference_corners() {
+        let style = chat_user(&Theme::Dark);
+        assert_eq!(style.background, Some(Background::Color(USER_BUBBLE)));
+        assert_eq!(style.border.color, BORDER);
+        assert_eq!(style.border.radius.top_left, 4.0);
+        assert_eq!(style.border.radius.top_right, 12.0);
+        assert_eq!(style.border.radius.bottom_right, 12.0);
+        assert_eq!(style.border.radius.bottom_left, 12.0);
+    }
+
+    #[test]
+    fn one_primary_action_is_white_with_black_ink() {
+        let primary = primary_button(&Theme::Dark, button::Status::Active);
+        assert_eq!(primary.background, Some(Background::Color(WHITE)));
+        assert_eq!(primary.text_color, BLACK);
+        let disabled = primary_button(&Theme::Dark, button::Status::Disabled);
+        assert!(disabled.background.is_some());
+        assert_ne!(disabled.background, primary.background);
+    }
+
+    #[test]
+    fn ghost_and_default_controls_stay_quieter_than_primary() {
+        let ghost = ghost_button(&Theme::Dark, button::Status::Active);
+        assert_eq!(ghost.background, Some(Background::Color(Color::TRANSPARENT)));
+        let control = control_button(&Theme::Dark, button::Status::Active);
+        assert_eq!(control.background, Some(Background::Color(PANEL)));
+        assert_ne!(control.text_color, BLACK);
+    }
+
+    #[test]
+    fn mini_toggle_is_white_only_while_on() {
+        let on = mini_toggle(true, &Theme::Dark, button::Status::Active);
+        let off = mini_toggle(false, &Theme::Dark, button::Status::Active);
+        assert_eq!(on.background, Some(Background::Color(WHITE)));
+        assert_eq!(on.text_color, BLACK);
+        assert_eq!(off.background, Some(Background::Color(Color::TRANSPARENT)));
+    }
+
+    #[test]
+    fn checkbox_and_status_dot_track_their_state() {
+        assert_eq!(checkbox(true, &Theme::Dark).background, Some(Background::Color(WHITE)));
+        assert_eq!(checkbox(false, &Theme::Dark).background, Some(Background::Color(Color::TRANSPARENT)));
+        assert_eq!(status_dot(true, &Theme::Dark).background, Some(Background::Color(OK)));
+        assert_eq!(status_dot(false, &Theme::Dark).background, Some(Background::Color(MUTED_2)));
+        assert_eq!(probe_dot(Some(true), &Theme::Dark).background, Some(Background::Color(OK)));
+        assert_eq!(probe_dot(Some(false), &Theme::Dark).background, Some(Background::Color(FAILURE)));
+        assert_eq!(probe_dot(None, &Theme::Dark).background, Some(Background::Color(MUTED_2)));
+    }
+
+    #[test]
+    fn settings_cards_use_the_softer_border_step() {
+        let card = card(&Theme::Dark);
+        assert_eq!(card.background, Some(Background::Color(PANEL)));
+        assert_eq!(card.border.color, BORDER);
+        assert_eq!(card.border.radius.top_left, 16.0);
+    }
+
+    #[test]
+    fn modal_card_lifts_the_surface_like_the_reference_shadow() {
+        let card = modal_card(&Theme::Dark);
+        assert_eq!(card.background, Some(Background::Color(PANEL)));
+        assert_eq!(card.border.color, BORDER_2);
+        assert_eq!(card.border.radius.top_left, 18.0);
+        assert!(card.shadow.blur_radius >= 30.0);
     }
 }

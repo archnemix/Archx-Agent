@@ -2,7 +2,7 @@
 name: Inspect web app reference
 on:
   push:
-    branches: [arena/d45bc2a4-archx-agent]
+    branches: [arena/53d9bc26-archx-agent]
     paths: ['.github/workflows/reference-import.yml']
   workflow_dispatch:
 permissions:
@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: arena/d45bc2a4-archx-agent
+          ref: arena/53d9bc26-archx-agent
           persist-credentials: true
       - name: Download and inspect archive metadata
         shell: bash
@@ -48,7 +48,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add internels/reference/web
           git commit -m 'Import inspected web-app reference source and tar'
-          git push origin HEAD:arena/d45bc2a4-archx-agent
+          git push origin HEAD:arena/53d9bc26-archx-agent
       - uses: actions/upload-artifact@v4
         with:
           name: web-app-reference-tar

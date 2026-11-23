@@ -3,7 +3,7 @@ name: macOS compact-rail recheck
 
 on:
   push:
-    branches: [arena/d45bc2a4-archx-agent]
+    branches: [arena/53d9bc26-archx-agent]
     paths:
       - 'internels/ci-trigger-macos.txt'
 
@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: arena/d45bc2a4-archx-agent
+          ref: arena/53d9bc26-archx-agent
           persist-credentials: true
       - uses: dtolnay/rust-toolchain@stable
       - name: Build, test, and screenshot compact rail
@@ -44,4 +44,4 @@ jobs:
           git config user.name 'archx-ci[bot]'
           git config user.email 'archx-ci[bot]@users.noreply.github.com'
           git add -A Docs/Test_Results/Unreleased/non_visual/ Docs/Test_Results/Unreleased/visual/
-          git diff --cached --quiet || (git commit -m 'Record independent macOS compact-rail validation' && git push origin HEAD:arena/d45bc2a4-archx-agent)
+          git diff --cached --quiet || (git commit -m 'Record independent macOS compact-rail validation' && git push origin HEAD:arena/53d9bc26-archx-agent)

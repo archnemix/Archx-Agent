@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: arena/d45bc2a4-archx-agent
+          ref: arena/53d9bc26-archx-agent
       - uses: dtolnay/rust-toolchain@stable
       - name: Build llama.cpp CPU server and download real 135M Q2_K weights
         shell: bash

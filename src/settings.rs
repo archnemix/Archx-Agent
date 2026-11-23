@@ -4,7 +4,7 @@ use std::fmt;
 use std::time::Instant;
 
 use iced::widget::{button, column, container, row, scrollable, space, stack, text, text_input};
-use iced::{Element, Fill};
+use iced::{Center, Element, Fill};
 use zeroize::Zeroizing;
 
 use crate::app::{MemoryMode, Message};
@@ -114,7 +114,44 @@ impl SettingsState {
 }
 
 fn surface(content: impl Into<Element<'static, Message>>) -> Element<'static, Message> {
-    container(content).width(Fill).padding(22).style(style::chat_panel).into()
+    container(content).width(Fill).padding(20).style(style::card).into()
+}
+
+fn eyebrow(label: &'static str) -> Element<'static, Message> {
+    text(label).size(11).font(style::LABEL).color(style::DIM).into()
+}
+
+/// 17px reference checkbox (`.model-import-row input[type="checkbox"]`).
+fn checkbox_box(checked: bool) -> Element<'static, Message> {
+    let mark: Element<'static, Message> = if checked {
+        text("✓").size(11).color(style::BLACK).into()
+    } else {
+        space().width(0).height(0).into()
+    };
+    container(mark).width(17).height(17).align_x(Center).align_y(Center)
+        .style(move |t| style::checkbox(checked, t)).into()
+}
+
+/// Outlined status pill from the reference import rows (`free`, `✓ works`, …).
+fn tag(label: impl Into<String>, ok: Option<bool>) -> Element<'static, Message> {
+    let color = match ok {
+        Some(true) => style::OK,
+        Some(false) => style::FAILURE,
+        None => style::GREY,
+    };
+    container(text(label.into()).size(10).color(color))
+        .padding([2, 8]).style(move |t| style::tag_badge(ok, t)).into()
+}
+
+/// Compact inline probe summary: "✓ works · 42 ms" or "✗ HTTP 429 · …".
+pub fn probe_summary(ok: bool, output: &str) -> String {
+    if ok {
+        let first = output.split(" · ").next().unwrap_or("").trim();
+        if first.is_empty() { "✓ works".to_owned() } else { format!("✓ works · {first}") }
+    } else {
+        let short: String = output.chars().take(38).collect();
+        if output.chars().count() > 38 { format!("✗ {short}…") } else { format!("✗ {short}") }
+    }
 }
 
 pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {
@@ -130,30 +167,30 @@ pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Elem
         space().height(12)
     ].into() };
     let page_head = container(column![
-        text("Settings").size(19).color(style::WHITE),
+        text("Settings").size(22).font(style::STRONG).color(style::WHITE),
         text("Manage the Agent's providers and models. Other reference features are not yet available here.")
-            .size(12).color(style::GREY)
-    ].spacing(4)).width(Fill).padding([16, 24]).style(style::settings_header);
+            .size(13).color(style::GREY)
+    ].spacing(5)).width(Fill).padding([18, 28]).style(style::settings_header);
     let category = container(scrollable(column![
         setting_link("Providers", Section::Providers, state.section),
         setting_link("Models", Section::Models, state.section),
-        space().height(16),
+        space().height(14),
         setting_link("Lab preview", Section::Lab, state.section)
-    ].spacing(4).padding([16, 12])).height(Fill)).width(200).height(Fill).style(style::rail);
+    ].spacing(2).padding([16, 12])).height(Fill)).width(200).height(Fill).style(style::rail);
     let body = column![
-        text("AGENT SETTINGS").size(10).color(style::DIM),
+        eyebrow("AGENT SETTINGS"),
         space().height(8),
-        text(heading).size(19).font(style::DISPLAY).color(style::WHITE),
-        space().height(8),
+        text(heading).size(20).font(style::STRONG).color(style::WHITE),
+        space().height(6),
         text(description).size(13).color(style::GREY),
-        space().height(24),
+        space().height(20),
         status_notice,
         match state.section {
             Section::Providers => providers(state),
             Section::Models => models(state),
             Section::Lab => lab(memory, keep_agent),
         }
-    ].width(Fill).padding([24, 24]);
+    ].width(Fill).padding([24, 28, 40, 28]);
     let base = column![page_head, row![
         category,
         scrollable(container(body).max_width(960).center_x(Fill)).width(Fill).height(Fill)
@@ -173,9 +210,10 @@ pub fn catalog_overlay(state: &SettingsState) -> Element<'static, Message> {
 }
 
 fn setting_link(label: &'static str, section: Section, current: Section) -> Element<'static, Message> {
-    button(text(label).size(13)).width(Fill).padding([11, 12])
+    button(text(label).size(13).font(style::LABEL))
+        .width(Fill).padding([8, 12])
         .on_press(Message::SettingsSection(section))
-        .style(move |t, status| style::chat_menu_choice(section == current, t, status)).into()
+        .style(move |t, status| style::side_nav(section == current, t, status)).into()
 }
 
 fn provider_tabs(current: Provider, busy: bool) -> Element<'static, Message> {
@@ -194,7 +232,7 @@ fn provider_tabs(current: Provider, busy: bool) -> Element<'static, Message> {
 }
 
 fn providers(state: &SettingsState) -> Element<'static, Message> {
-    let mut keys = column![text("SAVED KEY SLOTS").size(11).color(style::DIM)].spacing(10);
+    let mut keys = column![eyebrow("SAVED KEY SLOTS")].spacing(10);
     if state.key_ids.is_empty() {
         keys = keys.push(text(if state.provider.needs_key() { if state.provider == Provider::Custom { "No saved key. Custom endpoints can work without a key." } else { "No saved keys. Paste one above to store it in your OS vault." } } else { "No key needed. Select Models to browse the local Ollama server." }).size(13).color(style::GREY));
     }
@@ -207,8 +245,8 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
         keys = keys.push(row![
             text(label).size(13).color(style::WHITE).width(Fill),
             button(text(if showing { "Hide" } else { "Reveal 15s" }).size(11))
-                .on_press(if showing { Message::HideKey } else { Message::RevealKey(id) }).style(style::quiet_button),
-            button(text("Remove").size(11)).on_press_maybe((!state.key_busy).then_some(Message::RemoveKey(id))).style(style::quiet_button)
+                .on_press(if showing { Message::HideKey } else { Message::RevealKey(id) }).style(style::tiny_button),
+            button(text("Remove").size(11)).on_press_maybe((!state.key_busy).then_some(Message::RemoveKey(id))).style(style::tiny_button)
         ].spacing(10));
     }
     let credential_control: Element<'static, Message> = if state.provider.needs_key() {
@@ -217,13 +255,13 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
             .padding([13, 15]).style(style::composer_input),
             button(text("Save key to OS vault").size(12))
                 .on_press_maybe((!state.key_busy && !state.key_entry.0.is_empty()).then_some(Message::SaveKey))
-                .padding([11, 15]).style(style::chat_button)].spacing(10).into()
+                .padding([11, 15]).style(style::control_button)].spacing(10).into()
     } else {
         button(text("Browse local Ollama models ↗").size(12)).on_press(Message::OpenModelCatalogSettings)
-            .style(style::chat_button).into()
+            .style(style::control_button).into()
     };
     surface(column![
-        text("PROVIDER  /  CONNECTION").size(11).color(style::DIM),
+        eyebrow("PROVIDER  /  CONNECTION"),
         space().height(12), provider_tabs(state.provider, state.key_busy),
         space().height(17),
         if state.provider == Provider::Custom { custom_controls(state) } else { space().height(0).into() },
@@ -242,45 +280,58 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
 
 fn models(state: &SettingsState) -> Element<'static, Message> {
     let index = state.index();
-    let mut list = column![text("ADDED MODELS  /  THIS SESSION · ACTIVE MODEL CAN ALSO BE CHANGED IN CHAT").size(11).color(style::DIM)].spacing(10);
+    let mut list = column![].spacing(8);
+    if state.models[index].is_empty() {
+        list = list.push(text("No models added yet. Use Add models to import IDs into this session.")
+            .size(13).color(style::GREY));
+    }
     for (slot, name) in state.models[index].iter().enumerate() {
         let active = state.chosen[index] == Some(slot);
         list = list.push(row![
             button(text(name.clone()).size(13).color(if active { style::WHITE } else { style::GREY }))
-                .width(Fill).on_press(Message::ChooseModel(slot))
-                .style(move |theme, status| style::nav(active, theme, status)),
-            button(text("Remove").size(11)).on_press(Message::RemoveModel(slot)).style(style::quiet_button)
-        ].spacing(10));
+                .width(Fill).padding([9, 12]).on_press(Message::ChooseModel(slot))
+                .style(move |theme, status| style::list_row(active, theme, status)),
+            button(text("Remove").size(11)).on_press(Message::RemoveModel(slot)).style(style::tiny_button)
+        ].spacing(8));
     }
-    surface(column![
-        text("MODEL CATALOG  /  EXPLICIT IMPORT").size(11).color(style::DIM),
-        space().height(12),
-        provider_tabs(state.provider, state.key_busy || state.probe_busy),
-        space().height(14),
-        text("Manage the models available in this Agent. The catalog only shows IDs that are not already added.")
-            .size(13).color(style::GREY),
-        space().height(13),
-        button(text("Add models…  ↗").size(13)).on_press(Message::OpenCatalogModal)
-            .padding([10, 14]).style(style::chat_button),
-        space().height(12),
-        text("Fetching, selecting and optional generation tests take place in the Add models dialog. No test is sent just by opening it.")
-            .size(12).color(style::DIM),
-        space().height(23), list,
-        space().height(16),
-        text("Explicit test: sends a small prompt to the selected provider/model. Output cap 256 tokens; this may be billable and total tokens are not guaranteed.")
-            .size(12).color(style::GREY),
-        space().height(12),
-        text_input("Expected test word (default OK)", &state.expected_word).on_input(Message::ExpectedWord)
-            .padding([11, 15]).style(style::composer_input),
-        button(text("Run small generation test  ↗").size(12))
-            .on_press_maybe((state.selected_model().is_some() && !state.test_busy).then_some(Message::RunTest))
-            .padding([11, 15]).style(style::quiet_button),
-        space().height(8),
-        text(state.test_evidence.clone().unwrap_or_default()).size(11).color(style::GREY),
-        space().height(18),
-        text("Catalog labels reflect provider metadata at fetch time, not a price guarantee. Generation is a separate explicit action.")
-            .size(12).color(style::DIM)
-    ].width(Fill))
+    column![
+        surface(column![
+            eyebrow("MODEL CATALOG  /  EXPLICIT IMPORT"),
+            space().height(12),
+            provider_tabs(state.provider, state.key_busy || state.probe_busy),
+            space().height(14),
+            text("Manage the models available in this Agent. The catalog only shows IDs that are not already added.")
+                .size(13).color(style::GREY),
+            space().height(13),
+            button(text("Add models…  ↗").size(13).font(style::LABEL)).on_press(Message::OpenCatalogModal)
+                .padding([10, 14]).style(style::control_button),
+            space().height(10),
+            text("Fetching, selecting and optional generation tests take place in the Add models dialog. No test is sent just by opening it.")
+                .size(11.5).color(style::DIM)
+        ].width(Fill)),
+        surface(column![
+            eyebrow("ADDED MODELS  /  THIS SESSION · ACTIVE MODEL CAN ALSO BE CHANGED IN CHAT"),
+            space().height(12), list
+        ].width(Fill)),
+        surface(column![
+            eyebrow("OPTIONAL GENERATION TEST"),
+            space().height(12),
+            text("Explicit test: sends a small prompt to the selected provider/model. Output cap 256 tokens; this may be billable and total tokens are not guaranteed.")
+                .size(12.5).color(style::GREY),
+            space().height(12),
+            text_input("Expected test word (default OK)", &state.expected_word).on_input(Message::ExpectedWord)
+                .padding([11, 15]).style(style::composer_input),
+            space().height(10),
+            button(text("Run small generation test  ↗").size(12))
+                .on_press_maybe((state.selected_model().is_some() && !state.test_busy).then_some(Message::RunTest))
+                .padding([11, 15]).style(style::control_button),
+            space().height(8),
+            text(state.test_evidence.clone().unwrap_or_default()).size(11).color(style::GREY),
+            space().height(10),
+            text("Catalog labels reflect provider metadata at fetch time, not a price guarantee. Generation is a separate explicit action.")
+                .size(11.5).color(style::DIM)
+        ].width(Fill))
+    ].spacing(16).width(Fill).into()
 }
 
 
@@ -302,20 +353,37 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
     let checked = state.catalog_selected[index].len();
     let importable = state.importable_catalog_ids().len();
     let only_verified = state.catalog_only_verified;
-    let list_height = (matching.len().min(8) as f32 * 40.0 + 34.0).clamp(130.0, 260.0);
+    let list_height = (matching.len().min(8) as f32 * 44.0 + 34.0).clamp(130.0, 280.0);
     let start = state.catalog_page.saturating_mul(60).min(matching.len());
     let mut items = column![].spacing(3).width(Fill);
     for (slot, model) in matching.iter().copied().skip(start).take(60) {
         let selected = state.catalog_selected[index].contains(&model.id);
         let manual = state.catalog_manual[index].contains(&model.id);
-        let label = format!("{}  {}{}", if selected { "☑" } else { "□" }, model.id,
-            if manual { "  ·  manual" } else if model.free { "  ·  free at fetch" } else { "" });
-        let mut entry = column![button(text(label).size(12)).width(Fill)
-            .padding([7, 10]).on_press_maybe((!state.probe_busy).then_some(Message::ToggleCatalogSelection(state.provider, slot)))
-            .style(move |t, status| style::chat_menu_choice(selected, t, status))].spacing(3);
-        if let Some((_, ok, output)) = state.probe_results.iter().find(|(id, _, _)| id == &model.id) {
-            entry = entry.push(text(format!("{} · {}", if *ok { "✓ expected word found" } else { "× not verified" }, output))
-                .size(11).color(if *ok { style::SUCCESS } else { style::FAILURE }));
+        let probe = state.probe_results.iter().find(|(id, _, _)| id == &model.id).map(|(_, ok, output)| (*ok, output.as_str()));
+        let dot: Element<'static, Message> = container(space().width(7).height(7))
+            .style(move |t| style::probe_dot(probe.map(|(ok, _)| ok), t)).into();
+        let id_text = text(model.id.clone()).size(12.5).font(style::LABEL)
+            .color(if selected { style::WHITE } else { style::GREY });
+        let tags: Element<'static, Message> = if manual {
+            tag("manual", None).into()
+        } else if model.free {
+            tag("free", Some(true)).into()
+        } else {
+            space().height(0).into()
+        };
+        let status: Element<'static, Message> = match probe {
+            Some((ok, output)) => tag(probe_summary(ok, output), Some(ok)).into(),
+            None => space().height(0).into(),
+        };
+        let mut entry = column![button(row![
+            dot, id_text, tags, space().width(Fill), status, checkbox_box(selected)
+        ].spacing(8).align_y(Center))
+            .width(Fill).padding([8, 10]).on_press_maybe((!state.probe_busy).then_some(Message::ToggleCatalogSelection(state.provider, slot)))
+            .style(move |t, s| style::list_row(selected, t, s))].spacing(2);
+        if let Some((ok, output)) = probe {
+            entry = entry.push(container(row![
+                text(output.to_owned()).size(10.5).color(if ok { style::SUCCESS } else { style::FAILURE })
+            ].padding([0, 0, 0, 27])).width(Fill));
         }
         items = items.push(entry);
     }
@@ -325,9 +393,9 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
     let pending: Element<'static, Message> = if state.probe_pending {
         row![
             text(format!("Probe {checked} selected models? Each may send up to two billable requests (retry only HTTP 408/429/5xx), 256 output tokens per attempt. Never auto-tests.")).size(11).color(style::WHITE).width(Fill),
-            button(text("Cancel").size(11)).on_press(Message::CancelCatalogProbe).style(style::chat_button),
-            button(text("Confirm tests").size(11)).on_press(Message::ConfirmCatalogProbe).style(style::chat_button)
-        ].spacing(8).align_y(iced::Center).into()
+            button(text("Cancel").size(11)).on_press(Message::CancelCatalogProbe).style(style::control_button),
+            button(text("Confirm tests").size(11)).on_press(Message::ConfirmCatalogProbe).style(style::control_button)
+        ].spacing(8).align_y(Center).into()
     } else { space().height(0).into() };
     let progress: Element<'static, Message> = if state.probe_busy {
         text(format!("Testing · {} of {checked} returned · Stop cancels remaining requests", state.probe_results.len()))
@@ -335,55 +403,60 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
     } else { space().height(0).into() };
     let dialog = column![
         row![
-            column![text(format!("Add models from {}", state.provider.name())).size(19).color(style::WHITE),
-                text("Only IDs not already in your Agent list appear here.").size(11).color(style::GREY)].spacing(4).width(Fill),
-            button(text("×").size(17)).on_press(Message::CloseCatalogModal).style(style::chat_button)
-        ].align_y(iced::Center),
+            column![
+                text(format!("Add models from {}", state.provider.name())).size(19).font(style::STRONG).color(style::WHITE),
+                text("Choose exactly which models should be added to your Agent list. Unchecked models are not added.").size(11.5).color(style::GREY)
+            ].spacing(4).width(Fill),
+            button(text("×").size(17)).on_press(Message::CloseCatalogModal).style(style::ghost_button)
+        ].align_y(Center),
         row![
-            text_input("Filter model IDs…", &state.search).on_input(Message::SearchModels)
+            text_input("Filter by text contained in model id…", &state.search).on_input(Message::SearchModels)
                 .padding([9, 11]).style(style::composer_input),
             button(text(if state.catalog_busy { "Fetching…" } else { "Fetch models" }).size(12))
                 .on_press_maybe((state.provider != Provider::Custom && !state.catalog_busy && !state.probe_busy).then_some(Message::FetchModels))
-                .style(style::chat_button)
+                .style(style::control_button)
         ].spacing(8),
         row![
-            text(format!("{} new · {} checked · {} eligible", matching.len(), checked, importable)).size(11).color(style::DIM).width(Fill),
+            text(format!("{} new models found · {} checked · {} eligible", matching.len(), checked, importable)).size(11).color(style::DIM).width(Fill),
             button(text(if state.search.trim().is_empty() { "Select all" } else { "Select matching" }).size(11))
-                .on_press_maybe((!state.probe_busy).then_some(Message::SelectMatchingModels)).style(style::chat_button),
-            button(text("Clear all").size(11)).on_press_maybe((!state.probe_busy).then_some(Message::ClearCatalogSelection)).style(style::chat_button)
-        ].align_y(iced::Center).spacing(8),
-        button(text(if state.catalog_only_verified { "☑  Add only verified models" } else { "□  Add only verified models" }).size(12))
-            .on_press_maybe((!state.probe_busy).then_some(Message::ToggleCatalogVerified))
-            .padding([8, 10]).style(move |t, status| style::chat_menu_choice(only_verified, t, status)),
-        scrollable(container(items).width(Fill).padding(8).style(style::chat_panel)).height(list_height),
+                .on_press_maybe((!state.probe_busy).then_some(Message::SelectMatchingModels)).style(style::tiny_button),
+            button(text("Clear all").size(11)).on_press_maybe((!state.probe_busy).then_some(Message::ClearCatalogSelection)).style(style::tiny_button)
+        ].align_y(Center).spacing(8),
         row![
-            button(text("Previous").size(11)).on_press_maybe((start > 0).then_some(Message::CatalogPrevious)).style(style::chat_button),
+            button(text(if only_verified { "Add only verified models" } else { "Add only verified models" }).size(11.5).font(style::LABEL))
+                .on_press_maybe((!state.probe_busy).then_some(Message::ToggleCatalogVerified))
+                .padding([6, 13]).style(move |t, s| style::mini_toggle(only_verified, t, s)),
+            text("testing never auto-starts; only verified skips untested and failed IDs").size(11).color(style::DIM)
+        ].spacing(10).align_y(Center),
+        scrollable(container(items).width(Fill).padding(8).style(style::card)).height(list_height),
+        row![
+            button(text("Previous").size(11)).on_press_maybe((start > 0).then_some(Message::CatalogPrevious)).style(style::tiny_button),
             text(format!("{}–{} of {} new matches", start.min(matching.len()) + usize::from(!matching.is_empty()), (start + 60).min(matching.len()), matching.len()))
                 .size(11).color(style::DIM).width(Fill),
-            button(text("Next").size(11)).on_press_maybe((start + 60 < matching.len()).then_some(Message::CatalogNext)).style(style::chat_button)
-        ].align_y(iced::Center).spacing(8),
+            button(text("Next").size(11)).on_press_maybe((start + 60 < matching.len()).then_some(Message::CatalogNext)).style(style::tiny_button)
+        ].align_y(Center).spacing(8),
         row![
             text_input("Model not listed? Enter an exact ID", &state.model_entry)
                 .on_input(Message::EditModel).padding([9, 11]).style(style::composer_input),
             button(text("Stage ID").size(12))
-                .on_press_maybe((!state.probe_busy).then_some(Message::StageCatalogId)).style(style::chat_button)
+                .on_press_maybe((!state.probe_busy).then_some(Message::StageCatalogId)).style(style::control_button)
         ].spacing(8),
         row![
-            button(text(if state.probe_busy { "Testing…" } else { "Test selected…" }).size(12))
-                .on_press_maybe((checked > 0 && !state.probe_busy).then_some(Message::RequestCatalogProbe)).style(style::chat_button),
-            button(text("Stop tests").size(12)).on_press_maybe(state.probe_busy.then_some(Message::CancelCatalogProbe)).style(style::chat_button),
+            button(text(if state.probe_busy { "Testing…" } else { "Test selected…  (may be billable)" }).size(12))
+                .on_press_maybe((checked > 0 && !state.probe_busy).then_some(Message::RequestCatalogProbe)).style(style::control_button),
+            button(text("Stop tests").size(12)).on_press_maybe(state.probe_busy.then_some(Message::CancelCatalogProbe)).style(style::control_button),
             space().width(Fill),
-            button(text("Cancel").size(12)).on_press(Message::CloseCatalogModal).style(style::chat_button),
-            button(text(if state.catalog_only_verified { "Add verified checked" } else { "Add checked models" }).size(12))
+            button(text("Cancel").size(12)).on_press(Message::CloseCatalogModal).style(style::ghost_button),
+            button(text(if state.catalog_only_verified { "Add verified checked" } else { "Add checked models" }).size(12).font(style::STRONG).color(style::BLACK))
                 .on_press_maybe((importable > 0 && !state.probe_busy).then_some(Message::ImportSelectedModels))
-                .padding([9, 12]).style(style::chat_send)
-        ].align_y(iced::Center).spacing(8),
+                .padding([10, 14]).style(style::primary_button)
+        ].align_y(Center).spacing(8),
         pending, progress,
         text(state.status.clone()).size(11).color(style::GREY),
         text("Manual IDs stay staged. Only verified skips untested/failed; testing always asks first.")
             .size(11).color(style::DIM)
     ].spacing(style::AGENT_GAP_CONTROL).width(Fill);
-    container(dialog).max_width(680).width(Fill).padding(20).style(style::chat_panel).into()
+    container(dialog).max_width(680).width(Fill).padding(20).style(style::modal_card).into()
 }
 
 #[cfg(test)]
@@ -403,24 +476,33 @@ mod catalog_tests {
         assert!(available.iter().all(|(_, item)| !state.models[0].contains(&item.id)));
         assert_eq!(available_catalog(&state, "model-119").len(), 1);
     }
+
+    #[test]
+    fn probe_summary_shows_compact_reference_badges() {
+        assert_eq!(probe_summary(true, "42 ms · expected word found · OK"), "✓ works · 42 ms");
+        assert_eq!(probe_summary(true, "OK"), "✓ works · OK");
+        assert_eq!(probe_summary(false, "HTTP 429 · account quota exceeded"), "✗ HTTP 429 · account quota exceeded");
+        let long = "HTTP 500 · upstream returned a very long diagnostic body that should be cut";
+        assert!(probe_summary(false, long).ends_with('…'));
+    }
 }
 
 fn lab(memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {
     let custom = if memory == MemoryMode::Custom {
         button(text(if keep_agent { "Archx Agent / Keep ready" } else { "Archx Agent / Load on open" }).size(13))
-            .on_press(Message::ToggleAgentPreview).style(style::quiet_button)
+            .on_press(Message::ToggleAgentPreview).style(style::control_button)
     } else {
-        button(text("Select Custom to preview destination controls").size(13)).style(style::quiet_button)
+        button(text("Select Custom to preview destination controls").size(13)).style(style::control_button)
     };
     surface(column![
-        text("MEMORY  /  PREVIEW ONLY").size(11).color(style::DIM),
+        eyebrow("MEMORY  /  PREVIEW ONLY"),
         space().height(16),
         text("These controls do not save preferences, load models or change RAM use.").size(13).color(style::GREY),
         space().height(20),
         row![
-            button(text("Light").size(13)).on_press(Message::MemoryPreview(MemoryMode::Light)).style(move |t, s| style::nav(memory == MemoryMode::Light,t,s)),
-            button(text("Heavy").size(13)).on_press(Message::MemoryPreview(MemoryMode::Heavy)).style(move |t, s| style::nav(memory == MemoryMode::Heavy,t,s)),
-            button(text("Custom").size(13)).on_press(Message::MemoryPreview(MemoryMode::Custom)).style(move |t, s| style::nav(memory == MemoryMode::Custom,t,s)),
+            button(text("Light").size(13)).on_press(Message::MemoryPreview(MemoryMode::Light)).style(move |t, s| style::side_nav(memory == MemoryMode::Light,t,s)),
+            button(text("Heavy").size(13)).on_press(Message::MemoryPreview(MemoryMode::Heavy)).style(move |t, s| style::side_nav(memory == MemoryMode::Heavy,t,s)),
+            button(text("Custom").size(13)).on_press(Message::MemoryPreview(MemoryMode::Custom)).style(move |t, s| style::side_nav(memory == MemoryMode::Custom,t,s)),
         ].spacing(10),
         space().height(20), custom
     ].width(Fill))
@@ -435,11 +517,11 @@ fn custom_controls(state: &SettingsState) -> Element<'static, Message> {
             .spacing(5).into()
     } else { space().height(0).into() };
     column![
-        text("Custom text endpoint").size(17).color(style::WHITE),
+        text("Custom text endpoint").size(17).font(style::STRONG).color(style::WHITE),
         text("Session only · HTTPS or loopback HTTP · approval required before sending a prompt or vault key")
             .size(12).color(style::GREY),
-        row![button(text("OpenAI-compatible preset").size(11)).on_press(Message::CustomOpenAiPreset).style(style::quiet_button),
-            button(text("Anthropic-compatible preset").size(11)).on_press(Message::CustomAnthropicPreset).style(style::quiet_button)].spacing(8),
+        row![button(text("OpenAI-compatible preset").size(11)).on_press(Message::CustomOpenAiPreset).style(style::tiny_button),
+            button(text("Anthropic-compatible preset").size(11)).on_press(Message::CustomAnthropicPreset).style(style::tiny_button)].spacing(8),
         column![text("Destination URL").size(11).color(style::GREY),
             text_input("https://example.com/chat", &p.url).on_input(Message::CustomUrl)
                 .size(13).padding([9, 12]).style(style::composer_input)].spacing(5),
@@ -456,16 +538,16 @@ fn custom_controls(state: &SettingsState) -> Element<'static, Message> {
             text_input("/choices/0/message/content", &p.answer_pointer).on_input(Message::CustomAnswer)
                 .size(13).padding([9, 12]).style(style::composer_input)].spacing(5),
         button(text(if p.stream { "Streaming: SSE data JSON" } else { "Streaming: off (JSON response)" }).size(12))
-            .on_press(Message::CustomStream).style(style::quiet_button),
+            .on_press(Message::CustomStream).style(style::control_button),
         stream_control,
         text("Or paste a literal cURL POST request · parsed as text, never executed").size(12).color(style::GREY),
         text_input("curl -X POST https://... -H 'Authorization: Bearer {{api_key}}' -d '{...}'", state.custom_curl.0.as_str())
             .secure(true).on_input(|s| Message::CustomCurl(SecretText::new(s)))
             .size(13).padding([9, 12]).style(style::composer_input),
-        button(text("Parse cURL into fields").size(12)).on_press(Message::ImportCustomCurl).style(style::quiet_button),
+        button(text("Parse cURL into fields").size(12)).on_press(Message::ImportCustomCurl).style(style::control_button),
         text(format!("Destination for approval: {}", if p.url.is_empty() { "not entered" } else { &p.url })).size(12).color(style::WHITE),
         button(text(if state.custom_approved { "Approved for this session · revoke" } else { "Approve sending prompts and key to this destination" }).size(12))
-            .on_press(Message::ApproveCustom).style(style::chat_button),
+            .on_press(Message::ApproveCustom).style(style::control_button),
         text("Edits revoke approval. No redirects, ambient proxies, files or shell execution. Review any literal header secrets before sharing your screen.")
             .size(11).color(style::DIM)
     ].spacing(10).width(Fill).into()

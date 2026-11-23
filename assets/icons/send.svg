@@ -1,0 +1,14 @@
+<!-- Purpose: Composer send glyph, recreated from the MIT-licensed Archx Agent 1.9.0 reference. -->
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="m5 12 14-7-4 7 4 7-14-7Z" />
+</svg>

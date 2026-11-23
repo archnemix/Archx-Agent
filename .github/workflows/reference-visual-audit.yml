@@ -3,7 +3,7 @@ name: Reference 1.9.0 visual audit
 on:
   workflow_dispatch:
   push:
-    branches: [arena/d45bc2a4-archx-agent]
+    branches: [arena/53d9bc26-archx-agent]
     paths:
       - '.github/workflows/reference-visual-audit.yml'
       - 'scripts/capture-reference.cjs'
@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: arena/d45bc2a4-archx-agent
+          ref: arena/53d9bc26-archx-agent
           persist-credentials: true
       - uses: actions/setup-node@v4
         with:
@@ -58,7 +58,7 @@ jobs:
           for log in prepare.log capture.log; do
             if test -f "Docs/Test_Results/Unreleased/reference/$log"; then git add "Docs/Test_Results/Unreleased/reference/$log"; fi
           done
-          git diff --cached --quiet || (git commit -m 'Record browser reference capture diagnosis' && git push origin arena/d45bc2a4-archx-agent)
+          git diff --cached --quiet || (git commit -m 'Record browser reference capture diagnosis' && git push origin arena/53d9bc26-archx-agent)
       - name: Commit unmodified browser captures
         shell: bash
         run: |
@@ -66,4 +66,4 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add Docs/Test_Results/Unreleased/reference/
-          git diff --cached --quiet || (git commit -m 'Capture isolated 1.9.0 browser reference for visual audit' && git push origin arena/d45bc2a4-archx-agent)
+          git diff --cached --quiet || (git commit -m 'Capture isolated 1.9.0 browser reference for visual audit' && git push origin arena/53d9bc26-archx-agent)
