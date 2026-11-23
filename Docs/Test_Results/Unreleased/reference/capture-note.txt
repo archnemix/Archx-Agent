@@ -1,1 +1,1 @@
-Original 1.9.0 UI, 1280x800 Chromium viewport, deviceScaleFactor=1. Isolated --no-store server, no API keys, no provider calls requested by capture. No page exceptions observed.
+Original 1.9.0 UI: chat and models are unmodified screens at 1280x800 Chromium viewport, deviceScaleFactor=1. The import screen uses original HTML/CSS with three synthetic DOM rows; NO model fetch, probe or import was performed. Isolated --no-store server, no API keys. No page exceptions observed.
