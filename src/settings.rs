@@ -129,27 +129,35 @@ pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Elem
             .padding([9, 12]).width(Fill).style(style::chat_panel),
         space().height(12)
     ].into() };
+    let page_head = container(column![
+        text("Settings").size(19).color(style::WHITE),
+        text("Manage the Agent's providers and models. Other reference features are not yet available here.")
+            .size(12).color(style::GREY)
+    ].spacing(4)).width(Fill).padding([16, 24]).style(style::settings_header);
+    let category = container(scrollable(column![
+        setting_link("Providers", Section::Providers, state.section),
+        setting_link("Models", Section::Models, state.section),
+        space().height(16),
+        setting_link("Lab preview", Section::Lab, state.section)
+    ].spacing(4).padding([16, 12])).height(Fill)).width(200).height(Fill).style(style::rail);
     let body = column![
-        text("ARCHX AGENT  /  SETTINGS").size(10).color(style::DIM),
-        space().height(14),
-        text(heading).size(29).font(style::DISPLAY).color(style::WHITE),
+        text("AGENT SETTINGS").size(10).color(style::DIM),
+        space().height(8),
+        text(heading).size(19).font(style::DISPLAY).color(style::WHITE),
         space().height(8),
         text(description).size(13).color(style::GREY),
-        space().height(22),
-        row![
-            setting_link("Providers", Section::Providers, state.section),
-            setting_link("Models", Section::Models, state.section)
-        ].spacing(8).width(495),
-        space().height(16),
+        space().height(24),
         status_notice,
         match state.section {
             Section::Providers => providers(state),
             Section::Models => models(state),
             Section::Lab => lab(memory, keep_agent),
         }
-    ].width(Fill).padding([style::AGENT_GAP_SECTION, style::AGENT_GAP_SECTION]);
-    let base = scrollable(container(body).max_width(960).center_x(Fill))
-        .width(Fill).height(Fill);
+    ].width(Fill).padding([24, 24]);
+    let base = column![page_head, row![
+        category,
+        scrollable(container(body).max_width(960).center_x(Fill)).width(Fill).height(Fill)
+    ].width(Fill).height(Fill)].width(Fill).height(Fill);
     if state.section == Section::Models && state.catalog_modal {
         stack![
             base,
@@ -169,7 +177,7 @@ fn setting_link(label: &'static str, section: Section, current: Section) -> Elem
 
 fn provider_tabs(current: Provider, busy: bool) -> Element<'static, Message> {
     let mut rows = column![].spacing(5);
-    for group in Provider::ALL.chunks(5) {
+    for group in Provider::ALL.chunks(3) {
         let mut line = row![].spacing(6);
         for provider in group.iter().copied() {
             let selected = current == provider;

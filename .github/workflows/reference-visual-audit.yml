@@ -48,6 +48,7 @@ jobs:
           rm ../../../../Docs/Test_Results/Unreleased/reference/capture.log
           test -s ../../../../Docs/Test_Results/Unreleased/reference/reference-chat-1280.png
           test -s ../../../../Docs/Test_Results/Unreleased/reference/reference-models-1280.png
+          test -s ../../../../Docs/Test_Results/Unreleased/reference/reference-import-fixture-1280.png
       - name: Preserve setup diagnosis if the capture failed
         if: failure()
         shell: bash

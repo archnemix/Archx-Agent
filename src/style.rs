@@ -319,6 +319,11 @@ pub fn chat_avatar(assistant: bool, _: &Theme) -> container::Style {
     container::Style::default().background(if assistant { WHITE } else { Color::from_rgb8(26, 26, 26) })
         .border(Border { color: if assistant { WHITE } else { LINE }, width: 1.0, radius: 8.0.into() })
 }
+pub fn settings_header(_: &Theme) -> container::Style {
+    container::Style::default().background(BLACK)
+        .border(Border { color: LINE, width: 1.0, radius: 0.0.into() })
+}
+
 pub fn chat_button(_: &Theme, status: button::Status) -> button::Style {
     button::Style {
         background: Some(if matches!(status, button::Status::Hovered | button::Status::Pressed) {

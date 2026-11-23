@@ -48,11 +48,6 @@ fn chat_md<'a>(items: impl IntoIterator<Item = &'a markdown::Item>) -> Element<'
 }
 
 
-fn action(label: &'static str, message: Message) -> Element<'static, Message> {
-    button(text(label).size(13)).padding([9, 12])
-        .on_press(message).style(style::chat_button).into()
-}
-
 fn model_menu<'a>(settings: &SettingsState, search: &'a str) -> Element<'a, Message> {
     let mut providers = column![text("PROVIDER").size(10).color(style::DIM)].spacing(6);
     for provider in Provider::ALL {
@@ -107,7 +102,7 @@ fn avatar(assistant: bool) -> Element<'static, Message> {
 
 fn rail(drafts: &[ChatDraft], selected: u32, settings_open: bool) -> Element<'static, Message> {
     let mut history = column![
-        text("A   Archx Agent").size(16).color(style::WHITE),
+        text("A   Archx Agent").size(16).font(style::LABEL).color(style::WHITE),
         space().height(24),
         button(text("◧   Chat").size(13)).width(Fill).padding([10, 12])
             .on_press(Message::Navigate(Page::Agent))
@@ -119,7 +114,8 @@ fn rail(drafts: &[ChatDraft], selected: u32, settings_open: bool) -> Element<'st
         button(text("←   Back to launcher").size(13)).width(Fill).padding([10, 12])
             .on_press(Message::Navigate(Page::Home)).style(style::chat_menu_choice_inactive),
         space().height(20),
-        action("＋   New chat", Message::NewChat),
+        button(text("＋   New chat").size(13)).width(Fill).height(40)
+            .on_press(Message::NewChat).style(style::chat_send),
         space().height(24),
         text("CHATS  ·  THIS SESSION").size(10).color(style::DIM),
         space().height(8)
@@ -227,7 +223,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
             text(if no_model { "No provider configured" } else if active_mode == 0 { "How can I help?" } else { MODES[usize::from(active_mode)] })
                 .size(25).font(style::DISPLAY).color(style::WHITE),
             space().height(13),
-            text(if no_model { "Connect a provider and choose a model to start chatting.\nKeys, when needed, stay in the OS credential store." }
+            text(if no_model { "Connect a provider and choose a model to start chatting.\nYour keys stay in the OS credential store; chats stay in this session." }
                  else if active_mode != 0 { "This mode is a preview. No tools are running." }
                  else { "Write a message below to begin." }).size(13).color(style::GREY),
             space().height(20),
@@ -285,7 +281,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
     ].align_x(Center).width(Fill).padding([12, 20]);
 
     let main = column![
-        container(topbar).padding([12, 20]).width(Fill),
+        container(topbar).padding([12, 20]).width(Fill).style(style::settings_header),
         center,
         footer
     ].width(Fill).height(Fill);
