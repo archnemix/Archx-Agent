@@ -41,6 +41,8 @@ pub struct SettingsState {
     pub reveal_nonce: u64,
     pub model_entry: String,
     pub catalog: [Vec<CatalogModel>; Provider::COUNT],
+    /// Manual IDs staged in the current import dialog, never added until import.
+    pub catalog_manual: [Vec<String>; Provider::COUNT],
     pub search: String,
     pub catalog_modal: bool,
     pub catalog_only_verified: bool,
@@ -69,6 +71,7 @@ impl Default for SettingsState {
         Self { section: Section::Providers, provider: Provider::OpenRouter,
             key_entry: SecretText::default(), key_ids: Vec::new(), reveal: None,
             reveal_nonce: 0, model_entry: String::new(), catalog: std::array::from_fn(|_| Vec::new()),
+            catalog_manual: std::array::from_fn(|_| Vec::new()),
             search: String::new(), catalog_modal: false, catalog_only_verified: false, catalog_page: 0, catalog_selected: std::array::from_fn(|_| Vec::new()),
             probe_pending: false, probe_busy: false, probe_nonce: 0, probe_results: Vec::new(), catalog_busy: false, catalog_nonce: 0, models: std::array::from_fn(|_| Vec::new()),
             chosen: [None; Provider::COUNT], status: String::new(), test_busy: false, test_evidence: None, stream_chat: true, key_busy: false, custom: Profile::default(), custom_curl: SecretText::default(), custom_approved: false, expected_word: "OK".into() }
@@ -88,6 +91,17 @@ impl SettingsState {
             catalog.contains(id.as_str()) && !added.contains(id.as_str()) &&
             (!self.catalog_only_verified || verified.contains(id.as_str()))
         }).cloned().collect()
+    }
+    /// Discard provisional IDs when leaving the dialog (or changing providers).
+    /// No staged model enters the Agent's imported list on Cancel.
+    pub fn discard_catalog_staging(&mut self) {
+        let index = self.index();
+        let staged: HashSet<&str> = self.catalog_manual[index].iter().map(String::as_str).collect();
+        self.catalog[index].retain(|item| !staged.contains(item.id.as_str()));
+        self.catalog_selected[index].retain(|id| !staged.contains(id.as_str()));
+        self.probe_results.retain(|(id, _, _)| !staged.contains(id.as_str()));
+        self.catalog_manual[index].clear();
+        self.model_entry.clear();
     }
     pub fn selected_model(&self) -> Option<&str> {
         self.chosen[self.index()].and_then(|id| self.models[self.index()].get(id)).map(String::as_str)
@@ -282,8 +296,9 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
     let mut items = column![].spacing(3).width(Fill);
     for (slot, model) in matching.iter().copied().skip(start).take(60) {
         let selected = state.catalog_selected[index].contains(&model.id);
+        let manual = state.catalog_manual[index].contains(&model.id);
         let label = format!("{}  {}{}", if selected { "☑" } else { "□" }, model.id,
-            if model.free { "  ·  free at fetch" } else { "" });
+            if manual { "  ·  manual" } else if model.free { "  ·  free at fetch" } else { "" });
         let mut entry = column![button(text(label).size(12)).width(Fill)
             .padding([7, 10]).on_press_maybe((!state.probe_busy).then_some(Message::ToggleCatalogSelection(state.provider, slot)))
             .style(move |t, status| style::chat_menu_choice(selected, t, status))].spacing(3);
@@ -338,7 +353,8 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
         row![
             text_input("Model not listed? Enter an exact ID", &state.model_entry)
                 .on_input(Message::EditModel).padding([9, 11]).style(style::composer_input),
-            button(text("Add ID").size(12)).on_press(Message::AddModel).style(style::chat_button)
+            button(text("Stage ID").size(12))
+                .on_press_maybe((!state.probe_busy).then_some(Message::StageCatalogId)).style(style::chat_button)
         ].spacing(8),
         row![
             button(text(if state.probe_busy { "Testing…" } else { "Test selected…" }).size(12))
@@ -352,7 +368,7 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
         ].align_y(iced::Center).spacing(8),
         pending, progress,
         text(state.status.clone()).size(11).color(style::GREY),
-        text("Only verified excludes untested and failed IDs. Fetching never tests; consent is separate. Imported IDs leave this list.")
+        text("Manual IDs are staged until import. Only verified excludes untested and failed IDs; no automatic tests. Imported IDs leave this list.")
             .size(11).color(style::DIM)
     ].spacing(style::AGENT_GAP_CONTROL).width(Fill);
     container(dialog).max_width(760).width(Fill).padding(20).style(style::chat_panel).into()

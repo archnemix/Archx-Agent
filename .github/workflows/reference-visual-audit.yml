@@ -24,10 +24,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cd internels/reference/web/archx-agent
-          npm ci --ignore-scripts --no-audit --no-fund
-          npm install --prefix "$RUNNER_TEMP/capture" --no-audit --no-fund playwright@1.58.2
-          "$RUNNER_TEMP/capture/node_modules/.bin/playwright" install chromium --with-deps
+          mkdir -p Docs/Test_Results/Unreleased/reference
+          (cd internels/reference/web/archx-agent &&
+            npm ci --ignore-scripts --no-audit --no-fund &&
+            npm install --prefix "$RUNNER_TEMP/capture" --no-audit --no-fund playwright@1.58.2 &&
+            "$RUNNER_TEMP/capture/node_modules/.bin/playwright" install chromium --with-deps) > Docs/Test_Results/Unreleased/reference/prepare.log 2>&1 || {
+              tail -80 Docs/Test_Results/Unreleased/reference/prepare.log
+              exit 1
+            }
+          rm Docs/Test_Results/Unreleased/reference/prepare.log
       - name: Capture original web UI at native screenshot size
         shell: bash
         run: |
@@ -39,6 +44,15 @@ jobs:
           CAPTURE_MODULE="$RUNNER_TEMP/capture/node_modules/playwright" node ../../../../scripts/capture-reference.cjs
           test -s ../../../../Docs/Test_Results/Unreleased/reference/reference-chat-1280.png
           test -s ../../../../Docs/Test_Results/Unreleased/reference/reference-models-1280.png
+      - name: Preserve setup diagnosis if the capture failed
+        if: failure()
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          test -f Docs/Test_Results/Unreleased/reference/prepare.log || exit 0
+          git add Docs/Test_Results/Unreleased/reference/prepare.log
+          git diff --cached --quiet || (git commit -m 'Record browser reference capture setup failure' && git push origin arena/d45bc2a4-archx-agent)
       - name: Commit unmodified browser captures
         shell: bash
         run: |

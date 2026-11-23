@@ -111,6 +111,7 @@ pub enum Message {
     RevealExpired(u64),
     EditModel(String),
     AddModel,
+    StageCatalogId,
     ChooseModel(usize),
     RemoveModel(usize),
     FetchModels,
@@ -350,6 +351,7 @@ impl App {
                 self.model_menu_open = false;
                 self.mode_menu_open = false;
                 self.hovered = None;
+                self.settings.discard_catalog_staging();
                 self.settings.catalog_modal = false;
                 if page == Page::Settings { return self.update(Message::RefreshKeys); }
             }
@@ -358,6 +360,7 @@ impl App {
                 self.model_menu_open = false;
                 self.mode_menu_open = false;
                 self.settings.section = Section::Providers;
+                self.settings.discard_catalog_staging();
                 self.settings.catalog_modal = false;
                 return self.update(Message::RefreshKeys);
             }
@@ -366,6 +369,7 @@ impl App {
                 self.model_menu_open = false;
                 self.mode_menu_open = false;
                 self.settings.section = Section::Models;
+                self.settings.discard_catalog_staging();
                 self.settings.catalog_modal = false;
                 return self.update(Message::RefreshKeys);
             }
@@ -446,11 +450,19 @@ impl App {
                     self.settings.probe_nonce = self.settings.probe_nonce.wrapping_add(1);
                 }
                 self.settings.probe_pending = false;
+                if self.settings.catalog_modal && section != Section::Models {
+                    self.settings.discard_catalog_staging();
+                    self.settings.catalog_modal = false;
+                }
                 self.settings.section = section;
             }
             Message::SelectProvider(provider) if matches!(self.page, Page::Settings | Page::Agent) && !self.settings.key_busy && !self.settings.probe_busy => {
                 self.settings.clear_secret();
                 self.settings.custom_approved = false;
+                if self.settings.catalog_modal {
+                    self.settings.discard_catalog_staging();
+                    self.settings.catalog_modal = false;
+                }
                 self.settings.provider = provider;
                 self.settings.model_entry.clear();
                 self.settings.search.clear();
@@ -620,6 +632,28 @@ impl App {
                     self.settings.status = "Model added, not verified. Choose it from Chat when ready.".into();
                 } else { self.settings.status = "Invalid or duplicate model ID.".into(); }
             }
+            Message::StageCatalogId if self.page == Page::Settings && self.settings.catalog_modal && !self.settings.probe_busy => {
+                let provider = self.settings.provider;
+                let id = self.settings.model_entry.trim().to_owned();
+                let index = self.settings.index();
+                if !provider_api::valid_model(provider, &id) || self.settings.models[index].contains(&id) {
+                    self.settings.status = "Enter a valid, not-yet-imported model ID.".into();
+                } else {
+                    if !self.settings.catalog[index].iter().any(|item| item.id == id) {
+                        self.settings.catalog[index].push(CatalogModel {
+                            id: id.clone(), name: id.clone(), free: false, router: false, reasoning: false,
+                        });
+                        self.settings.catalog_manual[index].push(id.clone());
+                    }
+                    if !self.settings.catalog_selected[index].contains(&id) {
+                        self.settings.catalog_selected[index].push(id);
+                    }
+                    self.settings.model_entry.clear();
+                    self.settings.search.clear();
+                    self.settings.catalog_page = self.settings.catalog[index].len().saturating_sub(1) / 60;
+                    self.settings.status = "ID staged and checked; it is not imported or tested until you choose those actions.".into();
+                }
+            }
             Message::ChooseModel(slot) if matches!(self.page, Page::Settings | Page::Agent) && slot < self.settings.models[self.settings.index()].len() => {
                 let index = self.settings.index(); self.settings.chosen[index] = Some(slot);
                 if self.page == Page::Agent { self.model_menu_open = false; }
@@ -633,10 +667,12 @@ impl App {
                 if query.len() <= 100 { self.settings.search = query; self.settings.catalog_page = 0; }
             }
             Message::OpenCatalogModal if self.page == Page::Settings && self.settings.section == Section::Models => {
+                self.settings.discard_catalog_staging();
                 self.settings.catalog_modal = true;
                 self.settings.catalog_page = 0;
             }
             Message::CloseCatalogModal if self.page == Page::Settings => {
+                self.settings.discard_catalog_staging();
                 self.settings.catalog_modal = false;
                 self.settings.probe_pending = false;
                 // A running probe continues only while its dialog is visible.
@@ -705,6 +741,7 @@ impl App {
                     }
                 }
                 self.settings.status = format!("Added {} models · {skipped} skipped. Verification is a point-in-time test, not a future availability guarantee. No model was activated automatically.", importable.len());
+                self.settings.discard_catalog_staging();
                 self.settings.catalog_modal = false;
             }
             Message::RequestCatalogProbe if self.page == Page::Settings && !self.settings.probe_busy => {
@@ -800,10 +837,18 @@ impl App {
                 match result {
                     Ok(models) => {
                         let count = models.len();
-                        self.settings.catalog_selected[self.settings.index()].clear();
+                        let index = self.settings.index();
+                        let staged: Vec<CatalogModel> = self.settings.catalog[index].iter()
+                            .filter(|item| self.settings.catalog_manual[index].contains(&item.id)).cloned().collect();
+                        let staged_ids: HashSet<&str> = staged.iter().map(|item| item.id.as_str()).collect();
+                        self.settings.catalog_selected[index].retain(|id| staged_ids.contains(id.as_str()));
                         self.settings.catalog_page = 0;
                         self.settings.probe_results.clear();
-                        self.settings.catalog[self.settings.index()] = models;
+                        let mut fresh = models;
+                        for item in staged {
+                            if !fresh.iter().any(|model| model.id == item.id) { fresh.push(item); }
+                        }
+                        self.settings.catalog[index] = fresh;
                         self.settings.status = format!("Fetched {count} models. Search and add individual choices; no models were added automatically.");
                     }
                     Err(error) => self.settings.status = error,
@@ -1185,6 +1230,36 @@ mod tests {
         let _ = app.update(Message::Navigate(Page::Home));
         assert_eq!(app.page, Page::Home);
         assert_eq!(app.settings.models[0].len(), 75);
+    }
+
+    #[test]
+    fn dialog_manual_id_is_provisional_until_import_and_survives_fetch() {
+        let mut app = App::new();
+        let _ = app.update(Message::Navigate(Page::Settings));
+        let _ = app.update(Message::SettingsSection(Section::Models));
+        let _ = app.update(Message::OpenCatalogModal);
+        let _ = app.update(Message::EditModel("vendor/manual".into()));
+        let _ = app.update(Message::StageCatalogId);
+        assert_eq!(app.settings.catalog_selected[0], vec!["vendor/manual"]);
+        assert_eq!(app.settings.catalog_manual[0], vec!["vendor/manual"]);
+        assert!(app.settings.models[0].is_empty());
+        let _ = app.update(Message::ModelsFetched(Provider::OpenRouter, app.settings.catalog_nonce,
+            Ok(vec![CatalogModel { id: "vendor/fetched".into(), name: "Fetched".into(),
+                free: false, router: false, reasoning: false }])));
+        assert_eq!(app.settings.catalog_selected[0], vec!["vendor/manual"]);
+        assert_eq!(app.settings.catalog[0].len(), 2);
+        let _ = app.update(Message::CloseCatalogModal);
+        assert!(app.settings.catalog_manual[0].is_empty());
+        assert!(app.settings.catalog_selected[0].is_empty());
+        assert_eq!(app.settings.catalog[0].len(), 1);
+        assert!(app.settings.models[0].is_empty());
+        let _ = app.update(Message::OpenCatalogModal);
+        let _ = app.update(Message::EditModel("vendor/manual".into()));
+        let _ = app.update(Message::StageCatalogId);
+        let _ = app.update(Message::ImportSelectedModels);
+        assert_eq!(app.settings.models[0], vec!["vendor/manual"]);
+        assert!(!app.settings.catalog_modal);
+        assert!(app.settings.catalog_manual[0].is_empty());
     }
 
     #[test]
