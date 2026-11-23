@@ -1,2 +1,1 @@
-# Purpose: Deliberate macOS-only GUI recheck after run 43440351034 was cancelled before a runner was assigned.
-compact-rail-macos-recheck: 2
+Trigger: retry macOS validation for run 45256127460 (chat-chrome rework). The sequential gui.yml macOS job was cancelled in queue at 15 minutes without a runner (2026-11-23). Using the independent macOS recheck as designed.
