@@ -302,7 +302,7 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
     let checked = state.catalog_selected[index].len();
     let importable = state.importable_catalog_ids().len();
     let only_verified = state.catalog_only_verified;
-    let list_height = (matching.len().min(8) as f32 * 46.0 + 36.0).clamp(130.0, 260.0);
+    let list_height = (matching.len().min(8) as f32 * 40.0 + 34.0).clamp(130.0, 260.0);
     let start = state.catalog_page.saturating_mul(60).min(matching.len());
     let mut items = column![].spacing(3).width(Fill);
     for (slot, model) in matching.iter().copied().skip(start).take(60) {
@@ -348,7 +348,8 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
         ].spacing(8),
         row![
             text(format!("{} new · {} checked · {} eligible", matching.len(), checked, importable)).size(11).color(style::DIM).width(Fill),
-            button(text("Select matching").size(11)).on_press_maybe((!state.probe_busy).then_some(Message::SelectMatchingModels)).style(style::chat_button),
+            button(text(if state.search.trim().is_empty() { "Select all" } else { "Select matching" }).size(11))
+                .on_press_maybe((!state.probe_busy).then_some(Message::SelectMatchingModels)).style(style::chat_button),
             button(text("Clear all").size(11)).on_press_maybe((!state.probe_busy).then_some(Message::ClearCatalogSelection)).style(style::chat_button)
         ].align_y(iced::Center).spacing(8),
         button(text(if state.catalog_only_verified { "☑  Add only verified models" } else { "□  Add only verified models" }).size(12))
@@ -375,11 +376,11 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
             button(text("Cancel").size(12)).on_press(Message::CloseCatalogModal).style(style::chat_button),
             button(text(if state.catalog_only_verified { "Add verified checked" } else { "Add checked models" }).size(12))
                 .on_press_maybe((importable > 0 && !state.probe_busy).then_some(Message::ImportSelectedModels))
-                .style(style::chat_button)
+                .padding([9, 12]).style(style::chat_send)
         ].align_y(iced::Center).spacing(8),
         pending, progress,
         text(state.status.clone()).size(11).color(style::GREY),
-        text("Manual IDs are staged until import. Only verified excludes untested and failed IDs; no automatic tests. Imported IDs leave this list.")
+        text("Manual IDs stay staged. Only verified skips untested/failed; testing always asks first.")
             .size(11).color(style::DIM)
     ].spacing(style::AGENT_GAP_CONTROL).width(Fill);
     container(dialog).max_width(680).width(Fill).padding(20).style(style::chat_panel).into()
