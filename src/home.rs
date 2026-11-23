@@ -10,7 +10,7 @@ use crate::settings::{self, SettingsState};
 use crate::navigation;
 use crate::style;
 
-pub fn view<'a>(page: Page, sidebar_expanded: bool, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &'a [ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool, settings_state: &SettingsState, model_menu_open: bool, mode_menu_open: bool, chat_model_search: &'a str) -> Element<'a, Message> {
+pub fn view<'a>(page: Page, sidebar_expanded: bool, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &'a [ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool, settings_state: &'a SettingsState, model_menu_open: bool, mode_menu_open: bool, chat_model_search: &'a str) -> Element<'a, Message> {
     let content: Element<'a, Message> = if page == Page::Agent {
         agent::view(drafts, selected, settings_state, model_menu_open, mode_menu_open, chat_model_search)
     } else if page == Page::Settings {
@@ -26,7 +26,7 @@ pub fn view<'a>(page: Page, sidebar_expanded: bool, hovered: Option<Art>, phase:
     .into()
 }
 
-fn main_content<'a>(page: Page, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &'a [ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool, settings_state: &SettingsState, model_menu_open: bool, mode_menu_open: bool, chat_model_search: &'a str) -> Element<'a, Message> {
+fn main_content<'a>(page: Page, hovered: Option<Art>, phase: u8, agent_phase: u8, drafts: &'a [ChatDraft], selected: u32, memory: MemoryMode, keep_agent: bool, settings_state: &'a SettingsState, model_menu_open: bool, mode_menu_open: bool, chat_model_search: &'a str) -> Element<'a, Message> {
     match page {
         Page::Agent => agent::view(drafts, selected, settings_state, model_menu_open, mode_menu_open, chat_model_search),
         Page::Settings => settings::view(settings_state, memory, keep_agent),

@@ -360,8 +360,9 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
         let selected = state.catalog_selected[index].contains(&model.id);
         let manual = state.catalog_manual[index].contains(&model.id);
         let probe = state.probe_results.iter().find(|(id, _, _)| id == &model.id).map(|(_, ok, output)| (*ok, output.as_str()));
+        let probe_ok = probe.map(|(ok, _)| ok);
         let dot: Element<'static, Message> = container(space().width(7).height(7))
-            .style(move |t| style::probe_dot(probe.map(|(ok, _)| ok), t)).into();
+            .style(move |t| style::probe_dot(probe_ok, t)).into();
         let id_text = text(model.id.clone()).size(12.5).font(style::LABEL)
             .color(if selected { style::WHITE } else { style::GREY });
         let tags: Element<'static, Message> = if manual {

@@ -1,9 +1,8 @@
 # Purpose: Fetch the public user-supplied web-app reference for inspection, without executing its code or committing an unreviewed archive.
+# The inspected source is already imported under internels/reference/web/; this
+# manual workflow only re-downloads the archive when someone explicitly asks.
 name: Inspect web app reference
 on:
-  push:
-    branches: [arena/53d9bc26-archx-agent]
-    paths: ['.github/workflows/reference-import.yml']
   workflow_dispatch:
 permissions:
   contents: write

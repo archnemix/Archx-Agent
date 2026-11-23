@@ -124,7 +124,7 @@ fn nav_row(glyph: Glyph, label: &'static str, action: Message, active: bool) -> 
         .style(move |t, s| style::side_nav(active, t, s)).into()
 }
 
-fn model_menu<'a>(settings: &SettingsState, search: &'a str) -> Element<'a, Message> {
+fn model_menu<'a>(settings: &'a SettingsState, search: &'a str) -> Element<'a, Message> {
     let mut providers = column![text("PROVIDER").size(10).color(style::DIM)].spacing(4);
     for provider in Provider::ALL {
         let active = settings.provider == provider;
@@ -237,7 +237,7 @@ fn rail(drafts: &[ChatDraft], selected: u32, settings: &SettingsState, settings_
     rail.into()
 }
 
-pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState,
+pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &'a SettingsState,
     model_menu_open: bool, mode_menu_open: bool, search: &'a str) -> Element<'a, Message> {
     let current = drafts.iter().find(|draft| draft.id == selected);
     let active_mode = current.map_or(0, |draft| draft.mode);
@@ -370,6 +370,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
             }).into()
     } else { space().height(42).into() };
     let is_busy = current.is_some_and(|draft| draft.busy);
+    let stream_chat = settings.stream_chat;
     let send_control: Element<'_, Message> = if is_busy {
         button(container(icon(Glyph::Stop, 15, style::WHITE)).center_x(Fill).center_y(Fill))
             .on_press(Message::StopChat).width(34).height(34).padding(0)
@@ -382,9 +383,9 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &SettingsState
     let composer = container(column![
         editor,
         row![
-            button(text(if settings.stream_chat { "Streaming" } else { "Whole reply" }).size(11).font(style::LABEL))
+            button(text(if stream_chat { "Streaming" } else { "Whole reply" }).size(11).font(style::LABEL))
                 .on_press(Message::ToggleStreaming).padding([5, 11])
-                .style(move |t, s| style::mini_toggle(settings.stream_chat, t, s)),
+                .style(move |t, s| style::mini_toggle(stream_chat, t, s)),
             space().width(Fill),
             send_control
         ].align_y(Center)
