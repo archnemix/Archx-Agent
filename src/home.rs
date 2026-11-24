@@ -33,7 +33,7 @@ fn main_content<'a>(page: Page, hovered: Option<Art>, phase: u8, agent_phase: u8
         Page::Home | Page::About => scrollable(match page {
             Page::Home => home(hovered, phase, agent_phase),
             _ => about(),
-        }).width(Fill).height(Fill).into(),
+        }).width(Fill).height(Fill).style(style::quiet_scroll).into(),
     }
 }
 

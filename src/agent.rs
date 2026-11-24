@@ -118,9 +118,9 @@ fn brand_row() -> Element<'static, Message> {
 fn nav_row(glyph: Glyph, label: &'static str, action: Message, active: bool) -> Element<'static, Message> {
     button(row![
         icon(glyph, 15, if active { style::WHITE } else { style::GREY }),
-        text(label).size(13).font(style::LABEL).color(if active { style::WHITE } else { style::GREY })
-    ].spacing(9).align_y(Center))
-        .width(Fill).padding([8, 12]).on_press(action)
+        text(label).size(13.5).font(style::LABEL).color(if active { style::WHITE } else { style::GREY })
+    ].spacing(8).align_y(Center))
+        .width(Fill).padding([8, 10]).on_press(action)
         .style(move |t, s| style::side_nav(active, t, s)).into()
 }
 
@@ -130,7 +130,7 @@ fn model_menu<'a>(settings: &'a SettingsState, search: &'a str) -> Element<'a, M
         let active = settings.provider == provider;
         providers = providers.push(button(text(provider.name()).size(13))
             .on_press(Message::SelectProvider(provider)).width(Fill).padding([8, 10])
-            .style(move |t, s| style::list_row(active, t, s)));
+            .style(move |t, s| style::provider_choice(active, t, s)));
     }
     let mut models = column![text("MODEL").size(10).color(style::DIM),
         text_input("Filter models…", search)
@@ -144,7 +144,7 @@ fn model_menu<'a>(settings: &'a SettingsState, search: &'a str) -> Element<'a, M
         let active = settings.chosen[settings.index()] == Some(slot);
         models = models.push(button(text(model.clone()).size(13))
             .on_press(Message::ChooseModel(slot)).padding([8, 10]).width(Fill)
-            .style(move |t, s| style::list_row(active, t, s)));
+            .style(move |t, s| style::provider_choice(active, t, s)));
     }
     if count == 0 {
         models = models.push(text(if search.is_empty() { "No models added yet" } else { "No matching models" })
@@ -156,7 +156,7 @@ fn model_menu<'a>(settings: &'a SettingsState, search: &'a str) -> Element<'a, M
         button(text("Manage models ↗").size(11)).on_press(Message::OpenModelCatalogSettings)
             .style(style::ghost_button)
     ].align_y(Center));
-    container(row![container(scrollable(providers).height(340)).width(155), container(scrollable(models).height((count as f32 * 36.0 + 96.0).clamp(150.0, 290.0))).width(Fill)]
+    container(row![container(scrollable(providers).height(340).style(style::quiet_scroll)).width(155), container(scrollable(models).height((count as f32 * 36.0 + 96.0).clamp(150.0, 290.0)).style(style::quiet_scroll)).width(Fill)]
         .spacing(12).width(Fill))
         .width(540).padding(14).style(style::chat_panel).into()
 }
@@ -167,7 +167,7 @@ fn mode_menu(active_mode: u8) -> Element<'static, Message> {
         let active = index == usize::from(active_mode);
         modes = modes.push(button(text(*label).size(13)).width(Fill).padding([8, 12])
             .on_press(Message::SelectMode(index as u8))
-            .style(move |t, s| style::list_row(active, t, s)));
+            .style(move |t, s| style::provider_choice(active, t, s)));
     }
     container(modes).padding(12).width(200).style(style::chat_panel).into()
 }
@@ -186,16 +186,16 @@ fn rail(drafts: &[ChatDraft], selected: u32, settings: &SettingsState, settings_
         container(brand_row()).padding(iced::Padding { top: 4.0, right: 10.0, bottom: 0.0, left: 10.0 }),
         space().height(18),
         nav_row(Glyph::Message, "Chat", Message::Navigate(Page::Agent), !settings_open),
-        space().height(2),
+        space().height(4),
         nav_row(Glyph::Settings, "Settings", Message::Navigate(Page::Settings), settings_open),
-        space().height(2),
+        space().height(4),
         nav_row(Glyph::House, "Back to launcher", Message::Navigate(Page::Home), false),
         space().height(16),
         button(container(row![
             icon(Glyph::Plus, 15, style::BLACK),
             text("New chat").size(13).font(style::STRONG).color(style::BLACK)
         ].spacing(8).align_y(Center)).center_x(Fill))
-            .width(Fill).height(40).padding([0, 12])
+            .width(Fill).padding([8, 16])
             .on_press(Message::NewChat).style(style::primary_button),
         space().height(20),
         container(row![
@@ -225,12 +225,12 @@ fn rail(drafts: &[ChatDraft], selected: u32, settings: &SettingsState, settings_
         space().height(8),
         row![
             icon(Glyph::Lock, 11, style::DIM),
-            text("keys in OS vault · chats session-only").size(10).color(style::DIM).width(Fill),
+            text("OS vault keys · session-only chats").size(10).color(style::DIM).width(Fill),
             text(concat!("v", env!("CARGO_PKG_VERSION"))).size(10).color(style::DIM)
         ].spacing(6).align_y(Center).padding([0, 4])
     ].width(Fill);
     let rail = container(column![
-        scrollable(history.padding([17, 10])).height(Fill),
+        scrollable(history.padding([17, 10])).height(Fill).style(style::quiet_scroll),
         container(footer).padding([12, 15]).width(Fill)
     ].height(Fill)).width(260).height(Fill).style(style::rail);
 
@@ -317,7 +317,7 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &'a SettingsSt
             log = log.push(row![avatar(true), body].spacing(style::AGENT_GAP_GROUP).width(Fill));
         }
         let list = scrollable(container(container(log).max_width(860).width(Fill).padding([24, 20]))
-            .center_x(Fill)).id("chat-log").width(Fill).height(Fill);
+            .center_x(Fill)).id("chat-log").width(Fill).height(Fill).style(style::quiet_scroll);
         // Keep screenshot fixtures on the first turn; a live conversation starts
         // at its latest message and preserves the user's distance from the end.
         let list = if std::env::var_os("ARCHX_SNAPSHOT").is_some() { list }
@@ -332,26 +332,28 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &'a SettingsSt
         let actions: Element<'a, Message> = if no_model {
             row![
                 button(text("Add a provider").size(13).font(style::STRONG).color(style::BLACK))
-                    .on_press(Message::OpenModelSettings).padding([11, 18]).style(style::primary_button),
-                button(text("Open settings").size(13).font(style::LABEL).color(style::GREY))
-                    .on_press(Message::Navigate(Page::Settings)).padding([11, 14]).style(style::ghost_button)
+                    .on_press(Message::OpenModelSettings).padding([8, 16]).style(style::primary_button),
+                button(text("Open settings").size(13).font(style::LABEL).color(style::WHITE))
+                    .on_press(Message::Navigate(Page::Settings)).padding([8, 14]).style(style::ghost_button)
             ].spacing(8).align_y(Center).into()
         } else if active_mode != 0 {
-            button(text("Switch this draft to Chat").size(12).font(style::LABEL).color(style::GREY))
-                .on_press(Message::SelectMode(0)).padding([9, 14]).style(style::ghost_button).into()
+            button(text("Switch this draft to Chat").size(12).font(style::LABEL).color(style::WHITE))
+                .on_press(Message::SelectMode(0)).padding([8, 14]).style(style::ghost_button).into()
         } else {
-            button(text("Manage models").size(12).font(style::LABEL).color(style::GREY))
-                .on_press(Message::OpenModelCatalogSettings).padding([9, 14]).style(style::ghost_button).into()
+            button(text("Manage models").size(12).font(style::LABEL).color(style::WHITE))
+                .on_press(Message::OpenModelCatalogSettings).padding([8, 14]).style(style::ghost_button).into()
         };
         container(column![
             icon(Glyph::Monitor, 44, style::MUTED_2),
-            space().height(20),
+            space().height(24),
             text(empty_heading(active_mode, connected)).size(26).font(style::STRONG).color(style::WHITE),
-            space().height(10),
+            space().height(8),
             text(empty_body(active_mode, connected)).size(15).color(style::GREY),
             space().height(24),
             actions
-        ].align_x(Center)).center_x(Fill).center_y(Fill).into()
+        ].align_x(Center)).center_x(Fill)
+            .padding(iced::Padding { top: 72.0, right: 20.0, bottom: 0.0, left: 20.0 })
+            .align_y(iced::Alignment::Start).into()
     };
 
     let can_send = active_mode == 0 && connected && !draft_text.trim().is_empty() && current.is_some_and(|draft| !draft.busy);
@@ -372,9 +374,9 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &'a SettingsSt
     let is_busy = current.is_some_and(|draft| draft.busy);
     let stream_chat = settings.stream_chat;
     let send_control: Element<'_, Message> = if is_busy {
-        button(container(icon(Glyph::Stop, 15, style::WHITE)).center_x(Fill).center_y(Fill))
+        button(container(icon(Glyph::Stop, 15, style::BLACK)).center_x(Fill).center_y(Fill))
             .on_press(Message::StopChat).width(34).height(34).padding(0)
-            .style(style::ghost_button).into()
+            .style(style::chat_send).into()
     } else {
         button(container(icon(Glyph::Send, 16, style::BLACK)).center_x(Fill).center_y(Fill))
             .on_press_maybe(can_send.then_some(Message::SendChat)).width(34).height(34).padding(0)
@@ -383,12 +385,12 @@ pub fn view<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &'a SettingsSt
     let composer = container(column![
         editor,
         row![
+            space().width(Fill),
             button(text(if stream_chat { "Streaming" } else { "Whole reply" }).size(11).font(style::LABEL))
                 .on_press(Message::ToggleStreaming).padding([5, 11])
                 .style(move |t, s| style::mini_toggle(stream_chat, t, s)),
-            space().width(Fill),
             send_control
-        ].align_y(Center)
+        ].spacing(8).align_y(Center)
     ].spacing(6)).max_width(860).width(Fill)
         .padding(iced::Padding { top: 12.0, right: 12.0, bottom: 8.0, left: 12.0 }).style(style::chat_panel);
     let error_notice: Element<'_, Message> = match current.and_then(|draft| draft.error.as_deref()) {

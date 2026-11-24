@@ -1,16 +1,23 @@
 //! Purpose: Provides the black-and-silver palette and restrained launcher widget styles.
-use iced::widget::{button, container, text_editor, text_input};
+use iced::widget::{button, container, scrollable, text_editor, text_input};
 use iced::{font, gradient, Background, Border, Color, Font, Radians, Shadow, Theme, Vector};
 
+// Colors are copied verbatim from the 1.9.0 reference `base.css` dark theme —
+// same screen, same values, no invented shades. `ACCENT` (#ffffff) is for
+// fills; `TEXT` (#f4f4f4) is for type.
 pub const BLACK: Color = Color::from_rgb8(0, 0, 0);
-pub const RAIL: Color = Color::from_rgb8(11, 11, 11);
-pub const SURFACE: Color = Color::from_rgb8(20, 20, 20);
-pub const LINE: Color = Color::from_rgb8(51, 51, 51);
-pub const WHITE: Color = Color::from_rgb8(244, 244, 244);
-pub const GREY: Color = Color::from_rgb8(178, 178, 178);
-pub const DIM: Color = Color::from_rgb8(145, 145, 145);
-pub const SUCCESS: Color = Color::from_rgb8(126, 207, 150);
-pub const FAILURE: Color = Color::from_rgb8(226, 139, 139);
+pub const BG_2: Color = Color::from_rgb8(0x0b, 0x0b, 0x0b);
+pub const CODE_BG: Color = Color::from_rgb8(0x0c, 0x0c, 0x0c);
+pub const RAIL: Color = BG_2;
+pub const SURFACE: Color = Color::from_rgb8(0x10, 0x10, 0x10);
+pub const LINE: Color = Color::from_rgb8(0x2c, 0x2c, 0x2c);
+pub const WHITE: Color = Color::from_rgb8(0xf4, 0xf4, 0xf4);
+pub const ACCENT: Color = Color::from_rgb8(0xff, 0xff, 0xff);
+pub const TEXT_2: Color = Color::from_rgb8(0xd4, 0xd4, 0xd4);
+pub const GREY: Color = Color::from_rgb8(0x8a, 0x8a, 0x8a);
+pub const DIM: Color = GREY;
+pub const SUCCESS: Color = Color::from_rgb8(0x22, 0xc5, 0x5e);
+pub const FAILURE: Color = Color::from_rgb8(0xef, 0x44, 0x44);
 // Measured 1.9.0 dark-theme tokens (public/css/base.css) for the Agent chat
 // chrome: surfaces lift one step above pure black so panel edges stay readable.
 pub const PANEL: Color = Color::from_rgb8(0x10, 0x10, 0x10);
@@ -19,8 +26,26 @@ pub const PANEL_3: Color = Color::from_rgb8(0x23, 0x23, 0x23);
 pub const BORDER: Color = Color::from_rgb8(0x2c, 0x2c, 0x2c);
 pub const BORDER_2: Color = Color::from_rgb8(0x40, 0x40, 0x40);
 pub const USER_BUBBLE: Color = Color::from_rgb8(0x16, 0x16, 0x16);
+pub const MUTED: Color = Color::from_rgb8(0x8a, 0x8a, 0x8a);
 pub const MUTED_2: Color = Color::from_rgb8(0x5c, 0x5c, 0x5c);
 pub const OK: Color = Color::from_rgb8(0x22, 0xc5, 0x5e);
+pub const DANGER: Color = Color::from_rgb8(0xef, 0x44, 0x44);
+pub const WARN: Color = Color::from_rgb8(0xea, 0xb3, 0x08);
+
+/// `--danger-soft: rgba(239, 68, 68, .12)` from the reference token table.
+pub fn danger_soft() -> Color {
+    Color::from_rgba(239.0 / 255.0, 68.0 / 255.0, 68.0 / 255.0, 0.12)
+}
+
+/// `color-mix(in srgb, var(--danger) 45%, transparent)` border tint.
+pub fn danger_border() -> Color {
+    Color::from_rgba(239.0 / 255.0, 68.0 / 255.0, 68.0 / 255.0, 0.45)
+}
+
+/// `color-mix(in srgb, var(--accent) 10%, transparent)` selection fill.
+pub fn accent_wash() -> Color {
+    Color::from_rgba(1.0, 1.0, 1.0, 0.10)
+}
 
 // Type roles and spacing are specified once in Docs/design.md and reused by views.
 #[cfg(not(target_os = "macos"))]
@@ -88,13 +113,13 @@ pub fn rail_divider(_: &Theme) -> container::Style {
 }
 
 pub fn settings_panel(_: &Theme) -> container::Style {
-    container::Style::default().background(Color::from_rgb8(15, 15, 16))
+    container::Style::default().background(BG_2)
         .border(Border { color: LINE, width: 1.0, radius: 0.0.into() })
 }
 
 pub fn rail_hint(_: &Theme) -> container::Style {
-    container::Style::default().background(Color::from_rgb8(34, 34, 36))
-        .border(Border { color: Color::from_rgb8(82, 82, 86), width: 1.0, radius: 8.0.into() })
+    container::Style::default().background(PANEL_2)
+        .border(Border { color: BORDER_2, width: 1.0, radius: 8.0.into() })
 }
 
 // Compact buttons are fixed 52px squares: silver selection, no full-width pill.
@@ -159,31 +184,35 @@ pub fn workbench_surface(_: &Theme, tuning: bool) -> container::Style {
 }
 
 pub fn badge(_: &Theme) -> container::Style {
+    // Reference `.system-prompt-glyph`: transparent 19px tile on a border-2
+    // hairline with 6px corners.
     container::Style::default()
-        .background(Color::from_rgb8(44, 44, 44))
+        .background(Color::TRANSPARENT)
         .border(Border {
-            color: Color::from_rgb8(70, 70, 70),
+            color: BORDER_2,
             width: 1.0,
             radius: 6.0.into(),
         })
 }
 
 pub fn composer_input(_: &Theme, status: text_input::Status) -> text_input::Style {
+    // Reference inputs: `--bg-2` field on a `--border` hairline; focus turns
+    // the hairline `--accent`.
     text_input::Style {
-        background: Background::Color(Color::from_rgb8(28, 28, 30)),
+        background: Background::Color(BG_2),
         border: Border {
             color: if matches!(status, text_input::Status::Focused { .. }) {
-                Color::from_rgb8(130, 130, 135)
+                ACCENT
             } else {
-                Color::from_rgb8(65, 65, 68)
+                BORDER
             },
             width: 1.0,
-            radius: 8.0.into(),
+            radius: 12.0.into(),
         },
         icon: GREY,
         placeholder: GREY,
         value: WHITE,
-        selection: LINE,
+        selection: BORDER,
     }
 }
 
@@ -320,8 +349,11 @@ pub fn chat_user(_: &Theme) -> container::Style {
         })
 }
 pub fn chat_thinking(_: &Theme) -> container::Style {
-    let mut style = container::Style::default().background(Color::from_rgb8(12, 12, 12))
-        .border(Border { color: Color::from_rgb8(43, 43, 43), width: 1.0, radius: 9.0.into() });
+    // chat.css `.thinking`: dashed --border-2 hairline over `accent 3%` wash
+    // (Iced has no dashed borders; the solid hairline is the closest match).
+    let mut style = container::Style::default()
+        .background(Color::from_rgba(1.0, 1.0, 1.0, 0.03))
+        .border(Border { color: BORDER_2, width: 1.0, radius: 12.0.into() });
     style.text_color = Some(GREY);
     style
 }
@@ -347,42 +379,43 @@ pub fn chat_editor(_: &Theme, _: text_editor::Status) -> text_editor::Style {
 }
 
 pub fn chat_error(_: &Theme) -> container::Style {
-    container::Style::default().background(Color::from_rgb8(37, 17, 18))
-        .border(Border { color: Color::from_rgb8(108, 46, 46), width: 1.0, radius: 9.0.into() })
+    container::Style::default().background(danger_soft())
+        .border(Border { color: danger_border(), width: 1.0, radius: 12.0.into() })
 }
 
 pub fn chat_code_header(_: &Theme) -> container::Style {
-    container::Style::default().background(Color::from_rgb8(23, 23, 23))
-        .border(Border { color: Color::from_rgb8(44, 44, 44), width: 1.0, radius: 0.0.into() })
+    container::Style::default().background(PANEL)
+        .border(Border { color: BORDER, width: 1.0, radius: 0.0.into() })
 }
 
-// Provider choices must read as controls, not loose gray words in a wide grid.
+// Provider choices follow `.model-opt`: quiet rows; the selected row takes the
+// reference's `accent 10%` wash — never a solid white fill.
 pub fn provider_choice(active: bool, _: &Theme, status: button::Status) -> button::Style {
     button::Style {
-        background: Some(if active { Color::from_rgb8(43, 43, 43) }
-            else if matches!(status, button::Status::Hovered | button::Status::Pressed) { Color::from_rgb8(27, 27, 27) }
-            else { Color::from_rgb8(17, 17, 17) }.into()),
+        background: Some(if active { accent_wash() }
+            else if matches!(status, button::Status::Hovered | button::Status::Pressed) { PANEL_2 }
+            else { Color::TRANSPARENT }.into()),
         text_color: if active { WHITE } else { GREY },
-        border: Border { color: if active { Color::from_rgb8(71, 71, 71) } else { Color::from_rgb8(35, 35, 35) },
+        border: Border { color: if active { BORDER_2 } else { Color::TRANSPARENT },
             width: 1.0, radius: 8.0.into() },
         ..button::Style::default()
     }
 }
 
-/// Dim the inactive settings page behind the Agent's model-import dialog.
+/// Dim the inactive settings page behind the Agent's model-import dialog
+/// (`.modal` overlay: `rgba(0, 0, 0, .55)`).
 pub fn catalog_scrim(_: &Theme, _: button::Status) -> button::Style {
     button::Style {
-        background: Some(Color::from_rgba(0.0, 0.0, 0.0, 0.78).into()),
+        background: Some(Color::from_rgba(0.0, 0.0, 0.0, 0.55).into()),
         ..button::Style::default()
     }
 }
 
 /// White, compact send affordance from the supplied 1.9.0 Chat compositor.
-pub fn chat_send(_: &Theme, status: button::Status) -> button::Style {
+/// The web app never disables this button — it always paints `--accent`.
+pub fn chat_send(_: &Theme, _status: button::Status) -> button::Style {
     button::Style {
-        background: Some(if matches!(status, button::Status::Disabled) {
-            Color::from_rgba(0.96, 0.96, 0.96, 0.4)
-        } else { WHITE }.into()),
+        background: Some(ACCENT.into()),
         text_color: BLACK,
         border: Border { radius: 11.0.into(), ..Border::default() },
         ..button::Style::default()
@@ -412,23 +445,25 @@ pub fn control_button(_: &Theme, status: button::Status) -> button::Style {
     }
 }
 
-/// `.btn.primary`: exactly one per view — white fill, black ink.
+/// `.btn.primary`: exactly one per view — `--accent` fill, black ink.
 pub fn primary_button(_: &Theme, status: button::Status) -> button::Style {
     button::Style {
         background: Some(if matches!(status, button::Status::Disabled) {
-            Color::from_rgba(0.96, 0.96, 0.96, 0.45)
+            Color::from_rgba(1.0, 1.0, 1.0, 0.5)
         } else if matches!(status, button::Status::Hovered | button::Status::Pressed) {
-            Color::from_rgb8(0xd9, 0xd9, 0xd9)
+            // `.btn.primary:hover { filter: brightness(.92) }`
+            Color::from_rgb8(0xeb, 0xeb, 0xeb)
         } else {
-            WHITE
+            ACCENT
         }.into()),
         text_color: BLACK,
-        border: Border { color: WHITE, width: 1.0, radius: 12.0.into() },
+        border: Border { color: ACCENT, width: 1.0, radius: 12.0.into() },
         ..button::Style::default()
     }
 }
 
 /// `.btn.ghost`: transparent until hover, used for secondary actions.
+/// Reference button text is `--text` (#f4f4f4) even on ghosts.
 pub fn ghost_button(_: &Theme, status: button::Status) -> button::Style {
     button::Style {
         background: Some(if matches!(status, button::Status::Hovered | button::Status::Pressed) {
@@ -436,7 +471,7 @@ pub fn ghost_button(_: &Theme, status: button::Status) -> button::Style {
         } else {
             Color::TRANSPARENT
         }.into()),
-        text_color: if matches!(status, button::Status::Disabled) { DIM } else { GREY },
+        text_color: if matches!(status, button::Status::Disabled) { GREY } else { WHITE },
         border: Border { color: Color::TRANSPARENT, width: 1.0, radius: 12.0.into() },
         ..button::Style::default()
     }
@@ -451,7 +486,7 @@ pub fn tiny_button(_: &Theme, status: button::Status) -> button::Style {
         } else {
             Color::TRANSPARENT
         }.into()),
-        text_color: if disabled { DIM } else { GREY },
+        text_color: if disabled { GREY } else { WHITE },
         border: Border {
             color: if matches!(status, button::Status::Hovered | button::Status::Pressed) { BORDER_2 } else { BORDER },
             width: 1.0,
@@ -459,6 +494,40 @@ pub fn tiny_button(_: &Theme, status: button::Status) -> button::Style {
         },
         ..button::Style::default()
     }
+}
+
+/// `.set-nav-btn`: transparent rows; active takes the panel fill plus the
+/// reference's inset 2px `--accent` left bar (drawn by the widget row).
+pub fn sub_nav(active: bool, _: &Theme, status: button::Status) -> button::Style {
+    button::Style {
+        background: Some(if active
+            || matches!(status, button::Status::Hovered | button::Status::Pressed) {
+            PANEL
+        } else {
+            Color::TRANSPARENT
+        }.into()),
+        text_color: if active { WHITE } else if matches!(status, button::Status::Hovered | button::Status::Pressed) { WHITE } else { GREY },
+        border: Border { color: Color::TRANSPARENT, width: 1.0, radius: 12.0.into() },
+        ..button::Style::default()
+    }
+}
+
+/// Reference switch track (import dialog's "Add only verified models"):
+/// `--accent` when on, `--muted-2` when off.
+pub fn switch_track(on: bool, _: &Theme, _: button::Status) -> button::Style {
+    button::Style {
+        background: Some((if on { ACCENT } else { MUTED_2 }).into()),
+        text_color: BLACK,
+        border: Border { radius: 999.0.into(), ..Border::default() },
+        ..button::Style::default()
+    }
+}
+
+/// Switch knob: black on the accent track, text-white on the muted track.
+pub fn switch_knob(on: bool, _: &Theme) -> container::Style {
+    container::Style::default()
+        .background(if on { BLACK } else { WHITE })
+        .border(Border { radius: 999.0.into(), ..Border::default() })
 }
 
 /// `.page-nav-btn` / `.set-nav-btn`: compact rows with a quiet active state.
@@ -495,19 +564,19 @@ pub fn topbar_pill(_: &Theme, status: button::Status) -> button::Style {
     }
 }
 
-/// `.mini-toggle`: pill switch — outlined when off, white when on.
+/// `.mini-toggle`: pill switch — outlined when off, `--accent` when on.
 pub fn mini_toggle(on: bool, _: &Theme, status: button::Status) -> button::Style {
     button::Style {
         background: Some(if on {
-            WHITE
+            ACCENT
         } else if matches!(status, button::Status::Hovered | button::Status::Pressed) {
             PANEL_2
         } else {
             Color::TRANSPARENT
         }.into()),
-        text_color: if on { BLACK } else if matches!(status, button::Status::Hovered) { WHITE } else { GREY },
+        text_color: if on { BLACK } else if matches!(status, button::Status::Hovered) { TEXT_2 } else { GREY },
         border: Border {
-            color: if on { WHITE } else if matches!(status, button::Status::Hovered) { BORDER_2 } else { BORDER },
+            color: if on { ACCENT } else if matches!(status, button::Status::Hovered) { BORDER_2 } else { BORDER },
             width: 1.0,
             radius: 20.0.into(),
         },
@@ -587,12 +656,12 @@ pub fn status_dot(connected: bool, _: &Theme) -> container::Style {
         .border(Border { radius: 6.0.into(), ..Border::default() })
 }
 
-/// Import-dialog checkbox (17px): white fill when checked, hairline when not.
+/// Import-dialog checkbox (17px): `--accent` fill when checked, hairline when not.
 pub fn checkbox(checked: bool, _: &Theme) -> container::Style {
     container::Style::default()
-        .background(if checked { WHITE } else { Color::TRANSPARENT })
+        .background(if checked { ACCENT } else { Color::TRANSPARENT })
         .border(Border {
-            color: if checked { WHITE } else { BORDER_2 },
+            color: if checked { ACCENT } else { BORDER_2 },
             width: 1.0,
             radius: 4.0.into(),
         })
@@ -617,16 +686,34 @@ pub fn card(_: &Theme) -> container::Style {
         .border(Border { color: BORDER, width: 1.0, radius: 16.0.into() })
 }
 
-/// Import-row status dot: muted before a probe, green/red after one.
+/// Import-row status dot. The reference only greens passing dots
+/// (`.model-import-row.passed .model-row-dot`); failed and unprobed rows keep
+/// the quiet `--muted-2` dot, and the failure detail lives in the red pill.
 pub fn probe_dot(ok: Option<bool>, _: &Theme) -> container::Style {
     let color = match ok {
         Some(true) => OK,
-        Some(false) => FAILURE,
-        None => MUTED_2,
+        Some(false) | None => MUTED_2,
     };
     container::Style::default()
         .background(color)
         .border(Border { radius: 6.0.into(), ..Border::default() })
+}
+
+/// Scrollbars: the reference browser paints overlay-thin dark bars; Iced's
+/// default theme scrollbar (#5d626d grey column) must never appear.
+pub fn quiet_scroll(_: &Theme, _: scrollable::Status) -> scrollable::Style {
+    scrollable::Style {
+        container: container::Style::default(),
+        scrollbar: scrollable::Scrollbar {
+            background: None,
+            border: Border::default(),
+            scroller: scrollable::Scroller {
+                color: BORDER,
+                border: Border { radius: 4.0.into(), ..Border::default() },
+            },
+        },
+        gap: None,
+    }
 }
 
 #[cfg(test)]
@@ -656,7 +743,7 @@ mod reference_token_tests {
     #[test]
     fn one_primary_action_is_white_with_black_ink() {
         let primary = primary_button(&Theme::Dark, button::Status::Active);
-        assert_eq!(primary.background, Some(Background::Color(WHITE)));
+        assert_eq!(primary.background, Some(Background::Color(ACCENT)));
         assert_eq!(primary.text_color, BLACK);
         let disabled = primary_button(&Theme::Dark, button::Status::Disabled);
         assert!(disabled.background.is_some());
@@ -676,19 +763,20 @@ mod reference_token_tests {
     fn mini_toggle_is_white_only_while_on() {
         let on = mini_toggle(true, &Theme::Dark, button::Status::Active);
         let off = mini_toggle(false, &Theme::Dark, button::Status::Active);
-        assert_eq!(on.background, Some(Background::Color(WHITE)));
+        assert_eq!(on.background, Some(Background::Color(ACCENT)));
         assert_eq!(on.text_color, BLACK);
         assert_eq!(off.background, Some(Background::Color(Color::TRANSPARENT)));
     }
 
     #[test]
     fn checkbox_and_status_dot_track_their_state() {
-        assert_eq!(checkbox(true, &Theme::Dark).background, Some(Background::Color(WHITE)));
+        assert_eq!(checkbox(true, &Theme::Dark).background, Some(Background::Color(ACCENT)));
         assert_eq!(checkbox(false, &Theme::Dark).background, Some(Background::Color(Color::TRANSPARENT)));
         assert_eq!(status_dot(true, &Theme::Dark).background, Some(Background::Color(OK)));
         assert_eq!(status_dot(false, &Theme::Dark).background, Some(Background::Color(MUTED_2)));
         assert_eq!(probe_dot(Some(true), &Theme::Dark).background, Some(Background::Color(OK)));
-        assert_eq!(probe_dot(Some(false), &Theme::Dark).background, Some(Background::Color(FAILURE)));
+        // Failed rows keep the quiet dot; the red pill carries the failure.
+        assert_eq!(probe_dot(Some(false), &Theme::Dark).background, Some(Background::Color(MUTED_2)));
         assert_eq!(probe_dot(None, &Theme::Dark).background, Some(Background::Color(MUTED_2)));
     }
 
@@ -698,6 +786,37 @@ mod reference_token_tests {
         assert_eq!(card.background, Some(Background::Color(PANEL)));
         assert_eq!(card.border.color, BORDER);
         assert_eq!(card.border.radius.top_left, 16.0);
+    }
+
+    #[test]
+    fn palette_is_the_reference_table_with_no_invented_greys() {
+        assert_eq!(LINE, Color::from_rgb8(0x2c, 0x2c, 0x2c));
+        assert_eq!(GREY, Color::from_rgb8(0x8a, 0x8a, 0x8a));
+        assert_eq!(DIM, GREY);
+        assert_eq!(SURFACE, PANEL);
+        assert_eq!(RAIL, BG_2);
+        assert_eq!(FAILURE, DANGER);
+        assert_eq!(SUCCESS, OK);
+    }
+
+    #[test]
+    fn modal_scrim_matches_the_reference_overlay() {
+        let scrim = catalog_scrim(&Theme::Dark, button::Status::Active);
+        assert_eq!(scrim.background, Some(Background::Color(Color::from_rgba(0.0, 0.0, 0.0, 0.55))));
+    }
+
+    #[test]
+    fn ghost_buttons_use_reference_text_and_send_stays_accent() {
+        let ghost = ghost_button(&Theme::Dark, button::Status::Active);
+        assert_eq!(ghost.text_color, WHITE);
+        let send = chat_send(&Theme::Dark, button::Status::Disabled);
+        assert_eq!(send.background, Some(Background::Color(ACCENT)));
+    }
+
+    #[test]
+    fn model_selection_is_an_accent_wash_not_a_white_fill() {
+        let sel = provider_choice(true, &Theme::Dark, button::Status::Active);
+        assert_eq!(sel.background, Some(Background::Color(accent_wash())));
     }
 
     #[test]

@@ -118,7 +118,8 @@ fn surface(content: impl Into<Element<'static, Message>>) -> Element<'static, Me
 }
 
 fn eyebrow(label: &'static str) -> Element<'static, Message> {
-    text(label).size(11).font(style::LABEL).color(style::DIM).into()
+    // Reference `.set-sec h4`: uppercase section label in `--accent`.
+    text(label).size(12).font(style::STRONG).color(style::WHITE).into()
 }
 
 /// 17px reference checkbox (`.model-import-row input[type="checkbox"]`).
@@ -167,16 +168,15 @@ pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Elem
         space().height(12)
     ].into() };
     let page_head = container(column![
-        text("Settings").size(22).font(style::STRONG).color(style::WHITE),
+        text("Settings").size(24).font(style::STRONG).color(style::WHITE),
         text("Manage the Agent's providers and models. Other reference features are not yet available here.")
-            .size(13).color(style::GREY)
+            .size(12.5).color(style::GREY)
     ].spacing(5)).width(Fill).padding([18, 28]).style(style::settings_header);
     let category = container(scrollable(column![
         setting_link("Providers", Section::Providers, state.section),
         setting_link("Models", Section::Models, state.section),
-        space().height(14),
         setting_link("Lab preview", Section::Lab, state.section)
-    ].spacing(2).padding([16, 12])).height(Fill)).width(200).height(Fill).style(style::rail);
+    ].spacing(4).padding([16, 12])).height(Fill).style(style::quiet_scroll)).width(200).height(Fill).style(style::rail);
     let body = column![
         eyebrow("AGENT SETTINGS"),
         space().height(8),
@@ -191,10 +191,16 @@ pub fn view(state: &SettingsState, memory: MemoryMode, keep_agent: bool) -> Elem
             Section::Lab => lab(memory, keep_agent),
         }
     ].width(Fill).padding(iced::Padding { top: 24.0, right: 28.0, bottom: 40.0, left: 28.0 });
-    let base = column![page_head, row![
-        category,
-        scrollable(container(body).max_width(960).center_x(Fill)).width(Fill).height(Fill)
-    ].width(Fill).height(Fill)].width(Fill).height(Fill);
+    let base = column![
+        page_head,
+        container(space().height(1)).width(Fill).style(style::rail_divider),
+        row![
+            category,
+            container(space().width(1)).height(Fill).style(style::rail_divider),
+            scrollable(container(body).max_width(960).center_x(Fill)).width(Fill).height(Fill)
+                .style(style::quiet_scroll)
+        ].width(Fill).height(Fill)
+    ].width(Fill).height(Fill);
     base.into()
 }
 
@@ -210,10 +216,18 @@ pub fn catalog_overlay(state: &SettingsState) -> Element<'static, Message> {
 }
 
 fn setting_link(label: &'static str, section: Section, current: Section) -> Element<'static, Message> {
-    button(text(label).size(13).font(style::LABEL))
-        .width(Fill).padding([8, 12])
+    let active = section == current;
+    let bar: Element<'static, Message> = if active {
+        container(space().width(2).height(16))
+            .style(|_| container::Style::default().background(style::ACCENT)
+                .border(iced::Border { radius: 1.0.into(), ..iced::Border::default() })).into()
+    } else {
+        space().width(2).height(16).into()
+    };
+    button(row![bar, text(label).size(13.5).font(style::LABEL)].spacing(10).align_y(Center))
+        .width(Fill).padding([8, 10])
         .on_press(Message::SettingsSection(section))
-        .style(move |t, status| style::side_nav(section == current, t, status)).into()
+        .style(move |t, status| style::sub_nav(active, t, status)).into()
 }
 
 fn provider_tabs(current: Provider, busy: bool) -> Element<'static, Message> {
@@ -364,7 +378,7 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
         let dot: Element<'static, Message> = container(space().width(7).height(7))
             .style(move |t| style::probe_dot(probe_ok, t)).into();
         let id_text = text(model.id.clone()).size(12.5).font(style::LABEL)
-            .color(if selected { style::WHITE } else { style::GREY });
+            .color(style::WHITE);
         let tags: Element<'static, Message> = if manual {
             tag("manual", None).into()
         } else if model.free {
@@ -380,10 +394,13 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
             dot, id_text, tags, space().width(Fill), status, checkbox_box(selected)
         ].spacing(8).align_y(Center))
             .width(Fill).padding([8, 10]).on_press_maybe((!state.probe_busy).then_some(Message::ToggleCatalogSelection(state.provider, slot)))
-            .style(move |t, s| style::list_row(selected, t, s))].spacing(2);
-        if let Some((ok, output)) = probe {
+            .style(move |t, s| style::list_row(false, t, s))].spacing(2);
+        if let Some((_ok, output)) = probe {
+            // Fuller bounded probe evidence than the web's collapsed detail;
+            // it stays quiet like `.import-detail summary` — the status pill
+            // above carries the only strong color.
             entry = entry.push(container(row![
-                text(output.to_owned()).size(10.5).color(if ok { style::SUCCESS } else { style::FAILURE })
+                text(output.to_owned()).size(10.5).color(style::GREY)
             ].padding(iced::Padding { top: 0.0, right: 0.0, bottom: 0.0, left: 27.0 })).width(Fill));
         }
         items = items.push(entry);
@@ -424,24 +441,41 @@ fn catalog_dialog(state: &SettingsState) -> Element<'static, Message> {
             button(text("Clear all").size(11)).on_press_maybe((!state.probe_busy).then_some(Message::ClearCatalogSelection)).style(style::tiny_button)
         ].align_y(Center).spacing(8),
         row![
-            button(text(if only_verified { "Add only verified models" } else { "Add only verified models" }).size(11.5).font(style::LABEL))
-                .on_press_maybe((!state.probe_busy).then_some(Message::ToggleCatalogVerified))
-                .padding([6, 13]).style(move |t, s| style::mini_toggle(only_verified, t, s)),
-            text("testing never auto-starts; only verified skips untested and failed IDs").size(11).color(style::DIM)
+            {
+                let knob = container(space().width(14).height(14))
+                    .style(move |t| style::switch_knob(only_verified, t));
+                let track: Element<'static, Message> = if only_verified {
+                    row![space().width(Fill), knob].align_y(Center).into()
+                } else {
+                    row![knob, space().width(Fill)].align_y(Center).into()
+                };
+                button(container(track).width(36).height(20).padding(2))
+                    .on_press_maybe((!state.probe_busy).then_some(Message::ToggleCatalogVerified))
+                    .padding(0).width(36).height(20)
+                    .style(move |t, s| style::switch_track(only_verified, t, s))
+            },
+            column![
+                text("Add only verified models").size(12.5).font(style::STRONG).color(style::WHITE),
+                text("testing never auto-starts; only verified skips untested and failed IDs").size(11).color(style::GREY)
+            ].spacing(2)
         ].spacing(10).align_y(Center),
-        scrollable(container(items).width(Fill).padding(8).style(style::card)).height(list_height),
+        scrollable(container(items).width(Fill).padding(8).style(style::card)).height(list_height)
+            .style(style::quiet_scroll),
         row![
             button(text("Previous").size(11)).on_press_maybe((start > 0).then_some(Message::CatalogPrevious)).style(style::tiny_button),
             text(format!("{}–{} of {} new matches", start.min(matching.len()) + usize::from(!matching.is_empty()), (start + 60).min(matching.len()), matching.len()))
                 .size(11).color(style::DIM).width(Fill),
             button(text("Next").size(11)).on_press_maybe((start + 60 < matching.len()).then_some(Message::CatalogNext)).style(style::tiny_button)
         ].align_y(Center).spacing(8),
-        row![
-            text_input("Model not listed? Enter an exact ID", &state.model_entry)
-                .on_input(Message::EditModel).padding([9, 11]).style(style::composer_input),
-            button(text("Stage ID").size(12))
-                .on_press_maybe((!state.probe_busy).then_some(Message::StageCatalogId)).style(style::control_button)
-        ].spacing(8),
+        column![
+            text("Model not listed? Enter an exact ID").size(13).color(style::WHITE),
+            row![
+                text_input("e.g. my-finetune-v2", &state.model_entry)
+                    .on_input(Message::EditModel).padding([9, 11]).style(style::composer_input),
+                button(text("Stage ID").size(12))
+                    .on_press_maybe((!state.probe_busy).then_some(Message::StageCatalogId)).style(style::control_button)
+            ].spacing(8)
+        ].spacing(6),
         row![
             button(text(if state.probe_busy { "Testing…" } else { "Test selected…  (may be billable)" }).size(12))
                 .on_press_maybe((checked > 0 && !state.probe_busy).then_some(Message::RequestCatalogProbe)).style(style::control_button),
