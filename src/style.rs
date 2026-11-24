@@ -702,17 +702,25 @@ pub fn probe_dot(ok: Option<bool>, _: &Theme) -> container::Style {
 /// Scrollbars: the reference browser paints overlay-thin dark bars; Iced's
 /// default theme scrollbar (#5d626d grey column) must never appear.
 pub fn quiet_scroll(_: &Theme, _: scrollable::Status) -> scrollable::Style {
+    let rail = scrollable::Rail {
+        background: None,
+        border: Border::default(),
+        scroller: scrollable::Scroller {
+            background: Background::Color(BORDER),
+            border: Border { radius: 4.0.into(), ..Border::default() },
+        },
+    };
     scrollable::Style {
         container: container::Style::default(),
-        scrollbar: scrollable::Scrollbar {
-            background: None,
-            border: Border::default(),
-            scroller: scrollable::Scroller {
-                color: BORDER,
-                border: Border { radius: 4.0.into(), ..Border::default() },
-            },
-        },
+        vertical_rail: rail,
+        horizontal_rail: rail,
         gap: None,
+        auto_scroll: scrollable::AutoScroll {
+            background: Background::Color(PANEL),
+            border: Border { radius: 8.0.into(), ..Border::default() },
+            shadow: Shadow::default(),
+            icon: WHITE,
+        },
     }
 }
 
