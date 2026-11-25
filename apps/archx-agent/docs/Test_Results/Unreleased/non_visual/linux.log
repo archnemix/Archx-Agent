@@ -5,446 +5,446 @@
 COMMAND: cargo test --locked
 [1m[92m Downloading[0m crates ...
 [1m[92m  Downloaded[0m ab_glyph_rasterizer v0.1.10
-[1m[92m  Downloaded[0m ab_glyph v0.2.32
-[1m[92m  Downloaded[0m ahash v0.8.14
 [1m[92m  Downloaded[0m adler2 v2.0.1
-[1m[92m  Downloaded[0m aes v0.9.4
-[1m[92m  Downloaded[0m atomic-waker v1.1.2
-[1m[92m  Downloaded[0m async-signal v0.2.14
-[1m[92m  Downloaded[0m equator v0.4.2
-[1m[92m  Downloaded[0m fdeflate v0.3.7
-[1m[92m  Downloaded[0m aligned v0.4.3
-[1m[92m  Downloaded[0m arrayref v0.3.9
-[1m[92m  Downloaded[0m displaydoc v0.2.7
-[1m[92m  Downloaded[0m anyhow v1.0.105
-[1m[92m  Downloaded[0m av1-grain v0.2.5
-[1m[92m  Downloaded[0m cmov v0.5.4
-[1m[92m  Downloaded[0m event-listener v5.4.2
-[1m[92m  Downloaded[0m multiversion v0.8.1
-[1m[92m  Downloaded[0m cfg_aliases v0.2.2
-[1m[92m  Downloaded[0m cpubits v0.1.1
-[1m[92m  Downloaded[0m arg_enum_proc_macro v0.3.4
-[1m[92m  Downloaded[0m cfg-if v1.0.5
-[1m[92m  Downloaded[0m cursor-icon v1.2.0
-[1m[92m  Downloaded[0m errno v0.3.15
-[1m[92m  Downloaded[0m document-features v0.2.12
-[1m[92m  Downloaded[0m dtor v0.8.1
-[1m[92m  Downloaded[0m event-listener-strategy v0.5.4
-[1m[92m  Downloaded[0m calloop-wayland-source v0.4.1
-[1m[92m  Downloaded[0m clipboard_x11 v0.4.3
-[1m[92m  Downloaded[0m color_quant v1.1.0
-[1m[92m  Downloaded[0m as-slice v0.2.1
-[1m[92m  Downloaded[0m dlib v0.5.3
-[1m[92m  Downloaded[0m core_maths v0.1.1
-[1m[92m  Downloaded[0m clipboard_wayland v0.2.2
-[1m[92m  Downloaded[0m enumflags2_derive v0.7.12
-[1m[92m  Downloaded[0m cpufeatures v0.3.1
-[1m[92m  Downloaded[0m downcast-rs v1.2.1
-[1m[92m  Downloaded[0m equivalent v1.0.3
-[1m[92m  Downloaded[0m as-raw-xcb-connection v1.0.1
-[1m[92m  Downloaded[0m calloop-wayland-source v0.3.0
-[1m[92m  Downloaded[0m android-build v0.1.4
-[1m[92m  Downloaded[0m block-padding v0.4.2
-[1m[92m  Downloaded[0m crypto-common v0.2.2
-[1m[92m  Downloaded[0m endi v1.1.1
-[1m[92m  Downloaded[0m mio v1.2.5
-[1m[92m  Downloaded[0m block-buffer v0.12.1
-[1m[92m  Downloaded[0m dpi v0.1.2
-[1m[92m  Downloaded[0m xmlwriter v0.1.0
-[1m[92m  Downloaded[0m bit-set v0.8.0
-[1m[92m  Downloaded[0m bit_field v0.10.4
-[1m[92m  Downloaded[0m byteorder-lite v0.1.0
-[1m[92m  Downloaded[0m equator-macro v0.4.2
+[1m[92m  Downloaded[0m ab_glyph v0.2.32
 [1m[92m  Downloaded[0m maybe-rayon v0.1.1
 [1m[92m  Downloaded[0m cipher v0.5.2
-[1m[92m  Downloaded[0m aligned-vec v0.6.4
-[1m[92m  Downloaded[0m async-broadcast v0.7.2
-[1m[92m  Downloaded[0m async-channel v2.5.0
-[1m[92m  Downloaded[0m async-executor v1.14.1
-[1m[92m  Downloaded[0m async-process v2.5.0
-[1m[92m  Downloaded[0m async-recursion v1.2.0
+[1m[92m  Downloaded[0m aes v0.9.4
+[1m[92m  Downloaded[0m ahash v0.8.14
+[1m[92m  Downloaded[0m atomic-waker v1.1.2
 [1m[92m  Downloaded[0m autocfg v1.5.1
-[1m[92m  Downloaded[0m avif-serialize v0.8.9
-[1m[92m  Downloaded[0m bit-vec v0.8.0
-[1m[92m  Downloaded[0m bitflags v1.3.2
-[1m[92m  Downloaded[0m cbc v0.2.1
-[1m[92m  Downloaded[0m crc32fast v1.5.6
-[1m[92m  Downloaded[0m crossbeam-deque v0.8.8
-[1m[92m  Downloaded[0m data-url v0.3.2
-[1m[92m  Downloaded[0m digest v0.11.3
-[1m[92m  Downloaded[0m enumflags2 v0.7.12
-[1m[92m  Downloaded[0m etagere v0.2.15
-[1m[92m  Downloaded[0m blocking v1.7.0
-[1m[92m  Downloaded[0m concurrent-queue v2.5.0
-[1m[92m  Downloaded[0m either v1.19.0
-[1m[92m  Downloaded[0m chacha20 v0.10.2
-[1m[92m  Downloaded[0m crossbeam-epoch v0.9.21
-[1m[92m  Downloaded[0m ctutils v0.4.8
-[1m[92m  Downloaded[0m fax v0.2.7
-[1m[92m  Downloaded[0m float-cmp v0.9.0
-[1m[92m  Downloaded[0m new_debug_unreachable v1.0.6
-[1m[92m  Downloaded[0m zeroize v1.9.2
-[1m[92m  Downloaded[0m zerovec-derive v0.11.7
-[1m[92m  Downloaded[0m async-lock v3.5.0
-[1m[92m  Downloaded[0m async-task v4.7.1
-[1m[92m  Downloaded[0m bytemuck_derive v1.12.1
-[1m[92m  Downloaded[0m crossbeam-utils v0.8.23
-[1m[92m  Downloaded[0m ctor v0.10.1
-[1m[92m  Downloaded[0m fastrand v2.5.0
-[1m[92m  Downloaded[0m futures-io v0.3.34
-[1m[92m  Downloaded[0m futures-macro v0.3.34
-[1m[92m  Downloaded[0m futures-sink v0.3.34
-[1m[92m  Downloaded[0m miniz_oxide v0.9.1
-[1m[92m  Downloaded[0m zbus_macros v5.19.0
-[1m[92m  Downloaded[0m arrayvec v0.7.8
-[1m[92m  Downloaded[0m async-io v2.6.0
-[1m[92m  Downloaded[0m async-trait v0.1.92
-[1m[92m  Downloaded[0m bitstream-io v4.10.0
-[1m[92m  Downloaded[0m codespan-reporting v0.12.0
-[1m[92m  Downloaded[0m bitflags v2.13.2
-[1m[92m  Downloaded[0m bytes v1.12.2
-[1m[92m  Downloaded[0m const-oid v0.10.3
-[1m[92m  Downloaded[0m font-types v0.10.1
-[1m[92m  Downloaded[0m proc-macro-crate v3.5.0
-[1m[92m  Downloaded[0m xkeysym v0.2.1
-[1m[92m  Downloaded[0m zune-inflate v0.2.54
-[1m[92m  Downloaded[0m base64 v0.22.1
-[1m[92m  Downloaded[0m base64 v0.23.1
-[1m[92m  Downloaded[0m built v0.8.1
 [1m[92m  Downloaded[0m bumpalo v3.20.4
-[1m[92m  Downloaded[0m bytemuck v1.25.2
-[1m[92m  Downloaded[0m calloop v0.13.0
-[1m[92m  Downloaded[0m calloop v0.14.5
-[1m[92m  Downloaded[0m euclid v0.22.14
-[1m[92m  Downloaded[0m futures v0.3.34
-[1m[92m  Downloaded[0m futures-lite v2.6.1
-[1m[92m  Downloaded[0m hmac v0.13.0
-[1m[92m  Downloaded[0m http-body v1.1.0
-[1m[92m  Downloaded[0m http-body-util v0.1.5
-[1m[92m  Downloaded[0m iced_tiny_skia v0.14.1
-[1m[92m  Downloaded[0m num-derive v0.4.2
-[1m[92m  Downloaded[0m percent-encoding v2.3.2
-[1m[92m  Downloaded[0m pico-args v0.5.0
-[1m[92m  Downloaded[0m cc v1.11.3
-[1m[92m  Downloaded[0m cryoglyph v0.1.0
-[1m[92m  Downloaded[0m hashbrown v0.17.2
-[1m[92m  Downloaded[0m http v1.5.0
-[1m[92m  Downloaded[0m iced_wgpu v0.14.0
-[1m[92m  Downloaded[0m icu_provider v2.4.0
-[1m[92m  Downloaded[0m keyring v4.2.0
-[1m[92m  Downloaded[0m keyring-core v1.1.0
-[1m[92m  Downloaded[0m lru v0.16.4
-[1m[92m  Downloaded[0m lru-slab v0.1.3
-[1m[92m  Downloaded[0m mutate_once v0.1.2
-[1m[92m  Downloaded[0m noop_proc_macro v0.3.0
-[1m[92m  Downloaded[0m num-integer v0.1.47
-[1m[92m  Downloaded[0m num-iter v0.1.46
-[1m[92m  Downloaded[0m parking v2.2.1
-[1m[92m  Downloaded[0m pastey v0.1.1
-[1m[92m  Downloaded[0m profiling v1.0.18
-[1m[92m  Downloaded[0m profiling-procmacros v1.0.18
-[1m[92m  Downloaded[0m pulldown-cmark-escape v0.11.0
-[1m[92m  Downloaded[0m quick-error v2.0.1
+[1m[92m  Downloaded[0m arrayref v0.3.9
+[1m[92m  Downloaded[0m avif-serialize v0.8.9
 [1m[92m  Downloaded[0m rand_pcg v0.10.3
-[1m[92m  Downloaded[0m serde_urlencoded v0.7.1
-[1m[92m  Downloaded[0m svg_fmt v0.4.5
-[1m[92m  Downloaded[0m exr v1.74.3
-[1m[92m  Downloaded[0m find-msvc-tools v0.1.15
-[1m[92m  Downloaded[0m iced_widget v0.14.2
-[1m[92m  Downloaded[0m icu_properties_data v2.4.0
-[1m[92m  Downloaded[0m idna v1.1.0
-[1m[92m  Downloaded[0m num v0.4.3
-[1m[92m  Downloaded[0m potential_utf v0.1.6
+[1m[92m  Downloaded[0m as-slice v0.2.1
+[1m[92m  Downloaded[0m av-scenechange v0.14.1
+[1m[92m  Downloaded[0m av1-grain v0.2.5
+[1m[92m  Downloaded[0m block-buffer v0.12.1
+[1m[92m  Downloaded[0m async-executor v1.14.1
+[1m[92m  Downloaded[0m bitflags v1.3.2
+[1m[92m  Downloaded[0m bit-vec v0.8.0
+[1m[92m  Downloaded[0m blocking v1.7.0
+[1m[92m  Downloaded[0m color_quant v1.1.0
+[1m[92m  Downloaded[0m dtor v0.8.1
+[1m[92m  Downloaded[0m async-io v2.6.0
+[1m[92m  Downloaded[0m chacha20 v0.10.2
+[1m[92m  Downloaded[0m cmov v0.5.4
+[1m[92m  Downloaded[0m document-features v0.2.12
+[1m[92m  Downloaded[0m pastey v0.1.1
+[1m[92m  Downloaded[0m async-lock v3.5.0
+[1m[92m  Downloaded[0m bit_field v0.10.4
+[1m[92m  Downloaded[0m data-url v0.3.2
+[1m[92m  Downloaded[0m scoped-tls v1.0.1
+[1m[92m  Downloaded[0m bitflags v2.13.2
+[1m[92m  Downloaded[0m byteorder-lite v0.1.0
+[1m[92m  Downloaded[0m calloop-wayland-source v0.4.1
+[1m[92m  Downloaded[0m digest v0.11.3
+[1m[92m  Downloaded[0m crc32fast v1.5.6
+[1m[92m  Downloaded[0m event-listener v5.4.2
+[1m[92m  Downloaded[0m async-process v2.5.0
+[1m[92m  Downloaded[0m bytemuck_derive v1.12.1
+[1m[92m  Downloaded[0m crossbeam-deque v0.8.8
+[1m[92m  Downloaded[0m downcast-rs v1.2.1
 [1m[92m  Downloaded[0m rustc-hash v2.1.3
-[1m[92m  Downloaded[0m scopeguard v1.2.0
-[1m[92m  Downloaded[0m serde_repr v0.1.21
-[1m[92m  Downloaded[0m simd_helpers v0.1.1
-[1m[92m  Downloaded[0m siphasher v1.0.4
-[1m[92m  Downloaded[0m sipper v0.1.0
-[1m[92m  Downloaded[0m smithay-client-toolkit v0.20.0
-[1m[92m  Downloaded[0m socket2 v0.6.5
-[1m[92m  Downloaded[0m softbuffer v0.4.8
-[1m[92m  Downloaded[0m svgtypes v0.15.3
-[1m[92m  Downloaded[0m toml_datetime v1.1.3+spec-1.1.0
-[1m[92m  Downloaded[0m toml_edit v0.25.21+spec-1.1.0
-[1m[92m  Downloaded[0m tower-service v0.3.3
-[1m[92m  Downloaded[0m tracing-attributes v0.1.31
-[1m[92m  Downloaded[0m tracing-core v0.1.36
-[1m[92m  Downloaded[0m try-lock v0.2.5
-[1m[92m  Downloaded[0m utf8_iter v1.1.0
-[1m[92m  Downloaded[0m zerocopy v0.8.65
-[1m[92m  Downloaded[0m zvariant_derive v5.15.1
-[1m[92m  Downloaded[0m ash v0.38.0+1.3.281
-[1m[92m  Downloaded[0m glam v0.25.0
-[1m[92m  Downloaded[0m hex v0.4.3
-[1m[92m  Downloaded[0m hexf-parse v0.2.1
-[1m[92m  Downloaded[0m multiversion-macros v0.8.1
+[1m[92m  Downloaded[0m cpufeatures v0.3.1
+[1m[92m  Downloaded[0m new_debug_unreachable v1.0.6
+[1m[92m  Downloaded[0m noop_proc_macro v0.3.0
+[1m[92m  Downloaded[0m potential_utf v0.1.6
+[1m[92m  Downloaded[0m crossbeam-epoch v0.9.21
+[1m[92m  Downloaded[0m built v0.8.1
+[1m[92m  Downloaded[0m cbc v0.2.1
+[1m[92m  Downloaded[0m equator v0.4.2
+[1m[92m  Downloaded[0m num-iter v0.1.46
+[1m[92m  Downloaded[0m arrayvec v0.7.8
+[1m[92m  Downloaded[0m bitstream-io v4.10.0
+[1m[92m  Downloaded[0m ravif v0.13.0
+[1m[92m  Downloaded[0m rustversion v1.0.23
+[1m[92m  Downloaded[0m serde_urlencoded v0.7.1
+[1m[92m  Downloaded[0m quote v1.0.47
+[1m[92m  Downloaded[0m arg_enum_proc_macro v0.3.4
+[1m[92m  Downloaded[0m event-listener-strategy v0.5.4
+[1m[92m  Downloaded[0m signal-hook-registry v1.4.8
 [1m[92m  Downloaded[0m ordered-stream v0.2.0
 [1m[92m  Downloaded[0m owned_ttf_parser v0.25.1
-[1m[92m  Downloaded[0m paste v1.0.15
 [1m[92m  Downloaded[0m pin-project-lite v0.2.18
-[1m[92m  Downloaded[0m piper v0.2.5
-[1m[92m  Downloaded[0m pkg-config v0.3.34
-[1m[92m  Downloaded[0m quinn-udp v0.5.16
-[1m[92m  Downloaded[0m quote v1.0.47
-[1m[92m  Downloaded[0m rand_core v0.10.1
-[1m[92m  Downloaded[0m raw-window-handle v0.6.2
+[1m[92m  Downloaded[0m quick-error v2.0.1
+[1m[92m  Downloaded[0m block-padding v0.4.2
+[1m[92m  Downloaded[0m ctor v0.10.1
+[1m[92m  Downloaded[0m either v1.19.0
+[1m[92m  Downloaded[0m enumflags2 v0.7.12
+[1m[92m  Downloaded[0m scopeguard v1.2.0
+[1m[92m  Downloaded[0m fdeflate v0.3.7
+[1m[92m  Downloaded[0m memmap2 v0.9.12
+[1m[92m  Downloaded[0m miniz_oxide v0.8.9
+[1m[92m  Downloaded[0m aligned v0.4.3
+[1m[92m  Downloaded[0m anyhow v1.0.105
+[1m[92m  Downloaded[0m clipboard_wayland v0.2.2
+[1m[92m  Downloaded[0m clipboard_x11 v0.4.3
+[1m[92m  Downloaded[0m errno v0.3.15
+[1m[92m  Downloaded[0m crossbeam-utils v0.8.23
+[1m[92m  Downloaded[0m displaydoc v0.2.7
+[1m[92m  Downloaded[0m equivalent v1.0.3
+[1m[92m  Downloaded[0m aligned-vec v0.6.4
+[1m[92m  Downloaded[0m async-channel v2.5.0
+[1m[92m  Downloaded[0m bit-set v0.8.0
+[1m[92m  Downloaded[0m num-derive v0.4.2
+[1m[92m  Downloaded[0m parking v2.2.1
+[1m[92m  Downloaded[0m profiling-procmacros v1.0.18
 [1m[92m  Downloaded[0m renderdoc-sys v1.1.0
-[1m[92m  Downloaded[0m rustc-hash v1.1.0
-[1m[92m  Downloaded[0m rustversion v1.0.23
-[1m[92m  Downloaded[0m scoped-tls v1.0.1
-[1m[92m  Downloaded[0m self_cell v1.3.0
-[1m[92m  Downloaded[0m shlex v2.0.1
-[1m[92m  Downloaded[0m signal-hook-registry v1.4.8
-[1m[92m  Downloaded[0m simd-adler32 v0.3.10
-[1m[92m  Downloaded[0m simplecss v0.2.2
-[1m[92m  Downloaded[0m wasm-bindgen-shared v0.2.130
-[1m[92m  Downloaded[0m wayland-csd-frame v0.3.0
-[1m[92m  Downloaded[0m wayland-cursor v0.31.14
-[1m[92m  Downloaded[0m wayland-protocols-misc v0.3.12
-[1m[92m  Downloaded[0m wayland-protocols-wlr v0.3.12
-[1m[92m  Downloaded[0m wayland-scanner v0.31.11
-[1m[92m  Downloaded[0m wayland-sys v0.31.11
-[1m[92m  Downloaded[0m web-time v1.1.0
-[1m[92m  Downloaded[0m weezl v0.1.12
-[1m[92m  Downloaded[0m xcursor v0.3.11
-[1m[92m  Downloaded[0m av-scenechange v0.14.1
-[1m[92m  Downloaded[0m foldhash v0.1.5
-[1m[92m  Downloaded[0m idna_adapter v1.2.2
-[1m[92m  Downloaded[0m imagesize v0.13.0
-[1m[92m  Downloaded[0m imgref v1.12.3
-[1m[92m  Downloaded[0m no_std_io2 v0.9.4
-[1m[92m  Downloaded[0m num-rational v0.4.2
-[1m[92m  Downloaded[0m num-traits v0.2.19
-[1m[92m  Downloaded[0m parking_lot v0.12.5
-[1m[92m  Downloaded[0m parking_lot_core v0.9.12
-[1m[92m  Downloaded[0m ravif v0.13.0
-[1m[92m  Downloaded[0m rgb v0.8.53
-[1m[92m  Downloaded[0m rustls-pki-types v1.16.0
-[1m[92m  Downloaded[0m secret-service v5.2.0
-[1m[92m  Downloaded[0m sha2 v0.11.2
-[1m[92m  Downloaded[0m swash v0.2.10
-[1m[92m  Downloaded[0m sync_wrapper v1.0.2
-[1m[92m  Downloaded[0m synstructure v0.14.0
-[1m[92m  Downloaded[0m sys-locale v0.3.2
-[1m[92m  Downloaded[0m target-features v0.1.6
-[1m[92m  Downloaded[0m termcolor v1.4.1
-[1m[92m  Downloaded[0m thiserror v1.0.69
-[1m[92m  Downloaded[0m tinystr v0.8.5
-[1m[92m  Downloaded[0m unicode-vo v0.1.0
-[1m[92m  Downloaded[0m untrusted v0.9.0
-[1m[92m  Downloaded[0m wayland-backend v0.3.17
-[1m[92m  Downloaded[0m wayland-client v0.31.15
-[1m[92m  Downloaded[0m wayland-protocols-experimental v20250721.0.1
-[1m[92m  Downloaded[0m wayland-protocols-plasma v0.3.12
-[1m[92m  Downloaded[0m flate2 v1.1.11
-[1m[92m  Downloaded[0m iced_winit v0.14.1
-[1m[92m  Downloaded[0m icu_collections v2.4.0
-[1m[92m  Downloaded[0m icu_locale_core v2.4.0
-[1m[92m  Downloaded[0m icu_normalizer_data v2.4.0
-[1m[92m  Downloaded[0m icu_properties v2.4.0
-[1m[92m  Downloaded[0m image-webp v0.2.4
-[1m[92m  Downloaded[0m moxcms v0.8.1
-[1m[92m  Downloaded[0m mundy v0.2.3
+[1m[92m  Downloaded[0m as-raw-xcb-connection v1.0.1
+[1m[92m  Downloaded[0m cursor-icon v1.2.0
+[1m[92m  Downloaded[0m dpi v0.1.2
+[1m[92m  Downloaded[0m enumflags2_derive v0.7.12
+[1m[92m  Downloaded[0m equator-macro v0.4.2
+[1m[92m  Downloaded[0m multiversion-macros v0.8.1
+[1m[92m  Downloaded[0m percent-encoding v2.3.2
 [1m[92m  Downloaded[0m num-complex v0.4.6
 [1m[92m  Downloaded[0m once_cell v1.21.4
-[1m[92m  Downloaded[0m ordered-float v5.5.1
+[1m[92m  Downloaded[0m parking_lot v0.12.5
+[1m[92m  Downloaded[0m pkg-config v0.3.34
+[1m[92m  Downloaded[0m simd-adler32 v0.3.10
+[1m[92m  Downloaded[0m num v0.4.3
+[1m[92m  Downloaded[0m num-integer v0.1.47
+[1m[92m  Downloaded[0m rand_core v0.10.1
+[1m[92m  Downloaded[0m serde_repr v0.1.21
+[1m[92m  Downloaded[0m piper v0.2.5
+[1m[92m  Downloaded[0m profiling v1.0.18
+[1m[92m  Downloaded[0m rustc-hash v1.1.0
+[1m[92m  Downloaded[0m core_maths v0.1.1
+[1m[92m  Downloaded[0m cpubits v0.1.1
+[1m[92m  Downloaded[0m crypto-common v0.2.2
+[1m[92m  Downloaded[0m no_std_io2 v0.9.4
+[1m[92m  Downloaded[0m paste v1.0.15
+[1m[92m  Downloaded[0m parking_lot_core v0.9.12
+[1m[92m  Downloaded[0m proc-macro-crate v3.5.0
+[1m[92m  Downloaded[0m pico-args v0.5.0
+[1m[92m  Downloaded[0m cfg-if v1.0.5
+[1m[92m  Downloaded[0m simd_helpers v0.1.1
+[1m[92m  Downloaded[0m wayland-csd-frame v0.3.0
+[1m[92m  Downloaded[0m pulldown-cmark-escape v0.11.0
+[1m[92m  Downloaded[0m loop9 v0.1.5
+[1m[92m  Downloaded[0m multiversion v0.8.1
+[1m[92m  Downloaded[0m raw-window-handle v0.6.2
+[1m[92m  Downloaded[0m svg_fmt v0.4.5
+[1m[92m  Downloaded[0m futures-executor v0.3.34
+[1m[92m  Downloaded[0m tower-layer v0.3.3
+[1m[92m  Downloaded[0m sctk-adwaita v0.10.1
+[1m[92m  Downloaded[0m self_cell v1.3.0
+[1m[92m  Downloaded[0m unicode-linebreak v0.1.5
+[1m[92m  Downloaded[0m wayland-protocols-misc v0.3.12
+[1m[92m  Downloaded[0m xcursor v0.3.11
+[1m[92m  Downloaded[0m xkbcommon-dl v0.4.2
+[1m[92m  Downloaded[0m xmlwriter v0.1.0
+[1m[92m  Downloaded[0m const-oid v0.10.3
+[1m[92m  Downloaded[0m fax v0.2.7
+[1m[92m  Downloaded[0m inout v0.2.6
+[1m[92m  Downloaded[0m mundy v0.2.3
+[1m[92m  Downloaded[0m mutate_once v0.1.2
+[1m[92m  Downloaded[0m num-rational v0.4.2
 [1m[92m  Downloaded[0m polling v3.11.0
-[1m[92m  Downloaded[0m proc-macro2 v1.0.107
 [1m[92m  Downloaded[0m qoi v0.4.1
 [1m[92m  Downloaded[0m quinn v0.11.12
-[1m[92m  Downloaded[0m rangemap v1.9.0
-[1m[92m  Downloaded[0m rayon-core v1.13.0
-[1m[92m  Downloaded[0m resvg v0.45.1
-[1m[92m  Downloaded[0m roxmltree v0.20.0
-[1m[92m  Downloaded[0m ryu v1.0.23
-[1m[92m  Downloaded[0m sctk-adwaita v0.10.1
-[1m[92m  Downloaded[0m serde v1.0.229
-[1m[92m  Downloaded[0m serde_core v1.0.229
+[1m[92m  Downloaded[0m rgb v0.8.53
 [1m[92m  Downloaded[0m serde_derive v1.0.229
-[1m[92m  Downloaded[0m stable_deref_trait v1.2.1
-[1m[92m  Downloaded[0m syn v2.0.119
-[1m[92m  Downloaded[0m ttf-parser v0.25.1
-[1m[92m  Downloaded[0m unicode-segmentation v1.13.3
-[1m[92m  Downloaded[0m wasm-bindgen-macro-support v0.2.130
-[1m[92m  Downloaded[0m wayland-protocols v0.32.13
-[1m[92m  Downloaded[0m webpki-roots v1.0.12
-[1m[92m  Downloaded[0m xkbcommon-dl v0.4.2
-[1m[92m  Downloaded[0m y4m v0.8.0
-[1m[92m  Downloaded[0m zcheapstr v1.4.0
-[1m[92m  Downloaded[0m zeno v0.3.3
-[1m[92m  Downloaded[0m zerofrom v0.1.8
-[1m[92m  Downloaded[0m zerofrom-derive v0.1.8
-[1m[92m  Downloaded[0m foldhash v0.2.0
-[1m[92m  Downloaded[0m hashbrown v0.15.5
-[1m[92m  Downloaded[0m hashbrown v0.16.1
-[1m[92m  Downloaded[0m hkdf v0.13.0
-[1m[92m  Downloaded[0m inout v0.2.6
-[1m[92m  Downloaded[0m itoa v1.0.19
-[1m[92m  Downloaded[0m khronos-egl v6.0.0
-[1m[92m  Downloaded[0m memmap2 v0.9.12
+[1m[92m  Downloaded[0m subtle v2.6.1
+[1m[92m  Downloaded[0m memchr v2.8.3
+[1m[92m  Downloaded[0m shlex v2.0.1
+[1m[92m  Downloaded[0m yoke-derive v0.8.4
+[1m[92m  Downloaded[0m futures-sink v0.3.34
+[1m[92m  Downloaded[0m lock_api v0.4.14
+[1m[92m  Downloaded[0m lru v0.16.4
+[1m[92m  Downloaded[0m thiserror-impl v2.0.21
+[1m[92m  Downloaded[0m unicase v2.10.0
+[1m[92m  Downloaded[0m web-time v1.1.0
+[1m[92m  Downloaded[0m miniz_oxide v0.9.1
+[1m[92m  Downloaded[0m roxmltree v0.20.0
+[1m[92m  Downloaded[0m sha2 v0.11.2
+[1m[92m  Downloaded[0m unicode-bidi-mirroring v0.4.0
+[1m[92m  Downloaded[0m unicode-ccc v0.4.0
+[1m[92m  Downloaded[0m unicode-ident v1.0.27
+[1m[92m  Downloaded[0m wayland-protocols-experimental v20250721.0.1
+[1m[92m  Downloaded[0m yazi v0.2.2
+[1m[92m  Downloaded[0m zbus_macros v5.19.0
+[1m[92m  Downloaded[0m num-traits v0.2.19
+[1m[92m  Downloaded[0m ordered-float v5.5.1
+[1m[92m  Downloaded[0m proc-macro2 v1.0.107
+[1m[92m  Downloaded[0m quinn-udp v0.5.16
+[1m[92m  Downloaded[0m rangemap v1.9.0
+[1m[92m  Downloaded[0m rustls-pki-types v1.16.0
+[1m[92m  Downloaded[0m rustls-webpki v0.103.17
+[1m[92m  Downloaded[0m ryu v1.0.23
+[1m[92m  Downloaded[0m secret-service v5.2.0
+[1m[92m  Downloaded[0m unicode-properties v0.1.5
+[1m[92m  Downloaded[0m unicode-script v0.5.9
+[1m[92m  Downloaded[0m utf8_iter v1.1.0
+[1m[92m  Downloaded[0m wayland-backend v0.3.17
+[1m[92m  Downloaded[0m futures-core v0.3.34
+[1m[92m  Downloaded[0m http-body v1.1.0
+[1m[92m  Downloaded[0m idna_adapter v1.2.2
+[1m[92m  Downloaded[0m linebender_resource_handle v0.1.1
+[1m[92m  Downloaded[0m log v0.4.35
+[1m[92m  Downloaded[0m mio v1.2.5
 [1m[92m  Downloaded[0m num-bigint v0.4.8
 [1m[92m  Downloaded[0m png v0.17.16
-[1m[92m  Downloaded[0m rand v0.10.4
-[1m[92m  Downloaded[0m rustls-webpki v0.103.17
-[1m[92m  Downloaded[0m slab v0.4.12
-[1m[92m  Downloaded[0m slotmap v1.1.1
-[1m[92m  Downloaded[0m smallvec v1.16.6
-[1m[92m  Downloaded[0m smithay-clipboard v0.7.3
-[1m[92m  Downloaded[0m smol_str v0.2.2
-[1m[92m  Downloaded[0m spirv v0.3.0+sdk-1.3.268.0
-[1m[92m  Downloaded[0m static_assertions v1.1.0
+[1m[92m  Downloaded[0m rayon-core v1.13.0
+[1m[92m  Downloaded[0m resvg v0.45.1
+[1m[92m  Downloaded[0m serde v1.0.229
+[1m[92m  Downloaded[0m serde_core v1.0.229
+[1m[92m  Downloaded[0m stable_deref_trait v1.2.1
 [1m[92m  Downloaded[0m strict-num v0.1.1
-[1m[92m  Downloaded[0m subtle v2.6.1
-[1m[92m  Downloaded[0m thiserror v2.0.21
-[1m[92m  Downloaded[0m thiserror-impl v2.0.21
-[1m[92m  Downloaded[0m unicode-width v0.2.3
-[1m[92m  Downloaded[0m url v2.5.9
-[1m[92m  Downloaded[0m wgpu v27.0.1
-[1m[92m  Downloaded[0m writeable v0.6.4
-[1m[92m  Downloaded[0m x11-dl v2.21.0
-[1m[92m  Downloaded[0m yazi v0.2.2
-[1m[92m  Downloaded[0m yoke v0.8.4
-[1m[92m  Downloaded[0m yoke-derive v0.8.4
-[1m[92m  Downloaded[0m zbus-secret-service-keyring-store v1.0.1
-[1m[92m  Downloaded[0m zbus_names v4.3.5
-[1m[92m  Downloaded[0m zerotrie v0.2.5
-[1m[92m  Downloaded[0m font-types v0.12.7
-[1m[92m  Downloaded[0m fontconfig-parser v0.5.8
-[1m[92m  Downloaded[0m glow v0.16.0
-[1m[92m  Downloaded[0m httparse v1.10.1
-[1m[92m  Downloaded[0m hybrid-array v0.4.15
-[1m[92m  Downloaded[0m indexmap v2.14.2
-[1m[92m  Downloaded[0m ipnet v2.12.2
-[1m[92m  Downloaded[0m jobserver v0.1.35
-[1m[92m  Downloaded[0m memchr v2.8.3
-[1m[92m  Downloaded[0m nom v8.0.0
-[1m[92m  Downloaded[0m png v0.18.1
-[1m[92m  Downloaded[0m pulldown-cmark v0.12.2
-[1m[92m  Downloaded[0m rayon v1.12.0
-[1m[92m  Downloaded[0m reqwest v0.12.28
-[1m[92m  Downloaded[0m serde_json v1.0.154
-[1m[92m  Downloaded[0m thiserror-impl v1.0.69
-[1m[92m  Downloaded[0m tracing v0.1.44
-[1m[92m  Downloaded[0m unicase v2.10.0
-[1m[92m  Downloaded[0m unicode-bidi-mirroring v0.4.0
-[1m[92m  Downloaded[0m utf_types v1.0.0
-[1m[92m  Downloaded[0m fontdb v0.23.0
-[1m[92m  Downloaded[0m form_urlencoded v1.2.3
-[1m[92m  Downloaded[0m image v0.25.10
-[1m[92m  Downloaded[0m quick-xml v0.41.0
-[1m[92m  Downloaded[0m smithay-client-toolkit v0.19.2
-[1m[92m  Downloaded[0m tiff v0.11.3
-[1m[92m  Downloaded[0m toml_parser v1.1.7+spec-1.1.0
-[1m[92m  Downloaded[0m tower-layer v0.3.3
-[1m[92m  Downloaded[0m unicode-bidi v0.3.18
-[1m[92m  Downloaded[0m unicode-ccc v0.4.0
-[1m[92m  Downloaded[0m zbus v5.19.0
-[1m[92m  Downloaded[0m zerocopy-derive v0.8.65
-[1m[92m  Downloaded[0m zvariant_utils v4.2.0
-[1m[92m  Downloaded[0m gpu-alloc v0.6.2
-[1m[92m  Downloaded[0m hyper-rustls v0.27.10
-[1m[92m  Downloaded[0m quinn-proto v0.11.19
-[1m[92m  Downloaded[0m rustybuzz v0.20.1
-[1m[92m  Downloaded[0m skrifa v0.37.0
-[1m[92m  Downloaded[0m skrifa v0.44.0
-[1m[92m  Downloaded[0m tiny-skia-path v0.11.4
-[1m[92m  Downloaded[0m tiny-xlib v0.2.5
-[1m[92m  Downloaded[0m tinyvec v1.13.3
-[1m[92m  Downloaded[0m tokio-rustls v0.26.6
-[1m[92m  Downloaded[0m tower v0.5.3
-[1m[92m  Downloaded[0m typenum v1.20.1
-[1m[92m  Downloaded[0m x11rb v0.13.2
-[1m[92m  Downloaded[0m zerovec v0.11.9
-[1m[92m  Downloaded[0m itertools v0.14.0
-[1m[92m  Downloaded[0m rustix v0.38.44
-[1m[92m  Downloaded[0m tiny-skia v0.11.4
-[1m[92m  Downloaded[0m wgpu-core-deps-windows-linux-android v27.0.0
-[1m[92m  Downloaded[0m hyper v1.13.0
-[1m[92m  Downloaded[0m icu_normalizer v2.4.0
-[1m[92m  Downloaded[0m libc v0.2.191
-[1m[92m  Downloaded[0m read-fonts v0.35.0
-[1m[92m  Downloaded[0m rustix v1.1.6
-[1m[92m  Downloaded[0m rustls v0.23.46
-[1m[92m  Downloaded[0m syn v3.0.10
-[1m[92m  Downloaded[0m tower-http v0.6.11
-[1m[92m  Downloaded[0m window_clipboard v0.5.1
-[1m[92m  Downloaded[0m zmij v1.0.23
-[1m[92m  Downloaded[0m read-fonts v0.41.0
-[1m[92m  Downloaded[0m wgpu-types v27.0.1
-[1m[92m  Downloaded[0m zune-core v0.4.12
-[1m[92m  Downloaded[0m futures-core v0.3.34
-[1m[92m  Downloaded[0m unicode-linebreak v0.1.5
-[1m[92m  Downloaded[0m want v0.3.2
-[1m[92m  Downloaded[0m winnow v1.0.5
+[1m[92m  Downloaded[0m wayland-client v0.31.15
 [1m[92m  Downloaded[0m futures-channel v0.3.34
-[1m[92m  Downloaded[0m lebe v0.5.3
-[1m[92m  Downloaded[0m naga v27.0.3
-[1m[92m  Downloaded[0m unicode-ident v1.0.27
-[1m[92m  Downloaded[0m unicode-properties v0.1.5
+[1m[92m  Downloaded[0m futures-task v0.3.34
+[1m[92m  Downloaded[0m gpu-descriptor-types v0.2.0
+[1m[92m  Downloaded[0m android-build v0.1.4
+[1m[92m  Downloaded[0m dlib v0.5.3
+[1m[92m  Downloaded[0m calloop-wayland-source v0.3.0
+[1m[92m  Downloaded[0m cfg_aliases v0.2.2
+[1m[92m  Downloaded[0m endi v1.1.1
+[1m[92m  Downloaded[0m calloop v0.14.5
+[1m[92m  Downloaded[0m smol_str v0.2.2
+[1m[92m  Downloaded[0m sync_wrapper v1.0.2
+[1m[92m  Downloaded[0m async-broadcast v0.7.2
+[1m[92m  Downloaded[0m async-trait v0.1.92
+[1m[92m  Downloaded[0m etagere v0.2.15
+[1m[92m  Downloaded[0m fastrand v2.5.0
+[1m[92m  Downloaded[0m gpu-descriptor v0.3.2
+[1m[92m  Downloaded[0m concurrent-queue v2.5.0
+[1m[92m  Downloaded[0m euclid v0.22.14
+[1m[92m  Downloaded[0m find-msvc-tools v0.1.15
+[1m[92m  Downloaded[0m float-cmp v0.9.0
+[1m[92m  Downloaded[0m getopts v0.2.24
+[1m[92m  Downloaded[0m gpu-alloc-types v0.3.1
+[1m[92m  Downloaded[0m guillotiere v0.6.2
+[1m[92m  Downloaded[0m imagesize v0.13.0
+[1m[92m  Downloaded[0m imgref v1.12.3
+[1m[92m  Downloaded[0m lilt v0.8.2
+[1m[92m  Downloaded[0m png v0.18.1
+[1m[92m  Downloaded[0m static_assertions v1.1.0
+[1m[92m  Downloaded[0m thiserror-impl v1.0.69
+[1m[92m  Downloaded[0m tiff v0.11.3
+[1m[92m  Downloaded[0m unicode-segmentation v1.13.3
+[1m[92m  Downloaded[0m utf_types v1.0.0
+[1m[92m  Downloaded[0m zeroize v1.9.2
+[1m[92m  Downloaded[0m async-signal v0.2.14
+[1m[92m  Downloaded[0m bytes v1.12.2
+[1m[92m  Downloaded[0m codespan-reporting v0.12.0
+[1m[92m  Downloaded[0m ctutils v0.4.8
+[1m[92m  Downloaded[0m http-body-util v0.1.5
+[1m[92m  Downloaded[0m iced_program v0.14.0
+[1m[92m  Downloaded[0m reqwest v0.12.28
+[1m[92m  Downloaded[0m iced_tiny_skia v0.14.1
+[1m[92m  Downloaded[0m zeno v0.3.3
+[1m[92m  Downloaded[0m yoke v0.8.4
+[1m[92m  Downloaded[0m zune-inflate v0.2.54
+[1m[92m  Downloaded[0m async-recursion v1.2.0
+[1m[92m  Downloaded[0m rand v0.10.4
+[1m[92m  Downloaded[0m bytemuck v1.25.2
+[1m[92m  Downloaded[0m foldhash v0.2.0
+[1m[92m  Downloaded[0m getrandom v0.4.3
+[1m[92m  Downloaded[0m itoa v1.0.19
+[1m[92m  Downloaded[0m pulldown-cmark v0.12.2
+[1m[92m  Downloaded[0m unicode-bidi v0.3.18
+[1m[92m  Downloaded[0m try-lock v0.2.5
+[1m[92m  Downloaded[0m iced_renderer v0.14.0
+[1m[92m  Downloaded[0m futures v0.3.34
+[1m[92m  Downloaded[0m getrandom v0.2.17
+[1m[92m  Downloaded[0m siphasher v1.0.4
+[1m[92m  Downloaded[0m tower-service v0.3.3
+[1m[92m  Downloaded[0m zerovec v0.11.9
+[1m[92m  Downloaded[0m moxcms v0.8.1
+[1m[92m  Downloaded[0m async-task v4.7.1
+[1m[92m  Downloaded[0m base64 v0.23.1
+[1m[92m  Downloaded[0m gpu-alloc v0.6.2
+[1m[92m  Downloaded[0m iced_wgpu v0.14.0
+[1m[92m  Downloaded[0m keyring v4.2.0
+[1m[92m  Downloaded[0m zune-jpeg v0.4.21
+[1m[92m  Downloaded[0m hexf-parse v0.2.1
+[1m[92m  Downloaded[0m calloop v0.13.0
+[1m[92m  Downloaded[0m futures-macro v0.3.34
+[1m[92m  Downloaded[0m cc v1.11.3
+[1m[92m  Downloaded[0m half v2.7.1
+[1m[92m  Downloaded[0m jobserver v0.1.35
+[1m[92m  Downloaded[0m kamadak-exif v0.6.2
+[1m[92m  Downloaded[0m smithay-clipboard v0.7.3
+[1m[92m  Downloaded[0m zune-jpeg v0.5.15
+[1m[92m  Downloaded[0m base64 v0.22.1
+[1m[92m  Downloaded[0m hashbrown v0.16.1
+[1m[92m  Downloaded[0m http v1.5.0
+[1m[92m  Downloaded[0m iced_core v0.14.0
+[1m[92m  Downloaded[0m indexmap v2.14.2
+[1m[92m  Downloaded[0m toml_datetime v1.1.3+spec-1.1.0
+[1m[92m  Downloaded[0m untrusted v0.9.0
+[1m[92m  Downloaded[0m wgpu-types v27.0.1
+[1m[92m  Downloaded[0m xkeysym v0.2.1
+[1m[92m  Downloaded[0m zerotrie v0.2.5
+[1m[92m  Downloaded[0m writeable v0.6.4
+[1m[92m  Downloaded[0m tokio-rustls v0.26.6
+[1m[92m  Downloaded[0m wayland-sys v0.31.11
+[1m[92m  Downloaded[0m khronos-egl v6.0.0
+[1m[92m  Downloaded[0m nom v8.0.0
+[1m[92m  Downloaded[0m sipper v0.1.0
+[1m[92m  Downloaded[0m flate2 v1.1.11
+[1m[92m  Downloaded[0m tower-http v0.6.11
+[1m[92m  Downloaded[0m hashbrown v0.15.5
+[1m[92m  Downloaded[0m toml_parser v1.1.7+spec-1.1.0
+[1m[92m  Downloaded[0m wgpu-core-deps-windows-linux-android v27.0.0
+[1m[92m  Downloaded[0m ash v0.38.0+1.3.281
+[1m[92m  Downloaded[0m icu_properties v2.4.0
+[1m[92m  Downloaded[0m synstructure v0.14.0
+[1m[92m  Downloaded[0m zmij v1.0.23
+[1m[92m  Downloaded[0m fontdb v0.23.0
+[1m[92m  Downloaded[0m iced_futures v0.14.0
+[1m[92m  Downloaded[0m libm v0.2.16
+[1m[92m  Downloaded[0m lru-slab v0.1.3
+[1m[92m  Downloaded[0m tinystr v0.8.5
+[1m[92m  Downloaded[0m tracing-attributes v0.1.31
+[1m[92m  Downloaded[0m want v0.3.2
+[1m[92m  Downloaded[0m wayland-scanner v0.31.11
+[1m[92m  Downloaded[0m window_clipboard v0.5.1
+[1m[92m  Downloaded[0m y4m v0.8.0
+[1m[92m  Downloaded[0m zbus_names v4.3.5
+[1m[92m  Downloaded[0m zvariant_utils v4.2.0
+[1m[92m  Downloaded[0m futures-lite v2.6.1
+[1m[92m  Downloaded[0m iced_widget v0.14.2
+[1m[92m  Downloaded[0m icu_properties_data v2.4.0
+[1m[92m  Downloaded[0m icu_provider v2.4.0
+[1m[92m  Downloaded[0m ipnet v2.12.2
+[1m[92m  Downloaded[0m rayon v1.12.0
+[1m[92m  Downloaded[0m serde_json v1.0.154
+[1m[92m  Downloaded[0m simplecss v0.2.2
+[1m[92m  Downloaded[0m skrifa v0.44.0
+[1m[92m  Downloaded[0m spirv v0.3.0+sdk-1.3.268.0
+[1m[92m  Downloaded[0m swash v0.2.10
+[1m[92m  Downloaded[0m toml_edit v0.25.21+spec-1.1.0
+[1m[92m  Downloaded[0m ttf-parser v0.25.1
 [1m[92m  Downloaded[0m v_frame v0.3.9
 [1m[92m  Downloaded[0m version_check v0.9.5
-[1m[92m  Downloaded[0m wasm-bindgen-macro v0.2.130
-[1m[92m  Downloaded[0m x11rb-protocol v0.13.2
-[1m[92m  Downloaded[0m kamadak-exif v0.6.2
-[1m[92m  Downloaded[0m unicode-script v0.5.9
-[1m[92m  Downloaded[0m uuid v1.29.3
-[1m[92m  Downloaded[0m wasm-bindgen v0.2.130
-[1m[92m  Downloaded[0m zlib-rs v0.6.9
-[1m[92m  Downloaded[0m pxfm v0.1.30
-[1m[92m  Downloaded[0m usvg v0.45.1
-[1m[92m  Downloaded[0m wgpu-core v27.0.3
-[1m[92m  Downloaded[0m kurbo v0.11.3
-[1m[92m  Downloaded[0m wgpu-hal v27.0.4
-[1m[92m  Downloaded[0m zune-core v0.5.3
-[1m[92m  Downloaded[0m tokio v1.54.1
-[1m[92m  Downloaded[0m winit v0.30.13
-[1m[92m  Downloaded[0m futures-executor v0.3.34
-[1m[92m  Downloaded[0m futures-task v0.3.34
-[1m[92m  Downloaded[0m gethostname v1.1.0
-[1m[92m  Downloaded[0m getopts v0.2.24
-[1m[92m  Downloaded[0m kurbo v0.10.4
-[1m[92m  Downloaded[0m zune-jpeg v0.4.21
-[1m[92m  Downloaded[0m zvariant v5.15.1
-[1m[92m  Downloaded[0m zune-jpeg v0.5.15
+[1m[92m  Downloaded[0m wayland-protocols-wlr v0.3.12
+[1m[92m  Downloaded[0m weezl v0.1.12
+[1m[92m  Downloaded[0m x11rb v0.13.2
+[1m[92m  Downloaded[0m cryoglyph v0.1.0
+[1m[92m  Downloaded[0m exr v1.74.3
 [1m[92m  Downloaded[0m futures-util v0.3.34
-[1m[92m  Downloaded[0m iced_runtime v0.14.0
-[1m[92m  Downloaded[0m rav1e v0.8.1
-[1m[92m  Downloaded[0m ring v0.17.14
-[1m[92m  Downloaded[0m iced_futures v0.14.0
-[1m[92m  Downloaded[0m iced_program v0.14.0
-[1m[92m  Downloaded[0m iced_renderer v0.14.0
-[1m[92m  Downloaded[0m linux-raw-sys v0.4.15
-[1m[92m  Downloaded[0m iced_graphics v0.14.0
-[1m[92m  Downloaded[0m lock_api v0.4.14
-[1m[92m  Downloaded[0m cosmic-text v0.15.0
-[1m[92m  Downloaded[0m loop9 v0.1.5
-[1m[92m  Downloaded[0m miniz_oxide v0.8.9
-[1m[92m  Downloaded[0m getrandom v0.4.3
-[1m[92m  Downloaded[0m gif v0.14.2
-[1m[92m  Downloaded[0m linux-raw-sys v0.12.1
-[1m[92m  Downloaded[0m log v0.4.35
-[1m[92m  Downloaded[0m getrandom v0.2.17
-[1m[92m  Downloaded[0m gif v0.13.3
-[1m[92m  Downloaded[0m gpu-alloc-types v0.3.1
-[1m[92m  Downloaded[0m gpu-descriptor v0.3.2
-[1m[92m  Downloaded[0m gpu-descriptor-types v0.2.0
-[1m[92m  Downloaded[0m iced_core v0.14.0
-[1m[92m  Downloaded[0m iced_debug v0.14.0
-[1m[92m  Downloaded[0m libloading v0.8.9
-[1m[92m  Downloaded[0m half v2.7.1
-[1m[92m  Downloaded[0m iced v0.14.0
-[1m[92m  Downloaded[0m hyper-util v0.1.21
-[1m[92m  Downloaded[0m lilt v0.8.2
-[1m[92m  Downloaded[0m guillotiere v0.6.2
-[1m[92m  Downloaded[0m linebender_resource_handle v0.1.1
-[1m[92m  Downloaded[0m litrs v1.1.0
 [1m[92m  Downloaded[0m harfrust v0.3.2
-[1m[92m  Downloaded[0m libm v0.2.16
+[1m[92m  Downloaded[0m slab v0.4.12
+[1m[92m  Downloaded[0m syn v2.0.119
+[1m[92m  Downloaded[0m syn v3.0.10
+[1m[92m  Downloaded[0m tinyvec v1.13.3
+[1m[92m  Downloaded[0m wasm-bindgen-macro v0.2.130
+[1m[92m  Downloaded[0m wgpu-hal v27.0.4
+[1m[92m  Downloaded[0m zbus v5.19.0
+[1m[92m  Downloaded[0m futures-io v0.3.34
+[1m[92m  Downloaded[0m smallvec v1.16.6
+[1m[92m  Downloaded[0m socket2 v0.6.5
+[1m[92m  Downloaded[0m softbuffer v0.4.8
+[1m[92m  Downloaded[0m tiny-skia v0.11.4
+[1m[92m  Downloaded[0m tracing-core v0.1.36
+[1m[92m  Downloaded[0m wasm-bindgen-shared v0.2.130
+[1m[92m  Downloaded[0m wgpu v27.0.1
+[1m[92m  Downloaded[0m zbus-secret-service-keyring-store v1.0.1
+[1m[92m  Downloaded[0m hybrid-array v0.4.15
+[1m[92m  Downloaded[0m icu_normalizer_data v2.4.0
+[1m[92m  Downloaded[0m lebe v0.5.3
+[1m[92m  Downloaded[0m slotmap v1.1.1
+[1m[92m  Downloaded[0m tiny-xlib v0.2.5
+[1m[92m  Downloaded[0m tower v0.5.3
+[1m[92m  Downloaded[0m wayland-protocols-plasma v0.3.12
+[1m[92m  Downloaded[0m x11-dl v2.21.0
+[1m[92m  Downloaded[0m zlib-rs v0.6.9
+[1m[92m  Downloaded[0m glow v0.16.0
+[1m[92m  Downloaded[0m image-webp v0.2.4
+[1m[92m  Downloaded[0m quick-xml v0.41.0
+[1m[92m  Downloaded[0m typenum v1.20.1
+[1m[92m  Downloaded[0m zerofrom v0.1.8
+[1m[92m  Downloaded[0m font-types v0.12.7
+[1m[92m  Downloaded[0m sys-locale v0.3.2
+[1m[92m  Downloaded[0m thiserror v2.0.21
+[1m[92m  Downloaded[0m linux-raw-sys v0.4.15
+[1m[92m  Downloaded[0m smithay-client-toolkit v0.19.2
+[1m[92m  Downloaded[0m tiny-skia-path v0.11.4
+[1m[92m  Downloaded[0m wasm-bindgen v0.2.130
+[1m[92m  Downloaded[0m foldhash v0.1.5
+[1m[92m  Downloaded[0m httparse v1.10.1
+[1m[92m  Downloaded[0m hyper-util v0.1.21
+[1m[92m  Downloaded[0m icu_locale_core v2.4.0
+[1m[92m  Downloaded[0m idna v1.1.0
+[1m[92m  Downloaded[0m quinn-proto v0.11.19
+[1m[92m  Downloaded[0m rustybuzz v0.20.1
+[1m[92m  Downloaded[0m smithay-client-toolkit v0.20.0
+[1m[92m  Downloaded[0m termcolor v1.4.1
+[1m[92m  Downloaded[0m url v2.5.9
+[1m[92m  Downloaded[0m zvariant_derive v5.15.1
+[1m[92m  Downloaded[0m itertools v0.14.0
+[1m[92m  Downloaded[0m keyring-core v1.1.0
+[1m[92m  Downloaded[0m target-features v0.1.6
+[1m[92m  Downloaded[0m wayland-protocols v0.32.13
+[1m[92m  Downloaded[0m cosmic-text v0.15.0
+[1m[92m  Downloaded[0m hashbrown v0.17.2
+[1m[92m  Downloaded[0m hkdf v0.13.0
+[1m[92m  Downloaded[0m hyper v1.13.0
+[1m[92m  Downloaded[0m kurbo v0.11.3
+[1m[92m  Downloaded[0m rustls v0.23.46
+[1m[92m  Downloaded[0m zerovec-derive v0.11.7
+[1m[92m  Downloaded[0m winnow v1.0.5
+[1m[92m  Downloaded[0m webpki-roots v1.0.12
+[1m[92m  Downloaded[0m rustix v0.38.44
+[1m[92m  Downloaded[0m hyper-rustls v0.27.10
+[1m[92m  Downloaded[0m iced_graphics v0.14.0
+[1m[92m  Downloaded[0m wgpu-core v27.0.3
+[1m[92m  Downloaded[0m zune-core v0.5.3
 [1m[92m  Downloaded[0m litemap v0.8.3
+[1m[92m  Downloaded[0m read-fonts v0.35.0
+[1m[92m  Downloaded[0m skrifa v0.37.0
+[1m[92m  Downloaded[0m rustix v1.1.6
+[1m[92m  Downloaded[0m image v0.25.10
+[1m[92m  Downloaded[0m thiserror v1.0.69
+[1m[92m  Downloaded[0m glam v0.25.0
+[1m[92m  Downloaded[0m litrs v1.1.0
+[1m[92m  Downloaded[0m gethostname v1.1.0
+[1m[92m  Downloaded[0m wasm-bindgen-macro-support v0.2.130
+[1m[92m  Downloaded[0m zcheapstr v1.4.0
+[1m[92m  Downloaded[0m zvariant v5.15.1
+[1m[92m  Downloaded[0m font-types v0.10.1
+[1m[92m  Downloaded[0m iced_debug v0.14.0
+[1m[92m  Downloaded[0m svgtypes v0.15.3
+[1m[92m  Downloaded[0m zune-core v0.4.12
+[1m[92m  Downloaded[0m fontconfig-parser v0.5.8
+[1m[92m  Downloaded[0m read-fonts v0.41.0
+[1m[92m  Downloaded[0m wayland-cursor v0.31.14
+[1m[92m  Downloaded[0m x11rb-protocol v0.13.2
+[1m[92m  Downloaded[0m hmac v0.13.0
+[1m[92m  Downloaded[0m hex v0.4.3
+[1m[92m  Downloaded[0m iced_winit v0.14.1
+[1m[92m  Downloaded[0m uuid v1.29.3
+[1m[92m  Downloaded[0m gif v0.14.2
+[1m[92m  Downloaded[0m usvg v0.45.1
+[1m[92m  Downloaded[0m icu_collections v2.4.0
+[1m[92m  Downloaded[0m tracing v0.1.44
+[1m[92m  Downloaded[0m unicode-width v0.2.3
+[1m[92m  Downloaded[0m form_urlencoded v1.2.3
+[1m[92m  Downloaded[0m zerocopy v0.8.65
+[1m[92m  Downloaded[0m gif v0.13.3
+[1m[92m  Downloaded[0m icu_normalizer v2.4.0
+[1m[92m  Downloaded[0m naga v27.0.3
+[1m[92m  Downloaded[0m unicode-vo v0.1.0
+[1m[92m  Downloaded[0m winit v0.30.13
+[1m[92m  Downloaded[0m zerocopy-derive v0.8.65
+[1m[92m  Downloaded[0m iced_runtime v0.14.0
+[1m[92m  Downloaded[0m pxfm v0.1.30
+[1m[92m  Downloaded[0m libc v0.2.191
+[1m[92m  Downloaded[0m kurbo v0.10.4
+[1m[92m  Downloaded[0m iced v0.14.0
+[1m[92m  Downloaded[0m libloading v0.8.9
+[1m[92m  Downloaded[0m zerofrom-derive v0.1.8
+[1m[92m  Downloaded[0m ring v0.17.14
+[1m[92m  Downloaded[0m rav1e v0.8.1
+[1m[92m  Downloaded[0m tokio v1.54.1
+[1m[92m  Downloaded[0m linux-raw-sys v0.12.1
 [1m[92m   Compiling[0m proc-macro2 v1.0.107
-[1m[92m   Compiling[0m unicode-ident v1.0.27
 [1m[92m   Compiling[0m quote v1.0.47
+[1m[92m   Compiling[0m unicode-ident v1.0.27
 [1m[92m   Compiling[0m cfg-if v1.0.5
 [1m[92m   Compiling[0m bitflags v2.13.2
 [1m[92m   Compiling[0m log v0.4.35
@@ -452,13 +452,13 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m libm v0.2.16
 [1m[92m   Compiling[0m once_cell v1.21.4
 [1m[92m   Compiling[0m smallvec v1.16.6
-[1m[92m   Compiling[0m memchr v2.8.3
-[1m[92m   Compiling[0m pin-project-lite v0.2.18
 [1m[92m   Compiling[0m autocfg v1.5.1
-[1m[92m   Compiling[0m rustix v1.1.6
+[1m[92m   Compiling[0m memchr v2.8.3
 [1m[92m   Compiling[0m syn v3.0.10
 [1m[92m   Compiling[0m syn v2.0.119
+[1m[92m   Compiling[0m pin-project-lite v0.2.18
 [1m[92m   Compiling[0m num-traits v0.2.19
+[1m[92m   Compiling[0m rustix v1.1.6
 [1m[92m   Compiling[0m linux-raw-sys v0.12.1
 [1m[92m   Compiling[0m libloading v0.8.9
 [1m[92m   Compiling[0m futures-core v0.3.34
@@ -467,8 +467,8 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m cc v1.11.3
 [1m[92m   Compiling[0m slab v0.4.12
 [1m[92m   Compiling[0m pkg-config v0.3.34
-[1m[92m   Compiling[0m crossbeam-utils v0.8.23
 [1m[92m   Compiling[0m futures-io v0.3.34
+[1m[92m   Compiling[0m crossbeam-utils v0.8.23
 [1m[92m   Compiling[0m thiserror v2.0.21
 [1m[92m   Compiling[0m stable_deref_trait v1.2.1
 [1m[92m   Compiling[0m arrayvec v0.7.8
@@ -481,24 +481,24 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m wayland-backend v0.3.17
 [1m[92m   Compiling[0m futures-sink v0.3.34
 [1m[92m   Compiling[0m futures-channel v0.3.34
-[1m[92m   Compiling[0m bytemuck v1.25.2
 [1m[92m   Compiling[0m serde_core v1.0.229
-[1m[92m   Compiling[0m downcast-rs v1.2.1
+[1m[92m   Compiling[0m bytemuck v1.25.2
 [1m[92m   Compiling[0m scoped-tls v1.0.1
+[1m[92m   Compiling[0m downcast-rs v1.2.1
 [1m[92m   Compiling[0m futures-macro v0.3.34
 [1m[92m   Compiling[0m tracing-attributes v0.1.31
 [1m[92m   Compiling[0m quick-xml v0.41.0
 [1m[92m   Compiling[0m tracing-core v0.1.36
-[1m[92m   Compiling[0m wayland-client v0.31.15
 [1m[92m   Compiling[0m simd-adler32 v0.3.10
-[1m[92m   Compiling[0m futures-task v0.3.34
+[1m[92m   Compiling[0m wayland-client v0.31.15
 [1m[92m   Compiling[0m bytes v1.12.2
-[1m[92m   Compiling[0m futures-util v0.3.34
+[1m[92m   Compiling[0m futures-task v0.3.34
 [1m[92m   Compiling[0m wayland-scanner v0.31.11
 [1m[92m   Compiling[0m tracing v0.1.44
+[1m[92m   Compiling[0m futures-util v0.3.34
 [1m[92m   Compiling[0m core_maths v0.1.1
-[1m[92m   Compiling[0m cfg_aliases v0.2.2
 [1m[92m   Compiling[0m zerocopy v0.8.65
+[1m[92m   Compiling[0m cfg_aliases v0.2.2
 [1m[92m   Compiling[0m polling v3.11.0
 [1m[92m   Compiling[0m zerocopy-derive v0.8.65
 [1m[92m   Compiling[0m memmap2 v0.9.12
@@ -518,93 +518,93 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m synstructure v0.14.0
 [1m[92m   Compiling[0m parking v2.2.1
 [1m[92m   Compiling[0m winnow v1.0.5
-[1m[92m   Compiling[0m crossbeam-deque v0.8.8
 [1m[92m   Compiling[0m fastrand v2.5.0
+[1m[92m   Compiling[0m crossbeam-deque v0.8.8
 [1m[92m   Compiling[0m half v2.7.1
 [1m[92m   Compiling[0m flate2 v1.1.11
 [1m[92m   Compiling[0m num-rational v0.4.2
 [1m[92m   Compiling[0m profiling-procmacros v1.0.18
-[1m[92m   Compiling[0m raw-window-handle v0.6.2
 [1m[92m   Compiling[0m rayon-core v1.13.0
+[1m[92m   Compiling[0m raw-window-handle v0.6.2
 [1m[92m   Compiling[0m profiling v1.0.18
 [1m[92m   Compiling[0m zerofrom-derive v0.1.8
 [1m[92m   Compiling[0m miniz_oxide v0.8.9
 [1m[92m   Compiling[0m equator-macro v0.4.2
 [1m[92m   Compiling[0m equator v0.4.2
+[1m[92m   Compiling[0m zerofrom v0.1.8
 [1m[92m   Compiling[0m toml_parser v1.1.7+spec-1.1.0
 [1m[92m   Compiling[0m yoke-derive v0.8.4
-[1m[92m   Compiling[0m zerofrom v0.1.8
 [1m[92m   Compiling[0m slotmap v1.1.1
 [1m[92m   Compiling[0m fdeflate v0.3.7
 [1m[92m   Compiling[0m indexmap v2.14.2
+[1m[92m   Compiling[0m typenum v1.20.1
+[1m[92m   Compiling[0m toml_datetime v1.1.3+spec-1.1.0
+[1m[92m   Compiling[0m rustc-hash v1.1.0
 [1m[92m   Compiling[0m anyhow v1.0.105
 [1m[92m   Compiling[0m either v1.19.0
-[1m[92m   Compiling[0m rustc-hash v1.1.0
-[1m[92m   Compiling[0m toml_datetime v1.1.3+spec-1.1.0
 [1m[92m   Compiling[0m smol_str v0.2.2
-[1m[92m   Compiling[0m typenum v1.20.1
-[1m[92m   Compiling[0m yoke v0.8.4
 [1m[92m   Compiling[0m toml_edit v0.25.21+spec-1.1.0
+[1m[92m   Compiling[0m yoke v0.8.4
 [1m[92m   Compiling[0m aligned-vec v0.6.4
-[1m[92m   Compiling[0m target-features v0.1.6
 [1m[92m   Compiling[0m roxmltree v0.20.0
-[1m[92m   Compiling[0m v_frame v0.3.9
-[1m[92m   Compiling[0m proc-macro-crate v3.5.0
 [1m[92m   Compiling[0m hybrid-array v0.4.15
+[1m[92m   Compiling[0m target-features v0.1.6
 [1m[92m   Compiling[0m fontconfig-parser v0.5.8
+[1m[92m   Compiling[0m proc-macro-crate v3.5.0
+[1m[92m   Compiling[0m v_frame v0.3.9
 [1m[92m   Compiling[0m rayon v1.12.0
 [1m[92m   Compiling[0m zvariant_utils v4.2.0
 [1m[92m   Compiling[0m event-listener v5.4.2
-[1m[92m   Compiling[0m wayland-protocols v0.32.13
 [1m[92m   Compiling[0m futures-executor v0.3.34
-[1m[92m   Compiling[0m font-types v0.12.7
+[1m[92m   Compiling[0m wayland-protocols v0.32.13
 [1m[92m   Compiling[0m font-types v0.10.1
+[1m[92m   Compiling[0m font-types v0.12.7
 [1m[92m   Compiling[0m zerovec-derive v0.11.7
 [1m[92m   Compiling[0m as-slice v0.2.1
-[1m[92m   Compiling[0m enumflags2_derive v0.7.12
 [1m[92m   Compiling[0m concurrent-queue v2.5.0
-[1m[92m   Compiling[0m float-cmp v0.9.0
-[1m[92m   Compiling[0m rustc-hash v2.1.3
-[1m[92m   Compiling[0m paste v1.0.15
-[1m[92m   Compiling[0m weezl v0.1.12
-[1m[92m   Compiling[0m av-scenechange v0.14.1
-[1m[92m   Compiling[0m quick-error v2.0.1
-[1m[92m   Compiling[0m unicode-script v0.5.9
+[1m[92m   Compiling[0m enumflags2_derive v0.7.12
+[1m[92m   Compiling[0m web-time v1.1.0
 [1m[92m   Compiling[0m tinyvec v1.13.3
-[1m[92m   Compiling[0m unicode-width v0.2.3
+[1m[92m   Compiling[0m av-scenechange v0.14.1
+[1m[92m   Compiling[0m rustc-hash v2.1.3
+[1m[92m   Compiling[0m weezl v0.1.12
 [1m[92m   Compiling[0m atomic-waker v1.1.2
 [1m[92m   Compiling[0m built v0.8.1
-[1m[92m   Compiling[0m web-time v1.1.0
-[1m[92m   Compiling[0m fontdb v0.23.0
-[1m[92m   Compiling[0m lilt v0.8.2
-[1m[92m   Compiling[0m zerovec v0.11.9
+[1m[92m   Compiling[0m quick-error v2.0.1
+[1m[92m   Compiling[0m float-cmp v0.9.0
+[1m[92m   Compiling[0m unicode-script v0.5.9
+[1m[92m   Compiling[0m paste v1.0.15
+[1m[92m   Compiling[0m unicode-width v0.2.3
 [1m[92m   Compiling[0m rav1e v0.8.1
 [1m[92m   Compiling[0m strict-num v0.1.1
+[1m[92m   Compiling[0m fontdb v0.23.0
+[1m[92m   Compiling[0m zerovec v0.11.9
+[1m[92m   Compiling[0m lilt v0.8.2
 [1m[92m   Compiling[0m enumflags2 v0.7.12
 [1m[92m   Compiling[0m aligned v0.4.3
-[1m[92m   Compiling[0m read-fonts v0.35.0
-[1m[92m   Compiling[0m zvariant_derive v5.15.1
 [1m[92m   Compiling[0m read-fonts v0.41.0
+[1m[92m   Compiling[0m zvariant_derive v5.15.1
+[1m[92m   Compiling[0m read-fonts v0.35.0
 [1m[92m   Compiling[0m futures v0.3.34
 [1m[92m   Compiling[0m event-listener-strategy v0.5.4
 [1m[92m   Compiling[0m futures-lite v2.6.1
 [1m[92m   Compiling[0m zcheapstr v1.4.0
 [1m[92m   Compiling[0m displaydoc v0.2.7
 [1m[92m   Compiling[0m arg_enum_proc_macro v0.3.4
-[1m[92m   Compiling[0m nom v8.0.0
 [1m[92m   Compiling[0m no_std_io2 v0.9.4
-[1m[92m   Compiling[0m color_quant v1.1.0
-[1m[92m   Compiling[0m endi v1.1.1
+[1m[92m   Compiling[0m nom v8.0.0
 [1m[92m   Compiling[0m parking_lot_core v0.9.12
-[1m[92m   Compiling[0m glam v0.25.0
-[1m[92m   Compiling[0m y4m v0.8.0
-[1m[92m   Compiling[0m unicode-bidi v0.3.18
+[1m[92m   Compiling[0m color_quant v1.1.0
 [1m[92m   Compiling[0m arrayref v0.3.9
+[1m[92m   Compiling[0m glam v0.25.0
 [1m[92m   Compiling[0m pastey v0.1.1
+[1m[92m   Compiling[0m endi v1.1.1
+[1m[92m   Compiling[0m unicode-bidi v0.3.18
+[1m[92m   Compiling[0m y4m v0.8.0
 [1m[92m   Compiling[0m skrifa v0.44.0
 [1m[92m   Compiling[0m iced_core v0.14.0
-[1m[92m   Compiling[0m tiny-skia-path v0.11.4
 [1m[92m   Compiling[0m av1-grain v0.2.5
+[1m[92m   Compiling[0m tiny-skia-path v0.11.4
 [1m[92m   Compiling[0m bitstream-io v4.10.0
 [1m[92m   Compiling[0m multiversion-macros v0.8.1
 [1m[92m   Compiling[0m maybe-rayon v0.1.1
@@ -613,31 +613,31 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m rgb v0.8.53
 [1m[92m   Compiling[0m num-derive v0.4.2
 [1m[92m   Compiling[0m async-io v2.6.0
-[1m[92m   Compiling[0m imgref v1.12.3
-[1m[92m   Compiling[0m simd_helpers v0.1.1
-[1m[92m   Compiling[0m noop_proc_macro v0.3.0
-[1m[92m   Compiling[0m zune-core v0.5.3
-[1m[92m   Compiling[0m foldhash v0.1.5
 [1m[92m   Compiling[0m new_debug_unreachable v1.0.6
+[1m[92m   Compiling[0m scopeguard v1.2.0
+[1m[92m   Compiling[0m byteorder-lite v0.1.0
+[1m[92m   Compiling[0m bitflags v1.3.2
+[1m[92m   Compiling[0m as-raw-xcb-connection v1.0.1
+[1m[92m   Compiling[0m foldhash v0.1.5
 [1m[92m   Compiling[0m zeno v0.3.3
 [1m[92m   Compiling[0m bit-vec v0.8.0
 [1m[92m   Compiling[0m ash v0.38.0+1.3.281
+[1m[92m   Compiling[0m imgref v1.12.3
 [1m[92m   Compiling[0m foldhash v0.2.0
-[1m[92m   Compiling[0m bitflags v1.3.2
+[1m[92m   Compiling[0m simd_helpers v0.1.1
+[1m[92m   Compiling[0m noop_proc_macro v0.3.0
 [1m[92m   Compiling[0m yazi v0.2.2
+[1m[92m   Compiling[0m zune-core v0.5.3
 [1m[92m   Compiling[0m khronos-egl v6.0.0
-[1m[92m   Compiling[0m as-raw-xcb-connection v1.0.1
-[1m[92m   Compiling[0m byteorder-lite v0.1.0
-[1m[92m   Compiling[0m scopeguard v1.2.0
-[1m[92m   Compiling[0m lock_api v0.4.14
-[1m[92m   Compiling[0m image-webp v0.2.4
-[1m[92m   Compiling[0m swash v0.2.10
-[1m[92m   Compiling[0m png v0.17.16
-[1m[92m   Compiling[0m bit-set v0.8.0
 [1m[92m   Compiling[0m hashbrown v0.16.1
-[1m[92m   Compiling[0m hashbrown v0.15.5
 [1m[92m   Compiling[0m zune-jpeg v0.5.15
+[1m[92m   Compiling[0m swash v0.2.10
 [1m[92m   Compiling[0m loop9 v0.1.5
+[1m[92m   Compiling[0m bit-set v0.8.0
+[1m[92m   Compiling[0m hashbrown v0.15.5
+[1m[92m   Compiling[0m png v0.17.16
+[1m[92m   Compiling[0m image-webp v0.2.4
+[1m[92m   Compiling[0m lock_api v0.4.14
 [1m[92m   Compiling[0m multiversion v0.8.1
 [1m[92m   Compiling[0m iced_futures v0.14.0
 [1m[92m   Compiling[0m skrifa v0.37.0
@@ -652,55 +652,55 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m gpu-alloc-types v0.3.1
 [1m[92m   Compiling[0m spirv v0.3.0+sdk-1.3.268.0
 [1m[92m   Compiling[0m gpu-descriptor-types v0.2.0
-[1m[92m   Compiling[0m async-task v4.7.1
-[1m[92m   Compiling[0m itoa v1.0.19
-[1m[92m   Compiling[0m x11rb-protocol v0.13.2
-[1m[92m   Compiling[0m xcursor v0.3.11
-[1m[92m   Compiling[0m percent-encoding v2.3.2
-[1m[92m   Compiling[0m bit_field v0.10.4
-[1m[92m   Compiling[0m rangemap v1.9.0
+[1m[92m   Compiling[0m linebender_resource_handle v0.1.1
 [1m[92m   Compiling[0m fax v0.2.7
 [1m[92m   Compiling[0m self_cell v1.3.0
-[1m[92m   Compiling[0m pxfm v0.1.30
-[1m[92m   Compiling[0m sys-locale v0.3.2
-[1m[92m   Compiling[0m hexf-parse v0.2.1
-[1m[92m   Compiling[0m unicode-linebreak v0.1.5
-[1m[92m   Compiling[0m linebender_resource_handle v0.1.1
-[1m[92m   Compiling[0m cursor-icon v1.2.0
 [1m[92m   Compiling[0m xkeysym v0.2.1
-[1m[92m   Compiling[0m lebe v0.5.3
+[1m[92m   Compiling[0m cursor-icon v1.2.0
+[1m[92m   Compiling[0m pxfm v0.1.30
+[1m[92m   Compiling[0m bit_field v0.10.4
+[1m[92m   Compiling[0m async-task v4.7.1
+[1m[92m   Compiling[0m sys-locale v0.3.2
+[1m[92m   Compiling[0m itoa v1.0.19
+[1m[92m   Compiling[0m x11rb-protocol v0.13.2
+[1m[92m   Compiling[0m unicode-linebreak v0.1.5
+[1m[92m   Compiling[0m hexf-parse v0.2.1
+[1m[92m   Compiling[0m rangemap v1.9.0
+[1m[92m   Compiling[0m xcursor v0.3.11
 [1m[92m   Compiling[0m unicode-segmentation v1.13.3
-[1m[92m   Compiling[0m cosmic-text v0.15.0
-[1m[92m   Compiling[0m moxcms v0.8.1
+[1m[92m   Compiling[0m percent-encoding v2.3.2
+[1m[92m   Compiling[0m lebe v0.5.3
 [1m[92m   Compiling[0m exr v1.74.3
+[1m[92m   Compiling[0m moxcms v0.8.1
+[1m[92m   Compiling[0m cosmic-text v0.15.0
+[1m[92m   Compiling[0m wayland-cursor v0.31.14
 [1m[92m   Compiling[0m wayland-csd-frame v0.3.0
 [1m[92m   Compiling[0m tiff v0.11.3
-[1m[92m   Compiling[0m x11rb v0.13.2
-[1m[92m   Compiling[0m wayland-cursor v0.31.14
 [1m[92m   Compiling[0m gpu-descriptor v0.3.2
 [1m[92m   Compiling[0m gpu-alloc v0.6.2
 [1m[92m   Compiling[0m signal-hook-registry v1.4.8
+[1m[92m   Compiling[0m x11rb v0.13.2
 [1m[92m   Compiling[0m ravif v0.13.0
 [1m[92m   Compiling[0m parking_lot v0.12.5
 [1m[92m   Compiling[0m tiny-skia v0.11.4
 [1m[92m   Compiling[0m zvariant v5.15.1
 [1m[92m   Compiling[0m gif v0.14.2
-[1m[92m   Compiling[0m wayland-protocols-wlr v0.3.12
 [1m[92m   Compiling[0m tinystr v0.8.5
+[1m[92m   Compiling[0m wayland-protocols-wlr v0.3.12
 [1m[92m   Compiling[0m async-channel v2.5.0
 [1m[92m   Compiling[0m png v0.18.1
 [1m[92m   Compiling[0m wgpu-types v27.0.1
 [1m[92m   Compiling[0m qoi v0.4.1
 [1m[92m   Compiling[0m ordered-float v5.5.1
-[1m[92m   Compiling[0m utf_types v1.0.0
-[1m[92m   Compiling[0m renderdoc-sys v1.1.0
-[1m[92m   Compiling[0m litemap v0.8.3
 [1m[92m   Compiling[0m getrandom v0.4.3
-[1m[92m   Compiling[0m glow v0.16.0
+[1m[92m   Compiling[0m writeable v0.6.4
+[1m[92m   Compiling[0m utf_types v1.0.0
 [1m[92m   Compiling[0m mutate_once v0.1.2
 [1m[92m   Compiling[0m rustix v0.38.44
 [1m[92m   Compiling[0m thiserror v1.0.69
-[1m[92m   Compiling[0m writeable v0.6.4
+[1m[92m   Compiling[0m renderdoc-sys v1.1.0
+[1m[92m   Compiling[0m litemap v0.8.3
+[1m[92m   Compiling[0m glow v0.16.0
 [1m[92m   Compiling[0m icu_locale_core v2.4.0
 [1m[92m   Compiling[0m kamadak-exif v0.6.2
 [1m[92m   Compiling[0m utf8_iter v1.1.0
@@ -715,21 +715,21 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m kurbo v0.11.3
 [1m[92m   Compiling[0m thiserror-impl v1.0.69
 [1m[92m   Compiling[0m ring v0.17.14
-[1m[92m   Compiling[0m icu_normalizer_data v2.4.0
-[1m[92m   Compiling[0m siphasher v1.0.4
-[1m[92m   Compiling[0m cmov v0.5.4
-[1m[92m   Compiling[0m icu_properties_data v2.4.0
-[1m[92m   Compiling[0m litrs v1.1.0
 [1m[92m   Compiling[0m linux-raw-sys v0.4.15
+[1m[92m   Compiling[0m icu_normalizer_data v2.4.0
 [1m[92m   Compiling[0m base64 v0.22.1
 [1m[92m   Compiling[0m unicode-properties v0.1.5
 [1m[92m   Compiling[0m unicode-bidi-mirroring v0.4.0
 [1m[92m   Compiling[0m unicode-ccc v0.4.0
-[1m[92m   Compiling[0m wgpu-core-deps-windows-linux-android v27.0.0
-[1m[92m   Compiling[0m document-features v0.2.12
-[1m[92m   Compiling[0m rustybuzz v0.20.1
+[1m[92m   Compiling[0m icu_properties_data v2.4.0
+[1m[92m   Compiling[0m litrs v1.1.0
+[1m[92m   Compiling[0m siphasher v1.0.4
+[1m[92m   Compiling[0m cmov v0.5.4
 [1m[92m   Compiling[0m ctutils v0.4.8
+[1m[92m   Compiling[0m document-features v0.2.12
 [1m[92m   Compiling[0m svgtypes v0.15.3
+[1m[92m   Compiling[0m rustybuzz v0.20.1
+[1m[92m   Compiling[0m wgpu-core-deps-windows-linux-android v27.0.0
 [1m[92m   Compiling[0m iced_graphics v0.14.0
 [1m[92m   Compiling[0m blocking v1.7.0
 [1m[92m   Compiling[0m icu_collections v2.4.0
@@ -744,29 +744,29 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m uuid v1.29.3
 [1m[92m   Compiling[0m calloop v0.14.5
 [1m[92m   Compiling[0m wgpu v27.0.1
+[1m[92m   Compiling[0m serde_repr v0.1.21
 [1m[92m   Compiling[0m async-recursion v1.2.0
 [1m[92m   Compiling[0m async-trait v0.1.92
-[1m[92m   Compiling[0m serde_repr v0.1.21
 [1m[92m   Compiling[0m tiny-xlib v0.2.5
 [1m[92m   Compiling[0m ordered-stream v0.2.0
 [1m[92m   Compiling[0m euclid v0.22.14
 [1m[92m   Compiling[0m simplecss v0.2.2
-[1m[92m   Compiling[0m unicode-vo v0.1.0
-[1m[92m   Compiling[0m xmlwriter v0.1.0
-[1m[92m   Compiling[0m pico-args v0.5.0
-[1m[92m   Compiling[0m imagesize v0.13.0
-[1m[92m   Compiling[0m const-oid v0.10.3
 [1m[92m   Compiling[0m hex v0.4.3
-[1m[92m   Compiling[0m zeroize v1.9.2
+[1m[92m   Compiling[0m const-oid v0.10.3
 [1m[92m   Compiling[0m smithay-client-toolkit v0.20.0
 [1m[92m   Compiling[0m data-url v0.3.2
 [1m[92m   Compiling[0m zune-core v0.4.12
+[1m[92m   Compiling[0m unicode-vo v0.1.0
+[1m[92m   Compiling[0m xmlwriter v0.1.0
+[1m[92m   Compiling[0m pico-args v0.5.0
+[1m[92m   Compiling[0m zeroize v1.9.2
 [1m[92m   Compiling[0m svg_fmt v0.4.5
+[1m[92m   Compiling[0m imagesize v0.13.0
+[1m[92m   Compiling[0m rustls-pki-types v1.16.0
 [1m[92m   Compiling[0m zune-jpeg v0.4.21
 [1m[92m   Compiling[0m usvg v0.45.1
-[1m[92m   Compiling[0m zbus v5.19.0
-[1m[92m   Compiling[0m rustls-pki-types v1.16.0
 [1m[92m   Compiling[0m digest v0.11.3
+[1m[92m   Compiling[0m zbus v5.19.0
 [1m[92m   Compiling[0m calloop-wayland-source v0.4.1
 [1m[92m   Compiling[0m inout v0.2.6
 [1m[92m   Compiling[0m http-body v1.1.0
@@ -776,11 +776,11 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m wayland-protocols-misc v0.3.12
 [1m[92m   Compiling[0m wayland-protocols-experimental v20250721.0.1
 [1m[92m   Compiling[0m getrandom v0.2.17
-[1m[92m   Compiling[0m static_assertions v1.1.0
-[1m[92m   Compiling[0m untrusted v0.9.0
 [1m[92m   Compiling[0m smithay-client-toolkit v0.19.2
 [1m[92m   Compiling[0m httparse v1.10.1
 [1m[92m   Compiling[0m ctor v0.10.1
+[1m[92m   Compiling[0m static_assertions v1.1.0
+[1m[92m   Compiling[0m untrusted v0.9.0
 [1m[92m   Compiling[0m resvg v0.45.1
 [1m[92m   Compiling[0m icu_properties v2.4.0
 [1m[92m   Compiling[0m icu_normalizer v2.4.0
@@ -790,21 +790,21 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m owned_ttf_parser v0.25.1
 [1m[92m   Compiling[0m ahash v0.8.14
 [1m[92m   Compiling[0m x11-dl v2.21.0
-[1m[92m   Compiling[0m cpufeatures v0.3.1
+[1m[92m   Compiling[0m rustls v0.23.46
+[1m[92m   Compiling[0m android-build v0.1.4
 [1m[92m   Compiling[0m tower-service v0.3.3
+[1m[92m   Compiling[0m cpufeatures v0.3.1
 [1m[92m   Compiling[0m try-lock v0.2.5
 [1m[92m   Compiling[0m ab_glyph_rasterizer v0.1.10
-[1m[92m   Compiling[0m android-build v0.1.4
-[1m[92m   Compiling[0m rustls v0.23.46
 [1m[92m   Compiling[0m lru v0.16.4
-[1m[92m   Compiling[0m mundy v0.2.3
-[1m[92m   Compiling[0m cryoglyph v0.1.0
-[1m[92m   Compiling[0m ab_glyph v0.2.32
 [1m[92m   Compiling[0m want v0.3.2
+[1m[92m   Compiling[0m ab_glyph v0.2.32
+[1m[92m   Compiling[0m cryoglyph v0.1.0
+[1m[92m   Compiling[0m mundy v0.2.3
 [1m[92m   Compiling[0m idna_adapter v1.2.2
 [1m[92m   Compiling[0m smithay-clipboard v0.7.3
-[1m[92m   Compiling[0m softbuffer v0.4.8
 [1m[92m   Compiling[0m rustls-webpki v0.103.17
+[1m[92m   Compiling[0m softbuffer v0.4.8
 [1m[92m   Compiling[0m hmac v0.13.0
 [1m[92m   Compiling[0m guillotiere v0.6.2
 [1m[92m   Compiling[0m form_urlencoded v1.2.3
@@ -813,10 +813,10 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m winit v0.30.13
 [1m[92m   Compiling[0m kurbo v0.10.4
 [1m[92m   Compiling[0m num-complex v0.4.6
+[1m[92m   Compiling[0m pulldown-cmark v0.12.2
 [1m[92m   Compiling[0m cpubits v0.1.1
 [1m[92m   Compiling[0m subtle v2.6.1
 [1m[92m   Compiling[0m zmij v1.0.23
-[1m[92m   Compiling[0m pulldown-cmark v0.12.2
 [1m[92m   Compiling[0m num v0.4.3
 [1m[92m   Compiling[0m aes v0.9.4
 [1m[92m   Compiling[0m iced_runtime v0.14.0
@@ -824,8 +824,8 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m iced_wgpu v0.14.0
 [1m[92m   Compiling[0m hkdf v0.13.0
 [1m[92m   Compiling[0m sctk-adwaita v0.10.1
-[1m[92m   Compiling[0m clipboard_wayland v0.2.2
 [1m[92m   Compiling[0m hyper v1.13.0
+[1m[92m   Compiling[0m clipboard_wayland v0.2.2
 [1m[92m   Compiling[0m idna v1.1.0
 [1m[92m   Compiling[0m sha2 v0.11.2
 [1m[92m   Compiling[0m cbc v0.2.1
@@ -834,13 +834,13 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m wayland-protocols-plasma v0.3.12
 [1m[92m   Compiling[0m getopts v0.2.24
 [1m[92m   Compiling[0m sync_wrapper v1.0.2
-[1m[92m   Compiling[0m base64 v0.23.1
+[1m[92m   Compiling[0m dpi v0.1.2
+[1m[92m   Compiling[0m ipnet v2.12.2
 [1m[92m   Compiling[0m serde_json v1.0.154
 [1m[92m   Compiling[0m tower-layer v0.3.3
+[1m[92m   Compiling[0m base64 v0.23.1
 [1m[92m   Compiling[0m pulldown-cmark-escape v0.11.0
-[1m[92m   Compiling[0m dpi v0.1.2
 [1m[92m   Compiling[0m unicase v2.10.0
-[1m[92m   Compiling[0m ipnet v2.12.2
 [1m[92m   Compiling[0m hyper-util v0.1.21
 [1m[92m   Compiling[0m tower v0.5.3
 [1m[92m   Compiling[0m window_clipboard v0.5.1
@@ -854,14 +854,14 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m ryu v1.0.23
 [1m[92m   Compiling[0m serde_urlencoded v0.7.1
 [1m[92m   Compiling[0m zbus-secret-service-keyring-store v1.0.1
-[1m[92m   Compiling[0m hyper-rustls v0.27.10
-[1m[92m   Compiling[0m tower-http v0.6.11
 [1m[92m   Compiling[0m iced_winit v0.14.1
+[1m[92m   Compiling[0m hyper-rustls v0.27.10
 [1m[92m   Compiling[0m iced_widget v0.14.2
+[1m[92m   Compiling[0m tower-http v0.6.11
 [1m[92m   Compiling[0m http-body-util v0.1.5
 [1m[92m   Compiling[0m keyring v4.2.0
-[1m[92m   Compiling[0m archx-ai-lab v0.1.0 (/home/runner/work/Archx-Agent/Archx-Agent)
 [1m[92m   Compiling[0m reqwest v0.12.28
+[1m[92m   Compiling[0m archx-ai-lab v0.1.0 (/home/runner/work/Archx-Agent/Archx-Agent)
 [1m[92m   Compiling[0m iced v0.14.0
 [1m[92m   Compiling[0m archx-shared v0.1.0 (/home/runner/work/Archx-Agent/Archx-Agent/shared)
 [1m[33mwarning[0m[1m: unused import: `json`[0m
@@ -872,62 +872,1041 @@ COMMAND: cargo test --locked
   [1m[94m|[0m
   [1m[94m= [0m[1mnote[0m: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
-[1m[91merror[E0277][0m[1m: a value of type `&str` cannot be built from an iterator over elements of type `char`[0m
-   [1m[94m--> [0mshared/src/provider_api.rs:276:138
+[1m[33mwarning[0m[1m: trait `CredentialStore` is more private than the item `Vault<S>`[0m
+   [1m[94m--> [0mshared/src/credentials.rs:134:1
     [1m[94m|[0m
-[1m[94m276[0m [1m[94m|[0m [1m[94m...[0m(MAX_PROVIDER_MESSAGE).collect()), ..trace },
+[1m[94m134[0m [1m[94m|[0m impl<S: CredentialStore> Vault<S> {
+    [1m[94m|[0m [1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m [1m[33mimplementation `Vault<S>` is reachable at visibility `pub`[0m
+    [1m[94m|[0m
+[1m[92mnote[0m: but trait `CredentialStore` is only usable at visibility `pub(crate)`
+   [1m[94m--> [0mshared/src/credentials.rs:91:1
+    [1m[94m|[0m
+[1m[94m 91[0m [1m[94m|[0m pub(crate) trait CredentialStore {
+    [1m[94m|[0m [1m[92m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+    [1m[94m= [0m[1mnote[0m: `#[warn(private_bounds)]` on by default
+
+[1m[33mwarning[0m[1m: function `repo_root` is never used[0m
+   [1m[94m--> [0mshared/src/apps.rs:251:4
+    [1m[94m|[0m
+[1m[94m251[0m [1m[94m|[0m fn repo_root() -> PathBuf {
+    [1m[94m|[0m    [1m[33m^^^^^^^^^[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+[1m[92m   Compiling[0m archx-agent v0.1.0 (/home/runner/work/Archx-Agent/Archx-Agent/apps/archx-agent)
+[1m[91merror[0m[1m: `self` parameter is only allowed in associated functions[0m
+   [1m[94m--> [0mapps/archx-agent/src/app.rs:975:18
+    [1m[94m|[0m
+[1m[94m975[0m [1m[94m|[0m     fn send_chat(&mut self, test: bool) -> Task<Message> {
+    [1m[94m|[0m                  [1m[91m^^^^^^^^^[0m [1m[91mnot semantically valid as function parameter[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: associated functions are those in `impl` or `trait` definitions
+
+[1m[91merror[0m[1m: `self` parameter is only allowed in associated functions[0m
+    [1m[94m--> [0mapps/archx-agent/src/app.rs:1102:17
+     [1m[94m|[0m
+[1m[94m1102[0m [1m[94m|[0m     fn key_plan(&self, now: u64) -> Vec<u64> {
+     [1m[94m|[0m                 [1m[91m^^^^^[0m [1m[91mnot semantically valid as function parameter[0m
+     [1m[94m|[0m
+     [1m[94m= [0m[1mnote[0m: associated functions are those in `impl` or `trait` definitions
+
+[1m[91merror[0m[1m: `self` parameter is only allowed in associated functions[0m
+    [1m[94m--> [0mapps/archx-agent/src/app.rs:1119:23
+     [1m[94m|[0m
+[1m[94m1119[0m [1m[94m|[0m     fn finish_attempt(&mut self, outcome: &AttemptOutcome) {
+     [1m[94m|[0m                       [1m[91m^^^^^^^^^[0m [1m[91mnot semantically valid as function parameter[0m
+     [1m[94m|[0m
+     [1m[94m= [0m[1mnote[0m: associated functions are those in `impl` or `trait` definitions
+
+[1m[91merror[0m[1m: `self` parameter is only allowed in associated functions[0m
+    [1m[94m--> [0mapps/archx-agent/src/app.rs:1131:21
+     [1m[94m|[0m
+[1m[94m1131[0m [1m[94m|[0m     fn fail_attempt(&mut self, failure: &Failure, attempts: usize, journal_id: u64) {
+     [1m[94m|[0m                     [1m[91m^^^^^^^^^[0m [1m[91mnot semantically valid as function parameter[0m
+     [1m[94m|[0m
+     [1m[94m= [0m[1mnote[0m: associated functions are those in `impl` or `trait` definitions
+
+[1m[91merror[0m[1m: `self` parameter is only allowed in associated functions[0m
+    [1m[94m--> [0mapps/archx-agent/src/app.rs:1146:25
+     [1m[94m|[0m
+[1m[94m1146[0m [1m[94m|[0m     fn current_model_id(&self) -> String {
+     [1m[94m|[0m                         [1m[91m^^^^^[0m [1m[91mnot semantically valid as function parameter[0m
+     [1m[94m|[0m
+     [1m[94m= [0m[1mnote[0m: associated functions are those in `impl` or `trait` definitions
+
+[1m[91merror[E0432][0m[1m: unresolved imports `crate::debug_log`, `crate::endpoints`, `crate::model_catalog`, `crate::model_meta`, `crate::provider_api`, `crate::style`, `crate::transcripts`[0m
+  [1m[94m--> [0mapps/archx-agent/src/app.rs:28:20
+   [1m[94m|[0m
+[1m[94m28[0m [1m[94m|[0m use crate::{agent, debug_log, debug_page, endpoints, home, model_catalog, model_meta,
+   [1m[94m|[0m                    [1m[91m^^^^^^^^^[0m              [1m[91m^^^^^^^^^[0m        [1m[91m^^^^^^^^^^^^^[0m  [1m[91m^^^^^^^^^^[0m [1m[91mno `model_meta` in the root[0m
+   [1m[94m|[0m                    [1m[91m|[0m                      [1m[91m|[0m                [1m[91m|[0m
+   [1m[94m|[0m                    [1m[91m|[0m                      [1m[91m|[0m                [1m[91mno `model_catalog` in the root[0m
+   [1m[94m|[0m                    [1m[91m|[0m                      [1m[91mno `endpoints` in the root[0m
+   [1m[94m|[0m                    [1m[91mno `debug_log` in the root[0m
+[1m[94m29[0m [1m[94m|[0m     provider_api, settings, style, transcripts};
+   [1m[94m|[0m     [1m[91m^^^^^^^^^^^^[0m            [1m[91m^^^^^[0m  [1m[91m^^^^^^^^^^^[0m [1m[91mno `transcripts` in the root[0m
+   [1m[94m|[0m     [1m[91m|[0m                       [1m[91m|[0m
+   [1m[94m|[0m     [1m[91m|[0m                       [1m[91mno `style` in the root[0m
+   [1m[94m|[0m     [1m[91mno `provider_api` in the root[0m
+   [1m[94m|[0m
+[1m[96mhelp[0m: a similar name exists in the module
+   [1m[94m|[0m
+[1m[94m28[0m [91m- [0muse crate::{agent, [91mdebug_log[0m, debug_page, endpoints, home, model_catalog, model_meta,
+[1m[94m28[0m [92m+ [0muse crate::{agent, [92mdebug_page[0m, debug_page, endpoints, home, model_catalog, model_meta,
+   [1m[94m|[0m
+
+[1m[91merror[E0433][0m[1m: cannot find module or crate `reqwest` in this scope[0m
+ [1m[94m--> [0mapps/archx-agent/src/custom_endpoint.rs:5:5
+  [1m[94m|[0m
+[1m[94m5[0m [1m[94m|[0m use reqwest::{Client, Url, redirect, header::{HeaderName, HeaderValue}};
+  [1m[94m|[0m     [1m[91m^^^^^^^[0m [1m[91muse of unresolved module or unlinked crate `reqwest`[0m
+  [1m[94m|[0m
+  [1m[94m= [0m[1mhelp[0m: if you wanted to use a crate named `reqwest`, use `cargo add reqwest` to add it to your `Cargo.toml`
+
+[1m[91merror[E0432][0m[1m: unresolved import `reqwest`[0m
+ [1m[94m--> [0mapps/archx-agent/src/custom_endpoint.rs:5:5
+  [1m[94m|[0m
+[1m[94m5[0m [1m[94m|[0m use reqwest::{Client, Url, redirect, header::{HeaderName, HeaderValue}};
+  [1m[94m|[0m     [1m[91m^^^^^^^[0m [1m[91muse of unresolved module or unlinked crate `reqwest`[0m
+  [1m[94m|[0m
+  [1m[94m= [0m[1mhelp[0m: if you wanted to use a crate named `reqwest`, use `cargo add reqwest` to add it to your `Cargo.toml`
+
+[1m[91merror[E0433][0m[1m: cannot find module or crate `image` in this scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:752:25
+    [1m[94m|[0m
+[1m[94m752[0m [1m[94m|[0m                         image::ColorType::Rgba8);
+    [1m[94m|[0m                         [1m[91m^^^^^[0m [1m[91muse of unresolved module or unlinked crate `image`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: if you wanted to use a crate named `image`, use `cargo add image` to add it to your `Cargo.toml`
+
+[1m[91merror[E0433][0m[1m: cannot find type `Area` in this scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:465:21
+    [1m[94m|[0m
+[1m[94m465[0m [1m[94m|[0m                     Area::Chat => archx_shared::persist::DisplaySettings { chat: Default::default(), ..self.display },
+    [1m[94m|[0m                     [1m[91m^^^^[0m [1m[91muse of undeclared type `Area`[0m
+    [1m[94m|[0m
+[1m[96mhelp[0m: consider importing this enum
+    [1m[94m|[0m
+[1m[94m  7[0m [92m+ use crate::app::Area;[0m
+    [1m[94m|[0m
+
+[1m[91merror[E0433][0m[1m: cannot find type `Area` in this scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:466:21
+    [1m[94m|[0m
+[1m[94m466[0m [1m[94m|[0m                     Area::Settings => archx_shared::persist::DisplaySettings { settings: Default::default(), ..self.display },
+    [1m[94m|[0m                     [1m[91m^^^^[0m [1m[91muse of undeclared type `Area`[0m
+    [1m[94m|[0m
+[1m[96mhelp[0m: consider importing this enum
+    [1m[94m|[0m
+[1m[94m  7[0m [92m+ use crate::app::Area;[0m
+    [1m[94m|[0m
+
+[1m[91merror[E0433][0m[1m: cannot find type `Area` in this scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:467:21
+    [1m[94m|[0m
+[1m[94m467[0m [1m[94m|[0m                     Area::Launcher => archx_shared::persist::DisplaySettings { launcher: Default::default(), ..self.display },
+    [1m[94m|[0m                     [1m[91m^^^^[0m [1m[91muse of undeclared type `Area`[0m
+    [1m[94m|[0m
+[1m[96mhelp[0m: consider importing this enum
+    [1m[94m|[0m
+[1m[94m  7[0m [92m+ use crate::app::Area;[0m
+    [1m[94m|[0m
+
+[1m[91merror[E0425][0m[1m: cannot find type `MemoryScope` in this scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/settings.rs:859:32
+    [1m[94m|[0m
+[1m[94m859[0m [1m[94m|[0m     let scope_button = |scope: MemoryScope, label: &'static str| -> Element<'static, Message> {
+    [1m[94m|[0m                                [1m[91m^^^^^^^^^^^[0m [1m[91mnot found in this scope[0m
+    [1m[94m|[0m
+[1m[92mnote[0m: similarly named enum `MemoryMode` defined here
+   [1m[94m--> [0mapps/archx-agent/src/app.rs:45:1
+    [1m[94m|[0m
+[1m[94m 45[0m [1m[94m|[0m pub enum MemoryMode {
+    [1m[94m|[0m [1m[92m^^^^^^^^^^^^^^^^^^^[0m
+[1m[96mhelp[0m: an enum with a similar name exists
+    [1m[94m|[0m
+[1m[94m859[0m [91m- [0m    let scope_button = |scope: [91mMemoryScope[0m, label: &'static str| -> Element<'static, Message> {
+[1m[94m859[0m [92m+ [0m    let scope_button = |scope: [92mMemoryMode[0m, label: &'static str| -> Element<'static, Message> {
+    [1m[94m|[0m
+[1m[96mhelp[0m: consider importing this enum
+    [1m[94m|[0m
+[1m[94m  2[0m [92m+ use crate::app::MemoryScope;[0m
+    [1m[94m|[0m
+
+[1m[91merror[E0433][0m[1m: cannot find type `MemoryScope` in this scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/settings.rs:860:58
+    [1m[94m|[0m
+[1m[94m860[0m [1m[94m|[0m         let active = memory == scope.mode() && (scope != MemoryScope::Heavy || memory == MemoryMode::Heavy);
+    [1m[94m|[0m                                                          [1m[91m^^^^^^^^^^^[0m [1m[91muse of undeclared type `MemoryScope`[0m
+    [1m[94m|[0m
+[1m[96mhelp[0m: an enum with a similar name exists
+    [1m[94m|[0m
+[1m[94m860[0m [91m- [0m        let active = memory == scope.mode() && (scope != [91mMemoryScope[0m::Heavy || memory == MemoryMode::Heavy);
+[1m[94m860[0m [92m+ [0m        let active = memory == scope.mode() && (scope != [92mMemoryMode[0m::Heavy || memory == MemoryMode::Heavy);
+    [1m[94m|[0m
+[1m[96mhelp[0m: consider importing this enum
+    [1m[94m|[0m
+[1m[94m  2[0m [92m+ use crate::app::MemoryScope;[0m
+    [1m[94m|[0m
+
+[1m[91merror[E0433][0m[1m: cannot find type `MemoryScope` in this scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/settings.rs:872:26
+    [1m[94m|[0m
+[1m[94m872[0m [1m[94m|[0m             scope_button(MemoryScope::Light, "Light"),
+    [1m[94m|[0m                          [1m[91m^^^^^^^^^^^[0m [1m[91muse of undeclared type `MemoryScope`[0m
+    [1m[94m|[0m
+[1m[96mhelp[0m: an enum with a similar name exists
+    [1m[94m|[0m
+[1m[94m872[0m [91m- [0m            scope_button([91mMemoryScope[0m::Light, "Light"),
+[1m[94m872[0m [92m+ [0m            scope_button([92mMemoryMode[0m::Light, "Light"),
+    [1m[94m|[0m
+[1m[96mhelp[0m: consider importing this enum
+    [1m[94m|[0m
+[1m[94m  2[0m [92m+ use crate::app::MemoryScope;[0m
+    [1m[94m|[0m
+
+[1m[91merror[E0433][0m[1m: cannot find type `MemoryScope` in this scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/settings.rs:873:26
+    [1m[94m|[0m
+[1m[94m873[0m [1m[94m|[0m             scope_button(MemoryScope::Balanced, "Balanced"),
+    [1m[94m|[0m                          [1m[91m^^^^^^^^^^^[0m [1m[91muse of undeclared type `MemoryScope`[0m
+    [1m[94m|[0m
+[1m[96mhelp[0m: an enum with a similar name exists
+    [1m[94m|[0m
+[1m[94m873[0m [91m- [0m            scope_button([91mMemoryScope[0m::Balanced, "Balanced"),
+[1m[94m873[0m [92m+ [0m            scope_button([92mMemoryMode[0m::Balanced, "Balanced"),
+    [1m[94m|[0m
+[1m[96mhelp[0m: consider importing this enum
+    [1m[94m|[0m
+[1m[94m  2[0m [92m+ use crate::app::MemoryScope;[0m
+    [1m[94m|[0m
+
+[1m[91merror[E0433][0m[1m: cannot find type `MemoryScope` in this scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/settings.rs:874:26
+    [1m[94m|[0m
+[1m[94m874[0m [1m[94m|[0m             scope_button(MemoryScope::Heavy, "Heavy"),
+    [1m[94m|[0m                          [1m[91m^^^^^^^^^^^[0m [1m[91muse of undeclared type `MemoryScope`[0m
+    [1m[94m|[0m
+[1m[96mhelp[0m: an enum with a similar name exists
+    [1m[94m|[0m
+[1m[94m874[0m [91m- [0m            scope_button([91mMemoryScope[0m::Heavy, "Heavy"),
+[1m[94m874[0m [92m+ [0m            scope_button([92mMemoryMode[0m::Heavy, "Heavy"),
+    [1m[94m|[0m
+[1m[96mhelp[0m: consider importing this enum
+    [1m[94m|[0m
+[1m[94m  2[0m [92m+ use crate::app::MemoryScope;[0m
+    [1m[94m|[0m
+
+[1m[91merror[E0433][0m[1m: cannot find type `MemoryScope` in this scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/settings.rs:875:26
+    [1m[94m|[0m
+[1m[94m875[0m [1m[94m|[0m             scope_button(MemoryScope::Custom, "Custom")
+    [1m[94m|[0m                          [1m[91m^^^^^^^^^^^[0m [1m[91muse of undeclared type `MemoryScope`[0m
+    [1m[94m|[0m
+[1m[96mhelp[0m: an enum with a similar name exists
+    [1m[94m|[0m
+[1m[94m875[0m [91m- [0m            scope_button([91mMemoryScope[0m::Custom, "Custom")
+[1m[94m875[0m [92m+ [0m            scope_button([92mMemoryMode[0m::Custom, "Custom")
+    [1m[94m|[0m
+[1m[96mhelp[0m: consider importing this enum
+    [1m[94m|[0m
+[1m[94m  2[0m [92m+ use crate::app::MemoryScope;[0m
+    [1m[94m|[0m
+
+[1m[33mwarning[0m[1m: unused import: `std::collections::HashSet`[0m
+  [1m[94m--> [0mapps/archx-agent/src/app.rs:12:5
+   [1m[94m|[0m
+[1m[94m12[0m [1m[94m|[0m use std::collections::HashSet;
+   [1m[94m|[0m     [1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+   [1m[94m|[0m
+   [1m[94m= [0m[1mnote[0m: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+[1m[33mwarning[0m[1m: unused import: `Duration`[0m
+  [1m[94m--> [0mapps/archx-agent/src/app.rs:14:17
+   [1m[94m|[0m
+[1m[94m14[0m [1m[94m|[0m use std::time::{Duration, Instant};
+   [1m[94m|[0m                 [1m[33m^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: unused import: `iced::time`[0m
+  [1m[94m--> [0mapps/archx-agent/src/app.rs:16:5
+   [1m[94m|[0m
+[1m[94m16[0m [1m[94m|[0m use iced::time;
+   [1m[94m|[0m     [1m[33m^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: unused import: `Subscription`[0m
+  [1m[94m--> [0mapps/archx-agent/src/app.rs:20:21
+   [1m[94m|[0m
+[1m[94m20[0m [1m[94m|[0m use iced::{Element, Subscription, Task};
+   [1m[94m|[0m                     [1m[33m^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: unused imports: `debug_page`, `home`, and `settings`[0m
+  [1m[94m--> [0mapps/archx-agent/src/app.rs:28:31
+   [1m[94m|[0m
+[1m[94m28[0m [1m[94m|[0m use crate::{agent, debug_log, debug_page, endpoints, home, model_catalog, model_meta,
+   [1m[94m|[0m                               [1m[33m^^^^^^^^^^[0m             [1m[33m^^^^[0m
+[1m[94m29[0m [1m[94m|[0m     provider_api, settings, style, transcripts};
+   [1m[94m|[0m                   [1m[33m^^^^^^^^[0m
+
+[1m[33mwarning[0m: `archx-shared` (lib) generated 3 warnings (run `cargo fix --lib -p archx-shared` to apply 1 suggestion)
+[1m[91merror[E0277][0m[1m: a value of type `&str` cannot be built from an iterator over elements of type `char`[0m
+   [1m[94m--> [0mapps/archx-agent/src/custom_endpoint.rs:240:128
+    [1m[94m|[0m
+[1m[94m240[0m [1m[94m|[0m [1m[94m...[0mtes).chars().take(280).collect()), ..trace },
     [1m[94m|[0m                           [1m[91m^^^^^^^[0m [1m[91mvalue of type `&str` cannot be built from `std::iter::Iterator<Item=char>`[0m
     [1m[94m|[0m
     [1m[94m= [0m[1mhelp[0m: the trait `FromIterator<char>` is not implemented for `&str`
 [1m[96mhelp[0m: the trait `FromIterator<char>` [1m[35mis[0m implemented for `[1m[35mstd::string::String[0m`
    [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/alloc/src/string.rs:2444:0
 [1m[92mnote[0m: the method call chain might not have had the expected associated types
-   [1m[94m--> [0mshared/src/provider_api.rs:276:103
+   [1m[94m--> [0mapps/archx-agent/src/custom_endpoint.rs:240:110
     [1m[94m|[0m
-[1m[94m276[0m [1m[94m|[0m [1m[94m...[0mlog::redact(String::from_utf8_lossy(&bytes).chars().take(MAX_PROVIDER_MESSAGE).collect()), ..trace },
-    [1m[94m|[0m                [1m[94m-------------------------------[0m [1m[92m^^^^^^^[0m [1m[94m--------------------------[0m [1m[94m`Iterator::Item` remains `char` here[0m
-    [1m[94m|[0m                [1m[94m|[0m                               [1m[92m|[0m
-    [1m[94m|[0m                [1m[94m|[0m                               [1m[92m`Iterator::Item` is `char` here[0m
-    [1m[94m|[0m                [1m[94mthis expression has type `Cow<'_, str>`[0m
+[1m[94m240[0m [1m[94m|[0m [1m[94m...[0md::debug_log::redact(String::from_utf8_lossy(&bytes).chars().take(280).collect()), ..trace },
+    [1m[94m|[0m                         [1m[94m-------------------------------[0m [1m[92m^^^^^^^[0m [1m[94m---------[0m [1m[94m`Iterator::Item` remains `char` here[0m
+    [1m[94m|[0m                         [1m[94m|[0m                               [1m[92m|[0m
+    [1m[94m|[0m                         [1m[94m|[0m                               [1m[92m`Iterator::Item` is `char` here[0m
+    [1m[94m|[0m                         [1m[94mthis expression has type `Cow<'_, str>`[0m
 [1m[92mnote[0m: required by a bound in `std::iter::Iterator::collect`
    [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/iter/traits/iterator.rs:2087:4
 
-[1m[91merror[E0277][0m[1m: a value of type `&str` cannot be built from an iterator over elements of type `char`[0m
-   [1m[94m--> [0mshared/src/provider_api.rs:126:93
+[1m[91merror[E0599][0m[1m: no method named `count` found for reference `&[iced::widget::markdown::Item]` in the current scope[0m
+  [1m[94m--> [0mapps/archx-agent/src/agent.rs:78:27
+   [1m[94m|[0m
+[1m[94m78[0m [1m[94m|[0m     28 + (content.items().count() as u16).saturating_mul(18)
+   [1m[94m|[0m                           [1m[91m^^^^^[0m
+   [1m[94m|[0m                           [1m[91m|[0m
+   [1m[94m|[0m                           [1m[91mmethod cannot be called on `&[iced::widget::markdown::Item]` due to unsatisfied trait bounds[0m
+   [1m[94m|[0m                           [1m[91mhelp: consider using `len` instead[0m
+   [1m[94m|[0m
+   [1m[94m= [0m[1mnote[0m: `count` is defined on `Iterator`, which `&[iced::widget::markdown::Item]` does not implement
+
+[1m[91merror[E0599][0m[1m: no variant, associated function, or constant named `OpenModelCatalogSettings` found for enum `Message` in the current scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/agent.rs:168:68
     [1m[94m|[0m
-[1m[94m126[0m [1m[94m|[0m         .unwrap_or_else(|| crate::debug_log::redact(text.chars().take(MAX_PROVIDER_MESSAGE).collect()));
-    [1m[94m|[0m                                                                                             [1m[91m^^^^^^^[0m [1m[91mvalue of type `&str` cannot be built from `std::iter::Iterator<Item=char>`[0m
+[1m[94m168[0m [1m[94m|[0m         button(text("Manage models ↗").size(11)).on_press(Message::OpenModelCatalogSettings)
+    [1m[94m|[0m                                                                    [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^[0m [1m[91mvariant, associated function, or constant not found in `Message`[0m
     [1m[94m|[0m
-    [1m[94m= [0m[1mhelp[0m: the trait `FromIterator<char>` is not implemented for `&str`
-[1m[96mhelp[0m: the trait `FromIterator<char>` [1m[35mis[0m implemented for `[1m[35mstd::string::String[0m`
-   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/alloc/src/string.rs:2444:0
-[1m[92mnote[0m: the method call chain might not have had the expected associated types
-   [1m[94m--> [0mshared/src/provider_api.rs:126:58
+   [1m[94m::: [0mapps/archx-agent/src/app.rs:141:1
     [1m[94m|[0m
-[1m[94m123[0m [1m[94m|[0m     let text = String::from_utf8_lossy(body);
-    [1m[94m|[0m                [1m[94m-----------------------------[0m [1m[94mthis expression has type `Cow<'_, str>`[0m
+[1m[94m141[0m [1m[94m|[0m pub enum Message {
+    [1m[94m|[0m [1m[94m----------------[0m [1m[94mvariant, associated function, or constant `OpenModelCatalogSettings` not found for this enum[0m
+
+[1m[91merror[E0277][0m[1m: cannot multiply `{integer}` by `f32`[0m
+   [1m[94m--> [0mapps/archx-agent/src/agent.rs:212:38
+    [1m[94m|[0m
+[1m[94m212[0m [1m[94m|[0m             text("New chat").size(13 * scale).font(style::STRONG).color(style::BLACK)
+    [1m[94m|[0m                                      [1m[91m^[0m [1m[91mno implementation for `{integer} * f32`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: the trait `std::ops::Mul<f32>` is not implemented for `{integer}`
+[1m[96mhelp[0m: the following other types implement trait `std::ops::Mul<Rhs>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/internal_macros.rs:22:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `&f32` implements `std::ops::Mul<f32>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:344:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `f32` implements `std::ops::Mul`
+   [1m[94m::: [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:359:0
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: in this macro invocation
+    [1m[94m= [0m[1mnote[0m: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+[1m[91merror[E0277][0m[1m: cannot multiply `{integer}` by `f32`[0m
+   [1m[94m--> [0mapps/archx-agent/src/agent.rs:218:35
+    [1m[94m|[0m
+[1m[94m218[0m [1m[94m|[0m             text("CHATS").size(11 * scale).font(style::LABEL).color(style::DIM),
+    [1m[94m|[0m                                   [1m[91m^[0m [1m[91mno implementation for `{integer} * f32`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: the trait `std::ops::Mul<f32>` is not implemented for `{integer}`
+[1m[96mhelp[0m: the following other types implement trait `std::ops::Mul<Rhs>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/internal_macros.rs:22:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `&f32` implements `std::ops::Mul<f32>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:344:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `f32` implements `std::ops::Mul`
+   [1m[94m::: [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:359:0
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: in this macro invocation
+    [1m[94m= [0m[1mnote[0m: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+[1m[91merror[E0277][0m[1m: cannot multiply `{integer}` by `f32`[0m
+   [1m[94m--> [0mapps/archx-agent/src/agent.rs:219:37
+    [1m[94m|[0m
+[1m[94m219[0m [1m[94m|[0m             text("· saved").size(11 * scale).color(style::DIM)
+    [1m[94m|[0m                                     [1m[91m^[0m [1m[91mno implementation for `{integer} * f32`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: the trait `std::ops::Mul<f32>` is not implemented for `{integer}`
+[1m[96mhelp[0m: the following other types implement trait `std::ops::Mul<Rhs>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/internal_macros.rs:22:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `&f32` implements `std::ops::Mul<f32>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:344:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `f32` implements `std::ops::Mul`
+   [1m[94m::: [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:359:0
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: in this macro invocation
+    [1m[94m= [0m[1mnote[0m: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+[1m[91merror[E0277][0m[1m: cannot multiply `{integer}` by `f32`[0m
+   [1m[94m--> [0mapps/archx-agent/src/agent.rs:239:26
+    [1m[94m|[0m
+[1m[94m239[0m [1m[94m|[0m                 .size(12 * scale).font(style::LABEL).color(if selected_draft { style::WHITE } else { style::GREY }))
+    [1m[94m|[0m                          [1m[91m^[0m [1m[91mno implementation for `{integer} * f32`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: the trait `std::ops::Mul<f32>` is not implemented for `{integer}`
+[1m[96mhelp[0m: the following other types implement trait `std::ops::Mul<Rhs>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/internal_macros.rs:22:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `&f32` implements `std::ops::Mul<f32>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:344:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `f32` implements `std::ops::Mul`
+   [1m[94m::: [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:359:0
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: in this macro invocation
+    [1m[94m= [0m[1mnote[0m: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+[1m[91merror[E0277][0m[1m: cannot multiply `{integer}` by `f32`[0m
+   [1m[94m--> [0mapps/archx-agent/src/agent.rs:252:39
+    [1m[94m|[0m
+[1m[94m252[0m [1m[94m|[0m             text(badge_label).size(11 * scale).font(style::LABEL).color(style::GREY).width(Fill),
+    [1m[94m|[0m                                       [1m[91m^[0m [1m[91mno implementation for `{integer} * f32`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: the trait `std::ops::Mul<f32>` is not implemented for `{integer}`
+[1m[96mhelp[0m: the following other types implement trait `std::ops::Mul<Rhs>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/internal_macros.rs:22:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `&f32` implements `std::ops::Mul<f32>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:344:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `f32` implements `std::ops::Mul`
+   [1m[94m::: [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:359:0
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: in this macro invocation
+    [1m[94m= [0m[1mnote[0m: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+[1m[91merror[E0277][0m[1m: cannot multiply `{integer}` by `f32`[0m
+   [1m[94m--> [0mapps/archx-agent/src/agent.rs:259:43
+    [1m[94m|[0m
+[1m[94m259[0m [1m[94m|[0m             text("OS vault keys").size(10 * scale).color(style::DIM).width(Fill),
+    [1m[94m|[0m                                           [1m[91m^[0m [1m[91mno implementation for `{integer} * f32`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: the trait `std::ops::Mul<f32>` is not implemented for `{integer}`
+[1m[96mhelp[0m: the following other types implement trait `std::ops::Mul<Rhs>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/internal_macros.rs:22:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `&f32` implements `std::ops::Mul<f32>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:344:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `f32` implements `std::ops::Mul`
+   [1m[94m::: [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:359:0
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: in this macro invocation
+    [1m[94m= [0m[1mnote[0m: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+[1m[91merror[E0277][0m[1m: cannot multiply `{integer}` by `f32`[0m
+   [1m[94m--> [0mapps/archx-agent/src/agent.rs:260:67
+    [1m[94m|[0m
+[1m[94m260[0m [1m[94m|[0m             text(concat!("v", env!("CARGO_PKG_VERSION"))).size(10 * scale).color(style::DIM)
+    [1m[94m|[0m                                                                   [1m[91m^[0m [1m[91mno implementation for `{integer} * f32`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: the trait `std::ops::Mul<f32>` is not implemented for `{integer}`
+[1m[96mhelp[0m: the following other types implement trait `std::ops::Mul<Rhs>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/internal_macros.rs:22:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `&f32` implements `std::ops::Mul<f32>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:344:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `f32` implements `std::ops::Mul`
+   [1m[94m::: [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:359:0
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: in this macro invocation
+    [1m[94m= [0m[1mnote[0m: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+[1m[91merror[E0277][0m[1m: cannot multiply `{integer}` by `f32`[0m
+   [1m[94m--> [0mapps/archx-agent/src/agent.rs:312:75
+    [1m[94m|[0m
+[1m[94m312[0m [1m[94m|[0m                 text(if assistant { "Assistant" } else { "You" }).size(13 * scale).font(style::STRONG).color(style::WHITE)
+    [1m[94m|[0m                                                                           [1m[91m^[0m [1m[91mno implementation for `{integer} * f32`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: the trait `std::ops::Mul<f32>` is not implemented for `{integer}`
+[1m[96mhelp[0m: the following other types implement trait `std::ops::Mul<Rhs>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/internal_macros.rs:22:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `&f32` implements `std::ops::Mul<f32>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:344:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `f32` implements `std::ops::Mul`
+   [1m[94m::: [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:359:0
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: in this macro invocation
+    [1m[94m= [0m[1mnote[0m: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+[1m[91merror[E0277][0m[1m: cannot multiply `{integer}` by `f32`[0m
+   [1m[94m--> [0mapps/archx-agent/src/agent.rs:342:92
+    [1m[94m|[0m
+[1m[94m342[0m [1m[94m|[0m                 body = body.push(text("Incomplete · excluded from future context").size(11 * scale).color(style::GREY));
+    [1m[94m|[0m                                                                                            [1m[91m^[0m [1m[91mno implementation for `{integer} * f32`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: the trait `std::ops::Mul<f32>` is not implemented for `{integer}`
+[1m[96mhelp[0m: the following other types implement trait `std::ops::Mul<Rhs>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/internal_macros.rs:22:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `&f32` implements `std::ops::Mul<f32>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:344:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `f32` implements `std::ops::Mul`
+   [1m[94m::: [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:359:0
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: in this macro invocation
+    [1m[94m= [0m[1mnote[0m: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+[1m[91merror[E0277][0m[1m: cannot multiply `{integer}` by `f32`[0m
+   [1m[94m--> [0mapps/archx-agent/src/agent.rs:347:77
+    [1m[94m|[0m
+[1m[94m347[0m [1m[94m|[0m [1m[94m...[0m   let mut body = column![text("Assistant  ·  responding").size(13 * scale).font(style::STRONG).color(style::GREY)].spacing(8);
+    [1m[94m|[0m                                                                       [1m[91m^[0m [1m[91mno implementation for `{integer} * f32`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: the trait `std::ops::Mul<f32>` is not implemented for `{integer}`
+[1m[96mhelp[0m: the following other types implement trait `std::ops::Mul<Rhs>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/internal_macros.rs:22:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `&f32` implements `std::ops::Mul<f32>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:344:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `f32` implements `std::ops::Mul`
+   [1m[94m::: [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:359:0
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: in this macro invocation
+    [1m[94m= [0m[1mnote[0m: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+[1m[91merror[E0277][0m[1m: the trait bound `iced::Pixels: From<u16>` is not satisfied[0m
+   [1m[94m--> [0mapps/archx-agent/src/agent.rs:368:66
+    [1m[94m|[0m
+[1m[94m368[0m [1m[94m|[0m         let list = scrollable(container(container(log).max_width(display.chat_measure).width(Fill).padding([24, 20]))
+    [1m[94m|[0m                                                        [1m[94m---------[0m [1m[91m^^^^^^^^^^^^^^^^^^^^[0m [1m[91mthe trait `From<u16>` is not implemented for `iced::Pixels`[0m
+    [1m[94m|[0m                                                        [1m[94m|[0m
+    [1m[94m|[0m                                                        [1m[94mrequired by a bound introduced by this call[0m
+    [1m[94m|[0m
+[1m[96mhelp[0m: `iced::Pixels` implements trait `From<T>`
+   [1m[94m--> [0m/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iced_core-0.14.0/src/pixels.rs:17:1
+    [1m[94m|[0m
+[1m[94m 17[0m [1m[94m|[0m impl From<f32> for Pixels {
+    [1m[94m|[0m [1m[96m^^^^^^^^^^^^^^^^^^^^^^^^^[0m [1m[96m`From<f32>`[0m
 [1m[94m...[0m
-[1m[94m126[0m [1m[94m|[0m         .unwrap_or_else(|| crate::debug_log::redact(text.chars().take(MAX_PROVIDER_MESSAGE).collect()));
-    [1m[94m|[0m                                                          [1m[92m^^^^^^^[0m [1m[94m--------------------------[0m [1m[94m`Iterator::Item` remains `char` here[0m
-    [1m[94m|[0m                                                          [1m[92m|[0m
-    [1m[94m|[0m                                                          [1m[92m`Iterator::Item` is `char` here[0m
-[1m[92mnote[0m: required by a bound in `std::iter::Iterator::collect`
-   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/iter/traits/iterator.rs:2087:4
+[1m[94m 23[0m [1m[94m|[0m impl From<u32> for Pixels {
+    [1m[94m|[0m [1m[96m^^^^^^^^^^^^^^^^^^^^^^^^^[0m [1m[96m`From<u32>`[0m
+    [1m[94m= [0m[1mnote[0m: required for `u16` to implement `Into<iced::Pixels>`
+[1m[92mnote[0m: required by a bound in `Container::<'a, Message, Theme, Renderer>::max_width`
+   [1m[94m--> [0m/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iced_widget-0.14.2/src/container.rs:133:48
+    [1m[94m|[0m
+[1m[94m 81[0m [1m[94m|[0m impl<'a, Message, Theme, Renderer> Container<'a, Message, Theme, Renderer>
+[1m[94m...[0m
+[1m[94m133[0m [1m[94m|[0m     pub fn max_width(mut self, max_width: impl Into<Pixels>) -> Self {
+    [1m[94m|[0m                                                [1m[92m^^^^^^^^^^^^[0m [1m[92mrequired by this bound in `Container::<'a, Message, Theme, Renderer>::max_width`[0m
 
-[1m[91merror[E0004][0m[1m: non-exhaustive patterns: `(diagnostics::Stage::Http, None)` not covered[0m
-  [1m[94m--> [0mshared/src/provider_api.rs:91:15
-   [1m[94m|[0m
-[1m[94m91[0m [1m[94m|[0m         match (failure.diagnosis.stage, failure.diagnosis.http_status) {
-   [1m[94m|[0m               [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m [1m[91mpattern `(diagnostics::Stage::Http, None)` not covered[0m
-   [1m[94m|[0m
-   [1m[94m= [0m[1mnote[0m: the matched value is of type `(diagnostics::Stage, Option<u16>)`
-[1m[96mhelp[0m: ensure that all possible cases are being handled by adding a match arm with a wildcard pattern or an explicit pattern as shown
-   [1m[94m|[0m
-[1m[94m96[0m [92m~ [0m            (Stage::Parse, _) => CallError::InvalidResponse[92m,[0m
-[1m[94m97[0m [92m~             (diagnostics::Stage::Http, None) => todo!()[0m,
-   [1m[94m|[0m
+[1m[91merror[E0277][0m[1m: cannot multiply `{integer}` by `f32`[0m
+   [1m[94m--> [0mapps/archx-agent/src/agent.rs:394:65
+    [1m[94m|[0m
+[1m[94m394[0m [1m[94m|[0m             text(empty_heading(active_mode, connected)).size(26 * scale).font(style::STRONG).color(style::WHITE),
+    [1m[94m|[0m                                                                 [1m[91m^[0m [1m[91mno implementation for `{integer} * f32`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: the trait `std::ops::Mul<f32>` is not implemented for `{integer}`
+[1m[96mhelp[0m: the following other types implement trait `std::ops::Mul<Rhs>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/internal_macros.rs:22:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `&f32` implements `std::ops::Mul<f32>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:344:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `f32` implements `std::ops::Mul`
+   [1m[94m::: [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:359:0
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: in this macro invocation
+    [1m[94m= [0m[1mnote[0m: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-[1mSome errors have detailed explanations: E0004, E0277.[0m
-[1mFor more information about an error, try `rustc --explain E0004`.[0m
-[1m[33mwarning[0m: `archx-shared` (lib) generated 1 warning
-[1m[91merror[0m: could not compile `archx-shared` (lib) due to 3 previous errors; 1 warning emitted
+[1m[91merror[E0277][0m[1m: cannot multiply `{integer}` by `f32`[0m
+   [1m[94m--> [0mapps/archx-agent/src/agent.rs:396:62
+    [1m[94m|[0m
+[1m[94m396[0m [1m[94m|[0m             text(empty_body(active_mode, connected)).size(15 * scale).color(style::GREY),
+    [1m[94m|[0m                                                              [1m[91m^[0m [1m[91mno implementation for `{integer} * f32`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: the trait `std::ops::Mul<f32>` is not implemented for `{integer}`
+[1m[96mhelp[0m: the following other types implement trait `std::ops::Mul<Rhs>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/internal_macros.rs:22:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `&f32` implements `std::ops::Mul<f32>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:344:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `f32` implements `std::ops::Mul`
+   [1m[94m::: [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:359:0
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: in this macro invocation
+    [1m[94m= [0m[1mnote[0m: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+[1m[91merror[E0277][0m[1m: cannot multiply `{integer}` by `f32`[0m
+   [1m[94m--> [0mapps/archx-agent/src/agent.rs:410:66
+    [1m[94m|[0m
+[1m[94m410[0m [1m[94m|[0m             .height(42).max_height(126).padding([8, 10]).size(15 * scale)
+    [1m[94m|[0m                                                                  [1m[91m^[0m [1m[91mno implementation for `{integer} * f32`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: the trait `std::ops::Mul<f32>` is not implemented for `{integer}`
+[1m[96mhelp[0m: the following other types implement trait `std::ops::Mul<Rhs>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/internal_macros.rs:22:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `&f32` implements `std::ops::Mul<f32>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:344:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `f32` implements `std::ops::Mul`
+   [1m[94m::: [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:359:0
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: in this macro invocation
+    [1m[94m= [0m[1mnote[0m: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+[1m[91merror[E0277][0m[1m: the trait bound `iced::Pixels: From<u16>` is not satisfied[0m
+   [1m[94m--> [0mapps/archx-agent/src/agent.rs:440:29
+    [1m[94m|[0m
+[1m[94m440[0m [1m[94m|[0m     ].spacing(6)).max_width(display.chat_measure).width(Fill)
+    [1m[94m|[0m                   [1m[94m---------[0m [1m[91m^^^^^^^^^^^^^^^^^^^^[0m [1m[91mthe trait `From<u16>` is not implemented for `iced::Pixels`[0m
+    [1m[94m|[0m                   [1m[94m|[0m
+    [1m[94m|[0m                   [1m[94mrequired by a bound introduced by this call[0m
+    [1m[94m|[0m
+[1m[96mhelp[0m: `iced::Pixels` implements trait `From<T>`
+   [1m[94m--> [0m/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iced_core-0.14.0/src/pixels.rs:17:1
+    [1m[94m|[0m
+[1m[94m 17[0m [1m[94m|[0m impl From<f32> for Pixels {
+    [1m[94m|[0m [1m[96m^^^^^^^^^^^^^^^^^^^^^^^^^[0m [1m[96m`From<f32>`[0m
+[1m[94m...[0m
+[1m[94m 23[0m [1m[94m|[0m impl From<u32> for Pixels {
+    [1m[94m|[0m [1m[96m^^^^^^^^^^^^^^^^^^^^^^^^^[0m [1m[96m`From<u32>`[0m
+    [1m[94m= [0m[1mnote[0m: required for `u16` to implement `Into<iced::Pixels>`
+[1m[92mnote[0m: required by a bound in `Container::<'a, Message, Theme, Renderer>::max_width`
+   [1m[94m--> [0m/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iced_widget-0.14.2/src/container.rs:133:48
+    [1m[94m|[0m
+[1m[94m 81[0m [1m[94m|[0m impl<'a, Message, Theme, Renderer> Container<'a, Message, Theme, Renderer>
+[1m[94m...[0m
+[1m[94m133[0m [1m[94m|[0m     pub fn max_width(mut self, max_width: impl Into<Pixels>) -> Self {
+    [1m[94m|[0m                                                [1m[92m^^^^^^^^^^^^[0m [1m[92mrequired by this bound in `Container::<'a, Message, Theme, Renderer>::max_width`[0m
+
+[1m[91merror[E0277][0m[1m: the trait bound `iced::Pixels: From<u16>` is not satisfied[0m
+   [1m[94m--> [0mapps/archx-agent/src/agent.rs:448:24
+    [1m[94m|[0m
+[1m[94m448[0m [1m[94m|[0m             .max_width(display.chat_measure).width(Fill).padding([7, 12]).style(style::chat_error).into(),
+    [1m[94m|[0m              [1m[94m---------[0m [1m[91m^^^^^^^^^^^^^^^^^^^^[0m [1m[91mthe trait `From<u16>` is not implemented for `iced::Pixels`[0m
+    [1m[94m|[0m              [1m[94m|[0m
+    [1m[94m|[0m              [1m[94mrequired by a bound introduced by this call[0m
+    [1m[94m|[0m
+[1m[96mhelp[0m: `iced::Pixels` implements trait `From<T>`
+   [1m[94m--> [0m/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iced_core-0.14.0/src/pixels.rs:17:1
+    [1m[94m|[0m
+[1m[94m 17[0m [1m[94m|[0m impl From<f32> for Pixels {
+    [1m[94m|[0m [1m[96m^^^^^^^^^^^^^^^^^^^^^^^^^[0m [1m[96m`From<f32>`[0m
+[1m[94m...[0m
+[1m[94m 23[0m [1m[94m|[0m impl From<u32> for Pixels {
+    [1m[94m|[0m [1m[96m^^^^^^^^^^^^^^^^^^^^^^^^^[0m [1m[96m`From<u32>`[0m
+    [1m[94m= [0m[1mnote[0m: required for `u16` to implement `Into<iced::Pixels>`
+[1m[92mnote[0m: required by a bound in `Container::<'a, Message, Theme, Renderer>::max_width`
+   [1m[94m--> [0m/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iced_widget-0.14.2/src/container.rs:133:48
+    [1m[94m|[0m
+[1m[94m 81[0m [1m[94m|[0m impl<'a, Message, Theme, Renderer> Container<'a, Message, Theme, Renderer>
+[1m[94m...[0m
+[1m[94m133[0m [1m[94m|[0m     pub fn max_width(mut self, max_width: impl Into<Pixels>) -> Self {
+    [1m[94m|[0m                                                [1m[92m^^^^^^^^^^^^[0m [1m[92mrequired by this bound in `Container::<'a, Message, Theme, Renderer>::max_width`[0m
+
+[1m[91merror[E0277][0m[1m: cannot multiply `{integer}` by `f32`[0m
+   [1m[94m--> [0mapps/archx-agent/src/agent.rs:463:22
+    [1m[94m|[0m
+[1m[94m463[0m [1m[94m|[0m             .size(11 * scale).color(style::DIM),
+    [1m[94m|[0m                      [1m[91m^[0m [1m[91mno implementation for `{integer} * f32`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: the trait `std::ops::Mul<f32>` is not implemented for `{integer}`
+[1m[96mhelp[0m: the following other types implement trait `std::ops::Mul<Rhs>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/internal_macros.rs:22:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `&f32` implements `std::ops::Mul<f32>`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:344:8
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `f32` implements `std::ops::Mul`
+   [1m[94m::: [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/arith.rs:359:0
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: in this macro invocation
+    [1m[94m= [0m[1mnote[0m: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+[1m[91merror[E0631][0m[1m: type mismatch in function arguments[0m
+   [1m[94m--> [0mapps/archx-agent/src/app.rs:385:87
+    [1m[94m|[0m
+[1m[94m385[0m [1m[94m|[0m [1m[94m...[0m                   draft.reasoning.get(slot).cloned().flatten().as_ref().map(markdown::Content::parse),
+    [1m[94m|[0m                                                                             [1m[94m---[0m [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^[0m
+    [1m[94m|[0m                                                                             [1m[94m|[0m   [1m[91m|[0m
+    [1m[94m|[0m                                                                             [1m[94m|[0m   [1m[91mexpected due to this[0m
+    [1m[94m|[0m                                                                             [1m[94m|[0m   [1m[91mfound signature defined here[0m
+    [1m[94m|[0m                                                                             [1m[94mrequired by a bound introduced by this call[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: expected function signature `fn(&[1m[35mstd::string::String[0m) -> [1m[35m_[0m`
+               found function signature `fn(&[1m[35mstr[0m) -> [1m[35m_[0m`
+[1m[92mnote[0m: required by a bound in `Option::<T>::map`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/option.rs:1160:4
+[1m[96mhelp[0m: consider wrapping the function in a closure
+    [1m[94m|[0m
+[1m[94m385[0m [1m[94m| [0m                            draft.reasoning.get(slot).cloned().flatten().as_ref().map([92m|arg0: &std::string::String| [0mmarkdown::Content::parse[92m(/* &str */)[0m),
+    [1m[94m|[0m                                                                                       [92m++++++++++++++++++++++++++++[0m                         [92m++++++++++++[0m
+
+[1m[91merror[E0277][0m[1m: the trait bound `Zeroizing<std::string::String>: From<&str>` is not satisfied[0m
+   [1m[94m--> [0mapps/archx-agent/src/app.rs:475:84
+    [1m[94m|[0m
+[1m[94m475[0m [1m[94m|[0m                 self.settings.custom.headers = "Authorization: Bearer {{api_key}}".into();
+    [1m[94m|[0m                                                                                    [1m[91m^^^^[0m [1m[91mthe trait `From<&str>` is not implemented for `Zeroizing<std::string::String>`[0m
+    [1m[94m|[0m
+[1m[96mhelp[0m: the trait `From<[1m[35m&[0m[1m[35mstr[0m>` [1m[35mis not[0m implemented for `Zeroizing<std::string::String>`
+      but trait `From<[1m[35mstd::string::String[0m>` [1m[35mis[0m implemented for it
+   [1m[94m--> [0m/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.2/src/lib.rs:617:1
+    [1m[94m|[0m
+[1m[94m617[0m [1m[94m|[0m [1m[96m/[0m impl<Z> From<Z> for Zeroizing<Z>
+[1m[94m618[0m [1m[94m|[0m [1m[96m|[0m where
+[1m[94m619[0m [1m[94m|[0m [1m[96m|[0m     Z: Zeroize,
+    [1m[94m|[0m [1m[96m|_______________^[0m
+    [1m[94m= [0m[1mhelp[0m: for that trait implementation, expected `[1m[35mstd::string::String[0m`, found `[1m[35m&str[0m`
+    [1m[94m= [0m[1mnote[0m: required for `&str` to implement `Into<Zeroizing<std::string::String>>`
+
+[1m[91merror[E0599][0m[1m: no method named `finish_attempt` found for mutable reference `&mut app::App` in the current scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/app.rs:891:22
+    [1m[94m|[0m
+[1m[94m891[0m [1m[94m|[0m                 self.finish_attempt(&outcome);
+    [1m[94m|[0m                      [1m[91m^^^^^^^^^^^^^^[0m [1m[91mmethod not found in `&mut app::App`[0m
+
+[1m[91merror[E0599][0m[1m: no method named `fail_attempt` found for mutable reference `&mut app::App` in the current scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/app.rs:908:22
+    [1m[94m|[0m
+[1m[94m908[0m [1m[94m|[0m                 self.fail_attempt(&failure, attempts, journal_id);
+    [1m[94m|[0m                      [1m[91m^^^^^^^^^^^^[0m [1m[91mmethod not found in `&mut app::App`[0m
+
+[1m[91merror[E0599][0m[1m: no method named `send_chat` found for mutable reference `&mut app::App` in the current scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/app.rs:918:46
+    [1m[94m|[0m
+[1m[94m918[0m [1m[94m|[0m             Message::SendChat => return self.send_chat(false),
+    [1m[94m|[0m                                              [1m[91m^^^^^^^^^[0m [1m[91mmethod not found in `&mut app::App`[0m
+
+[1m[91merror[E0599][0m[1m: no method named `send_chat` found for mutable reference `&mut app::App` in the current scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/app.rs:938:73
+    [1m[94m|[0m
+[1m[94m938[0m [1m[94m|[0m             Message::RunTest if !self.settings.test_busy => return self.send_chat(true),
+    [1m[94m|[0m                                                                         [1m[91m^^^^^^^^^[0m [1m[91mmethod not found in `&mut app::App`[0m
+
+[1m[91merror[E0308][0m[1m: mismatched types[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:138:32
+    [1m[94m|[0m
+[1m[94m 28[0m [1m[94m|[0m     pub(super) fn update_provider(&mut self, message: Message) -> Task<Message> {
+    [1m[94m|[0m                                                                   [1m[94m-------------[0m [1m[94mexpected `iced::Task<Message>` because of return type[0m
+[1m[94m...[0m
+[1m[94m138[0m [1m[94m|[0m                         return iced::time::every(Duration::from_secs(15)).map(move |_| Message::RevealExpired(nonce));
+    [1m[94m|[0m                                [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m [1m[91mexpected `Task<Message>`, found `Subscription<Message>`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: expected struct `[1m[35miced::Task<Message>[0m`
+               found struct `[1m[35mSubscription<Message>[0m`
+
+[1m[91merror[E0616][0m[1m: field `snapshot` of struct `app::App` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:424:110
+    [1m[94m|[0m
+[1m[94m424[0m [1m[94m|[0m             Message::ConfirmCatalogProbe if self.settings.probe_pending && !self.settings.probe_busy && self.snapshot.is_none() => {
+    [1m[94m|[0m                                                                                                              [1m[91m^^^^^^^^[0m [1m[91mprivate field[0m
+
+[1m[91merror[E0624][0m[1m: method `scale` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:461:44
+    [1m[94m|[0m
+[1m[94m461[0m [1m[94m|[0m             Message::ScaleIn(area) => self.scale(area, true),
+    [1m[94m|[0m                                            [1m[91m^^^^^[0m [1m[91mprivate method[0m
+    [1m[94m|[0m
+   [1m[94m::: [0mapps/archx-agent/src/app.rs:633:5
+    [1m[94m|[0m
+[1m[94m633[0m [1m[94m|[0m     fn scale(&mut self, area: Area, larger: bool) {
+    [1m[94m|[0m     [1m[94m---------------------------------------------[0m [1m[94mprivate method defined here[0m
+
+[1m[91merror[E0624][0m[1m: method `scale` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:462:45
+    [1m[94m|[0m
+[1m[94m462[0m [1m[94m|[0m             Message::ScaleOut(area) => self.scale(area, false),
+    [1m[94m|[0m                                             [1m[91m^^^^^[0m [1m[91mprivate method[0m
+    [1m[94m|[0m
+   [1m[94m::: [0mapps/archx-agent/src/app.rs:633:5
+    [1m[94m|[0m
+[1m[94m633[0m [1m[94m|[0m     fn scale(&mut self, area: Area, larger: bool) {
+    [1m[94m|[0m     [1m[94m---------------------------------------------[0m [1m[94mprivate method defined here[0m
+
+[1m[91merror[E0616][0m[1m: field `snapshot` of struct `app::App` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:484:97
+    [1m[94m|[0m
+[1m[94m484[0m [1m[94m|[0m                 && self.settings.section != Section::Lab && !self.settings.catalog_busy && self.snapshot.is_none() => {
+    [1m[94m|[0m                                                                                                 [1m[91m^^^^^^^^[0m [1m[91mprivate field[0m
+
+[1m[91merror[E0616][0m[1m: field `snapshot` of struct `app::App` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:528:45
+    [1m[94m|[0m
+[1m[94m528[0m [1m[94m|[0m             Message::FetchModelMeta if self.snapshot.is_none() => {
+    [1m[94m|[0m                                             [1m[91m^^^^^^^^[0m [1m[91mprivate field[0m
+
+[1m[91merror[E0616][0m[1m: field `snapshot` of struct `app::App` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:652:42
+    [1m[94m|[0m
+[1m[94m652[0m [1m[94m|[0m             Message::DebugExport if self.snapshot.is_none() => {
+    [1m[94m|[0m                                          [1m[91m^^^^^^^^[0m [1m[91mprivate field[0m
+
+[1m[91merror[E0433][0m[1m: cannot find type `KeyHealthSet` in this scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:675:37
+    [1m[94m|[0m
+[1m[94m675[0m [1m[94m|[0m                         self.keys = KeyHealthSet::new();
+    [1m[94m|[0m                                     [1m[91m^^^^^^^^^^^^[0m [1m[91muse of undeclared type `KeyHealthSet`[0m
+
+[1m[91merror[E0433][0m[1m: cannot find type `ModelHealthSet` in this scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:676:45
+    [1m[94m|[0m
+[1m[94m676[0m [1m[94m|[0m                         self.model_health = ModelHealthSet::new();
+    [1m[94m|[0m                                             [1m[91m^^^^^^^^^^^^^^[0m [1m[91muse of undeclared type `ModelHealthSet`[0m
+
+[1m[91merror[E0616][0m[1m: field `next_chat_id` of struct `app::App` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:685:78
+    [1m[94m|[0m
+[1m[94m685[0m [1m[94m|[0m [1m[94m...[0m                   self.drafts.push(crate::app::ChatDraft::new(self.next_chat_id));
+    [1m[94m|[0m                                                                        [1m[91m^^^^^^^^^^^^[0m [1m[91mprivate field[0m
+
+[1m[91merror[E0616][0m[1m: field `next_chat_id` of struct `app::App` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:686:34
+    [1m[94m|[0m
+[1m[94m686[0m [1m[94m|[0m [1m[94m...[0m                   self.next_chat_id += 1;
+    [1m[94m|[0m                            [1m[91m^^^^^^^^^^^^[0m [1m[91mprivate field[0m
+
+[1m[91merror[E0433][0m[1m: cannot find type `KeyHealthSet` in this scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:711:29
+    [1m[94m|[0m
+[1m[94m711[0m [1m[94m|[0m                 self.keys = KeyHealthSet::new();
+    [1m[94m|[0m                             [1m[91m^^^^^^^^^^^^[0m [1m[91muse of undeclared type `KeyHealthSet`[0m
+
+[1m[91merror[E0433][0m[1m: cannot find type `ModelHealthSet` in this scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:712:37
+    [1m[94m|[0m
+[1m[94m712[0m [1m[94m|[0m                 self.model_health = ModelHealthSet::new();
+    [1m[94m|[0m                                     [1m[91m^^^^^^^^^^^^^^[0m [1m[91muse of undeclared type `ModelHealthSet`[0m
+
+[1m[91merror[E0616][0m[1m: field `next_chat_id` of struct `app::App` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:718:70
+    [1m[94m|[0m
+[1m[94m718[0m [1m[94m|[0m                     self.drafts.push(crate::app::ChatDraft::new(self.next_chat_id));
+    [1m[94m|[0m                                                                      [1m[91m^^^^^^^^^^^^[0m [1m[91mprivate field[0m
+
+[1m[91merror[E0616][0m[1m: field `next_chat_id` of struct `app::App` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:719:26
+    [1m[94m|[0m
+[1m[94m719[0m [1m[94m|[0m                     self.next_chat_id += 1;
+    [1m[94m|[0m                          [1m[91m^^^^^^^^^^^^[0m [1m[91mprivate field[0m
+
+[1m[91merror[E0616][0m[1m: field `snapshot` of struct `app::App` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:729:41
+    [1m[94m|[0m
+[1m[94m729[0m [1m[94m|[0m             Message::AgentPulse if self.snapshot.is_none() => {
+    [1m[94m|[0m                                         [1m[91m^^^^^^^^[0m [1m[91mprivate field[0m
+
+[1m[91merror[E0616][0m[1m: field `agent_phase` of struct `app::App` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:730:22
+    [1m[94m|[0m
+[1m[94m730[0m [1m[94m|[0m                 self.agent_phase = (self.agent_phase + 1) % crate::agent_visual::MODE_COUNT;
+    [1m[94m|[0m                      [1m[91m^^^^^^^^^^^[0m [1m[91mprivate field[0m
+
+[1m[91merror[E0616][0m[1m: field `agent_phase` of struct `app::App` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:730:42
+    [1m[94m|[0m
+[1m[94m730[0m [1m[94m|[0m                 self.agent_phase = (self.agent_phase + 1) % crate::agent_visual::MODE_COUNT;
+    [1m[94m|[0m                                          [1m[91m^^^^^^^^^^^[0m [1m[91mprivate field[0m
+
+[1m[91merror[E0616][0m[1m: field `snapshot` of struct `app::App` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:734:25
+    [1m[94m|[0m
+[1m[94m734[0m [1m[94m|[0m                 if self.snapshot.is_some() && !self.snapshot_requested {
+    [1m[94m|[0m                         [1m[91m^^^^^^^^[0m [1m[91mprivate field[0m
+
+[1m[91merror[E0616][0m[1m: field `snapshot_requested` of struct `app::App` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:734:53
+    [1m[94m|[0m
+[1m[94m734[0m [1m[94m|[0m                 if self.snapshot.is_some() && !self.snapshot_requested {
+    [1m[94m|[0m                                                     [1m[91m^^^^^^^^^^^^^^^^^^[0m [1m[91mprivate field[0m
+
+[1m[91merror[E0616][0m[1m: field `snapshot_scrolled` of struct `app::App` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:735:30
+    [1m[94m|[0m
+[1m[94m735[0m [1m[94m|[0m                     if !self.snapshot_scrolled && self.page == Page::Chat
+    [1m[94m|[0m                              [1m[91m^^^^^^^^^^^^^^^^^[0m [1m[91mprivate field[0m
+
+[1m[91merror[E0616][0m[1m: field `snapshot_scrolled` of struct `app::App` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:737:30
+    [1m[94m|[0m
+[1m[94m737[0m [1m[94m|[0m                         self.snapshot_scrolled = true;
+    [1m[94m|[0m                              [1m[91m^^^^^^^^^^^^^^^^^[0m [1m[91mprivate field[0m
+
+[1m[91merror[E0616][0m[1m: field `snapshot_requested` of struct `app::App` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:744:26
+    [1m[94m|[0m
+[1m[94m744[0m [1m[94m|[0m                     self.snapshot_requested = true;
+    [1m[94m|[0m                          [1m[91m^^^^^^^^^^^^^^^^^^[0m [1m[91mprivate field[0m
+
+[1m[91merror[E0616][0m[1m: field `snapshot` of struct `app::App` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:749:43
+    [1m[94m|[0m
+[1m[94m749[0m [1m[94m|[0m                 if let Some(path) = &self.snapshot {
+    [1m[94m|[0m                                           [1m[91m^^^^^^^^[0m [1m[91mprivate field[0m
+
+[1m[91merror[E0433][0m[1m: cannot find module or crate `image` in this scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:751:29
+    [1m[94m|[0m
+[1m[94m751[0m [1m[94m|[0m                     let _ = image::save_buffer(path, &screenshot.rgba, screenshot.size.width, screenshot.size.height,
+    [1m[94m|[0m                             [1m[91m^^^^^[0m [1m[91muse of unresolved module or unlinked crate `image`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: if you wanted to use a crate named `image`, use `cargo add image` to add it to your `Cargo.toml`
+
+[1m[91merror[E0624][0m[1m: method `to_stored` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:874:28
+    [1m[94m|[0m
+[1m[94m874[0m [1m[94m|[0m         let stored = draft.to_stored(model);
+    [1m[94m|[0m                            [1m[91m^^^^^^^^^[0m [1m[91mprivate method[0m
+    [1m[94m|[0m
+   [1m[94m::: [0mapps/archx-agent/src/app.rs:103:5
+    [1m[94m|[0m
+[1m[94m103[0m [1m[94m|[0m     fn to_stored(&self, model: Option<String>) -> StoredChat {
+    [1m[94m|[0m     [1m[94m--------------------------------------------------------[0m [1m[94mprivate method defined here[0m
+
+[1m[91merror[E0624][0m[1m: method `to_stored` is private[0m
+   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:883:32
+    [1m[94m|[0m
+[1m[94m883[0m [1m[94m|[0m             .map(|draft| draft.to_stored(model.clone()))
+    [1m[94m|[0m                                [1m[91m^^^^^^^^^[0m [1m[91mprivate method[0m
+    [1m[94m|[0m
+   [1m[94m::: [0mapps/archx-agent/src/app.rs:103:5
+    [1m[94m|[0m
+[1m[94m103[0m [1m[94m|[0m     fn to_stored(&self, model: Option<String>) -> StoredChat {
+    [1m[94m|[0m     [1m[94m--------------------------------------------------------[0m [1m[94mprivate method defined here[0m
+
+[1m[91merror[E0063][0m[1m: missing fields `budget`, `key_auto_rotate`, `key_health` and 3 other fields in initializer of `SettingsState`[0m
+   [1m[94m--> [0mapps/archx-agent/src/settings.rs:107:9
+    [1m[94m|[0m
+[1m[94m107[0m [1m[94m|[0m         Self { section: Section::Providers, provider: Provider::OpenRouter,
+    [1m[94m|[0m         [1m[91m^^^^[0m [1m[91mmissing `budget`, `key_auto_rotate`, `key_health` and 3 other fields[0m
+
+[1m[91merror[E0308][0m[1m: mismatched types[0m
+   [1m[94m--> [0mapps/archx-agent/src/settings.rs:392:47
+    [1m[94m|[0m
+[1m[94m392[0m [1m[94m|[0m       let rotation: Element<'static, Message> = row![
+    [1m[94m|[0m [1m[91m ___________________[0m[1m[94m-------------------------[0m[1m[91m___^[0m
+    [1m[94m|[0m [1m[91m|[0m                   [1m[94m|[0m
+    [1m[94m|[0m [1m[91m|[0m                   [1m[94mexpected due to this[0m
+[1m[94m393[0m [1m[94m|[0m [1m[91m|[0m         {
+[1m[94m394[0m [1m[94m|[0m [1m[91m|[0m             let on = state.key_auto_rotate;
+[1m[94m395[0m [1m[94m|[0m [1m[91m|[0m             let knob = container(space().width(14).height(14))
+[1m[94m...[0m   [1m[91m|[0m
+[1m[94m409[0m [1m[94m|[0m [1m[91m|[0m     ].spacing(10).align_y(Center);
+    [1m[94m|[0m [1m[91m|_________________________________^[0m [1m[91mexpected `Element<'_, Message, Theme, _>`, found `Row<'_, Message>`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: expected struct `[1m[35miced_core::element::Element<'static, Message, Theme, iced_renderer::fallback::Renderer<iced_wgpu::Renderer, iced_tiny_skia::Renderer>>[0m`
+               found struct `[1m[35miced::widget::Row<'_, Message>[0m`
+[1m[96mhelp[0m: call `Into::into` on this expression to convert `iced::widget::Row<'_, Message>` into `iced_core::element::Element<'static, Message, Theme, iced_renderer::fallback::Renderer<iced_wgpu::Renderer, iced_tiny_skia::Renderer>>`
+    [1m[94m|[0m
+[1m[94m409[0m [1m[94m| [0m    ].spacing(10).align_y(Center)[92m.into()[0m;
+    [1m[94m|[0m                                  [92m+++++++[0m
+
+[1m[91merror[E0308][0m[1m: mismatched types[0m
+   [1m[94m--> [0mapps/archx-agent/src/settings.rs:493:43
+    [1m[94m|[0m
+[1m[94m493[0m [1m[94m|[0m       let bulk: Element<'static, Message> = row![
+    [1m[94m|[0m [1m[91m _______________[0m[1m[94m-------------------------[0m[1m[91m___^[0m
+    [1m[94m|[0m [1m[91m|[0m               [1m[94m|[0m
+    [1m[94m|[0m [1m[91m|[0m               [1m[94mexpected due to this[0m
+[1m[94m494[0m [1m[94m|[0m [1m[91m|[0m         text(format!("{selected} ticked")).size(11).color(if selected > 0 { style::WHITE } else { style::DIM }).width(Fill),
+[1m[94m495[0m [1m[94m|[0m [1m[91m|[0m         button(text("Tick matching").size(10.5)).on_press(Message::BulkSelectMatching).style(style::tiny_button),
+[1m[94m496[0m [1m[94m|[0m [1m[91m|[0m         button(text("Clear").size(10.5)).on_press(Message::BulkClearSelection).style(style::tiny_button),
+[1m[94m...[0m   [1m[91m|[0m
+[1m[94m504[0m [1m[94m|[0m [1m[91m|[0m             .style(style::tiny_button)
+[1m[94m505[0m [1m[94m|[0m [1m[91m|[0m     ].spacing(6).align_y(Center);
+    [1m[94m|[0m [1m[91m|________________________________^[0m [1m[91mexpected `Element<'_, Message, Theme, _>`, found `Row<'_, Message, Theme, _>`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: expected struct `[1m[35miced_core::element::Element<'static, Message, Theme, iced_renderer::fallback::Renderer<iced_wgpu::Renderer, iced_tiny_skia::Renderer>>[0m`
+               found struct `[1m[35miced::widget::Row<'_, Message, Theme, _>[0m`
+[1m[96mhelp[0m: call `Into::into` on this expression to convert `iced::widget::Row<'_, Message, Theme, _>` into `iced_core::element::Element<'static, Message, Theme, iced_renderer::fallback::Renderer<iced_wgpu::Renderer, iced_tiny_skia::Renderer>>`
+    [1m[94m|[0m
+[1m[94m505[0m [1m[94m| [0m    ].spacing(6).align_y(Center)[92m.into()[0m;
+    [1m[94m|[0m                                 [92m+++++++[0m
+
+[1m[91merror[E0308][0m[1m: mismatched types[0m
+   [1m[94m--> [0mapps/archx-agent/src/settings.rs:506:44
+    [1m[94m|[0m
+[1m[94m506[0m [1m[94m|[0m       let pager: Element<'static, Message> = row![
+    [1m[94m|[0m [1m[91m ________________[0m[1m[94m-------------------------[0m[1m[91m___^[0m
+    [1m[94m|[0m [1m[91m|[0m                [1m[94m|[0m
+    [1m[94m|[0m [1m[91m|[0m                [1m[94mexpected due to this[0m
+[1m[94m507[0m [1m[94m|[0m [1m[91m|[0m         button(text("Previous").size(10.5)).on_press_maybe((page > 0).then_some(Message::ModelPagePrevious)).style(style::tiny_bu[1m[94m...[0m
+[1m[94m508[0m [1m[94m|[0m [1m[91m|[0m         text(format!("Page {} of {} · {} model(s) shown of {}", page + 1, total_pages, shown.len(), visible.len()))
+[1m[94m509[0m [1m[94m|[0m [1m[91m|[0m             .size(10.5).color(style::DIM).width(Fill),
+[1m[94m510[0m [1m[94m|[0m [1m[91m|[0m         button(text("Next").size(10.5)).on_press_maybe((page + 1 < total_pages).then_some(Message::ModelPageNext)).style(style::t[1m[94m...[0m
+[1m[94m511[0m [1m[94m|[0m [1m[91m|[0m     ].spacing(6).align_y(Center);
+    [1m[94m|[0m [1m[91m|________________________________^[0m [1m[91mexpected `Element<'_, Message, Theme, _>`, found `Row<'_, Message, Theme, _>`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: expected struct `[1m[35miced_core::element::Element<'static, Message, Theme, iced_renderer::fallback::Renderer<iced_wgpu::Renderer, iced_tiny_skia::Renderer>>[0m`
+               found struct `[1m[35miced::widget::Row<'_, Message, Theme, _>[0m`
+[1m[96mhelp[0m: call `Into::into` on this expression to convert `iced::widget::Row<'_, Message, Theme, _>` into `iced_core::element::Element<'static, Message, Theme, iced_renderer::fallback::Renderer<iced_wgpu::Renderer, iced_tiny_skia::Renderer>>`
+    [1m[94m|[0m
+[1m[94m511[0m [1m[94m| [0m    ].spacing(6).align_y(Center)[92m.into()[0m;
+    [1m[94m|[0m                                 [92m+++++++[0m
+
+[1m[91merror[E0631][0m[1m: type mismatch in function arguments[0m
+   [1m[94m--> [0mapps/archx-agent/src/settings.rs:591:28
+    [1m[94m|[0m
+[1m[94m591[0m [1m[94m|[0m             text(usage.map(archx_shared::memory::Usage::label).unwrap_or_else(|| "not loaded".into()))
+    [1m[94m|[0m                        [1m[94m---[0m [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+    [1m[94m|[0m                        [1m[94m|[0m   [1m[91m|[0m
+    [1m[94m|[0m                        [1m[94m|[0m   [1m[91mexpected due to this[0m
+    [1m[94m|[0m                        [1m[94m|[0m   [1m[91mfound signature defined here[0m
+    [1m[94m|[0m                        [1m[94mrequired by a bound introduced by this call[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: expected function signature `fn([1m[35m&[0mUsage) -> [1m[35m_[0m`
+               found function signature `fn(Usage) -> [1m[35m_[0m`
+[1m[92mnote[0m: required by a bound in `Option::<T>::map`
+   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/option.rs:1160:4
+[1m[96mhelp[0m: consider wrapping the function in a closure
+    [1m[94m|[0m
+[1m[94m591[0m [1m[94m| [0m            text(usage.map([92m|arg0: &archx_shared::memory::Usage| [0marchx_shared::memory::Usage::label[92m(*arg0)[0m).unwrap_or_else(|| "not loaded".into()))
+    [1m[94m|[0m                            [92m++++++++++++++++++++++++++++++++++++[0m                                   [92m+++++++[0m
+
+[1m[33mwarning[0m[1m: unused variable: `storage_path`[0m
+   [1m[94m--> [0mapps/archx-agent/src/settings.rs:197:55
+    [1m[94m|[0m
+[1m[94m197[0m [1m[94m|[0m     display: &archx_shared::persist::DisplaySettings, storage_path: &str, usage: &'a [archx_shared::memory::Usage],
+    [1m[94m|[0m                                                       [1m[33m^^^^^^^^^^^^[0m [1m[33mhelp: if this is intentional, prefix it with an underscore: `_storage_path`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+[1m[33mwarning[0m[1m: unused variable: `usage`[0m
+   [1m[94m--> [0mapps/archx-agent/src/settings.rs:197:75
+    [1m[94m|[0m
+[1m[94m197[0m [1m[94m|[0m     display: &archx_shared::persist::DisplaySettings, storage_path: &str, usage: &'a [archx_shared::memory::Usage],
+    [1m[94m|[0m                                                                           [1m[33m^^^^^[0m [1m[33mhelp: if this is intentional, prefix it with an underscore: `_usage`[0m
+
+[1m[33mwarning[0m[1m: unused variable: `budget`[0m
+   [1m[94m--> [0mapps/archx-agent/src/settings.rs:198:5
+    [1m[94m|[0m
+[1m[94m198[0m [1m[94m|[0m     budget: &'a archx_shared::memory::Budget) -> Element<'a, Message> {
+    [1m[94m|[0m     [1m[33m^^^^^^[0m [1m[33mhelp: if this is intentional, prefix it with an underscore: `_budget`[0m
+
+[1m[91merror[E0433][0m[1m: cannot find module or crate `sipper` in this scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/custom_endpoint.rs:162:31
+    [1m[94m|[0m
+[1m[94m162[0m [1m[94m|[0m     mut progress: Option<&mut sipper::Sender<Reply>>) -> Result<(Reply, Trace), Failure> {
+    [1m[94m|[0m                               [1m[91m^^^^^^[0m [1m[91muse of unresolved module or unlinked crate `sipper`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: if you wanted to use a crate named `sipper`, use `cargo add sipper` to add it to your `Cargo.toml`
+
+[1m[91merror[E0433][0m[1m: cannot find module or crate `sipper` in this scope[0m
+   [1m[94m--> [0mapps/archx-agent/src/custom_endpoint.rs:153:20
+    [1m[94m|[0m
+[1m[94m153[0m [1m[94m|[0m     progress: &mut sipper::Sender<Reply>) -> Result<(Reply, Trace), Failure> {
+    [1m[94m|[0m                    [1m[91m^^^^^^[0m [1m[91muse of unresolved module or unlinked crate `sipper`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: if you wanted to use a crate named `sipper`, use `cargo add sipper` to add it to your `Cargo.toml`
+
+[1mSome errors have detailed explanations: E0063, E0277, E0308, E0425, E0432, E0433, E0599, E0616, E0624...[0m
+[1mFor more information about an error, try `rustc --explain E0063`.[0m
+[1m[33mwarning[0m: `archx-agent` (lib) generated 8 warnings
+[1m[91merror[0m: could not compile `archx-agent` (lib) due to 78 previous errors; 8 warnings emitted
