@@ -7,448 +7,448 @@ COMMAND: cargo test --locked
 [1m[92m  Downloaded[0m ab_glyph_rasterizer v0.1.10
 [1m[92m  Downloaded[0m adler2 v2.0.1
 [1m[92m  Downloaded[0m ab_glyph v0.2.32
-[1m[92m  Downloaded[0m arg_enum_proc_macro v0.3.4
-[1m[92m  Downloaded[0m calloop-wayland-source v0.4.1
-[1m[92m  Downloaded[0m byteorder-lite v0.1.0
-[1m[92m  Downloaded[0m cfg_aliases v0.2.2
-[1m[92m  Downloaded[0m document-features v0.2.12
-[1m[92m  Downloaded[0m equator-macro v0.4.2
-[1m[92m  Downloaded[0m aligned v0.4.3
-[1m[92m  Downloaded[0m calloop-wayland-source v0.3.0
-[1m[92m  Downloaded[0m bytemuck_derive v1.12.1
-[1m[92m  Downloaded[0m cipher v0.5.2
-[1m[92m  Downloaded[0m cfg-if v1.0.5
-[1m[92m  Downloaded[0m etagere v0.2.15
-[1m[92m  Downloaded[0m cbc v0.2.1
-[1m[92m  Downloaded[0m chacha20 v0.10.2
-[1m[92m  Downloaded[0m dpi v0.1.2
-[1m[92m  Downloaded[0m errno v0.3.15
-[1m[92m  Downloaded[0m multiversion-macros v0.8.1
-[1m[92m  Downloaded[0m built v0.8.1
-[1m[92m  Downloaded[0m bytemuck v1.25.2
-[1m[92m  Downloaded[0m enumflags2_derive v0.7.12
-[1m[92m  Downloaded[0m event-listener-strategy v0.5.4
-[1m[92m  Downloaded[0m mutate_once v0.1.2
-[1m[92m  Downloaded[0m new_debug_unreachable v1.0.6
-[1m[92m  Downloaded[0m no_std_io2 v0.9.4
-[1m[92m  Downloaded[0m blocking v1.7.0
-[1m[92m  Downloaded[0m async-signal v0.2.14
-[1m[92m  Downloaded[0m equator v0.4.2
-[1m[92m  Downloaded[0m fax v0.2.7
+[1m[92m  Downloaded[0m av1-grain v0.2.5
+[1m[92m  Downloaded[0m block-padding v0.4.2
 [1m[92m  Downloaded[0m ahash v0.8.14
-[1m[92m  Downloaded[0m crossbeam-epoch v0.9.21
-[1m[92m  Downloaded[0m digest v0.11.3
-[1m[92m  Downloaded[0m fdeflate v0.3.7
-[1m[92m  Downloaded[0m core_maths v0.1.1
-[1m[92m  Downloaded[0m downcast-rs v1.2.1
-[1m[92m  Downloaded[0m endi v1.1.1
-[1m[92m  Downloaded[0m equivalent v1.0.3
-[1m[92m  Downloaded[0m fastrand v2.5.0
-[1m[92m  Downloaded[0m clipboard_wayland v0.2.2
-[1m[92m  Downloaded[0m dtor v0.8.1
-[1m[92m  Downloaded[0m calloop v0.14.5
-[1m[92m  Downloaded[0m ctutils v0.4.8
-[1m[92m  Downloaded[0m displaydoc v0.2.7
 [1m[92m  Downloaded[0m aes v0.9.4
-[1m[92m  Downloaded[0m bit_field v0.10.4
+[1m[92m  Downloaded[0m aligned-vec v0.6.4
+[1m[92m  Downloaded[0m cfg-if v1.0.5
+[1m[92m  Downloaded[0m arrayvec v0.7.8
+[1m[92m  Downloaded[0m byteorder-lite v0.1.0
+[1m[92m  Downloaded[0m cipher v0.5.2
+[1m[92m  Downloaded[0m dpi v0.1.2
+[1m[92m  Downloaded[0m equivalent v1.0.3
+[1m[92m  Downloaded[0m fax v0.2.7
+[1m[92m  Downloaded[0m base64 v0.22.1
+[1m[92m  Downloaded[0m bitflags v2.13.2
+[1m[92m  Downloaded[0m calloop v0.14.5
+[1m[92m  Downloaded[0m crossbeam-epoch v0.9.21
+[1m[92m  Downloaded[0m euclid v0.22.14
+[1m[92m  Downloaded[0m enumflags2_derive v0.7.12
+[1m[92m  Downloaded[0m bitstream-io v4.10.0
+[1m[92m  Downloaded[0m fastrand v2.5.0
+[1m[92m  Downloaded[0m concurrent-queue v2.5.0
+[1m[92m  Downloaded[0m multiversion-macros v0.8.1
 [1m[92m  Downloaded[0m bytes v1.12.2
+[1m[92m  Downloaded[0m event-listener v5.4.2
+[1m[92m  Downloaded[0m dtor v0.8.1
+[1m[92m  Downloaded[0m bit_field v0.10.4
+[1m[92m  Downloaded[0m arg_enum_proc_macro v0.3.4
+[1m[92m  Downloaded[0m calloop-wayland-source v0.3.0
+[1m[92m  Downloaded[0m crossbeam-utils v0.8.23
+[1m[92m  Downloaded[0m data-url v0.3.2
+[1m[92m  Downloaded[0m ctor v0.10.1
+[1m[92m  Downloaded[0m bytemuck v1.25.2
+[1m[92m  Downloaded[0m equator v0.4.2
+[1m[92m  Downloaded[0m rustc-hash v2.1.3
+[1m[92m  Downloaded[0m scoped-tls v1.0.1
+[1m[92m  Downloaded[0m maybe-rayon v0.1.1
+[1m[92m  Downloaded[0m fdeflate v0.3.7
+[1m[92m  Downloaded[0m getrandom v0.2.17
+[1m[92m  Downloaded[0m zlib-rs v0.6.9
+[1m[92m  Downloaded[0m num-integer v0.1.47
+[1m[92m  Downloaded[0m num-iter v0.1.46
+[1m[92m  Downloaded[0m bumpalo v3.20.4
+[1m[92m  Downloaded[0m crc32fast v1.5.6
+[1m[92m  Downloaded[0m cfg_aliases v0.2.2
+[1m[92m  Downloaded[0m anyhow v1.0.105
+[1m[92m  Downloaded[0m cpubits v0.1.1
+[1m[92m  Downloaded[0m once_cell v1.21.4
+[1m[92m  Downloaded[0m bit-set v0.8.0
+[1m[92m  Downloaded[0m bytemuck_derive v1.12.1
+[1m[92m  Downloaded[0m codespan-reporting v0.12.0
+[1m[92m  Downloaded[0m color_quant v1.1.0
+[1m[92m  Downloaded[0m crossbeam-deque v0.8.8
+[1m[92m  Downloaded[0m async-task v4.7.1
+[1m[92m  Downloaded[0m calloop-wayland-source v0.4.1
+[1m[92m  Downloaded[0m dlib v0.5.3
+[1m[92m  Downloaded[0m owned_ttf_parser v0.25.1
+[1m[92m  Downloaded[0m parking v2.2.1
+[1m[92m  Downloaded[0m memmap2 v0.9.12
+[1m[92m  Downloaded[0m miniz_oxide v0.8.9
+[1m[92m  Downloaded[0m num-derive v0.4.2
+[1m[92m  Downloaded[0m pin-project-lite v0.2.18
+[1m[92m  Downloaded[0m android-build v0.1.4
+[1m[92m  Downloaded[0m async-signal v0.2.14
+[1m[92m  Downloaded[0m blocking v1.7.0
 [1m[92m  Downloaded[0m calloop v0.13.0
 [1m[92m  Downloaded[0m clipboard_x11 v0.4.3
-[1m[92m  Downloaded[0m concurrent-queue v2.5.0
-[1m[92m  Downloaded[0m crypto-common v0.2.2
-[1m[92m  Downloaded[0m enumflags2 v0.7.12
-[1m[92m  Downloaded[0m as-slice v0.2.1
-[1m[92m  Downloaded[0m atomic-waker v1.1.2
-[1m[92m  Downloaded[0m block-buffer v0.12.1
-[1m[92m  Downloaded[0m either v1.19.0
-[1m[92m  Downloaded[0m event-listener v5.4.2
-[1m[92m  Downloaded[0m mundy v0.2.3
-[1m[92m  Downloaded[0m rustc-hash v2.1.3
-[1m[92m  Downloaded[0m dlib v0.5.3
-[1m[92m  Downloaded[0m async-executor v1.14.1
-[1m[92m  Downloaded[0m bit-set v0.8.0
-[1m[92m  Downloaded[0m bumpalo v3.20.4
-[1m[92m  Downloaded[0m color_quant v1.1.0
-[1m[92m  Downloaded[0m const-oid v0.10.3
-[1m[92m  Downloaded[0m data-url v0.3.2
-[1m[92m  Downloaded[0m android-build v0.1.4
-[1m[92m  Downloaded[0m async-lock v3.5.0
-[1m[92m  Downloaded[0m async-process v2.5.0
-[1m[92m  Downloaded[0m async-recursion v1.2.0
-[1m[92m  Downloaded[0m aligned-vec v0.6.4
-[1m[92m  Downloaded[0m async-task v4.7.1
-[1m[92m  Downloaded[0m av1-grain v0.2.5
-[1m[92m  Downloaded[0m cc v1.11.3
+[1m[92m  Downloaded[0m core_maths v0.1.1
 [1m[92m  Downloaded[0m cursor-icon v1.2.0
-[1m[92m  Downloaded[0m maybe-rayon v0.1.1
-[1m[92m  Downloaded[0m miniz_oxide v0.9.1
-[1m[92m  Downloaded[0m parking_lot_core v0.9.12
-[1m[92m  Downloaded[0m arrayref v0.3.9
-[1m[92m  Downloaded[0m ctor v0.10.1
-[1m[92m  Downloaded[0m euclid v0.22.14
-[1m[92m  Downloaded[0m num-traits v0.2.19
+[1m[92m  Downloaded[0m document-features v0.2.12
+[1m[92m  Downloaded[0m ordered-float v5.5.1
 [1m[92m  Downloaded[0m ordered-stream v0.2.0
-[1m[92m  Downloaded[0m async-broadcast v0.7.2
-[1m[92m  Downloaded[0m async-channel v2.5.0
-[1m[92m  Downloaded[0m async-trait v0.1.92
-[1m[92m  Downloaded[0m bitflags v1.3.2
-[1m[92m  Downloaded[0m block-padding v0.4.2
-[1m[92m  Downloaded[0m zeroize v1.9.2
+[1m[92m  Downloaded[0m roxmltree v0.20.0
+[1m[92m  Downloaded[0m socket2 v0.6.5
+[1m[92m  Downloaded[0m memchr v2.8.3
+[1m[92m  Downloaded[0m miniz_oxide v0.9.1
+[1m[92m  Downloaded[0m num-bigint v0.4.8
+[1m[92m  Downloaded[0m num-complex v0.4.6
+[1m[92m  Downloaded[0m num-traits v0.2.19
+[1m[92m  Downloaded[0m atomic-waker v1.1.2
+[1m[92m  Downloaded[0m clipboard_wayland v0.2.2
+[1m[92m  Downloaded[0m event-listener-strategy v0.5.4
+[1m[92m  Downloaded[0m new_debug_unreachable v1.0.6
+[1m[92m  Downloaded[0m arrayref v0.3.9
+[1m[92m  Downloaded[0m async-recursion v1.2.0
+[1m[92m  Downloaded[0m crypto-common v0.2.2
+[1m[92m  Downloaded[0m endi v1.1.1
 [1m[92m  Downloaded[0m as-raw-xcb-connection v1.0.1
+[1m[92m  Downloaded[0m as-slice v0.2.1
 [1m[92m  Downloaded[0m cpufeatures v0.3.1
-[1m[92m  Downloaded[0m anyhow v1.0.105
-[1m[92m  Downloaded[0m bit-vec v0.8.0
-[1m[92m  Downloaded[0m codespan-reporting v0.12.0
-[1m[92m  Downloaded[0m owned_ttf_parser v0.25.1
-[1m[92m  Downloaded[0m paste v1.0.15
-[1m[92m  Downloaded[0m pastey v0.1.1
-[1m[92m  Downloaded[0m rand_core v0.10.1
-[1m[92m  Downloaded[0m autocfg v1.5.1
+[1m[92m  Downloaded[0m profiling-procmacros v1.0.18
+[1m[92m  Downloaded[0m pulldown-cmark v0.12.2
+[1m[92m  Downloaded[0m self_cell v1.3.0
+[1m[92m  Downloaded[0m serde_urlencoded v0.7.1
+[1m[92m  Downloaded[0m downcast-rs v1.2.1
+[1m[92m  Downloaded[0m aligned v0.4.3
+[1m[92m  Downloaded[0m ctutils v0.4.8
+[1m[92m  Downloaded[0m digest v0.11.3
+[1m[92m  Downloaded[0m displaydoc v0.2.7
+[1m[92m  Downloaded[0m equator-macro v0.4.2
+[1m[92m  Downloaded[0m zerofrom v0.1.8
+[1m[92m  Downloaded[0m async-executor v1.14.1
+[1m[92m  Downloaded[0m async-lock v3.5.0
+[1m[92m  Downloaded[0m async-trait v0.1.92
 [1m[92m  Downloaded[0m avif-serialize v0.8.9
-[1m[92m  Downloaded[0m base64 v0.22.1
-[1m[92m  Downloaded[0m cmov v0.5.4
-[1m[92m  Downloaded[0m crc32fast v1.5.6
-[1m[92m  Downloaded[0m async-io v2.6.0
-[1m[92m  Downloaded[0m crossbeam-deque v0.8.8
-[1m[92m  Downloaded[0m yoke v0.8.4
-[1m[92m  Downloaded[0m zbus_macros v5.19.0
-[1m[92m  Downloaded[0m zbus_names v4.3.5
-[1m[92m  Downloaded[0m arrayvec v0.7.8
-[1m[92m  Downloaded[0m bitflags v2.13.2
-[1m[92m  Downloaded[0m bitstream-io v4.10.0
-[1m[92m  Downloaded[0m crossbeam-utils v0.8.23
+[1m[92m  Downloaded[0m bitflags v1.3.2
+[1m[92m  Downloaded[0m block-buffer v0.12.1
+[1m[92m  Downloaded[0m built v0.8.1
+[1m[92m  Downloaded[0m chacha20 v0.10.2
+[1m[92m  Downloaded[0m enumflags2 v0.7.12
+[1m[92m  Downloaded[0m etagere v0.2.15
+[1m[92m  Downloaded[0m float-cmp v0.9.0
 [1m[92m  Downloaded[0m foldhash v0.1.5
-[1m[92m  Downloaded[0m quick-error v2.0.1
+[1m[92m  Downloaded[0m gethostname v1.1.0
+[1m[92m  Downloaded[0m polling v3.11.0
+[1m[92m  Downloaded[0m async-broadcast v0.7.2
+[1m[92m  Downloaded[0m async-io v2.6.0
+[1m[92m  Downloaded[0m autocfg v1.5.1
+[1m[92m  Downloaded[0m cbc v0.2.1
+[1m[92m  Downloaded[0m either v1.19.0
+[1m[92m  Downloaded[0m foldhash v0.2.0
+[1m[92m  Downloaded[0m getopts v0.2.24
+[1m[92m  Downloaded[0m gif v0.13.3
+[1m[92m  Downloaded[0m moxcms v0.8.1
 [1m[92m  Downloaded[0m pkg-config v0.3.34
-[1m[92m  Downloaded[0m base64 v0.23.1
-[1m[92m  Downloaded[0m futures-channel v0.3.34
-[1m[92m  Downloaded[0m cpubits v0.1.1
-[1m[92m  Downloaded[0m cryoglyph v0.1.0
-[1m[92m  Downloaded[0m exr v1.74.3
-[1m[92m  Downloaded[0m gpu-descriptor v0.3.2
-[1m[92m  Downloaded[0m scopeguard v1.2.0
 [1m[92m  Downloaded[0m sha2 v0.11.2
 [1m[92m  Downloaded[0m shlex v2.0.1
-[1m[92m  Downloaded[0m siphasher v1.0.4
-[1m[92m  Downloaded[0m float-cmp v0.9.0
-[1m[92m  Downloaded[0m futures-task v0.3.34
-[1m[92m  Downloaded[0m ordered-float v5.5.1
-[1m[92m  Downloaded[0m renderdoc-sys v1.1.0
-[1m[92m  Downloaded[0m roxmltree v0.20.0
-[1m[92m  Downloaded[0m sipper v0.1.0
-[1m[92m  Downloaded[0m zlib-rs v0.6.9
-[1m[92m  Downloaded[0m zune-inflate v0.2.54
-[1m[92m  Downloaded[0m zune-jpeg v0.4.21
-[1m[92m  Downloaded[0m futures v0.3.34
-[1m[92m  Downloaded[0m gpu-descriptor-types v0.2.0
-[1m[92m  Downloaded[0m guillotiere v0.6.2
-[1m[92m  Downloaded[0m pin-project-lite v0.2.18
-[1m[92m  Downloaded[0m sctk-adwaita v0.10.1
-[1m[92m  Downloaded[0m futures-util v0.3.34
-[1m[92m  Downloaded[0m ash v0.38.0+1.3.281
-[1m[92m  Downloaded[0m av-scenechange v0.14.1
-[1m[92m  Downloaded[0m iced_renderer v0.14.0
-[1m[92m  Downloaded[0m potential_utf v0.1.6
-[1m[92m  Downloaded[0m serde_repr v0.1.21
-[1m[92m  Downloaded[0m hybrid-array v0.4.15
-[1m[92m  Downloaded[0m once_cell v1.21.4
-[1m[92m  Downloaded[0m piper v0.2.5
-[1m[92m  Downloaded[0m rustc-hash v1.1.0
-[1m[92m  Downloaded[0m signal-hook-registry v1.4.8
-[1m[92m  Downloaded[0m slab v0.4.12
-[1m[92m  Downloaded[0m quinn-udp v0.5.16
-[1m[92m  Downloaded[0m glam v0.25.0
-[1m[92m  Downloaded[0m iced_core v0.14.0
-[1m[92m  Downloaded[0m rand_pcg v0.10.3
-[1m[92m  Downloaded[0m rustversion v1.0.23
+[1m[92m  Downloaded[0m unicode-script v0.5.9
+[1m[92m  Downloaded[0m xkbcommon-dl v0.4.2
+[1m[92m  Downloaded[0m yoke v0.8.4
+[1m[92m  Downloaded[0m zmij v1.0.23
+[1m[92m  Downloaded[0m async-channel v2.5.0
+[1m[92m  Downloaded[0m base64 v0.23.1
+[1m[92m  Downloaded[0m const-oid v0.10.3
+[1m[92m  Downloaded[0m errno v0.3.15
+[1m[92m  Downloaded[0m font-types v0.10.1
+[1m[92m  Downloaded[0m iced_runtime v0.14.0
+[1m[92m  Downloaded[0m nom v8.0.0
 [1m[92m  Downloaded[0m noop_proc_macro v0.3.0
-[1m[92m  Downloaded[0m num-iter v0.1.46
-[1m[92m  Downloaded[0m proc-macro-crate v3.5.0
-[1m[92m  Downloaded[0m profiling-procmacros v1.0.18
-[1m[92m  Downloaded[0m profiling v1.0.18
-[1m[92m  Downloaded[0m itoa v1.0.19
-[1m[92m  Downloaded[0m num-derive v0.4.2
-[1m[92m  Downloaded[0m parking v2.2.1
-[1m[92m  Downloaded[0m pico-args v0.5.0
-[1m[92m  Downloaded[0m pulldown-cmark-escape v0.11.0
-[1m[92m  Downloaded[0m serde_urlencoded v0.7.1
-[1m[92m  Downloaded[0m percent-encoding v2.3.2
-[1m[92m  Downloaded[0m itertools v0.14.0
-[1m[92m  Downloaded[0m quote v1.0.47
-[1m[92m  Downloaded[0m simplecss v0.2.2
 [1m[92m  Downloaded[0m num v0.4.3
-[1m[92m  Downloaded[0m proc-macro2 v1.0.107
-[1m[92m  Downloaded[0m iced v0.14.0
-[1m[92m  Downloaded[0m idna_adapter v1.2.2
-[1m[92m  Downloaded[0m ipnet v2.12.2
-[1m[92m  Downloaded[0m libloading v0.8.9
-[1m[92m  Downloaded[0m loop9 v0.1.5
-[1m[92m  Downloaded[0m num-complex v0.4.6
-[1m[92m  Downloaded[0m polling v3.11.0
+[1m[92m  Downloaded[0m parking_lot_core v0.9.12
+[1m[92m  Downloaded[0m paste v1.0.15
+[1m[92m  Downloaded[0m rav1e v0.8.1
+[1m[92m  Downloaded[0m rustls-webpki v0.103.17
+[1m[92m  Downloaded[0m untrusted v0.9.0
+[1m[92m  Downloaded[0m wayland-protocols-wlr v0.3.12
+[1m[92m  Downloaded[0m async-process v2.5.0
+[1m[92m  Downloaded[0m cmov v0.5.4
+[1m[92m  Downloaded[0m fontconfig-parser v0.5.8
+[1m[92m  Downloaded[0m hybrid-array v0.4.15
+[1m[92m  Downloaded[0m pico-args v0.5.0
+[1m[92m  Downloaded[0m getrandom v0.4.3
+[1m[92m  Downloaded[0m pulldown-cmark-escape v0.11.0
 [1m[92m  Downloaded[0m ravif v0.13.0
 [1m[92m  Downloaded[0m raw-window-handle v0.6.2
-[1m[92m  Downloaded[0m self_cell v1.3.0
-[1m[92m  Downloaded[0m simd-adler32 v0.3.10
-[1m[92m  Downloaded[0m simd_helpers v0.1.1
-[1m[92m  Downloaded[0m cosmic-text v0.15.0
-[1m[92m  Downloaded[0m imgref v1.12.3
-[1m[92m  Downloaded[0m moxcms v0.8.1
-[1m[92m  Downloaded[0m num-integer v0.1.47
-[1m[92m  Downloaded[0m num-rational v0.4.2
-[1m[92m  Downloaded[0m png v0.18.1
-[1m[92m  Downloaded[0m qoi v0.4.1
-[1m[92m  Downloaded[0m quinn v0.11.12
-[1m[92m  Downloaded[0m resvg v0.45.1
-[1m[92m  Downloaded[0m rgb v0.8.53
-[1m[92m  Downloaded[0m rustls-pki-types v1.16.0
-[1m[92m  Downloaded[0m scoped-tls v1.0.1
-[1m[92m  Downloaded[0m secret-service v5.2.0
-[1m[92m  Downloaded[0m smallvec v1.16.6
-[1m[92m  Downloaded[0m smithay-client-toolkit v0.20.0
-[1m[92m  Downloaded[0m sys-locale v0.3.2
-[1m[92m  Downloaded[0m thiserror-impl v1.0.69
-[1m[92m  Downloaded[0m tiff v0.11.3
-[1m[92m  Downloaded[0m tower-http v0.6.11
-[1m[92m  Downloaded[0m tower-service v0.3.3
-[1m[92m  Downloaded[0m tracing-attributes v0.1.31
-[1m[92m  Downloaded[0m unicode-bidi-mirroring v0.4.0
-[1m[92m  Downloaded[0m unicode-ccc v0.4.0
-[1m[92m  Downloaded[0m unicode-ident v1.0.27
-[1m[92m  Downloaded[0m wasm-bindgen v0.2.130
-[1m[92m  Downloaded[0m wasm-bindgen-macro v0.2.130
-[1m[92m  Downloaded[0m xkeysym v0.2.1
-[1m[92m  Downloaded[0m xmlwriter v0.1.0
-[1m[92m  Downloaded[0m iced_program v0.14.0
-[1m[92m  Downloaded[0m lebe v0.5.3
-[1m[92m  Downloaded[0m libc v0.2.191
-[1m[92m  Downloaded[0m lilt v0.8.2
-[1m[92m  Downloaded[0m linebender_resource_handle v0.1.1
-[1m[92m  Downloaded[0m lru v0.16.4
-[1m[92m  Downloaded[0m lru-slab v0.1.3
-[1m[92m  Downloaded[0m mio v1.2.5
-[1m[92m  Downloaded[0m multiversion v0.8.1
-[1m[92m  Downloaded[0m nom v8.0.0
-[1m[92m  Downloaded[0m num-bigint v0.4.8
-[1m[92m  Downloaded[0m parking_lot v0.12.5
-[1m[92m  Downloaded[0m png v0.17.16
-[1m[92m  Downloaded[0m pulldown-cmark v0.12.2
-[1m[92m  Downloaded[0m rangemap v1.9.0
-[1m[92m  Downloaded[0m rayon-core v1.13.0
-[1m[92m  Downloaded[0m rustls-webpki v0.103.17
-[1m[92m  Downloaded[0m ryu v1.0.23
-[1m[92m  Downloaded[0m serde v1.0.229
-[1m[92m  Downloaded[0m serde_core v1.0.229
-[1m[92m  Downloaded[0m serde_derive v1.0.229
-[1m[92m  Downloaded[0m slotmap v1.1.1
-[1m[92m  Downloaded[0m smithay-client-toolkit v0.19.2
-[1m[92m  Downloaded[0m smol_str v0.2.2
-[1m[92m  Downloaded[0m target-features v0.1.6
-[1m[92m  Downloaded[0m thiserror-impl v2.0.21
-[1m[92m  Downloaded[0m tiny-skia v0.11.4
-[1m[92m  Downloaded[0m toml_parser v1.1.7+spec-1.1.0
-[1m[92m  Downloaded[0m tower v0.5.3
-[1m[92m  Downloaded[0m tower-layer v0.3.3
-[1m[92m  Downloaded[0m tracing v0.1.44
-[1m[92m  Downloaded[0m tracing-core v0.1.36
-[1m[92m  Downloaded[0m unicode-bidi v0.3.18
-[1m[92m  Downloaded[0m uuid v1.29.3
-[1m[92m  Downloaded[0m v_frame v0.3.9
-[1m[92m  Downloaded[0m version_check v0.9.5
-[1m[92m  Downloaded[0m want v0.3.2
-[1m[92m  Downloaded[0m xkbcommon-dl v0.4.2
-[1m[92m  Downloaded[0m yazi v0.2.2
-[1m[92m  Downloaded[0m yoke-derive v0.8.4
-[1m[92m  Downloaded[0m zcheapstr v1.4.0
-[1m[92m  Downloaded[0m zeno v0.3.3
-[1m[92m  Downloaded[0m find-msvc-tools v0.1.15
-[1m[92m  Downloaded[0m foldhash v0.2.0
-[1m[92m  Downloaded[0m font-types v0.10.1
-[1m[92m  Downloaded[0m font-types v0.12.7
-[1m[92m  Downloaded[0m form_urlencoded v1.2.3
-[1m[92m  Downloaded[0m gif v0.13.3
-[1m[92m  Downloaded[0m gif v0.14.2
-[1m[92m  Downloaded[0m glow v0.16.0
-[1m[92m  Downloaded[0m gpu-alloc v0.6.2
-[1m[92m  Downloaded[0m hyper-rustls v0.27.10
-[1m[92m  Downloaded[0m hyper-util v0.1.21
-[1m[92m  Downloaded[0m iced_debug v0.14.0
-[1m[92m  Downloaded[0m iced_futures v0.14.0
-[1m[92m  Downloaded[0m icu_locale_core v2.4.0
-[1m[92m  Downloaded[0m lock_api v0.4.14
-[1m[92m  Downloaded[0m rayon v1.12.0
-[1m[92m  Downloaded[0m smithay-clipboard v0.7.3
-[1m[92m  Downloaded[0m svg_fmt v0.4.5
-[1m[92m  Downloaded[0m swash v0.2.10
-[1m[92m  Downloaded[0m url v2.5.9
-[1m[92m  Downloaded[0m utf8_iter v1.1.0
-[1m[92m  Downloaded[0m wayland-client v0.31.15
-[1m[92m  Downloaded[0m wayland-csd-frame v0.3.0
-[1m[92m  Downloaded[0m writeable v0.6.4
-[1m[92m  Downloaded[0m zbus v5.19.0
-[1m[92m  Downloaded[0m zbus-secret-service-keyring-store v1.0.1
-[1m[92m  Downloaded[0m flate2 v1.1.11
-[1m[92m  Downloaded[0m fontconfig-parser v0.5.8
+[1m[92m  Downloaded[0m zune-core v0.4.12
+[1m[92m  Downloaded[0m iced_renderer v0.14.0
 [1m[92m  Downloaded[0m icu_collections v2.4.0
-[1m[92m  Downloaded[0m imagesize v0.13.0
-[1m[92m  Downloaded[0m khronos-egl v6.0.0
-[1m[92m  Downloaded[0m libm v0.2.16
-[1m[92m  Downloaded[0m log v0.4.35
-[1m[92m  Downloaded[0m quick-xml v0.41.0
-[1m[92m  Downloaded[0m rand v0.10.4
-[1m[92m  Downloaded[0m svgtypes v0.15.3
+[1m[92m  Downloaded[0m cc v1.11.3
+[1m[92m  Downloaded[0m fontdb v0.23.0
+[1m[92m  Downloaded[0m imgref v1.12.3
+[1m[92m  Downloaded[0m mundy v0.2.3
+[1m[92m  Downloaded[0m naga v27.0.3
+[1m[92m  Downloaded[0m serde v1.0.229
 [1m[92m  Downloaded[0m unicode-vo v0.1.0
-[1m[92m  Downloaded[0m untrusted v0.9.0
-[1m[92m  Downloaded[0m wayland-cursor v0.31.14
-[1m[92m  Downloaded[0m futures-core v0.3.34
-[1m[92m  Downloaded[0m gpu-alloc-types v0.3.1
-[1m[92m  Downloaded[0m half v2.7.1
-[1m[92m  Downloaded[0m hex v0.4.3
-[1m[92m  Downloaded[0m http v1.5.0
-[1m[92m  Downloaded[0m zerofrom v0.1.8
-[1m[92m  Downloaded[0m futures-executor v0.3.34
-[1m[92m  Downloaded[0m futures-io v0.3.34
-[1m[92m  Downloaded[0m icu_provider v2.4.0
-[1m[92m  Downloaded[0m thiserror v1.0.69
-[1m[92m  Downloaded[0m unicase v2.10.0
-[1m[92m  Downloaded[0m winnow v1.0.5
-[1m[92m  Downloaded[0m xcursor v0.3.11
-[1m[92m  Downloaded[0m thiserror v2.0.21
-[1m[92m  Downloaded[0m utf_types v1.0.0
-[1m[92m  Downloaded[0m zune-core v0.5.3
-[1m[92m  Downloaded[0m getrandom v0.4.3
-[1m[92m  Downloaded[0m iced_runtime v0.14.0
-[1m[92m  Downloaded[0m image-webp v0.2.4
-[1m[92m  Downloaded[0m synstructure v0.14.0
-[1m[92m  Downloaded[0m wayland-backend v0.3.17
-[1m[92m  Downloaded[0m iced_winit v0.14.1
+[1m[92m  Downloaded[0m futures-sink v0.3.34
+[1m[92m  Downloaded[0m png v0.18.1
+[1m[92m  Downloaded[0m scopeguard v1.2.0
+[1m[92m  Downloaded[0m zbus_macros v5.19.0
+[1m[92m  Downloaded[0m futures v0.3.34
+[1m[92m  Downloaded[0m iced_core v0.14.0
+[1m[92m  Downloaded[0m serde_repr v0.1.21
+[1m[92m  Downloaded[0m v_frame v0.3.9
+[1m[92m  Downloaded[0m font-types v0.12.7
+[1m[92m  Downloaded[0m mutate_once v0.1.2
+[1m[92m  Downloaded[0m parking_lot v0.12.5
+[1m[92m  Downloaded[0m sctk-adwaita v0.10.1
+[1m[92m  Downloaded[0m png v0.17.16
+[1m[92m  Downloaded[0m profiling v1.0.18
+[1m[92m  Downloaded[0m resvg v0.45.1
+[1m[92m  Downloaded[0m strict-num v0.1.1
+[1m[92m  Downloaded[0m gif v0.14.2
+[1m[92m  Downloaded[0m keyring v4.2.0
+[1m[92m  Downloaded[0m rayon-core v1.13.0
+[1m[92m  Downloaded[0m rustix v0.38.44
 [1m[92m  Downloaded[0m tiny-xlib v0.2.5
+[1m[92m  Downloaded[0m tinyvec v1.13.3
+[1m[92m  Downloaded[0m zbus_names v4.3.5
+[1m[92m  Downloaded[0m lebe v0.5.3
+[1m[92m  Downloaded[0m tower-layer v0.3.3
+[1m[92m  Downloaded[0m futures-core v0.3.34
+[1m[92m  Downloaded[0m pastey v0.1.1
+[1m[92m  Downloaded[0m quinn v0.11.12
+[1m[92m  Downloaded[0m keyring-core v1.1.0
+[1m[92m  Downloaded[0m kurbo v0.11.3
+[1m[92m  Downloaded[0m simplecss v0.2.2
+[1m[92m  Downloaded[0m quinn-udp v0.5.16
+[1m[92m  Downloaded[0m rayon v1.12.0
+[1m[92m  Downloaded[0m ryu v1.0.23
+[1m[92m  Downloaded[0m serde_core v1.0.229
+[1m[92m  Downloaded[0m x11-dl v2.21.0
+[1m[92m  Downloaded[0m x11rb v0.13.2
+[1m[92m  Downloaded[0m rangemap v1.9.0
+[1m[92m  Downloaded[0m read-fonts v0.41.0
+[1m[92m  Downloaded[0m siphasher v1.0.4
+[1m[92m  Downloaded[0m wayland-protocols-misc v0.3.12
+[1m[92m  Downloaded[0m writeable v0.6.4
+[1m[92m  Downloaded[0m yazi v0.2.2
+[1m[92m  Downloaded[0m zeno v0.3.3
+[1m[92m  Downloaded[0m exr v1.74.3
+[1m[92m  Downloaded[0m find-msvc-tools v0.1.15
+[1m[92m  Downloaded[0m flate2 v1.1.11
+[1m[92m  Downloaded[0m form_urlencoded v1.2.3
+[1m[92m  Downloaded[0m futures-channel v0.3.34
+[1m[92m  Downloaded[0m futures-executor v0.3.34
+[1m[92m  Downloaded[0m futures-task v0.3.34
+[1m[92m  Downloaded[0m gpu-alloc v0.6.2
+[1m[92m  Downloaded[0m idna v1.1.0
+[1m[92m  Downloaded[0m itertools v0.14.0
+[1m[92m  Downloaded[0m lru v0.16.4
+[1m[92m  Downloaded[0m multiversion v0.8.1
+[1m[92m  Downloaded[0m no_std_io2 v0.9.4
+[1m[92m  Downloaded[0m pxfm v0.1.30
+[1m[92m  Downloaded[0m simd_helpers v0.1.1
 [1m[92m  Downloaded[0m typenum v1.20.1
 [1m[92m  Downloaded[0m unicode-width v0.2.3
-[1m[92m  Downloaded[0m iced_wgpu v0.14.0
-[1m[92m  Downloaded[0m idna v1.1.0
-[1m[92m  Downloaded[0m kurbo v0.11.3
-[1m[92m  Downloaded[0m usvg v0.45.1
-[1m[92m  Downloaded[0m zerocopy-derive v0.8.65
-[1m[92m  Downloaded[0m fontdb v0.23.0
-[1m[92m  Downloaded[0m futures-lite v2.6.1
-[1m[92m  Downloaded[0m termcolor v1.4.1
-[1m[92m  Downloaded[0m wayland-protocols v0.32.13
-[1m[92m  Downloaded[0m iced_graphics v0.14.0
-[1m[92m  Downloaded[0m iced_widget v0.14.2
-[1m[92m  Downloaded[0m image v0.25.10
-[1m[92m  Downloaded[0m zerocopy v0.8.65
-[1m[92m  Downloaded[0m jobserver v0.1.35
-[1m[92m  Downloaded[0m kurbo v0.10.4
-[1m[92m  Downloaded[0m wayland-protocols-misc v0.3.12
-[1m[92m  Downloaded[0m wayland-protocols-wlr v0.3.12
-[1m[92m  Downloaded[0m stable_deref_trait v1.2.1
-[1m[92m  Downloaded[0m subtle v2.6.1
-[1m[92m  Downloaded[0m tokio v1.54.1
-[1m[92m  Downloaded[0m getrandom v0.2.17
-[1m[92m  Downloaded[0m wayland-scanner v0.31.11
-[1m[92m  Downloaded[0m wayland-protocols-experimental v20250721.0.1
-[1m[92m  Downloaded[0m zvariant_utils v4.2.0
-[1m[92m  Downloaded[0m litrs v1.1.0
-[1m[92m  Downloaded[0m zvariant v5.15.1
-[1m[92m  Downloaded[0m http-body v1.1.0
-[1m[92m  Downloaded[0m softbuffer v0.4.8
 [1m[92m  Downloaded[0m wayland-protocols-plasma v0.3.12
-[1m[92m  Downloaded[0m zune-jpeg v0.5.15
-[1m[92m  Downloaded[0m gethostname v1.1.0
-[1m[92m  Downloaded[0m litemap v0.8.3
-[1m[92m  Downloaded[0m hmac v0.13.0
-[1m[92m  Downloaded[0m wayland-sys v0.31.11
-[1m[92m  Downloaded[0m y4m v0.8.0
-[1m[92m  Downloaded[0m futures-macro v0.3.34
-[1m[92m  Downloaded[0m zvariant_derive v5.15.1
-[1m[92m  Downloaded[0m spirv v0.3.0+sdk-1.3.268.0
-[1m[92m  Downloaded[0m unicode-linebreak v0.1.5
-[1m[92m  Downloaded[0m hashbrown v0.16.1
-[1m[92m  Downloaded[0m http-body-util v0.1.5
-[1m[92m  Downloaded[0m getopts v0.2.24
-[1m[92m  Downloaded[0m inout v0.2.6
-[1m[92m  Downloaded[0m serde_json v1.0.154
-[1m[92m  Downloaded[0m sync_wrapper v1.0.2
-[1m[92m  Downloaded[0m try-lock v0.2.5
-[1m[92m  Downloaded[0m futures-sink v0.3.34
-[1m[92m  Downloaded[0m hexf-parse v0.2.1
-[1m[92m  Downloaded[0m strict-num v0.1.1
-[1m[92m  Downloaded[0m wasm-bindgen-shared v0.2.130
-[1m[92m  Downloaded[0m wgpu-core-deps-windows-linux-android v27.0.0
-[1m[92m  Downloaded[0m httparse v1.10.1
-[1m[92m  Downloaded[0m kamadak-exif v0.6.2
-[1m[92m  Downloaded[0m zmij v1.0.23
-[1m[92m  Downloaded[0m socket2 v0.6.5
-[1m[92m  Downloaded[0m tiny-skia-path v0.11.4
-[1m[92m  Downloaded[0m unicode-properties v0.1.5
-[1m[92m  Downloaded[0m keyring-core v1.1.0
-[1m[92m  Downloaded[0m memmap2 v0.9.12
-[1m[92m  Downloaded[0m hashbrown v0.15.5
-[1m[92m  Downloaded[0m keyring v4.2.0
-[1m[92m  Downloaded[0m zune-core v0.4.12
-[1m[92m  Downloaded[0m hashbrown v0.17.2
-[1m[92m  Downloaded[0m hkdf v0.13.0
-[1m[92m  Downloaded[0m tinystr v0.8.5
-[1m[92m  Downloaded[0m toml_datetime v1.1.3+spec-1.1.0
-[1m[92m  Downloaded[0m zerovec-derive v0.11.7
-[1m[92m  Downloaded[0m memchr v2.8.3
-[1m[92m  Downloaded[0m static_assertions v1.1.0
-[1m[92m  Downloaded[0m unicode-script v0.5.9
-[1m[92m  Downloaded[0m wasm-bindgen-macro-support v0.2.130
-[1m[92m  Downloaded[0m window_clipboard v0.5.1
-[1m[92m  Downloaded[0m zerofrom-derive v0.1.8
-[1m[92m  Downloaded[0m tokio-rustls v0.26.6
-[1m[92m  Downloaded[0m reqwest v0.12.28
-[1m[92m  Downloaded[0m web-time v1.1.0
-[1m[92m  Downloaded[0m weezl v0.1.12
-[1m[92m  Downloaded[0m iced_tiny_skia v0.14.1
-[1m[92m  Downloaded[0m tinyvec v1.13.3
-[1m[92m  Downloaded[0m icu_normalizer_data v2.4.0
-[1m[92m  Downloaded[0m toml_edit v0.25.21+spec-1.1.0
-[1m[92m  Downloaded[0m unicode-segmentation v1.13.3
-[1m[92m  Downloaded[0m x11-dl v2.21.0
 [1m[92m  Downloaded[0m zerotrie v0.2.5
-[1m[92m  Downloaded[0m indexmap v2.14.2
-[1m[92m  Downloaded[0m miniz_oxide v0.8.9
-[1m[92m  Downloaded[0m wgpu-types v27.0.1
-[1m[92m  Downloaded[0m skrifa v0.44.0
-[1m[92m  Downloaded[0m zerovec v0.11.9
-[1m[92m  Downloaded[0m hyper v1.13.0
-[1m[92m  Downloaded[0m icu_properties v2.4.0
-[1m[92m  Downloaded[0m quinn-proto v0.11.19
-[1m[92m  Downloaded[0m rustybuzz v0.20.1
-[1m[92m  Downloaded[0m skrifa v0.37.0
-[1m[92m  Downloaded[0m icu_properties_data v2.4.0
-[1m[92m  Downloaded[0m webpki-roots v1.0.12
+[1m[92m  Downloaded[0m cryoglyph v0.1.0
+[1m[92m  Downloaded[0m rustversion v1.0.23
 [1m[92m  Downloaded[0m ttf-parser v0.25.1
-[1m[92m  Downloaded[0m wgpu v27.0.1
-[1m[92m  Downloaded[0m x11rb v0.13.2
-[1m[92m  Downloaded[0m naga v27.0.3
-[1m[92m  Downloaded[0m read-fonts v0.35.0
-[1m[92m  Downloaded[0m harfrust v0.3.2
-[1m[92m  Downloaded[0m rustix v0.38.44
-[1m[92m  Downloaded[0m rustls v0.23.46
+[1m[92m  Downloaded[0m num-rational v0.4.2
+[1m[92m  Downloaded[0m potential_utf v0.1.6
+[1m[92m  Downloaded[0m rustc-hash v1.1.0
+[1m[92m  Downloaded[0m serde_json v1.0.154
+[1m[92m  Downloaded[0m simd-adler32 v0.3.10
+[1m[92m  Downloaded[0m termcolor v1.4.1
+[1m[92m  Downloaded[0m wayland-protocols-experimental v20250721.0.1
+[1m[92m  Downloaded[0m percent-encoding v2.3.2
+[1m[92m  Downloaded[0m proc-macro-crate v3.5.0
+[1m[92m  Downloaded[0m unicode-segmentation v1.13.3
+[1m[92m  Downloaded[0m uuid v1.29.3
+[1m[92m  Downloaded[0m iced_futures v0.14.0
+[1m[92m  Downloaded[0m iced_widget v0.14.2
+[1m[92m  Downloaded[0m renderdoc-sys v1.1.0
+[1m[92m  Downloaded[0m ash v0.38.0+1.3.281
+[1m[92m  Downloaded[0m av-scenechange v0.14.1
+[1m[92m  Downloaded[0m unicode-properties v0.1.5
+[1m[92m  Downloaded[0m iced v0.14.0
+[1m[92m  Downloaded[0m loop9 v0.1.5
+[1m[92m  Downloaded[0m hkdf v0.13.0
+[1m[92m  Downloaded[0m kamadak-exif v0.6.2
+[1m[92m  Downloaded[0m khronos-egl v6.0.0
 [1m[92m  Downloaded[0m syn v3.0.10
+[1m[92m  Downloaded[0m synstructure v0.14.0
+[1m[92m  Downloaded[0m utf_types v1.0.0
+[1m[92m  Downloaded[0m version_check v0.9.5
+[1m[92m  Downloaded[0m wayland-sys v0.31.11
+[1m[92m  Downloaded[0m futures-lite v2.6.1
+[1m[92m  Downloaded[0m httparse v1.10.1
+[1m[92m  Downloaded[0m spirv v0.3.0+sdk-1.3.268.0
+[1m[92m  Downloaded[0m url v2.5.9
+[1m[92m  Downloaded[0m qoi v0.4.1
+[1m[92m  Downloaded[0m sipper v0.1.0
+[1m[92m  Downloaded[0m futures-macro v0.3.34
+[1m[92m  Downloaded[0m iced_program v0.14.0
+[1m[92m  Downloaded[0m rand_core v0.10.1
+[1m[92m  Downloaded[0m hexf-parse v0.2.1
+[1m[92m  Downloaded[0m quick-error v2.0.1
+[1m[92m  Downloaded[0m rand_pcg v0.10.3
+[1m[92m  Downloaded[0m icu_locale_core v2.4.0
+[1m[92m  Downloaded[0m rgb v0.8.53
+[1m[92m  Downloaded[0m serde_derive v1.0.229
+[1m[92m  Downloaded[0m signal-hook-registry v1.4.8
+[1m[92m  Downloaded[0m secret-service v5.2.0
+[1m[92m  Downloaded[0m sync_wrapper v1.0.2
+[1m[92m  Downloaded[0m piper v0.2.5
+[1m[92m  Downloaded[0m thiserror-impl v2.0.21
+[1m[92m  Downloaded[0m hex v0.4.3
+[1m[92m  Downloaded[0m rustls-pki-types v1.16.0
+[1m[92m  Downloaded[0m target-features v0.1.6
+[1m[92m  Downloaded[0m unicode-ccc v0.4.0
+[1m[92m  Downloaded[0m wgpu-core-deps-windows-linux-android v27.0.0
+[1m[92m  Downloaded[0m y4m v0.8.0
+[1m[92m  Downloaded[0m proc-macro2 v1.0.107
+[1m[92m  Downloaded[0m gpu-alloc-types v0.3.1
+[1m[92m  Downloaded[0m lru-slab v0.1.3
+[1m[92m  Downloaded[0m quote v1.0.47
+[1m[92m  Downloaded[0m thiserror v1.0.69
+[1m[92m  Downloaded[0m tower-service v0.3.3
+[1m[92m  Downloaded[0m unicase v2.10.0
+[1m[92m  Downloaded[0m want v0.3.2
+[1m[92m  Downloaded[0m web-time v1.1.0
+[1m[92m  Downloaded[0m yoke-derive v0.8.4
+[1m[92m  Downloaded[0m inout v0.2.6
+[1m[92m  Downloaded[0m zune-core v0.5.3
+[1m[92m  Downloaded[0m iced_tiny_skia v0.14.1
+[1m[92m  Downloaded[0m idna_adapter v1.2.2
+[1m[92m  Downloaded[0m slab v0.4.12
+[1m[92m  Downloaded[0m zerofrom-derive v0.1.8
+[1m[92m  Downloaded[0m zbus-secret-service-keyring-store v1.0.1
+[1m[92m  Downloaded[0m rand v0.10.4
+[1m[92m  Downloaded[0m sys-locale v0.3.2
+[1m[92m  Downloaded[0m tinystr v0.8.5
+[1m[92m  Downloaded[0m iced_wgpu v0.14.0
+[1m[92m  Downloaded[0m mio v1.2.5
+[1m[92m  Downloaded[0m tiff v0.11.3
+[1m[92m  Downloaded[0m tiny-skia-path v0.11.4
+[1m[92m  Downloaded[0m unicode-linebreak v0.1.5
+[1m[92m  Downloaded[0m wasm-bindgen-macro-support v0.2.130
+[1m[92m  Downloaded[0m wayland-scanner v0.31.11
+[1m[92m  Downloaded[0m xcursor v0.3.11
+[1m[92m  Downloaded[0m xkeysym v0.2.1
+[1m[92m  Downloaded[0m futures-io v0.3.34
+[1m[92m  Downloaded[0m ipnet v2.12.2
+[1m[92m  Downloaded[0m reqwest v0.12.28
+[1m[92m  Downloaded[0m smol_str v0.2.2
+[1m[92m  Downloaded[0m tracing-core v0.1.36
+[1m[92m  Downloaded[0m wasm-bindgen-shared v0.2.130
+[1m[92m  Downloaded[0m zerovec-derive v0.11.7
+[1m[92m  Downloaded[0m gpu-descriptor-types v0.2.0
+[1m[92m  Downloaded[0m hashbrown v0.17.2
+[1m[92m  Downloaded[0m http v1.5.0
+[1m[92m  Downloaded[0m iced_debug v0.14.0
+[1m[92m  Downloaded[0m quick-xml v0.41.0
+[1m[92m  Downloaded[0m quinn-proto v0.11.19
+[1m[92m  Downloaded[0m rustls v0.23.46
+[1m[92m  Downloaded[0m smithay-client-toolkit v0.19.2
+[1m[92m  Downloaded[0m unicode-bidi-mirroring v0.4.0
+[1m[92m  Downloaded[0m tokio-rustls v0.26.6
+[1m[92m  Downloaded[0m toml_datetime v1.1.3+spec-1.1.0
+[1m[92m  Downloaded[0m window_clipboard v0.5.1
+[1m[92m  Downloaded[0m zvariant_derive v5.15.1
+[1m[92m  Downloaded[0m weezl v0.1.12
+[1m[92m  Downloaded[0m lilt v0.8.2
+[1m[92m  Downloaded[0m skrifa v0.37.0
+[1m[92m  Downloaded[0m slotmap v1.1.1
+[1m[92m  Downloaded[0m thiserror-impl v1.0.69
+[1m[92m  Downloaded[0m wayland-csd-frame v0.3.0
+[1m[92m  Downloaded[0m gpu-descriptor v0.3.2
+[1m[92m  Downloaded[0m http-body-util v0.1.5
+[1m[92m  Downloaded[0m hyper-rustls v0.27.10
+[1m[92m  Downloaded[0m log v0.4.35
+[1m[92m  Downloaded[0m svgtypes v0.15.3
+[1m[92m  Downloaded[0m libloading v0.8.9
+[1m[92m  Downloaded[0m svg_fmt v0.4.5
+[1m[92m  Downloaded[0m xmlwriter v0.1.0
+[1m[92m  Downloaded[0m zune-inflate v0.2.54
+[1m[92m  Downloaded[0m zvariant_utils v4.2.0
+[1m[92m  Downloaded[0m guillotiere v0.6.2
+[1m[92m  Downloaded[0m lock_api v0.4.14
+[1m[92m  Downloaded[0m smithay-client-toolkit v0.20.0
+[1m[92m  Downloaded[0m stable_deref_trait v1.2.1
+[1m[92m  Downloaded[0m thiserror v2.0.21
+[1m[92m  Downloaded[0m toml_parser v1.1.7+spec-1.1.0
+[1m[92m  Downloaded[0m tracing-attributes v0.1.31
+[1m[92m  Downloaded[0m unicode-bidi v0.3.18
+[1m[92m  Downloaded[0m unicode-ident v1.0.27
+[1m[92m  Downloaded[0m wayland-backend v0.3.17
+[1m[92m  Downloaded[0m wayland-cursor v0.31.14
+[1m[92m  Downloaded[0m bit-vec v0.8.0
+[1m[92m  Downloaded[0m iced_winit v0.14.1
+[1m[92m  Downloaded[0m icu_normalizer_data v2.4.0
+[1m[92m  Downloaded[0m icu_provider v2.4.0
+[1m[92m  Downloaded[0m image-webp v0.2.4
+[1m[92m  Downloaded[0m itoa v1.0.19
+[1m[92m  Downloaded[0m jobserver v0.1.35
+[1m[92m  Downloaded[0m litemap v0.8.3
+[1m[92m  Downloaded[0m rustybuzz v0.20.1
+[1m[92m  Downloaded[0m smallvec v1.16.6
+[1m[92m  Downloaded[0m swash v0.2.10
+[1m[92m  Downloaded[0m toml_edit v0.25.21+spec-1.1.0
+[1m[92m  Downloaded[0m wasm-bindgen-macro v0.2.130
+[1m[92m  Downloaded[0m wayland-client v0.31.15
+[1m[92m  Downloaded[0m zcheapstr v1.4.0
+[1m[92m  Downloaded[0m harfrust v0.3.2
+[1m[92m  Downloaded[0m hmac v0.13.0
+[1m[92m  Downloaded[0m http-body v1.1.0
+[1m[92m  Downloaded[0m imagesize v0.13.0
+[1m[92m  Downloaded[0m skrifa v0.44.0
+[1m[92m  Downloaded[0m try-lock v0.2.5
+[1m[92m  Downloaded[0m wayland-protocols v0.32.13
+[1m[92m  Downloaded[0m wgpu-types v27.0.1
+[1m[92m  Downloaded[0m zerocopy v0.8.65
+[1m[92m  Downloaded[0m zerocopy-derive v0.8.65
+[1m[92m  Downloaded[0m zeroize v1.9.2
+[1m[92m  Downloaded[0m zune-jpeg v0.5.15
 [1m[92m  Downloaded[0m rustix v1.1.6
 [1m[92m  Downloaded[0m syn v2.0.119
+[1m[92m  Downloaded[0m wgpu v27.0.1
+[1m[92m  Downloaded[0m zvariant v5.15.1
+[1m[92m  Downloaded[0m icu_properties_data v2.4.0
+[1m[92m  Downloaded[0m indexmap v2.14.2
+[1m[92m  Downloaded[0m linebender_resource_handle v0.1.1
+[1m[92m  Downloaded[0m read-fonts v0.35.0
+[1m[92m  Downloaded[0m smithay-clipboard v0.7.3
+[1m[92m  Downloaded[0m wasm-bindgen v0.2.130
+[1m[92m  Downloaded[0m zerovec v0.11.9
+[1m[92m  Downloaded[0m glow v0.16.0
+[1m[92m  Downloaded[0m hyper-util v0.1.21
+[1m[92m  Downloaded[0m tower-http v0.6.11
+[1m[92m  Downloaded[0m tracing v0.1.44
+[1m[92m  Downloaded[0m futures-util v0.3.34
+[1m[92m  Downloaded[0m winnow v1.0.5
+[1m[92m  Downloaded[0m zbus v5.19.0
+[1m[92m  Downloaded[0m hashbrown v0.15.5
+[1m[92m  Downloaded[0m hyper v1.13.0
+[1m[92m  Downloaded[0m libm v0.2.16
+[1m[92m  Downloaded[0m tiny-skia v0.11.4
+[1m[92m  Downloaded[0m utf8_iter v1.1.0
+[1m[92m  Downloaded[0m webpki-roots v1.0.12
+[1m[92m  Downloaded[0m iced_graphics v0.14.0
+[1m[92m  Downloaded[0m icu_properties v2.4.0
+[1m[92m  Downloaded[0m image v0.25.10
+[1m[92m  Downloaded[0m glam v0.25.0
+[1m[92m  Downloaded[0m half v2.7.1
 [1m[92m  Downloaded[0m wgpu-core v27.0.3
-[1m[92m  Downloaded[0m read-fonts v0.41.0
+[1m[92m  Downloaded[0m kurbo v0.10.4
 [1m[92m  Downloaded[0m wgpu-hal v27.0.4
-[1m[92m  Downloaded[0m x11rb-protocol v0.13.2
-[1m[92m  Downloaded[0m winit v0.30.13
-[1m[92m  Downloaded[0m icu_normalizer v2.4.0
-[1m[92m  Downloaded[0m pxfm v0.1.30
-[1m[92m  Downloaded[0m rav1e v0.8.1
-[1m[92m  Downloaded[0m ring v0.17.14
 [1m[92m  Downloaded[0m linux-raw-sys v0.4.15
+[1m[92m  Downloaded[0m subtle v2.6.1
+[1m[92m  Downloaded[0m winit v0.30.13
+[1m[92m  Downloaded[0m litrs v1.1.0
+[1m[92m  Downloaded[0m static_assertions v1.1.0
+[1m[92m  Downloaded[0m x11rb-protocol v0.13.2
+[1m[92m  Downloaded[0m usvg v0.45.1
+[1m[92m  Downloaded[0m tower v0.5.3
+[1m[92m  Downloaded[0m icu_normalizer v2.4.0
+[1m[92m  Downloaded[0m zune-jpeg v0.4.21
+[1m[92m  Downloaded[0m hashbrown v0.16.1
+[1m[92m  Downloaded[0m ring v0.17.14
+[1m[92m  Downloaded[0m softbuffer v0.4.8
+[1m[92m  Downloaded[0m libc v0.2.191
+[1m[92m  Downloaded[0m tokio v1.54.1
+[1m[92m  Downloaded[0m cosmic-text v0.15.0
 [1m[92m  Downloaded[0m linux-raw-sys v0.12.1
 [1m[92m   Compiling[0m proc-macro2 v1.0.107
 [1m[92m   Compiling[0m unicode-ident v1.0.27
 [1m[92m   Compiling[0m quote v1.0.47
 [1m[92m   Compiling[0m cfg-if v1.0.5
 [1m[92m   Compiling[0m bitflags v2.13.2
-[1m[92m   Compiling[0m log v0.4.35
 [1m[92m   Compiling[0m libc v0.2.191
+[1m[92m   Compiling[0m log v0.4.35
 [1m[92m   Compiling[0m libm v0.2.16
 [1m[92m   Compiling[0m once_cell v1.21.4
 [1m[92m   Compiling[0m smallvec v1.16.6
@@ -490,11 +490,11 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m quick-xml v0.41.0
 [1m[92m   Compiling[0m tracing-core v0.1.36
 [1m[92m   Compiling[0m bytes v1.12.2
-[1m[92m   Compiling[0m futures-task v0.3.34
 [1m[92m   Compiling[0m simd-adler32 v0.3.10
 [1m[92m   Compiling[0m wayland-client v0.31.15
-[1m[92m   Compiling[0m futures-util v0.3.34
+[1m[92m   Compiling[0m futures-task v0.3.34
 [1m[92m   Compiling[0m wayland-scanner v0.31.11
+[1m[92m   Compiling[0m futures-util v0.3.34
 [1m[92m   Compiling[0m tracing v0.1.44
 [1m[92m   Compiling[0m core_maths v0.1.1
 [1m[92m   Compiling[0m zerocopy v0.8.65
@@ -506,8 +506,8 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m serde v1.0.229
 [1m[92m   Compiling[0m serde_derive v1.0.229
 [1m[92m   Compiling[0m num-integer v0.1.47
-[1m[92m   Compiling[0m version_check v0.9.5
 [1m[92m   Compiling[0m crc32fast v1.5.6
+[1m[92m   Compiling[0m version_check v0.9.5
 [1m[92m   Compiling[0m mio v1.2.5
 [1m[92m   Compiling[0m socket2 v0.6.5
 [1m[92m   Compiling[0m crossbeam-epoch v0.9.21
@@ -516,10 +516,10 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m miniz_oxide v0.9.1
 [1m[92m   Compiling[0m ttf-parser v0.25.1
 [1m[92m   Compiling[0m synstructure v0.14.0
-[1m[92m   Compiling[0m fastrand v2.5.0
-[1m[92m   Compiling[0m crossbeam-deque v0.8.8
-[1m[92m   Compiling[0m parking v2.2.1
 [1m[92m   Compiling[0m winnow v1.0.5
+[1m[92m   Compiling[0m parking v2.2.1
+[1m[92m   Compiling[0m crossbeam-deque v0.8.8
+[1m[92m   Compiling[0m fastrand v2.5.0
 [1m[92m   Compiling[0m half v2.7.1
 [1m[92m   Compiling[0m flate2 v1.1.11
 [1m[92m   Compiling[0m num-rational v0.4.2
@@ -537,19 +537,19 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m slotmap v1.1.1
 [1m[92m   Compiling[0m fdeflate v0.3.7
 [1m[92m   Compiling[0m indexmap v2.14.2
-[1m[92m   Compiling[0m typenum v1.20.1
-[1m[92m   Compiling[0m smol_str v0.2.2
+[1m[92m   Compiling[0m toml_datetime v1.1.3+spec-1.1.0
 [1m[92m   Compiling[0m rustc-hash v1.1.0
 [1m[92m   Compiling[0m anyhow v1.0.105
 [1m[92m   Compiling[0m either v1.19.0
-[1m[92m   Compiling[0m toml_datetime v1.1.3+spec-1.1.0
+[1m[92m   Compiling[0m typenum v1.20.1
+[1m[92m   Compiling[0m smol_str v0.2.2
 [1m[92m   Compiling[0m yoke v0.8.4
 [1m[92m   Compiling[0m toml_edit v0.25.21+spec-1.1.0
 [1m[92m   Compiling[0m aligned-vec v0.6.4
 [1m[92m   Compiling[0m target-features v0.1.6
 [1m[92m   Compiling[0m roxmltree v0.20.0
-[1m[92m   Compiling[0m hybrid-array v0.4.15
 [1m[92m   Compiling[0m v_frame v0.3.9
+[1m[92m   Compiling[0m hybrid-array v0.4.15
 [1m[92m   Compiling[0m proc-macro-crate v3.5.0
 [1m[92m   Compiling[0m fontconfig-parser v0.5.8
 [1m[92m   Compiling[0m rayon v1.12.0
@@ -563,22 +563,22 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m as-slice v0.2.1
 [1m[92m   Compiling[0m enumflags2_derive v0.7.12
 [1m[92m   Compiling[0m concurrent-queue v2.5.0
-[1m[92m   Compiling[0m atomic-waker v1.1.2
-[1m[92m   Compiling[0m av-scenechange v0.14.1
-[1m[92m   Compiling[0m unicode-width v0.2.3
-[1m[92m   Compiling[0m built v0.8.1
-[1m[92m   Compiling[0m web-time v1.1.0
-[1m[92m   Compiling[0m tinyvec v1.13.3
-[1m[92m   Compiling[0m weezl v0.1.12
-[1m[92m   Compiling[0m float-cmp v0.9.0
-[1m[92m   Compiling[0m quick-error v2.0.1
-[1m[92m   Compiling[0m unicode-script v0.5.9
-[1m[92m   Compiling[0m paste v1.0.15
 [1m[92m   Compiling[0m rustc-hash v2.1.3
-[1m[92m   Compiling[0m strict-num v0.1.1
-[1m[92m   Compiling[0m rav1e v0.8.1
+[1m[92m   Compiling[0m float-cmp v0.9.0
+[1m[92m   Compiling[0m weezl v0.1.12
+[1m[92m   Compiling[0m web-time v1.1.0
+[1m[92m   Compiling[0m unicode-width v0.2.3
+[1m[92m   Compiling[0m atomic-waker v1.1.2
+[1m[92m   Compiling[0m quick-error v2.0.1
+[1m[92m   Compiling[0m paste v1.0.15
+[1m[92m   Compiling[0m tinyvec v1.13.3
+[1m[92m   Compiling[0m av-scenechange v0.14.1
+[1m[92m   Compiling[0m unicode-script v0.5.9
+[1m[92m   Compiling[0m built v0.8.1
 [1m[92m   Compiling[0m fontdb v0.23.0
 [1m[92m   Compiling[0m lilt v0.8.2
+[1m[92m   Compiling[0m rav1e v0.8.1
+[1m[92m   Compiling[0m strict-num v0.1.1
 [1m[92m   Compiling[0m zerovec v0.11.9
 [1m[92m   Compiling[0m enumflags2 v0.7.12
 [1m[92m   Compiling[0m aligned v0.4.3
@@ -591,20 +591,20 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m zcheapstr v1.4.0
 [1m[92m   Compiling[0m displaydoc v0.2.7
 [1m[92m   Compiling[0m arg_enum_proc_macro v0.3.4
-[1m[92m   Compiling[0m no_std_io2 v0.9.4
 [1m[92m   Compiling[0m nom v8.0.0
+[1m[92m   Compiling[0m no_std_io2 v0.9.4
 [1m[92m   Compiling[0m color_quant v1.1.0
-[1m[92m   Compiling[0m arrayref v0.3.9
+[1m[92m   Compiling[0m y4m v0.8.0
 [1m[92m   Compiling[0m endi v1.1.1
-[1m[92m   Compiling[0m pastey v0.1.1
 [1m[92m   Compiling[0m parking_lot_core v0.9.12
 [1m[92m   Compiling[0m unicode-bidi v0.3.18
+[1m[92m   Compiling[0m arrayref v0.3.9
 [1m[92m   Compiling[0m glam v0.25.0
-[1m[92m   Compiling[0m y4m v0.8.0
+[1m[92m   Compiling[0m pastey v0.1.1
 [1m[92m   Compiling[0m skrifa v0.44.0
 [1m[92m   Compiling[0m iced_core v0.14.0
-[1m[92m   Compiling[0m av1-grain v0.2.5
 [1m[92m   Compiling[0m tiny-skia-path v0.11.4
+[1m[92m   Compiling[0m av1-grain v0.2.5
 [1m[92m   Compiling[0m bitstream-io v4.10.0
 [1m[92m   Compiling[0m multiversion-macros v0.8.1
 [1m[92m   Compiling[0m maybe-rayon v0.1.1
@@ -615,27 +615,27 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m async-io v2.6.0
 [1m[92m   Compiling[0m byteorder-lite v0.1.0
 [1m[92m   Compiling[0m foldhash v0.2.0
-[1m[92m   Compiling[0m khronos-egl v6.0.0
-[1m[92m   Compiling[0m bitflags v1.3.2
-[1m[92m   Compiling[0m as-raw-xcb-connection v1.0.1
-[1m[92m   Compiling[0m scopeguard v1.2.0
-[1m[92m   Compiling[0m zeno v0.3.3
 [1m[92m   Compiling[0m imgref v1.12.3
 [1m[92m   Compiling[0m simd_helpers v0.1.1
 [1m[92m   Compiling[0m noop_proc_macro v0.3.0
-[1m[92m   Compiling[0m yazi v0.2.2
 [1m[92m   Compiling[0m zune-core v0.5.3
-[1m[92m   Compiling[0m foldhash v0.1.5
+[1m[92m   Compiling[0m scopeguard v1.2.0
+[1m[92m   Compiling[0m khronos-egl v6.0.0
 [1m[92m   Compiling[0m new_debug_unreachable v1.0.6
+[1m[92m   Compiling[0m zeno v0.3.3
+[1m[92m   Compiling[0m bitflags v1.3.2
+[1m[92m   Compiling[0m foldhash v0.1.5
+[1m[92m   Compiling[0m yazi v0.2.2
+[1m[92m   Compiling[0m as-raw-xcb-connection v1.0.1
 [1m[92m   Compiling[0m bit-vec v0.8.0
 [1m[92m   Compiling[0m ash v0.38.0+1.3.281
-[1m[92m   Compiling[0m hashbrown v0.15.5
 [1m[92m   Compiling[0m swash v0.2.10
 [1m[92m   Compiling[0m bit-set v0.8.0
-[1m[92m   Compiling[0m zune-jpeg v0.5.15
-[1m[92m   Compiling[0m loop9 v0.1.5
-[1m[92m   Compiling[0m lock_api v0.4.14
+[1m[92m   Compiling[0m hashbrown v0.15.5
 [1m[92m   Compiling[0m png v0.17.16
+[1m[92m   Compiling[0m zune-jpeg v0.5.15
+[1m[92m   Compiling[0m lock_api v0.4.14
+[1m[92m   Compiling[0m loop9 v0.1.5
 [1m[92m   Compiling[0m image-webp v0.2.4
 [1m[92m   Compiling[0m hashbrown v0.16.1
 [1m[92m   Compiling[0m multiversion v0.8.1
@@ -653,35 +653,35 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m gpu-alloc-types v0.3.1
 [1m[92m   Compiling[0m spirv v0.3.0+sdk-1.3.268.0
 [1m[92m   Compiling[0m hexf-parse v0.2.1
-[1m[92m   Compiling[0m linebender_resource_handle v0.1.1
-[1m[92m   Compiling[0m self_cell v1.3.0
-[1m[92m   Compiling[0m async-task v4.7.1
-[1m[92m   Compiling[0m bit_field v0.10.4
 [1m[92m   Compiling[0m pxfm v0.1.30
-[1m[92m   Compiling[0m xcursor v0.3.11
-[1m[92m   Compiling[0m sys-locale v0.3.2
-[1m[92m   Compiling[0m percent-encoding v2.3.2
 [1m[92m   Compiling[0m itoa v1.0.19
-[1m[92m   Compiling[0m unicode-linebreak v0.1.5
-[1m[92m   Compiling[0m unicode-segmentation v1.13.3
-[1m[92m   Compiling[0m lebe v0.5.3
+[1m[92m   Compiling[0m xkeysym v0.2.1
+[1m[92m   Compiling[0m cursor-icon v1.2.0
+[1m[92m   Compiling[0m bit_field v0.10.4
+[1m[92m   Compiling[0m async-task v4.7.1
 [1m[92m   Compiling[0m rangemap v1.9.0
 [1m[92m   Compiling[0m x11rb-protocol v0.13.2
 [1m[92m   Compiling[0m fax v0.2.7
-[1m[92m   Compiling[0m cursor-icon v1.2.0
-[1m[92m   Compiling[0m xkeysym v0.2.1
-[1m[92m   Compiling[0m moxcms v0.8.1
-[1m[92m   Compiling[0m wayland-csd-frame v0.3.0
-[1m[92m   Compiling[0m tiff v0.11.3
+[1m[92m   Compiling[0m xcursor v0.3.11
+[1m[92m   Compiling[0m sys-locale v0.3.2
+[1m[92m   Compiling[0m percent-encoding v2.3.2
+[1m[92m   Compiling[0m unicode-linebreak v0.1.5
+[1m[92m   Compiling[0m linebender_resource_handle v0.1.1
+[1m[92m   Compiling[0m lebe v0.5.3
+[1m[92m   Compiling[0m unicode-segmentation v1.13.3
+[1m[92m   Compiling[0m self_cell v1.3.0
 [1m[92m   Compiling[0m cosmic-text v0.15.0
 [1m[92m   Compiling[0m exr v1.74.3
+[1m[92m   Compiling[0m moxcms v0.8.1
 [1m[92m   Compiling[0m wayland-cursor v0.31.14
+[1m[92m   Compiling[0m tiff v0.11.3
+[1m[92m   Compiling[0m wayland-csd-frame v0.3.0
 [1m[92m   Compiling[0m gpu-alloc v0.6.2
 [1m[92m   Compiling[0m gpu-descriptor v0.3.2
 [1m[92m   Compiling[0m signal-hook-registry v1.4.8
 [1m[92m   Compiling[0m ravif v0.13.0
-[1m[92m   Compiling[0m parking_lot v0.12.5
 [1m[92m   Compiling[0m x11rb v0.13.2
+[1m[92m   Compiling[0m parking_lot v0.12.5
 [1m[92m   Compiling[0m tiny-skia v0.11.4
 [1m[92m   Compiling[0m zvariant v5.15.1
 [1m[92m   Compiling[0m gif v0.14.2
@@ -689,21 +689,21 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m wayland-protocols-wlr v0.3.12
 [1m[92m   Compiling[0m async-channel v2.5.0
 [1m[92m   Compiling[0m png v0.18.1
-[1m[92m   Compiling[0m qoi v0.4.1
 [1m[92m   Compiling[0m wgpu-types v27.0.1
+[1m[92m   Compiling[0m qoi v0.4.1
 [1m[92m   Compiling[0m ordered-float v5.5.1
 [1m[92m   Compiling[0m glow v0.16.0
-[1m[92m   Compiling[0m rustix v0.38.44
-[1m[92m   Compiling[0m thiserror v1.0.69
-[1m[92m   Compiling[0m mutate_once v0.1.2
-[1m[92m   Compiling[0m writeable v0.6.4
-[1m[92m   Compiling[0m utf_types v1.0.0
-[1m[92m   Compiling[0m getrandom v0.4.3
 [1m[92m   Compiling[0m renderdoc-sys v1.1.0
+[1m[92m   Compiling[0m rustix v0.38.44
 [1m[92m   Compiling[0m litemap v0.8.3
-[1m[92m   Compiling[0m icu_locale_core v2.4.0
-[1m[92m   Compiling[0m utf8_iter v1.1.0
+[1m[92m   Compiling[0m thiserror v1.0.69
+[1m[92m   Compiling[0m writeable v0.6.4
+[1m[92m   Compiling[0m mutate_once v0.1.2
+[1m[92m   Compiling[0m getrandom v0.4.3
+[1m[92m   Compiling[0m utf_types v1.0.0
 [1m[92m   Compiling[0m kamadak-exif v0.6.2
+[1m[92m   Compiling[0m utf8_iter v1.1.0
+[1m[92m   Compiling[0m icu_locale_core v2.4.0
 [1m[92m   Compiling[0m image v0.25.10
 [1m[92m   Compiling[0m zbus_names v4.3.5
 [1m[92m   Compiling[0m async-signal v0.2.14
@@ -716,19 +716,19 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m thiserror-impl v1.0.69
 [1m[92m   Compiling[0m ring v0.17.14
 [1m[92m   Compiling[0m litrs v1.1.0
-[1m[92m   Compiling[0m base64 v0.22.1
-[1m[92m   Compiling[0m unicode-properties v0.1.5
-[1m[92m   Compiling[0m unicode-bidi-mirroring v0.4.0
-[1m[92m   Compiling[0m icu_normalizer_data v2.4.0
 [1m[92m   Compiling[0m unicode-ccc v0.4.0
+[1m[92m   Compiling[0m linux-raw-sys v0.4.15
 [1m[92m   Compiling[0m siphasher v1.0.4
 [1m[92m   Compiling[0m icu_properties_data v2.4.0
 [1m[92m   Compiling[0m cmov v0.5.4
-[1m[92m   Compiling[0m linux-raw-sys v0.4.15
+[1m[92m   Compiling[0m base64 v0.22.1
+[1m[92m   Compiling[0m unicode-properties v0.1.5
+[1m[92m   Compiling[0m icu_normalizer_data v2.4.0
+[1m[92m   Compiling[0m unicode-bidi-mirroring v0.4.0
+[1m[92m   Compiling[0m rustybuzz v0.20.1
 [1m[92m   Compiling[0m ctutils v0.4.8
 [1m[92m   Compiling[0m wgpu-core-deps-windows-linux-android v27.0.0
 [1m[92m   Compiling[0m svgtypes v0.15.3
-[1m[92m   Compiling[0m rustybuzz v0.20.1
 [1m[92m   Compiling[0m document-features v0.2.12
 [1m[92m   Compiling[0m iced_graphics v0.14.0
 [1m[92m   Compiling[0m blocking v1.7.0
@@ -736,70 +736,70 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m async-process v2.5.0
 [1m[92m   Compiling[0m icu_provider v2.4.0
 [1m[92m   Compiling[0m zbus_macros v5.19.0
-[1m[92m   Compiling[0m http v1.5.0
 [1m[92m   Compiling[0m async-executor v1.14.1
+[1m[92m   Compiling[0m http v1.5.0
 [1m[92m   Compiling[0m async-broadcast v0.7.2
 [1m[92m   Compiling[0m block-padding v0.4.2
 [1m[92m   Compiling[0m block-buffer v0.12.1
 [1m[92m   Compiling[0m uuid v1.29.3
 [1m[92m   Compiling[0m calloop v0.14.5
 [1m[92m   Compiling[0m wgpu v27.0.1
+[1m[92m   Compiling[0m serde_repr v0.1.21
 [1m[92m   Compiling[0m async-recursion v1.2.0
 [1m[92m   Compiling[0m async-trait v0.1.92
-[1m[92m   Compiling[0m serde_repr v0.1.21
 [1m[92m   Compiling[0m tiny-xlib v0.2.5
 [1m[92m   Compiling[0m ordered-stream v0.2.0
 [1m[92m   Compiling[0m euclid v0.22.14
 [1m[92m   Compiling[0m simplecss v0.2.2
-[1m[92m   Compiling[0m data-url v0.3.2
-[1m[92m   Compiling[0m zune-core v0.4.12
-[1m[92m   Compiling[0m svg_fmt v0.4.5
 [1m[92m   Compiling[0m unicode-vo v0.1.0
 [1m[92m   Compiling[0m xmlwriter v0.1.0
+[1m[92m   Compiling[0m svg_fmt v0.4.5
 [1m[92m   Compiling[0m pico-args v0.5.0
+[1m[92m   Compiling[0m zeroize v1.9.2
+[1m[92m   Compiling[0m imagesize v0.13.0
+[1m[92m   Compiling[0m const-oid v0.10.3
+[1m[92m   Compiling[0m data-url v0.3.2
+[1m[92m   Compiling[0m zune-core v0.4.12
 [1m[92m   Compiling[0m hex v0.4.3
 [1m[92m   Compiling[0m smithay-client-toolkit v0.20.0
-[1m[92m   Compiling[0m imagesize v0.13.0
-[1m[92m   Compiling[0m zeroize v1.9.2
-[1m[92m   Compiling[0m const-oid v0.10.3
+[1m[92m   Compiling[0m zbus v5.19.0
 [1m[92m   Compiling[0m usvg v0.45.1
+[1m[92m   Compiling[0m zune-jpeg v0.4.21
 [1m[92m   Compiling[0m digest v0.11.3
 [1m[92m   Compiling[0m rustls-pki-types v1.16.0
-[1m[92m   Compiling[0m zbus v5.19.0
-[1m[92m   Compiling[0m zune-jpeg v0.4.21
 [1m[92m   Compiling[0m calloop-wayland-source v0.4.1
-[1m[92m   Compiling[0m inout v0.2.6
 [1m[92m   Compiling[0m http-body v1.1.0
+[1m[92m   Compiling[0m inout v0.2.6
 [1m[92m   Compiling[0m calloop v0.13.0
 [1m[92m   Compiling[0m iced_debug v0.14.0
 [1m[92m   Compiling[0m gif v0.13.3
-[1m[92m   Compiling[0m wayland-protocols-experimental v20250721.0.1
 [1m[92m   Compiling[0m wayland-protocols-misc v0.3.12
+[1m[92m   Compiling[0m wayland-protocols-experimental v20250721.0.1
 [1m[92m   Compiling[0m getrandom v0.2.17
-[1m[92m   Compiling[0m httparse v1.10.1
-[1m[92m   Compiling[0m ctor v0.10.1
-[1m[92m   Compiling[0m static_assertions v1.1.0
 [1m[92m   Compiling[0m smithay-client-toolkit v0.19.2
 [1m[92m   Compiling[0m untrusted v0.9.0
+[1m[92m   Compiling[0m httparse v1.10.1
+[1m[92m   Compiling[0m static_assertions v1.1.0
+[1m[92m   Compiling[0m ctor v0.10.1
 [1m[92m   Compiling[0m resvg v0.45.1
-[1m[92m   Compiling[0m icu_properties v2.4.0
 [1m[92m   Compiling[0m icu_normalizer v2.4.0
+[1m[92m   Compiling[0m icu_properties v2.4.0
 [1m[92m   Compiling[0m calloop-wayland-source v0.3.0
 [1m[92m   Compiling[0m cipher v0.5.2
 [1m[92m   Compiling[0m etagere v0.2.15
 [1m[92m   Compiling[0m owned_ttf_parser v0.25.1
 [1m[92m   Compiling[0m ahash v0.8.14
 [1m[92m   Compiling[0m x11-dl v2.21.0
-[1m[92m   Compiling[0m rustls v0.23.46
+[1m[92m   Compiling[0m tower-service v0.3.3
+[1m[92m   Compiling[0m android-build v0.1.4
+[1m[92m   Compiling[0m cpufeatures v0.3.1
+[1m[92m   Compiling[0m try-lock v0.2.5
 [1m[92m   Compiling[0m lru v0.16.4
 [1m[92m   Compiling[0m ab_glyph_rasterizer v0.1.10
-[1m[92m   Compiling[0m cpufeatures v0.3.1
-[1m[92m   Compiling[0m tower-service v0.3.3
-[1m[92m   Compiling[0m try-lock v0.2.5
-[1m[92m   Compiling[0m android-build v0.1.4
-[1m[92m   Compiling[0m want v0.3.2
-[1m[92m   Compiling[0m cryoglyph v0.1.0
+[1m[92m   Compiling[0m rustls v0.23.46
 [1m[92m   Compiling[0m ab_glyph v0.2.32
+[1m[92m   Compiling[0m cryoglyph v0.1.0
+[1m[92m   Compiling[0m want v0.3.2
 [1m[92m   Compiling[0m mundy v0.2.3
 [1m[92m   Compiling[0m idna_adapter v1.2.2
 [1m[92m   Compiling[0m smithay-clipboard v0.7.3
@@ -817,15 +817,15 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m subtle v2.6.1
 [1m[92m   Compiling[0m zmij v1.0.23
 [1m[92m   Compiling[0m pulldown-cmark v0.12.2
-[1m[92m   Compiling[0m num v0.4.3
 [1m[92m   Compiling[0m aes v0.9.4
+[1m[92m   Compiling[0m num v0.4.3
 [1m[92m   Compiling[0m iced_runtime v0.14.0
 [1m[92m   Compiling[0m iced_tiny_skia v0.14.1
 [1m[92m   Compiling[0m iced_wgpu v0.14.0
-[1m[92m   Compiling[0m sctk-adwaita v0.10.1
 [1m[92m   Compiling[0m hkdf v0.13.0
-[1m[92m   Compiling[0m clipboard_wayland v0.2.2
 [1m[92m   Compiling[0m hyper v1.13.0
+[1m[92m   Compiling[0m sctk-adwaita v0.10.1
+[1m[92m   Compiling[0m clipboard_wayland v0.2.2
 [1m[92m   Compiling[0m idna v1.1.0
 [1m[92m   Compiling[0m sha2 v0.11.2
 [1m[92m   Compiling[0m cbc v0.2.1
@@ -834,13 +834,13 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m wayland-protocols-plasma v0.3.12
 [1m[92m   Compiling[0m getopts v0.2.24
 [1m[92m   Compiling[0m sync_wrapper v1.0.2
-[1m[92m   Compiling[0m dpi v0.1.2
-[1m[92m   Compiling[0m ipnet v2.12.2
-[1m[92m   Compiling[0m pulldown-cmark-escape v0.11.0
-[1m[92m   Compiling[0m unicase v2.10.0
 [1m[92m   Compiling[0m serde_json v1.0.154
-[1m[92m   Compiling[0m base64 v0.23.1
 [1m[92m   Compiling[0m tower-layer v0.3.3
+[1m[92m   Compiling[0m pulldown-cmark-escape v0.11.0
+[1m[92m   Compiling[0m dpi v0.1.2
+[1m[92m   Compiling[0m unicase v2.10.0
+[1m[92m   Compiling[0m base64 v0.23.1
+[1m[92m   Compiling[0m ipnet v2.12.2
 [1m[92m   Compiling[0m hyper-util v0.1.21
 [1m[92m   Compiling[0m tower v0.5.3
 [1m[92m   Compiling[0m window_clipboard v0.5.1
@@ -855,9 +855,9 @@ COMMAND: cargo test --locked
 [1m[92m   Compiling[0m serde_urlencoded v0.7.1
 [1m[92m   Compiling[0m zbus-secret-service-keyring-store v1.0.1
 [1m[92m   Compiling[0m hyper-rustls v0.27.10
-[1m[92m   Compiling[0m iced_widget v0.14.2
-[1m[92m   Compiling[0m iced_winit v0.14.1
 [1m[92m   Compiling[0m tower-http v0.6.11
+[1m[92m   Compiling[0m iced_winit v0.14.1
+[1m[92m   Compiling[0m iced_widget v0.14.2
 [1m[92m   Compiling[0m http-body-util v0.1.5
 [1m[92m   Compiling[0m keyring v4.2.0
 [1m[92m   Compiling[0m reqwest v0.12.28
@@ -894,107 +894,6 @@ COMMAND: cargo test --locked
     [1m[94m= [0m[1mnote[0m: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
 
 [1m[92m   Compiling[0m archx-agent v0.1.0 (/home/runner/work/Archx-Agent/Archx-Agent/apps/archx-agent)
-[1m[91merror[E0425][0m[1m: cannot find type `MemoryScope` in this scope[0m
-   [1m[94m--> [0mapps/archx-agent/src/settings.rs:859:32
-    [1m[94m|[0m
-[1m[94m859[0m [1m[94m|[0m     let scope_button = |scope: MemoryScope, label: &'static str| -> Element<'static, Message> {
-    [1m[94m|[0m                                [1m[91m^^^^^^^^^^^[0m [1m[91mnot found in this scope[0m
-    [1m[94m|[0m
-[1m[92mnote[0m: similarly named enum `MemoryMode` defined here
-   [1m[94m--> [0mapps/archx-agent/src/app.rs:44:1
-    [1m[94m|[0m
-[1m[94m 44[0m [1m[94m|[0m pub enum MemoryMode {
-    [1m[94m|[0m [1m[92m^^^^^^^^^^^^^^^^^^^[0m
-[1m[96mhelp[0m: an enum with a similar name exists
-    [1m[94m|[0m
-[1m[94m859[0m [91m- [0m    let scope_button = |scope: [91mMemoryScope[0m, label: &'static str| -> Element<'static, Message> {
-[1m[94m859[0m [92m+ [0m    let scope_button = |scope: [92mMemoryMode[0m, label: &'static str| -> Element<'static, Message> {
-    [1m[94m|[0m
-[1m[96mhelp[0m: consider importing this enum
-    [1m[94m|[0m
-[1m[94m  2[0m [92m+ use crate::app::MemoryScope;[0m
-    [1m[94m|[0m
-
-[1m[91merror[E0433][0m[1m: cannot find type `MemoryScope` in this scope[0m
-   [1m[94m--> [0mapps/archx-agent/src/settings.rs:860:58
-    [1m[94m|[0m
-[1m[94m860[0m [1m[94m|[0m         let active = memory == scope.mode() && (scope != MemoryScope::Heavy || memory == MemoryMode::Heavy);
-    [1m[94m|[0m                                                          [1m[91m^^^^^^^^^^^[0m [1m[91muse of undeclared type `MemoryScope`[0m
-    [1m[94m|[0m
-[1m[96mhelp[0m: an enum with a similar name exists
-    [1m[94m|[0m
-[1m[94m860[0m [91m- [0m        let active = memory == scope.mode() && (scope != [91mMemoryScope[0m::Heavy || memory == MemoryMode::Heavy);
-[1m[94m860[0m [92m+ [0m        let active = memory == scope.mode() && (scope != [92mMemoryMode[0m::Heavy || memory == MemoryMode::Heavy);
-    [1m[94m|[0m
-[1m[96mhelp[0m: consider importing this enum
-    [1m[94m|[0m
-[1m[94m  2[0m [92m+ use crate::app::MemoryScope;[0m
-    [1m[94m|[0m
-
-[1m[91merror[E0433][0m[1m: cannot find type `MemoryScope` in this scope[0m
-   [1m[94m--> [0mapps/archx-agent/src/settings.rs:872:26
-    [1m[94m|[0m
-[1m[94m872[0m [1m[94m|[0m             scope_button(MemoryScope::Light, "Light"),
-    [1m[94m|[0m                          [1m[91m^^^^^^^^^^^[0m [1m[91muse of undeclared type `MemoryScope`[0m
-    [1m[94m|[0m
-[1m[96mhelp[0m: an enum with a similar name exists
-    [1m[94m|[0m
-[1m[94m872[0m [91m- [0m            scope_button([91mMemoryScope[0m::Light, "Light"),
-[1m[94m872[0m [92m+ [0m            scope_button([92mMemoryMode[0m::Light, "Light"),
-    [1m[94m|[0m
-[1m[96mhelp[0m: consider importing this enum
-    [1m[94m|[0m
-[1m[94m  2[0m [92m+ use crate::app::MemoryScope;[0m
-    [1m[94m|[0m
-
-[1m[91merror[E0433][0m[1m: cannot find type `MemoryScope` in this scope[0m
-   [1m[94m--> [0mapps/archx-agent/src/settings.rs:873:26
-    [1m[94m|[0m
-[1m[94m873[0m [1m[94m|[0m             scope_button(MemoryScope::Balanced, "Balanced"),
-    [1m[94m|[0m                          [1m[91m^^^^^^^^^^^[0m [1m[91muse of undeclared type `MemoryScope`[0m
-    [1m[94m|[0m
-[1m[96mhelp[0m: an enum with a similar name exists
-    [1m[94m|[0m
-[1m[94m873[0m [91m- [0m            scope_button([91mMemoryScope[0m::Balanced, "Balanced"),
-[1m[94m873[0m [92m+ [0m            scope_button([92mMemoryMode[0m::Balanced, "Balanced"),
-    [1m[94m|[0m
-[1m[96mhelp[0m: consider importing this enum
-    [1m[94m|[0m
-[1m[94m  2[0m [92m+ use crate::app::MemoryScope;[0m
-    [1m[94m|[0m
-
-[1m[91merror[E0433][0m[1m: cannot find type `MemoryScope` in this scope[0m
-   [1m[94m--> [0mapps/archx-agent/src/settings.rs:874:26
-    [1m[94m|[0m
-[1m[94m874[0m [1m[94m|[0m             scope_button(MemoryScope::Heavy, "Heavy"),
-    [1m[94m|[0m                          [1m[91m^^^^^^^^^^^[0m [1m[91muse of undeclared type `MemoryScope`[0m
-    [1m[94m|[0m
-[1m[96mhelp[0m: an enum with a similar name exists
-    [1m[94m|[0m
-[1m[94m874[0m [91m- [0m            scope_button([91mMemoryScope[0m::Heavy, "Heavy"),
-[1m[94m874[0m [92m+ [0m            scope_button([92mMemoryMode[0m::Heavy, "Heavy"),
-    [1m[94m|[0m
-[1m[96mhelp[0m: consider importing this enum
-    [1m[94m|[0m
-[1m[94m  2[0m [92m+ use crate::app::MemoryScope;[0m
-    [1m[94m|[0m
-
-[1m[91merror[E0433][0m[1m: cannot find type `MemoryScope` in this scope[0m
-   [1m[94m--> [0mapps/archx-agent/src/settings.rs:875:26
-    [1m[94m|[0m
-[1m[94m875[0m [1m[94m|[0m             scope_button(MemoryScope::Custom, "Custom")
-    [1m[94m|[0m                          [1m[91m^^^^^^^^^^^[0m [1m[91muse of undeclared type `MemoryScope`[0m
-    [1m[94m|[0m
-[1m[96mhelp[0m: an enum with a similar name exists
-    [1m[94m|[0m
-[1m[94m875[0m [91m- [0m            scope_button([91mMemoryScope[0m::Custom, "Custom")
-[1m[94m875[0m [92m+ [0m            scope_button([92mMemoryMode[0m::Custom, "Custom")
-    [1m[94m|[0m
-[1m[96mhelp[0m: consider importing this enum
-    [1m[94m|[0m
-[1m[94m  2[0m [92m+ use crate::app::MemoryScope;[0m
-    [1m[94m|[0m
-
 [1m[33mwarning[0m[1m: unused import: `std::collections::HashSet`[0m
   [1m[94m--> [0mapps/archx-agent/src/app.rs:12:5
    [1m[94m|[0m
@@ -1055,90 +954,44 @@ COMMAND: cargo test --locked
 
 [1m[33mwarning[0m: `archx-shared` (lib) generated 3 warnings (run `cargo fix --lib -p archx-shared` to apply 1 suggestion)
 [1m[91merror[E0283][0m[1m: type annotations needed[0m
-   [1m[94m--> [0mapps/archx-agent/src/agent.rs:156:43
-    [1m[94m|[0m
-[1m[94m156[0m [1m[94m|[0m             if enabled { space().width(0).into() } else { text("disabled").size(9.5).color(style::WARN).into() }
-    [1m[94m|[0m                                           [1m[91m^^^^[0m
-    [1m[94m|[0m
-    [1m[94m= [0m[1mnote[0m: the type must implement `From<iced::widget::Space>`
-    [1m[94m= [0m[1mnote[0m: required for `iced::widget::Space` to implement `Into<_>`
+    [1m[94m--> [0mapps/archx-agent/src/settings.rs:385:73
+     [1m[94m|[0m
+[1m[94m 385[0m [1m[94m|[0m                 text(slot.reason.clone()).size(10.5).color(style::GREY).into()
+     [1m[94m|[0m                 [1m[94m-------------------------[0m                               [1m[91m^^^^[0m
+     [1m[94m|[0m                 [1m[94m|[0m
+     [1m[94m|[0m                 [1m[94mtype must be known at this point[0m
+     [1m[94m|[0m
+     [1m[94m= [0m[1mnote[0m: the type must implement `iced::widget::text::Catalog`
+[1m[96mhelp[0m: the trait `iced::widget::text::Catalog` [1m[35mis[0m implemented for `[1m[35mTheme[0m`
+    [1m[94m--> [0m/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iced_core-0.14.0/src/widget/text.rs:420:1
+     [1m[94m|[0m
+[1m[94m 420[0m [1m[94m|[0m impl Catalog for Theme {
+     [1m[94m|[0m [1m[96m^^^^^^^^^^^^^^^^^^^^^^[0m
+     [1m[94m= [0m[1mnote[0m: cannot satisfy `<_ as iced::widget::text::Catalog>::Class<'_> == _`
+[1m[92mnote[0m: required by a bound in `iced::widget::text`
+    [1m[94m--> [0m/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iced_widget-0.14.2/src/helpers.rs:1147:12
+     [1m[94m|[0m
+[1m[94m1143[0m [1m[94m|[0m pub fn text<'a, Theme, Renderer>(
+[1m[94m...[0m
+[1m[94m1147[0m [1m[94m|[0m     Theme: text::Catalog + 'a,
+     [1m[94m|[0m            [1m[92m^^^^^^^^^^^^^[0m [1m[92mrequired by this bound in `text`[0m
+[1m[92mnote[0m: required because it appears within the type `iced_core::widget::text::Text<'_, _, _>`
+    [1m[94m--> [0m/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iced_core-0.14.0/src/widget/text.rs:58:12
+     [1m[94m|[0m
+[1m[94m  58[0m [1m[94m|[0m pub struct Text<'a, Theme, Renderer>
+     [1m[94m|[0m            [1m[92m^^^^[0m
+     [1m[94m= [0m[1mnote[0m: the return type of a function must have a statically known size
 [1m[96mhelp[0m: try using a fully qualified path to specify the expected types
-    [1m[94m|[0m
-[1m[94m156[0m [91m- [0m            if enabled { space().width(0)[91m.into()[0m } else { text("disabled").size(9.5).color(style::WARN).into() }
-[1m[94m156[0m [92m+ [0m            if enabled { [92m<iced::widget::Space as Into<T>>::into([0mspace().width(0)[92m)[0m } else { text("disabled").size(9.5).color(style::WARN).into() }
-    [1m[94m|[0m
-
-[1m[91merror[E0631][0m[1m: type mismatch in function arguments[0m
-   [1m[94m--> [0mapps/archx-agent/src/app.rs:383:87
-    [1m[94m|[0m
-[1m[94m383[0m [1m[94m|[0m [1m[94m...[0m                   draft.reasoning.get(slot).cloned().flatten().as_ref().map(markdown::Content::parse),
-    [1m[94m|[0m                                                                             [1m[94m---[0m [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^[0m
-    [1m[94m|[0m                                                                             [1m[94m|[0m   [1m[91m|[0m
-    [1m[94m|[0m                                                                             [1m[94m|[0m   [1m[91mexpected due to this[0m
-    [1m[94m|[0m                                                                             [1m[94m|[0m   [1m[91mfound signature defined here[0m
-    [1m[94m|[0m                                                                             [1m[94mrequired by a bound introduced by this call[0m
-    [1m[94m|[0m
-    [1m[94m= [0m[1mnote[0m: expected function signature `fn(&[1m[35mstd::string::String[0m) -> [1m[35m_[0m`
-               found function signature `fn(&[1m[35mstr[0m) -> [1m[35m_[0m`
-[1m[92mnote[0m: required by a bound in `Option::<T>::map`
-   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/option.rs:1160:4
-[1m[96mhelp[0m: consider wrapping the function in a closure
-    [1m[94m|[0m
-[1m[94m383[0m [1m[94m| [0m                            draft.reasoning.get(slot).cloned().flatten().as_ref().map([92m|arg0: &std::string::String| [0mmarkdown::Content::parse[92m(/* &str */)[0m),
-    [1m[94m|[0m                                                                                       [92m++++++++++++++++++++++++++++[0m                         [92m++++++++++++[0m
+     [1m[94m|[0m
+[1m[94m 385[0m [91m- [0m                text(slot.reason.clone()).size(10.5).color(style::GREY)[91m.into()[0m
+[1m[94m 385[0m [92m+ [0m                [92m<iced_core::widget::text::Text<'_, Theme, Renderer> as Into<T>>::into([0mtext(slot.reason.clone()).size(10.5).color(style::GREY)[92m)[0m
+     [1m[94m|[0m
 
 [1m[91merror[E0308][0m[1m: mismatched types[0m
-    [1m[94m--> [0mapps/archx-agent/src/app.rs:1080:52
-     [1m[94m|[0m
-[1m[94m1080[0m [1m[94m|[0m             move |reply| Message::ChatProgress(id, reply),
-     [1m[94m|[0m                          [1m[94m---------------------[0m     [1m[91m^^^^^[0m [1m[91mexpected `SecretReply`, found `Reply`[0m
-     [1m[94m|[0m                          [1m[94m|[0m
-     [1m[94m|[0m                          [1m[94marguments to this enum variant are incorrect[0m
-     [1m[94m|[0m
-[1m[92mnote[0m: tuple variant defined here
-    [1m[94m--> [0mapps/archx-agent/src/app.rs:159:5
-     [1m[94m|[0m
-[1m[94m 159[0m [1m[94m|[0m     ChatProgress(u32, SecretReply),
-     [1m[94m|[0m     [1m[92m^^^^^^^^^^^^[0m
-[1m[96mhelp[0m: try wrapping the expression in `app::SecretReply`
-     [1m[94m|[0m
-[1m[94m1080[0m [1m[94m| [0m            move |reply| Message::ChatProgress(id, [92mapp::SecretReply([0mreply[92m)[0m),
-     [1m[94m|[0m                                                    [92m+++++++++++++++++[0m     [92m+[0m
-
-[1m[91merror[E0609][0m[1m: no field `budget` on type `SettingsState`[0m
-   [1m[94m--> [0mapps/archx-agent/src/app_provider.rs:464:31
+   [1m[94m--> [0mapps/archx-agent/src/settings.rs:490:38
     [1m[94m|[0m
-[1m[94m464[0m [1m[94m|[0m                 self.settings.budget = self.memory_budget.clone();
-    [1m[94m|[0m                               [1m[91m^^^^^^[0m [1m[91munknown field[0m
-    [1m[94m|[0m
-    [1m[94m= [0m[1mnote[0m: available fields are: `section`, `provider`, `key_entry`, `key_ids`, `reveal` ... and 35 others
-
-[1m[91merror[E0308][0m[1m: mismatched types[0m
-   [1m[94m--> [0mapps/archx-agent/src/settings.rs:389:47
-    [1m[94m|[0m
-[1m[94m389[0m [1m[94m|[0m       let rotation: Element<'static, Message> = row![
-    [1m[94m|[0m [1m[91m ___________________[0m[1m[94m-------------------------[0m[1m[91m___^[0m
-    [1m[94m|[0m [1m[91m|[0m                   [1m[94m|[0m
-    [1m[94m|[0m [1m[91m|[0m                   [1m[94mexpected due to this[0m
-[1m[94m390[0m [1m[94m|[0m [1m[91m|[0m         {
-[1m[94m391[0m [1m[94m|[0m [1m[91m|[0m             let on = state.key_auto_rotate;
-[1m[94m392[0m [1m[94m|[0m [1m[91m|[0m             let knob = container(space().width(14).height(14))
-[1m[94m...[0m   [1m[91m|[0m
-[1m[94m406[0m [1m[94m|[0m [1m[91m|[0m     ].spacing(10).align_y(Center);
-    [1m[94m|[0m [1m[91m|_________________________________^[0m [1m[91mexpected `Element<'_, Message, Theme, _>`, found `Row<'_, Message>`[0m
-    [1m[94m|[0m
-    [1m[94m= [0m[1mnote[0m: expected struct `[1m[35miced_core::element::Element<'static, Message, Theme, iced_renderer::fallback::Renderer<iced_wgpu::Renderer, iced_tiny_skia::Renderer>>[0m`
-               found struct `[1m[35miced::widget::Row<'_, Message>[0m`
-[1m[96mhelp[0m: call `Into::into` on this expression to convert `iced::widget::Row<'_, Message>` into `iced_core::element::Element<'static, Message, Theme, iced_renderer::fallback::Renderer<iced_wgpu::Renderer, iced_tiny_skia::Renderer>>`
-    [1m[94m|[0m
-[1m[94m406[0m [1m[94m| [0m    ].spacing(10).align_y(Center)[92m.into()[0m;
-    [1m[94m|[0m                                  [92m+++++++[0m
-
-[1m[91merror[E0308][0m[1m: mismatched types[0m
-   [1m[94m--> [0mapps/archx-agent/src/settings.rs:490:43
-    [1m[94m|[0m
-[1m[94m490[0m [1m[94m|[0m       let bulk: Element<'static, Message> = row![
-    [1m[94m|[0m [1m[91m _______________[0m[1m[94m-------------------------[0m[1m[91m___^[0m
+[1m[94m490[0m [1m[94m|[0m       let bulk: Element<'_, Message> = row![
+    [1m[94m|[0m [1m[91m _______________[0m[1m[94m--------------------[0m[1m[91m___^[0m
     [1m[94m|[0m [1m[91m|[0m               [1m[94m|[0m
     [1m[94m|[0m [1m[91m|[0m               [1m[94mexpected due to this[0m
 [1m[94m491[0m [1m[94m|[0m [1m[91m|[0m         text(format!("{selected} ticked")).size(11).color(if selected > 0 { style::WHITE } else { style::DIM }).width(Fill),
@@ -1149,18 +1002,18 @@ COMMAND: cargo test --locked
 [1m[94m502[0m [1m[94m|[0m [1m[91m|[0m     ].spacing(6).align_y(Center);
     [1m[94m|[0m [1m[91m|________________________________^[0m [1m[91mexpected `Element<'_, Message, Theme, _>`, found `Row<'_, Message, Theme, _>`[0m
     [1m[94m|[0m
-    [1m[94m= [0m[1mnote[0m: expected struct `[1m[35miced_core::element::Element<'static, Message, Theme, iced_renderer::fallback::Renderer<iced_wgpu::Renderer, iced_tiny_skia::Renderer>>[0m`
+    [1m[94m= [0m[1mnote[0m: expected struct `[1m[35miced_core::element::Element<'_, Message, Theme, iced_renderer::fallback::Renderer<iced_wgpu::Renderer, iced_tiny_skia::Renderer>>[0m`
                found struct `[1m[35miced::widget::Row<'_, Message, Theme, _>[0m`
-[1m[96mhelp[0m: call `Into::into` on this expression to convert `iced::widget::Row<'_, Message, Theme, _>` into `iced_core::element::Element<'static, Message, Theme, iced_renderer::fallback::Renderer<iced_wgpu::Renderer, iced_tiny_skia::Renderer>>`
+[1m[96mhelp[0m: call `Into::into` on this expression to convert `iced::widget::Row<'_, Message, Theme, _>` into `iced_core::element::Element<'_, Message, Theme, iced_renderer::fallback::Renderer<iced_wgpu::Renderer, iced_tiny_skia::Renderer>>`
     [1m[94m|[0m
 [1m[94m502[0m [1m[94m| [0m    ].spacing(6).align_y(Center)[92m.into()[0m;
     [1m[94m|[0m                                 [92m+++++++[0m
 
 [1m[91merror[E0308][0m[1m: mismatched types[0m
-   [1m[94m--> [0mapps/archx-agent/src/settings.rs:503:44
+   [1m[94m--> [0mapps/archx-agent/src/settings.rs:503:39
     [1m[94m|[0m
-[1m[94m503[0m [1m[94m|[0m       let pager: Element<'static, Message> = row![
-    [1m[94m|[0m [1m[91m ________________[0m[1m[94m-------------------------[0m[1m[91m___^[0m
+[1m[94m503[0m [1m[94m|[0m       let pager: Element<'_, Message> = row![
+    [1m[94m|[0m [1m[91m ________________[0m[1m[94m--------------------[0m[1m[91m___^[0m
     [1m[94m|[0m [1m[91m|[0m                [1m[94m|[0m
     [1m[94m|[0m [1m[91m|[0m                [1m[94mexpected due to this[0m
 [1m[94m504[0m [1m[94m|[0m [1m[91m|[0m         button(text("Previous").size(10.5)).on_press_maybe((page > 0).then_some(Message::ModelPagePrevious)).style(style::tiny_bu[1m[94m...[0m
@@ -1170,81 +1023,67 @@ COMMAND: cargo test --locked
 [1m[94m508[0m [1m[94m|[0m [1m[91m|[0m     ].spacing(6).align_y(Center);
     [1m[94m|[0m [1m[91m|________________________________^[0m [1m[91mexpected `Element<'_, Message, Theme, _>`, found `Row<'_, Message, Theme, _>`[0m
     [1m[94m|[0m
-    [1m[94m= [0m[1mnote[0m: expected struct `[1m[35miced_core::element::Element<'static, Message, Theme, iced_renderer::fallback::Renderer<iced_wgpu::Renderer, iced_tiny_skia::Renderer>>[0m`
+    [1m[94m= [0m[1mnote[0m: expected struct `[1m[35miced_core::element::Element<'_, Message, Theme, iced_renderer::fallback::Renderer<iced_wgpu::Renderer, iced_tiny_skia::Renderer>>[0m`
                found struct `[1m[35miced::widget::Row<'_, Message, Theme, _>[0m`
-[1m[96mhelp[0m: call `Into::into` on this expression to convert `iced::widget::Row<'_, Message, Theme, _>` into `iced_core::element::Element<'static, Message, Theme, iced_renderer::fallback::Renderer<iced_wgpu::Renderer, iced_tiny_skia::Renderer>>`
+[1m[96mhelp[0m: call `Into::into` on this expression to convert `iced::widget::Row<'_, Message, Theme, _>` into `iced_core::element::Element<'_, Message, Theme, iced_renderer::fallback::Renderer<iced_wgpu::Renderer, iced_tiny_skia::Renderer>>`
     [1m[94m|[0m
 [1m[94m508[0m [1m[94m| [0m    ].spacing(6).align_y(Center)[92m.into()[0m;
     [1m[94m|[0m                                 [92m+++++++[0m
 
-[1m[91merror[E0631][0m[1m: type mismatch in function arguments[0m
-   [1m[94m--> [0mapps/archx-agent/src/settings.rs:591:28
+[1m[33mwarning[0m[1m: unused variable: `settings`[0m
+   [1m[94m--> [0mapps/archx-agent/src/app.rs:359:43
     [1m[94m|[0m
-[1m[94m591[0m [1m[94m|[0m             text(usage.map(archx_shared::memory::Usage::label).unwrap_or_else(|| "not loaded".into()))
-    [1m[94m|[0m                        [1m[94m---[0m [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
-    [1m[94m|[0m                        [1m[94m|[0m   [1m[91m|[0m
-    [1m[94m|[0m                        [1m[94m|[0m   [1m[91mexpected due to this[0m
-    [1m[94m|[0m                        [1m[94m|[0m   [1m[91mfound signature defined here[0m
-    [1m[94m|[0m                        [1m[94mrequired by a bound introduced by this call[0m
-    [1m[94m|[0m
-    [1m[94m= [0m[1mnote[0m: expected function signature `fn([1m[35m&[0mUsage) -> [1m[35m_[0m`
-               found function signature `fn(Usage) -> [1m[35m_[0m`
-[1m[92mnote[0m: required by a bound in `Option::<T>::map`
-   [1m[94m--> [0m/rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/option.rs:1160:4
-[1m[96mhelp[0m: consider wrapping the function in a closure
-    [1m[94m|[0m
-[1m[94m591[0m [1m[94m| [0m            text(usage.map([92m|arg0: &archx_shared::memory::Usage| [0marchx_shared::memory::Usage::label[92m(*arg0)[0m).unwrap_or_else(|| "not loaded".into()))
-    [1m[94m|[0m                            [92m++++++++++++++++++++++++++++++++++++[0m                                   [92m+++++++[0m
-
-[1m[91merror[E0507][0m[1m: cannot move out of `app.journal_filter` which is behind a shared reference[0m
-   [1m[94m--> [0mapps/archx-agent/src/agent.rs:507:47
-    [1m[94m|[0m
-[1m[94m507[0m [1m[94m|[0m         crate::debug_page::view(&app.journal, app.journal_filter, app.debug_selected)]
-    [1m[94m|[0m                                               [1m[91m^^^^^^^^^^^^^^^^^^[0m [1m[91mmove occurs because `app.journal_filter` has type `archx_shared::debug_log::Filter`, which does not implement the `Copy` trait[0m
-    [1m[94m|[0m
-[1m[96mhelp[0m: consider cloning the value if the performance cost is acceptable
-    [1m[94m|[0m
-[1m[94m507[0m [1m[94m| [0m        crate::debug_page::view(&app.journal, app.journal_filter[92m.clone()[0m, app.debug_selected)]
-    [1m[94m|[0m                                                                 [92m++++++++[0m
-
-[1m[91merror[E0382][0m[1m: borrow of moved value: `filter`[0m
-  [1m[94m--> [0mapps/archx-agent/src/debug_page.rs:86:28
-   [1m[94m|[0m
-[1m[94m71[0m [1m[94m|[0m pub fn view(journal: &Journal, filter: Filter, selected: Option<u64>) -> Element<'static, Message> {
-   [1m[94m|[0m                                [1m[94m------[0m [1m[94mmove occurs because `filter` has type `archx_shared::debug_log::Filter`, which does not implement the `Copy` trait[0m
-[1m[94m72[0m [1m[94m|[0m     let (total, failed, pending) = journal.counts();
-[1m[94m73[0m [1m[94m|[0m     let entries: Vec<Entry> = journal.view(filter).into_iter().cloned().collect();
-   [1m[94m|[0m                                            [1m[94m------[0m [1m[94mvalue moved here[0m
-[1m[94m...[0m
-[1m[94m86[0m [1m[94m|[0m         filter_chip("All", filter == Filter::All, Message::DebugFilter(Filter::All)),
-   [1m[94m|[0m                            [1m[91m^^^^^^[0m [1m[91mvalue borrowed here after move[0m
-   [1m[94m|[0m
-[1m[96mhelp[0m: consider cloning the value if the performance cost is acceptable
-   [1m[94m|[0m
-[1m[94m73[0m [1m[94m| [0m    let entries: Vec<Entry> = journal.view(filter[92m.clone()[0m).into_iter().cloned().collect();
-   [1m[94m|[0m                                                  [92m++++++++[0m
-
-[1m[91merror[E0621][0m[1m: explicit lifetime required in the type of `display`[0m
-   [1m[94m--> [0mapps/archx-agent/src/settings.rs:243:5
-    [1m[94m|[0m
-[1m[94m243[0m [1m[94m|[0m     base.into()
-    [1m[94m|[0m     [1m[91m^^^^^^^^^^^[0m [1m[91mlifetime `'a` required[0m
-    [1m[94m|[0m
-[1m[96mhelp[0m: add explicit lifetime `'a` to the type of `display`
-    [1m[94m|[0m
-[1m[94m194[0m [91m- [0m    display: [91m&archx_shared::persist::DisplaySettings[0m, storage_path: &str, usage: &'a [archx_shared::memory::Usage],
-[1m[94m194[0m [92m+ [0m    display: [92m&'a DisplaySettings[0m, storage_path: &str, usage: &'a [archx_shared::memory::Usage],
-    [1m[94m|[0m
-
-[1m[33mwarning[0m[1m: unused variable: `storage_path`[0m
-   [1m[94m--> [0mapps/archx-agent/src/settings.rs:194:55
-    [1m[94m|[0m
-[1m[94m194[0m [1m[94m|[0m     display: &archx_shared::persist::DisplaySettings, storage_path: &str, usage: &'a [archx_shared::memory::Usage],
-    [1m[94m|[0m                                                       [1m[33m^^^^^^^^^^^^[0m [1m[33mhelp: if this is intentional, prefix it with an underscore: `_storage_path`[0m
+[1m[94m359[0m [1m[94m|[0m         let persisted = persisted.filter(|settings| snapshot.is_none()).unwrap_or_default();
+    [1m[94m|[0m                                           [1m[33m^^^^^^^^[0m [1m[33mhelp: if this is intentional, prefix it with an underscore: `_settings`[0m
     [1m[94m|[0m
     [1m[94m= [0m[1mnote[0m: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
 
-[1mSome errors have detailed explanations: E0277, E0283, E0308, E0382, E0425, E0433, E0507, E0609, E0621...[0m
+[1m[91merror[E0502][0m[1m: cannot borrow `self.settings.status` as immutable because it is also borrowed as mutable[0m
+   [1m[94m--> [0mapps/archx-agent/src/app.rs:984:36
+    [1m[94m|[0m
+[1m[94m983[0m [1m[94m|[0m             if let Some(draft) = self.current_mut() {
+    [1m[94m|[0m                                  [1m[94m----[0m [1m[94mmutable borrow occurs here[0m
+[1m[94m984[0m [1m[94m|[0m                 draft.error = Some(self.settings.status.clone());
+    [1m[94m|[0m                 [1m[94m-----------[0m        [1m[91m^^^^^^^^^^^^^^^^^^^^[0m [1m[91mimmutable borrow occurs here[0m
+    [1m[94m|[0m                 [1m[94m|[0m
+    [1m[94m|[0m                 [1m[94mmutable borrow later used here[0m
+
+[1m[91merror[E0502][0m[1m: cannot borrow `self.settings.status` as immutable because it is also borrowed as mutable[0m
+   [1m[94m--> [0mapps/archx-agent/src/app.rs:996:78
+    [1m[94m|[0m
+[1m[94m996[0m [1m[94m|[0m                 if let Some(draft) = self.current_mut() { draft.error = Some(self.settings.status.clone()); }
+    [1m[94m|[0m                                      [1m[94m----[0m                 [1m[94m-----------[0m        [1m[91m^^^^^^^^^^^^^^^^^^^^[0m [1m[91mimmutable borrow occurs here[0m
+    [1m[94m|[0m                                      [1m[94m|[0m                    [1m[94m|[0m
+    [1m[94m|[0m                                      [1m[94m|[0m                    [1m[94mmutable borrow later used here[0m
+    [1m[94m|[0m                                      [1m[94mmutable borrow occurs here[0m
+
+[1m[33mwarning[0m[1m: unused variable: `state`[0m
+   [1m[94m--> [0mapps/archx-agent/src/settings.rs:581:16
+    [1m[94m|[0m
+[1m[94m581[0m [1m[94m|[0m fn runtime<'a>(state: &'a SettingsState, usage: &'a [archx_shared::memory::Usage],
+    [1m[94m|[0m                [1m[33m^^^^^[0m [1m[33mhelp: if this is intentional, prefix it with an underscore: `_state`[0m
+
+[1m[91merror[E0521][0m[1m: borrowed data escapes outside of function[0m
+   [1m[94m--> [0mapps/archx-agent/src/settings.rs:662:9
+    [1m[94m|[0m
+[1m[94m626[0m [1m[94m|[0m   fn storage<'a>(state: &'a SettingsState, display: &'a archx_shared::persist::DisplaySettings,
+    [1m[94m|[0m              [1m[94m--[0m  [1m[94m-----[0m [1m[94m`state` is only valid in the function body[0m
+    [1m[94m|[0m              [1m[94m|[0m
+    [1m[94m|[0m              [1m[94mlifetime `'a` defined here[0m
+[1m[94m...[0m
+[1m[94m662[0m [1m[94m|[0m [1m[91m/[0m         surface(column![
+[1m[94m663[0m [1m[94m|[0m [1m[91m|[0m             eyebrow("DATA  /  WHERE IT LIVES"),
+[1m[94m664[0m [1m[94m|[0m [1m[91m|[0m             space().height(8),
+[1m[94m665[0m [1m[94m|[0m [1m[91m|[0m             text(path).size(11.5).font(style::LABEL).color(style::WHITE),
+[1m[94m...[0m   [1m[91m|[0m
+[1m[94m678[0m [1m[94m|[0m [1m[91m|[0m             text(state.status.clone()).size(10.5).color(style::GREY)
+[1m[94m679[0m [1m[94m|[0m [1m[91m|[0m         ].width(Fill))
+    [1m[94m|[0m [1m[91m|[0m                      [1m[91m^[0m
+    [1m[94m|[0m [1m[91m|[0m                      [1m[91m|[0m
+    [1m[94m|[0m [1m[91m|______________________`state` escapes the function body here[0m
+    [1m[94m|[0m                        [1m[91margument requires that `'a` must outlive `'static`[0m
+
+[1mSome errors have detailed explanations: E0277, E0283, E0308, E0502, E0521.[0m
 [1mFor more information about an error, try `rustc --explain E0277`.[0m
-[1m[33mwarning[0m: `archx-agent` (lib) generated 7 warnings
-[1m[91merror[0m: could not compile `archx-agent` (lib) due to 18 previous errors; 7 warnings emitted
+[1m[33mwarning[0m: `archx-agent` (lib) generated 8 warnings
+[1m[91merror[0m: could not compile `archx-agent` (lib) due to 7 previous errors; 8 warnings emitted
