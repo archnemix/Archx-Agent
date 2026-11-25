@@ -153,7 +153,7 @@ fn model_menu<'a>(settings: &'a SettingsState, search: &'a str, health: &'a arch
         let enabled = health.is_enabled(model);
         models = models.push(button(row![
             text(model.clone()).size(13).color(if enabled { style::WHITE } else { style::DIM }).width(Fill),
-            if enabled { space().width(0).into() } else { text("disabled").size(9.5).color(style::WARN).into() }
+            if enabled { Element::from(space().width(0)) } else { Element::from(text("disabled").size(9.5).color(style::WARN)) }
         ].align_y(Center))
             .on_press_maybe(enabled.then_some(Message::ChooseModel(slot))).padding([8, 10]).width(Fill)
             .style(move |t, s| style::provider_choice(active, t, s)));

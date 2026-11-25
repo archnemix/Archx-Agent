@@ -380,7 +380,7 @@ impl App {
                 draft.formatted = draft.turns.iter().enumerate().filter_map(|(slot, turn)| {
                     if turn.role == "assistant" {
                         Some((slot, markdown::Content::parse(&turn.content),
-                            draft.reasoning.get(slot).cloned().flatten().as_ref().map(markdown::Content::parse),
+                            draft.reasoning.get(slot).cloned().flatten().map(|text| markdown::Content::parse(&text)),
                             false))
                     } else { None }
                 }).collect();
@@ -1077,7 +1077,7 @@ impl App {
             }
             Err((last.unwrap_or_else(|| Failure::from(provider_api::CallError::InvalidInput)), attempts, journal_id))
         }),
-            move |reply| Message::ChatProgress(id, reply),
+            move |reply| Message::ChatProgress(id, SecretReply(reply)),
             move |result| match result {
                 Ok(outcome) => Message::AttemptDone(id, test, Box::new(outcome)),
                 Err((failure, attempts, journal_id)) => Message::AttemptFailed(id, test, Box::new(failure), attempts, journal_id),

@@ -461,7 +461,7 @@ impl App {
             Message::ToggleRuntime(stage, item) => {
                 self.memory_budget.toggle(stage, item);
                 if !self.memory_budget.keeps(stage, item) { self.release(item); }
-                self.settings.budget = self.memory_budget.clone();
+                self.memory_budget = self.memory_budget.clone();
                 self.settings.status = format!("{} is {} at {}.",
                     item.label(), if self.memory_budget.keeps(stage, item) { "kept" } else { "dropped" }, stage.label());
                 self.persist_settings();

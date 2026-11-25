@@ -7,7 +7,7 @@ use iced::widget::{button, column, container, row, scrollable, space, stack, tex
 use iced::{Center, Element, Fill};
 use zeroize::Zeroizing;
 
-use crate::app::{MemoryMode, Message};
+use crate::app::{MemoryMode, MemoryScope, Message};
 use archx_shared::credentials::Provider;
 use crate::custom_endpoint::Profile;
 use archx_shared::health::{KeyHealthSet, ModelHealthSet};
@@ -191,7 +191,7 @@ pub fn probe_summary(ok: bool, output: &str) -> String {
 }
 
 pub fn view<'a>(state: &'a SettingsState, memory: MemoryMode, keep_agent: bool,
-    display: &archx_shared::persist::DisplaySettings, storage_path: &str, usage: &'a [archx_shared::memory::Usage],
+    display: &'a archx_shared::persist::DisplaySettings, storage_path: &'a str, usage: &'a [archx_shared::memory::Usage],
     budget: &'a archx_shared::memory::Budget) -> Element<'a, Message> {
     let (heading, description) = match state.section {
         Section::Providers => ("Providers", "Select a provider from the list, see and edit the exact URLs it calls, and manage its vault keys."),
@@ -226,7 +226,7 @@ pub fn view<'a>(state: &'a SettingsState, memory: MemoryMode, keep_agent: bool,
             Section::Providers => providers(state),
             Section::Models => models(state),
             Section::Runtime => runtime(state, usage, budget),
-            Section::Storage => storage(state, display),
+            Section::Storage => storage(state, display, storage_path),
             Section::Lab => lab(memory, keep_agent),
         }
     ].width(Fill).padding(iced::Padding { top: 24.0, right: 28.0, bottom: 40.0, left: 28.0 });
@@ -386,7 +386,7 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
             } else { space().height(0).into() }
         ].spacing(2));
     }
-    let rotation: Element<'static, Message> = row![
+    let rotation: Element<'_, Message> = row![
         {
             let on = state.key_auto_rotate;
             let knob = container(space().width(14).height(14))
@@ -403,7 +403,7 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
                 .size(11).color(style::GREY)
         ].spacing(2)
 
-    ].spacing(10).align_y(Center);
+    ].spacing(10).align_y(Center).into();
     let credential_control: Element<'static, Message> = if state.provider.needs_key() {
         column![text_input::<Message, iced::Theme, iced::Renderer>("Paste an API key", state.key_entry.0.as_str()).secure(true)
             .on_input(|value| Message::EditKey(SecretText::new(value)))
@@ -487,7 +487,7 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
             failure
         ].spacing(3)).padding([6, 8]).width(Fill).style(style::card));
     }
-    let bulk: Element<'static, Message> = row![
+    let bulk: Element<'_, Message> = row![
         text(format!("{selected} ticked")).size(11).color(if selected > 0 { style::WHITE } else { style::DIM }).width(Fill),
         button(text("Tick matching").size(10.5)).on_press(Message::BulkSelectMatching).style(style::tiny_button),
         button(text("Clear").size(10.5)).on_press(Message::BulkClearSelection).style(style::tiny_button),
@@ -500,7 +500,7 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
         button(text("Remove").size(10.5)).on_press_maybe((selected > 0).then_some(Message::BulkRemoveSelected))
             .style(style::tiny_button)
     ].spacing(6).align_y(Center);
-    let pager: Element<'static, Message> = row![
+    let pager: Element<'_, Message> = row![
         button(text("Previous").size(10.5)).on_press_maybe((page > 0).then_some(Message::ModelPagePrevious)).style(style::tiny_button),
         text(format!("Page {} of {} · {} model(s) shown of {}", page + 1, total_pages, shown.len(), visible.len()))
             .size(10.5).color(style::DIM).width(Fill),
@@ -588,7 +588,7 @@ fn runtime<'a>(state: &'a SettingsState, usage: &'a [archx_shared::memory::Usage
                 text(item.label()).size(12.5).font(style::STRONG).color(style::WHITE),
                 text(item.detail()).size(10.5).color(style::GREY)
             ].spacing(2).width(Fill),
-            text(usage.map(archx_shared::memory::Usage::label).unwrap_or_else(|| "not loaded".into()))
+            text(usage.map(|usage| usage.label()).unwrap_or_else(|| "not loaded".into()))
                 .size(11).color(style::GREY).width(140)
         ].spacing(8).align_y(Center);
         for stage in archx_shared::memory::Stage::ALL {
@@ -623,8 +623,8 @@ fn runtime<'a>(state: &'a SettingsState, usage: &'a [archx_shared::memory::Usage
 }
 
 /// Storage & display: where data lives, per-area text scale, and wiping.
-fn storage<'a>(state: &'a SettingsState, display: &'a archx_shared::persist::DisplaySettings) -> Element<'a, Message> {
-    let path = archx_shared::storage::display_path();
+fn storage<'a>(state: &'a SettingsState, display: &'a archx_shared::persist::DisplaySettings,
+    path: &'a str) -> Element<'a, Message> {
     let mut wipes = column![].spacing(6);
     for area in archx_shared::storage::Area::ALL {
         wipes = wipes.push(row![
