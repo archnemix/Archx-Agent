@@ -121,8 +121,9 @@ fn rail(state: &State) -> Element<'static, Message> {
         .width(220).height(Fill).style(style::rail).into()
 }
 
-/// A discovered app's card. Art comes from the manifest's `art` field.
-fn tile(app: &App, phase: u8) -> Element<'static, Message> {
+/// A discovered app's card. Art comes from the manifest's `art` field and the
+/// frame index from the Discover cycle (a scripted screenshot pins both).
+fn tile(app: &App, phase: u8, hovered: Option<&str>) -> Element<'static, Message> {
     let accent = app.is_live();
     let artwork: Element<'static, Message> = if app.art == "agent" {
         container(column![
@@ -138,6 +139,7 @@ fn tile(app: &App, phase: u8) -> Element<'static, Message> {
         ].width(Fill).height(Fill).padding(18))
             .width(Fill).height(140).clip(true).style(style::agent_surface).into()
     } else {
+        let lit = hovered == Some(app.id.as_str()) || hovered == Some(app.art.as_str());
         let words = app.stage_words();
         let current = words.get(usize::from(phase) % words.len().max(1)).cloned().unwrap_or_default();
         let panel = container(column![
@@ -150,7 +152,7 @@ fn tile(app: &App, phase: u8) -> Element<'static, Message> {
                 text(format!("{:02} / {:02}", phase % app.mode_count() + 1, app.mode_count())).size(10).color(style::GREY)
             ]
         ].width(Fill).height(Fill).padding(style::SPACE_2))
-            .width(Fill).height(140).clip(true).style(move |theme| style::workbench_surface(theme, false));
+            .width(Fill).height(140).clip(true).style(move |theme| style::workbench_surface(theme, lit));
         mouse_area(panel).on_enter(Message::Animate).on_exit(Message::Animate).into()
     };
     let id = app.id.clone();
@@ -206,7 +208,7 @@ fn discover(state: &State) -> Element<'static, Message> {
     let mut line = row![].spacing(17).width(Fill);
     let mut per_line = 0;
     for app in &state.apps {
-        line = line.push(tile(app, state.phase()));
+        line = line.push(tile(app, state.phase, state.hovered()));
         per_line += 1;
         if per_line == 3 { cards = cards.push(line); line = row![].spacing(17).width(Fill); per_line = 0; }
     }

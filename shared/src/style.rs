@@ -357,12 +357,37 @@ pub fn chat_thinking(_: &Theme) -> container::Style {
     style.text_color = Some(GREY);
     style
 }
-/// `.thinking-body`: the dashed top divider is replaced by a 1px hairline
-/// (Iced has no dashed borders) and the body is muted 13px text that scrolls.
+/// `.thinking-body`'s `border-top: 1px dashed`. Iced draws no dashed borders,
+/// so the divider is a single hairline on the body's top edge only; the body
+/// itself stays transparent inside the panel's rounded frame.
 pub fn chat_thinking_body(_: &Theme) -> container::Style {
     container::Style::default()
         .background(Color::TRANSPARENT)
         .border(Border { color: BORDER_2, width: 1.0, radius: 0.0.into() })
+}
+
+/// `reference_token_tests` pins the values above to `public/css/chat.css`.
+#[cfg(test)]
+mod thinking_tests {
+    use super::*;
+
+    #[test]
+    fn reasoning_panel_matches_the_reference_frame_and_wash() {
+        let panel = chat_thinking(&iced::Theme::Dark);
+        // `.thinking { border: 1px dashed var(--border-2); background: accent 3% }`
+        assert_eq!(panel.border.width, 1.0);
+        assert_eq!(panel.border.color, BORDER_2);
+        assert_eq!(panel.background, Some(Color::from_rgba(1.0, 1.0, 1.0, 0.03)));
+    }
+
+    #[test]
+    fn reasoning_body_is_a_top_hairline_only() {
+        let body = chat_thinking_body(&iced::Theme::Dark);
+        assert_eq!(body.border.width, 1.0);
+        assert_eq!(body.border.color, BORDER_2);
+        assert_eq!(body.border.radius, 0.0.into());
+        assert_eq!(body.background, Some(Color::TRANSPARENT));
+    }
 }
 
 pub fn chat_avatar(assistant: bool, _: &Theme) -> container::Style {

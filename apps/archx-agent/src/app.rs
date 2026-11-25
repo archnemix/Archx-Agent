@@ -439,8 +439,122 @@ impl App {
             snapshot_setup: false,
         };
         app.load_probe_results();
-        if app.snapshot.is_some() { app.prepare_snapshot(Page::Chat); }
         app
+    }
+
+    /// ---- scripted screenshot fixtures -------------------------------------
+    // These run only when `ARCHX_SNAPSHOT` is set. A normal launch never reaches
+    // them: `prepare_snapshot` returns early otherwise.
+
+    fn activate_mode(&mut self, mode: u8) {
+        if let Some(draft) = self.current_mut() { draft.mode = mode; }
+        self.mode_menu_open = false;
+    }
+
+    fn set_draft_text(&mut self, text: &str) {
+        if let Some(draft) = self.current_mut() {
+            draft.text = text.to_owned();
+            draft.editor = text_editor::Content::with_text(text);
+        }
+    }
+
+    fn load_snapshot_section(&mut self) {
+        let which = std::env::var("ARCHX_SNAPSHOT_SETTINGS").unwrap_or_default();
+        self.settings.section = match which.as_str() {
+            "models" | "import-review" | "import-verified-review" => Section::Models,
+            _ if self.memory_preview == MemoryMode::Custom => Section::Runtime,
+            "runtime" => Section::Runtime,
+            "storage" => Section::Storage,
+            "lab" => Section::Lab,
+            _ => Section::Providers,
+        };
+        match which.as_str() {
+            "custom-review" => {
+                self.settings.provider = Provider::Custom;
+                self.settings.custom.url = "https://example.invalid/v1/chat/completions".into();
+                self.settings.custom.headers = "Authorization: Bearer {{api_key}}".into();
+                self.settings.status = "Synthetic fixture: no request was sent and no destination was approved.".into();
+            }
+            "import-review" | "import-verified-review" => {
+                let index = self.settings.index();
+                self.settings.catalog[index] = vec![
+                    CatalogModel { id: "vendor/alpha:free".into(), name: "Alpha".into(), free: true, router: false, reasoning: false },
+                    CatalogModel { id: "vendor/beta".into(), name: "Beta".into(), free: false, router: false, reasoning: true },
+                    CatalogModel { id: "vendor/gamma".into(), name: "Gamma".into(), free: false, router: false, reasoning: false },
+                ];
+                self.settings.probe_results = vec![
+                    ("vendor/beta".into(), true, "OK".into()),
+                    ("vendor/gamma".into(), false, "HTTP 429 · account quota exceeded".into()),
+                ];
+                self.settings.catalog_modal = true;
+                self.settings.catalog_selected[index] = vec!["vendor/beta".into()];
+                if which == "import-verified-review" {
+                    self.settings.catalog_only_verified = true;
+                    self.settings.catalog_selected[index].push("vendor/gamma".into());
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn load_snapshot_conversation(&mut self) {
+        let which = std::env::var("ARCHX_SNAPSHOT_CHAT").unwrap_or_default();
+        let index = Provider::OpenRouter.index();
+        match which.as_str() {
+            "reasoning" | "model-menu" | "review" => {
+                self.settings.provider = Provider::OpenRouter;
+                self.settings.models[index] = vec!["demo/model:free".into(), "demo/another".into()];
+                self.settings.chosen[index] = Some(0);
+                self.model_health.sync(&self.settings.models[index]);
+                self.model_menu_open = which == "model-menu";
+                if which != "model-menu" {
+                    let content = if which == "review" {
+                        "# Server-sent events\n\nSSE keeps one HTTP response open and delivers updates as they arrive.\n\n```javascript\nconst source = new EventSource('/events');\nsource.onmessage = (event) => console.log(event.data);\n```\n\n| Feature | SSE | Polling |\n| :--- | :--- | :--- |\n| Connection | Persistent | Repeated requests |\n| Direction | Server to client | Request/response |"
+                    } else {
+                        "## Example\n\nA **bold** answer with `code`.\n\n- First item\n- Second item"
+                    };
+                    let reasoning = "The provider returned this synthetic reasoning content. It is collapsed unless the user opens it.";
+                    self.set_fixture_chat(content, Some(reasoning), which == "review");
+                }
+            }
+            "conversation-review" => {
+                self.settings.provider = Provider::OpenRouter;
+                self.settings.models[index] = vec!["demo/review-model".into()];
+                self.settings.chosen[index] = Some(0);
+                self.model_health.sync(&self.settings.models[index]);
+                let turns = [
+                    ("user", "Hi! How are you? Also explain how SSE streaming works."),
+                    ("assistant", "I'm here to help. SSE keeps one HTTP response open while the server sends updates as they happen."),
+                    ("user", "Can you show JavaScript and compare SSE with polling?"),
+                    ("assistant", "## How SSE works\n\nA browser opens an `EventSource` and reads updates as they arrive. Unlike polling, the connection stays open.\n\n```javascript\nconst source = new EventSource('/events');\nsource.onmessage = (event) => console.log(event.data);\n```\n\n| Feature | SSE | Polling |\n| :--- | :--- | :--- |\n| Connection | Persistent | Repeated requests |\n| Direction | Server to client | Request/response |"),
+                ];
+                let id = self.selected_draft;
+                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) {
+                    draft.turns = turns.iter().map(|(role, content)| Turn { role, content: (*content).into() }).collect();
+                    draft.reasoning = vec![None, None, None,
+                        Some("The user asked for a JavaScript example and a comparison. Explain the open connection and keep the code and table focused on that question.".into())];
+                    draft.formatted = vec![
+                        (1, markdown::Content::parse(turns[1].1), None, false),
+                        (3, markdown::Content::parse(turns[3].1), draft.reasoning[3].as_ref().map(|text| markdown::Content::parse(text)), true),
+                    ];
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn set_fixture_chat(&mut self, content: &str, reasoning: Option<&str>, open: bool) {
+        let id = self.selected_draft;
+        if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) {
+            draft.turns = vec![
+                Turn { role: "user", content: "Show a short example".into() },
+                Turn { role: "assistant", content: content.into() },
+            ];
+            draft.reasoning = vec![None, reasoning.map(str::to_owned)];
+            let parsed = reasoning.map(markdown::Content::parse);
+            draft.formatted = vec![(1, markdown::Content::parse(content), parsed, open)];
+            draft.follow_tail = true;
+        }
     }
 
     /// Called by the launcher when the Agent becomes visible, with the
@@ -488,7 +602,24 @@ impl App {
             "debug" => Page::Debug,
             _ => Page::Chat,
         };
+        if self.snapshot.is_none() { return; }
         if self.snapshot_chat.as_deref() == Some("debug") { self.page = Page::Debug; }
+        if std::env::var("ARCHX_SNAPSHOT_MEMORY").as_deref() == Ok("custom") {
+            self.memory_preview = MemoryMode::Custom;
+            self.memory_budget = archx_shared::memory::Budget::default();
+        }
+        if self.page == Page::Chat {
+            if let Ok(mode) = std::env::var("ARCHX_SNAPSHOT_MODE") {
+                if let Ok(mode) = mode.parse::<u8>() { self.activate_mode(mode); }
+            }
+            if let Ok(draft) = std::env::var("ARCHX_SNAPSHOT_DRAFT") {
+                if !draft.is_empty() { self.set_draft_text(&draft); }
+            }
+        }
+        if self.page == Page::Settings { self.load_snapshot_section(); }
+        if matches!(self.snapshot_chat.as_deref(), Some("reasoning" | "model-menu" | "review" | "conversation-review")) {
+            self.load_snapshot_conversation();
+        }
     }
 
     /// Screenshot plumbing: the page to render is chosen by the launcher.

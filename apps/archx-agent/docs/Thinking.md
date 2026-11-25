@@ -197,3 +197,151 @@ Read-only fetch is deliberately separate from generation and manual entry. OpenR
 ## 2026-11-09 — Unified setup and native chat rendering
 
 The key badge was not wired, and key presence alone did not mean a model was selected. Make setup a real navigation action; show provider/model selection in Chat without moving or revealing keys. Merge provider and model configuration into one scrollable Settings page, retain Lab preview separately. Native Iced markdown parses bounded assistant text; link clicks are ignored, image sources are not fetched, raw browser reference scripts never run. Render a collapsible reasoning region only when a response contains an explicit reasoning text field or Gemini thought part; metadata does not fabricate reasoning. Streaming is an explicit user-toggle, on by default; partial messages are visible only while a request is active, and a failed stream restores the unsent draft rather than silently resending. The returned text and process memory can contain private content; this is not a claim of perfect erasure.
+
+## 2026-11-23 — Stage 2: the ten reported issues
+
+### The workspace had to split before anything else could be verified
+
+The single-crate `#[path]` layout could not compile, and no local toolchain exists
+to prove otherwise. `src/main.rs` declared `#[path = "../apps/archx-agent/src/lib.rs"] pub mod app_crate;`
+and the app's own modules were compiled *inside the binary*: inside that tree
+`crate::style` resolves to the binary crate, which declares `style` only through
+`#[path]`, and `crate::` paths from a `#[path]`-included module tree do not become
+`app_crate::` paths. Any `use crate::…` in the Agent therefore pointed at the wrong
+crate. The fix is structural and permanent:
+
+| Crate | Path | Owns |
+| --- | --- | --- |
+| `archx-shared` | `shared/` | apps discovery, vault, transports, catalog, metadata, diagnostics, health, journal, memory accounting, persistence, storage, design tokens |
+| `archx-agent` | `apps/archx-agent/` | chat, settings, debug page, provider/key/model state machine |
+| `archx-ai-lab` | repository root | Discover, launcher rail, transition, launcher settings |
+
+The launcher depends on both through path dependencies, so `cargo test --locked`
+exercises the app's unit tests (`apps/archx-agent/src/app/tests.rs`), the shared
+crate's tests and the launcher's tests in one run. Brand and font assets moved to
+`shared/assets/` because both crates embed them.
+
+### 1. "New chat" cannot create empty rows
+
+Rule: **a new chat is created only when the current one holds at least one
+message.** `Message::NewChat` reuses an existing empty draft instead of pushing
+another; the rail lists only `draft.has_messages()`; `persist_chat` returns early
+for an empty draft and `ChatStore::upsert` drops any chat whose turns are empty,
+so an old empty row cannot survive a restart either. Deleting a chat always
+leaves one blank draft with a **fresh id**, so a stale save cannot resurrect it.
+Covered by `new_chat_does_not_pile_up_empty_drafts`,
+`an_empty_chat_is_never_written_to_disk`, `deleting_a_chat_leaves_a_usable_blank_one`.
+
+### 2. Providers: one dropdown, editable destinations, rotating keys
+
+- The three flat buttons per row became a **dropdown**: one control showing
+  `Provider · endpoint host`, opening a list where each row shows the provider
+  name, key count and endpoint host, plus a tick on the active one.
+- Every endpoint row shows the **full URL** the Agent would call, is editable, and
+  has `Save` / `Default`. `endpoints::reset_kind` restores exactly one documented
+  URL. `http://` is refused for anything but loopback (`localhost`, `127.0.0.1`,
+  `[::1]`), and `{{api_key}}` is only accepted in a header, never in a URL, so a
+  key cannot end up in a request line or a log.
+- Up to 64 keys per provider, each a vault entry. `KeyHealthSet` classifies every
+  failure through `diagnostics`:
+
+  | Failure | Key effect | Model effect |
+  | --- | --- | --- |
+  | 401 / 403 invalid or revoked | rest, `record_failure` | neutral |
+  | 429 / quota | rest for the diagnosed cooldown | neutral |
+  | 5xx / transport / timeout | neutral (not the key's fault) | counted |
+  | model gone (404 `model`), 422 unsupported | neutral | disabled |
+  | our own bounds (2 MiB, 96,000 chars) | neutral | neutral |
+
+- One request tries the **primary healthy key plus exactly one fallback**, and
+  only when the rotation switch is on. A retry happens only if
+  `Diagnosis::retries_key()` is true. A model refusal never benches a key.
+- `Stop` aborts the in-flight task and yields an incomplete turn that is excluded
+  from future context and marked `may have been billed`.
+
+### 3. Models: bulk work, automatic retirement, hygiene
+
+The list pages 25 rows at a time with a filter, a tick box per row, and bulk
+`Test / Enable / Disable / Remove`. `self.model_health.record_failure` disables a
+model after a provider says it is gone, or after three consecutive provider-side
+failures, with the reason kept next to the row. Disabled models are **never
+deleted automatically** — the user asked to sweep them, and deletion would hide
+the evidence. "Re-enable all" is one click.
+
+### 4. Model metadata
+
+`model_meta` merges `https://models.dev/api.json` with a curated free-tier file
+(`shared/assets/model_meta/free_tiers.json`, `checked: 2026-11-23`) derived from
+`github.com/mnfst/awesome-free-llm-apis`. Each row reads
+`free · in: text,image · out: text · 128k context · $0/$0.15 per Mtok`. Missing
+metadata is shown as missing, never invented: a `null` cost is "not listed", not
+"free".
+
+### 5. Persistence: what actually survives, and why JSON first
+
+Research sources: SQLite's own guidance on single-writer durability, the
+`keyring` 4.2 platform matrix (the only store allowed to hold secrets), and the
+reference's server-side JSON journals (`CHATDEBUG-MAP.md`). Decision recorded
+with the user: **JSON files now, a database later**, because the data is tiny
+(hundreds of KB), must stay inspectable, and every write is a single small file
+replaced atomically (`write temp → rename`) inside `storage::root()`:
+
+| File | Area | Survives restart |
+| --- | --- | --- |
+| `settings.json` | provider, models, chosen model, streaming, custom URL, per-area text scale, chat measure | yes |
+| `chats.json` | turns, reasoning, mode, model per chat | yes, empty chats dropped |
+| `model-tests.json` | last test result **per provider and model** | yes, replaced per run |
+| `debug.json` | last 200 request records (metadata only) | yes |
+| `key-health.json` | which key rests until when | yes |
+| `model-meta.json` | models.dev cache + fetch time | yes |
+| OS vault | keys | yes, never in a file |
+
+A probe writes its result **as it finishes**, so closing the modal, changing
+section or quitting mid-run keeps every finished model. Wiping is per area on
+`Storage & display`, with `Wipe everything` naming what it removed; keys are
+explicitly untouched and the UI says so.
+
+### 6–7. Transitions and per-app settings
+
+The transition is a time-based ticker (220 ms, 33 ms frames, ease-out cubic), not
+Iced's `Animation` (it is not re-exported at 0.14). Iced has no per-widget
+`opacity`, so the arriving surface **slides and settles** over the canvas rather
+than fading; this is documented as a limitation rather than faked. Settings was
+split: the Agent owns Providers / Models / Runtime memory / Storage & display /
+Agent & Lab, and the launcher owns its own Lab settings page (per-area scale,
+memory scope handed to the Agent, app folder, wiping).
+
+### 8. Reasoning presentation — analysis before the fix
+
+The reference was read as text (`public/css/chat.css`); the numbers came from the
+stylesheet, not from taste:
+
+| Property | Reference | Before | Now |
+| --- | --- | --- | --- |
+| Container | `<details class="thinking">`, `border: 1px dashed --border-2`, `accent 3%` wash, radius `--radius` | full-height panel page | same frame as a container |
+| Summary | 12 px `--muted`, `✦` in `--accent` (white), chevron right | a full-width page header | 12 px button row, `✦` white, `▾/▴` |
+| Body height | `max-height: 300px; overflow-y: auto` | unbounded (pushed the answer away) | `scrollable` capped at `min(300, measured)` |
+| Body type | 13 px `--muted`, `white-space: pre-wrap` | 15 px body text | 13 px inside the scroller |
+| Divider | `border-top: 1px dashed` | none | 1 px hairline on the body's top edge |
+
+The measured cap is the honest part: `reasoning_size` sizes the scroller from the
+parsed block count so a two-line trace does not leave an empty 300 px box, and
+anything longer stops at 300 px and scrolls.
+
+### 9. Debug page
+
+`debug_log::Journal` records one entry per attempt: id, provider, model, key id,
+streamed flag, request bytes, status, duration, content/reasoning chars, response
+bytes, outcome, and — on failure — the `Diagnosis`. The page shows stage
+(`request / transport / http / parse / bounds`), owner (`agent / provider / key /
+model`), the suggested rest, and the provider's own words. The footer states that
+timeouts are **our** limit (30 s request, 20 s catalog) and may already be billed.
+Nothing from the prompt, the reply or the key is stored.
+
+### 10. Text size per area, and docs ownership
+
+`TextScale` holds one step per area: launcher, chat, settings. Launcher settings
+change all three; `Storage & display` and the rail follow the area they belong
+to, so enlarging chat text does not enlarge the settings labels. Docs were moved
+into `apps/archx-agent/docs/` and the second app's space was created at
+`apps/training/docs/`, so the two trees are independent.

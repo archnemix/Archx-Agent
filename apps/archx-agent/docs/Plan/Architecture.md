@@ -61,3 +61,48 @@ The first remote-provider Settings destinations are OpenRouter, xAI Grok and Gem
 Credential handling is a release gate: store secrets only in supported OS secure credential stores (Windows Credential Manager/macOS Keychain/Linux Secret Service-compatible service); do not invent a master password or fall back to plaintext files. Display masked identifiers by default; reveal only after an explicit local action, for at most 15 seconds, with clipboard/log/screenshot precautions. A request still requires a whole key transiently in process memory/HTTP authorization; neither scattering bytes nor in-process 'encrypted until use' can guarantee it is never exposed. Do not claim that impossible guarantee or ship an unaudited encryption scheme. Define threat model, key-store availability failures, key removal semantics, request logging redaction and timeout/cancellation before enabling live use.
 
 Tests: provider-specific non-billable usage/stats only where documented; catalog listing as a separate check; and a **user-initiated** short generation test with displayed model/cost risk and a conservative roughly 500-token combined target. Without a provider-side token-count/preflight guarantee, do not promise an exact combined-token ceiling. This sandbox cannot access provider hosts; three-OS CI must use mock/contract checks without credentials, and real endpoint success must be verified on the user's machine with their own locally entered keys. No 'connected' indicator should come from a mock alone.
+
+## Workspace layout (2026-11-23)
+
+The repository is a Cargo workspace with three crates. The launcher hosts the
+Agent in-process through a path dependency; nothing is copied between them.
+
+| Crate | Folder | Responsibility |
+| --- | --- | --- |
+| `archx-ai-lab` (bin) | `src/` | Discover from `apps/*/app.toml`, the launcher rail, the launcher↔app transition, launcher-only settings (per-area text scale, memory scope, app folder, wiping) |
+| `archx-agent` (lib) | `apps/archx-agent/` | Chat, Agent settings, Debug page, and the provider/key/model state machine (`app.rs` + `app_provider.rs`) |
+| `archx-shared` (lib) | `shared/` | App discovery, vault, endpoint templates, transports, catalog, metadata, diagnostics, key/model health, the debug journal, memory accounting, persistence, storage locations, design tokens |
+
+### App manifest contract
+
+Each app is one folder with an `app.toml`; the launcher reads it and nothing else:
+
+```toml
+id = "archx-agent"      # must equal the folder name
+name = "Archx Agent"
+category = "SIX MODES / ONE AGENT"
+summary = "…"
+status = "live"         # live | preview | building | planned
+art = "agent"           # agent | workbench
+modes = ["CHAT", "…"]   # ≤ 12 entries, ≤ 24 characters each
+entry = "src/lib.rs"
+```
+
+Only `status = "live"` tiles open. Discovery scans the disk (`ARCHX_APPS_DIR`
+overrides the root) and falls back to manifests compiled into `archx-shared`, so
+a checkout without `apps/` still renders. Adding an app requires no launcher
+edit — that is the test the second app will prove.
+
+### Settings ownership
+
+Settings are split by owner, not duplicated:
+
+- **Launcher** (`Lab settings`): per-area text scale for all three areas, the
+  memory scope handed to the Agent, the app folder and rescan, wipes.
+- **Archx Agent** (`Agent settings`): Providers, Models, Runtime memory,
+  Storage & display, Agent & Lab.
+- **Model Training**: its own settings tree when its code lands.
+
+The Agent never writes the launcher's preferences and the launcher never reaches
+into the Agent's state; the only channel is `Message::Agent(...)` and the
+`surface_id` string ("agent", "settings", "debug").

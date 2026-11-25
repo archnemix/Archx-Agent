@@ -201,7 +201,7 @@ pub fn view<'a>(state: &'a SettingsState, memory: MemoryMode, keep_agent: bool,
         Section::Models => ("Models", "The list scrolls and pages. Tick several models to test, enable, disable or remove them together."),
         Section::Runtime => ("Runtime memory", "Choose what the Agent keeps in RAM at each stage. Sizes are measured, never estimated."),
         Section::Storage => ("Storage & display", "Where your data lives, how big the text is in each area, and how to wipe it."),
-        Section::Lab => ("Lab preview", "These options do not yet affect device memory."),
+        Section::Lab => ("Agent & Lab", "How much the Agent keeps resident, who owns it, and where the other apps' settings will live."),
     };
     let status_notice: Element<'static, Message> = if state.status.is_empty() { space().height(0).into() }
     else { column![
@@ -211,7 +211,7 @@ pub fn view<'a>(state: &'a SettingsState, memory: MemoryMode, keep_agent: bool,
     ].into() };
     let page_head = container(column![
         text("Settings").size(24).font(style::STRONG).color(style::WHITE),
-        text("Manage the Agent's providers and models. Other reference features are not yet available here.")
+        text("Each side of the Lab keeps its own settings: these belong to the Archx Agent.")
             .size(12.5).color(style::GREY)
     ].spacing(5)).width(Fill).padding([18, 28]).style(style::settings_header);
     let category = container(scrollable(column(
@@ -450,8 +450,8 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
     let page_size = state.model_page_size.max(1);
     let total_pages = visible.len().div_ceil(page_size).max(1);
     let page = state.model_page.min(total_pages - 1);
-    let start = page * page_size;
-    let shown = &visible[start.min(visible.len())..(start + page_size).min(visible.len())];
+    let start = (page * page_size).min(visible.len());
+    let shown = &visible[start..(start + page_size).min(visible.len())];
     let selected = state.bulk_selected.len();
     let disabled = state.model_health.disabled_ids().len();
     let mut list = column![].spacing(6);

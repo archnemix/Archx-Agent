@@ -1,5 +1,10 @@
-<!-- Purpose: Explains the project documentation directory and where to find each record. -->
-# Documentation
+<!-- Purpose: Explains this app's documentation directory and where to find each record. -->
+# Archx Agent — documentation
+
+This directory belongs to the **Archx Agent** app (`apps/archx-agent/`). The
+second app keeps its own docs in `apps/training/docs/`; the two never share a
+folder, so neither can overwrite the other's records. Repository-wide
+orientation lives in the root `README.md`.
 
 - [Rules](Rules.md): working rules; read before making changes.
 - [design.md](design.md): AI Lab visual system and cross-OS review criteria.

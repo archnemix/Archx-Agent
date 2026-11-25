@@ -154,6 +154,8 @@ pub struct App {
     pub memory_usage: Vec<archx_shared::memory::Usage>,
     /// Tile artwork cycle for Discover.
     phase: u8,
+    /// Which tile art is lit for a scripted screenshot (`training`/`tuning`).
+    hovered: Option<String>,
     snapshot: Option<PathBuf>,
     snapshot_requested: bool,
     snapshot_page: Option<String>,
@@ -194,7 +196,9 @@ impl App {
             notice: None,
             storage_path: storage::display_path(),
             memory_usage: Vec::new(),
-            phase: 0,
+            phase: std::env::var("ARCHX_SNAPSHOT_PHASE").ok()
+                .and_then(|value| value.parse::<u8>().ok()).unwrap_or(0),
+            hovered: std::env::var("ARCHX_SNAPSHOT_HOVER").ok(),
             snapshot,
             snapshot_requested: false,
             snapshot_page: std::env::var("ARCHX_SNAPSHOT_CHAT").ok(),
@@ -358,9 +362,13 @@ impl App {
         navigation::view(self).map(|message| message)
     }
 
+    /// The tile lit for this frame: a scripted hover when set, otherwise the
+    /// Discover cycle.
+    pub fn hovered(&self) -> Option<&str> { self.hovered.as_deref() }
+
     pub fn subscription(&self) -> Subscription<Message> {
-        let snapshot = if self.snapshot.is_some() && !self.snapshot_requested {
-            time::every(Duration::from_secs(5)).map(|_| Message::SnapshotTick)
+        let snapshot = if self.snapshot.is_some() {
+            time::every(Duration::from_millis(700)).map(|_| Message::SnapshotTick)
         } else { Subscription::none() };
         let ticker = if self.ticker && self.transition.is_some_and(|transition| !transition.is_complete()) {
             time::every(Duration::from_millis(crate::transition::FRAME_MS)).map(|_| Message::Tick)
