@@ -3,7 +3,7 @@ use iced::widget::{column, container, row, space, text};
 use iced::{Element, Fill, FillPortion};
 
 use crate::app::Message;
-use crate::style;
+use archx_shared::style;
 
 const MODES: [&str; 6] = ["CHAT", "TASKS", "RESEARCH", "CODING", "LEARNING", "PLAY"];
 

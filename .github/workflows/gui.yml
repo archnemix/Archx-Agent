@@ -6,6 +6,7 @@ on:
     branches: [arena/53d9bc26-archx-agent]
     paths:
       - 'src/**'
+      - 'apps/**'
       - 'assets/**'
       - 'Cargo.toml'
       - '.github/workflows/gui.yml'
@@ -32,69 +33,69 @@ jobs:
         run: |
           set -o pipefail
           sudo apt-get update -qq && sudo apt-get install -y -qq libxkbcommon-dev libxkbcommon-x11-0 libwayland-dev libasound2-dev xvfb > /dev/null
-          mkdir -p Docs/Test_Results/Unreleased/{non_visual,visual}
-          cargo generate-lockfile > Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          xvfb-run -a env ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux.png
+          mkdir -p apps/archx-agent/docs/Test_Results/Unreleased/{non_visual,visual}
+          cargo generate-lockfile > apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          xvfb-run -a env ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux.png
           for phase in 1 3; do
-            xvfb-run -a env ARCHX_SNAPSHOT_AGENT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-agent-phase-$phase.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-            test -s Docs/Test_Results/Unreleased/visual/linux-agent-phase-$phase.png
-            if cmp -s Docs/Test_Results/Unreleased/visual/linux.png Docs/Test_Results/Unreleased/visual/linux-agent-phase-$phase.png; then echo "FAIL: Linux Agent phase $phase matches rest" >> Docs/Test_Results/Unreleased/non_visual/linux.log; exit 1; fi
-            echo "PASS: Linux Agent phase $phase differs from rest" >> Docs/Test_Results/Unreleased/non_visual/linux.log
+            xvfb-run -a env ARCHX_SNAPSHOT_AGENT_PHASE=$phase ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-agent-phase-$phase.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+            test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-agent-phase-$phase.png
+            if cmp -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux.png apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-agent-phase-$phase.png; then echo "FAIL: Linux Agent phase $phase matches rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log; exit 1; fi
+            echo "PASS: Linux Agent phase $phase differs from rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log
           done
           for phase in 1 2; do
-            xvfb-run -a env ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-training-hover-$phase.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-            test -s Docs/Test_Results/Unreleased/visual/linux-training-hover-$phase.png
+            xvfb-run -a env ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-training-hover-$phase.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+            test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-training-hover-$phase.png
           done
           for phase in 1 2; do
-            xvfb-run -a env ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-tuning-hover-$phase.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-            test -s Docs/Test_Results/Unreleased/visual/linux-tuning-hover-$phase.png
+            xvfb-run -a env ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-tuning-hover-$phase.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+            test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-tuning-hover-$phase.png
           done
           for card in training tuning; do
-            if cmp -s Docs/Test_Results/Unreleased/visual/linux.png Docs/Test_Results/Unreleased/visual/linux-$card-hover-1.png; then echo "FAIL: Linux $card hover matches rest" >> Docs/Test_Results/Unreleased/non_visual/linux.log; exit 1; fi
-            echo "PASS: Linux $card hover phase differs from rest" >> Docs/Test_Results/Unreleased/non_visual/linux.log
+            if cmp -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux.png apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-$card-hover-1.png; then echo "FAIL: Linux $card hover matches rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log; exit 1; fi
+            echo "PASS: Linux $card hover phase differs from rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log
           done
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-about.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-about.png
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-agent.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-agent.png
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_DRAFT='Sketch a new idea for a project' ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-agent-draft.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_CHAT=reasoning ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-agent-markdown.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-agent-markdown.png
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=reasoning ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-chat-wide.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=model-menu ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-model-menu.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-chat-wide.png
-          test -s Docs/Test_Results/Unreleased/visual/linux-model-menu.png
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-chat-review.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-chat-review.png
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-conversation-review.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-conversation-review.png
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-conversation-default.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-conversation-default.png
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT_CHAT_SCROLL=end ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-conversation-bottom.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-conversation-bottom.png
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_SETTINGS=import-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-import-review.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-import-review.png
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SETTINGS=import-verified-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-import-verified.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-import-verified.png
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_SETTINGS=custom-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-custom-endpoint.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-custom-endpoint.png
-          test -s Docs/Test_Results/Unreleased/visual/linux-agent-draft.png
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-settings.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-settings.png
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SETTINGS=models ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-models.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-models.png
-          xvfb-run -a env ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-collapsed.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-collapsed.png
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-agent-collapsed.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-agent-collapsed.png
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-settings-collapsed.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-settings-collapsed.png
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_MODE=3 ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-coding.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-coding.png
-          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_MEMORY=custom ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/linux-custom.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/linux-custom.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-about.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-about.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-agent.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-agent.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_DRAFT='Sketch a new idea for a project' ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-agent-draft.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_CHAT=reasoning ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-agent-markdown.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-agent-markdown.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=reasoning ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-chat-wide.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=model-menu ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-model-menu.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-chat-wide.png
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-model-menu.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-chat-review.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-chat-review.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-conversation-review.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-conversation-review.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-conversation-default.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-conversation-default.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT_CHAT_SCROLL=end ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-conversation-bottom.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-conversation-bottom.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_SETTINGS=import-review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-import-review.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-import-review.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SETTINGS=import-verified-review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-import-verified.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-import-verified.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_SETTINGS=custom-review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-custom-endpoint.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-custom-endpoint.png
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-agent-draft.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-settings.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-settings.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SETTINGS=models ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-models.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-models.png
+          xvfb-run -a env ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-collapsed.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-collapsed.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-agent-collapsed.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-agent-collapsed.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-settings-collapsed.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-settings-collapsed.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_MODE=3 ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-coding.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-coding.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_MEMORY=custom ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-custom.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-custom.png
       - name: Record results in repository
         if: always()
         continue-on-error: true # Concurrent evidence commits can conflict; never block OS build validation.
@@ -102,7 +103,7 @@ jobs:
         run: |
           git config user.name 'archx-ci[bot]'
           git config user.email 'archx-ci[bot]@users.noreply.github.com'
-          git add -A Docs/Test_Results/Unreleased/non_visual/ Docs/Test_Results/Unreleased/visual/
+          git add -A apps/archx-agent/docs/Test_Results/Unreleased/non_visual/ apps/archx-agent/docs/Test_Results/Unreleased/visual/
           if test -f Cargo.lock; then git add Cargo.lock; fi
           git diff --cached --quiet || (git commit -m 'Record Linux GUI validation' && git pull --rebase origin arena/53d9bc26-archx-agent && git push origin HEAD:arena/53d9bc26-archx-agent)
 
@@ -119,70 +120,70 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          mkdir -p Docs/Test_Results/Unreleased/{non_visual,visual} deliverables/Unreleased/windows
-          (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) > Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          python -c 'import pathlib,struct; data=pathlib.Path("target/release/archx-ai-lab.exe").read_bytes(); pe=struct.unpack_from("<I",data,0x3c)[0]; subsystem=struct.unpack_from("<H",data,pe+92)[0]; assert subsystem==2, f"Expected GUI subsystem 2, found {subsystem}"; print("PASS: Windows GUI subsystem 2 (no console)")' >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          powershell.exe -NoProfile -Command '$info=(Get-Item "target/release/archx-ai-lab.exe").VersionInfo; if ($info.CompanyName -ne "Archnemix" -or $info.ProductName -ne "Archx AI Lab") { throw "Incorrect PE product metadata" }; Write-Output "PASS: Archnemix Windows product metadata (not a digital signature)"' >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows.png
+          mkdir -p apps/archx-agent/docs/Test_Results/Unreleased/{non_visual,visual} deliverables/Unreleased/windows
+          (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) > apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          python -c 'import pathlib,struct; data=pathlib.Path("target/release/archx-ai-lab.exe").read_bytes(); pe=struct.unpack_from("<I",data,0x3c)[0]; subsystem=struct.unpack_from("<H",data,pe+92)[0]; assert subsystem==2, f"Expected GUI subsystem 2, found {subsystem}"; print("PASS: Windows GUI subsystem 2 (no console)")' >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          powershell.exe -NoProfile -Command '$info=(Get-Item "target/release/archx-ai-lab.exe").VersionInfo; if ($info.CompanyName -ne "Archnemix" -or $info.ProductName -ne "Archx AI Lab") { throw "Incorrect PE product metadata" }; Write-Output "PASS: Archnemix Windows product metadata (not a digital signature)"' >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows.png
           for phase in 1 3; do
-            ARCHX_SNAPSHOT_AGENT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-agent-phase-$phase.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-            test -s Docs/Test_Results/Unreleased/visual/windows-agent-phase-$phase.png
-            if cmp -s Docs/Test_Results/Unreleased/visual/windows.png Docs/Test_Results/Unreleased/visual/windows-agent-phase-$phase.png; then echo "FAIL: Windows Agent phase $phase matches rest" >> Docs/Test_Results/Unreleased/non_visual/windows.log; exit 1; fi
-            echo "PASS: Windows Agent phase $phase differs from rest" >> Docs/Test_Results/Unreleased/non_visual/windows.log
+            ARCHX_SNAPSHOT_AGENT_PHASE=$phase ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-agent-phase-$phase.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+            test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-agent-phase-$phase.png
+            if cmp -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows.png apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-agent-phase-$phase.png; then echo "FAIL: Windows Agent phase $phase matches rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log; exit 1; fi
+            echo "PASS: Windows Agent phase $phase differs from rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log
           done
           for phase in 1 2; do
-            ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-training-hover-$phase.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-            test -s Docs/Test_Results/Unreleased/visual/windows-training-hover-$phase.png
+            ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-training-hover-$phase.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+            test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-training-hover-$phase.png
           done
           for phase in 1 2; do
-            ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-tuning-hover-$phase.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-            test -s Docs/Test_Results/Unreleased/visual/windows-tuning-hover-$phase.png
+            ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-tuning-hover-$phase.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+            test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-tuning-hover-$phase.png
           done
           for card in training tuning; do
-            if cmp -s Docs/Test_Results/Unreleased/visual/windows.png Docs/Test_Results/Unreleased/visual/windows-$card-hover-1.png; then echo "FAIL: Windows $card hover matches rest" >> Docs/Test_Results/Unreleased/non_visual/windows.log; exit 1; fi
-            echo "PASS: Windows $card hover phase differs from rest" >> Docs/Test_Results/Unreleased/non_visual/windows.log
+            if cmp -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows.png apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-$card-hover-1.png; then echo "FAIL: Windows $card hover matches rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log; exit 1; fi
+            echo "PASS: Windows $card hover phase differs from rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log
           done
-          ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-about.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-about.png
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-agent.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-agent.png
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_DRAFT='Sketch a new idea for a project' ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-agent-draft.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_CHAT=reasoning ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-agent-markdown.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-agent-markdown.png
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=reasoning ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-chat-wide.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=model-menu ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-model-menu.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-chat-wide.png
-          test -s Docs/Test_Results/Unreleased/visual/windows-model-menu.png
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-chat-review.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-chat-review.png
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-conversation-review.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-conversation-review.png
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-conversation-default.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-conversation-default.png
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT_CHAT_SCROLL=end ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-conversation-bottom.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-conversation-bottom.png
-          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_SETTINGS=import-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-import-review.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-import-review.png
-          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SETTINGS=import-verified-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-import-verified.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-import-verified.png
-          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_SETTINGS=custom-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-custom-endpoint.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-custom-endpoint.png
-          test -s Docs/Test_Results/Unreleased/visual/windows-agent-draft.png
-          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-settings.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-settings.png
-          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SETTINGS=models ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-models.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-models.png
-          ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-collapsed.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-collapsed.png
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-agent-collapsed.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-agent-collapsed.png
-          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-settings-collapsed.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-settings-collapsed.png
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_MODE=3 ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-coding.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-coding.png
-          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_MEMORY=custom ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/windows-custom.png ./target/release/archx-ai-lab.exe >> Docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/windows-custom.png
+          ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-about.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-about.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-agent.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-agent.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_DRAFT='Sketch a new idea for a project' ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-agent-draft.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_CHAT=reasoning ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-agent-markdown.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-agent-markdown.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=reasoning ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-chat-wide.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=model-menu ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-model-menu.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-chat-wide.png
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-model-menu.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-chat-review.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-chat-review.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-conversation-review.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-conversation-review.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-conversation-default.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-conversation-default.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT_CHAT_SCROLL=end ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-conversation-bottom.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-conversation-bottom.png
+          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_SETTINGS=import-review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-import-review.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-import-review.png
+          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SETTINGS=import-verified-review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-import-verified.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-import-verified.png
+          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_SETTINGS=custom-review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-custom-endpoint.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-custom-endpoint.png
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-agent-draft.png
+          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-settings.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-settings.png
+          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SETTINGS=models ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-models.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-models.png
+          ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-collapsed.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-collapsed.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-agent-collapsed.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-agent-collapsed.png
+          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-settings-collapsed.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-settings-collapsed.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_MODE=3 ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-coding.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-coding.png
+          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_MEMORY=custom ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-custom.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-custom.png
           cp target/release/archx-ai-lab.exe deliverables/Unreleased/windows/archx-ai-lab.exe
       - name: Record results and Windows build in repository
         if: always()
@@ -191,7 +192,7 @@ jobs:
         run: |
           git config user.name 'archx-ci[bot]'
           git config user.email 'archx-ci[bot]@users.noreply.github.com'
-          git add -A Docs/Test_Results/Unreleased/non_visual/ Docs/Test_Results/Unreleased/visual/ deliverables/Unreleased/windows/
+          git add -A apps/archx-agent/docs/Test_Results/Unreleased/non_visual/ apps/archx-agent/docs/Test_Results/Unreleased/visual/ deliverables/Unreleased/windows/
           git diff --cached --quiet || (git commit -m 'Record Windows GUI validation and build' && git pull --rebase origin arena/53d9bc26-archx-agent && git push origin HEAD:arena/53d9bc26-archx-agent)
 
   macos:
@@ -207,68 +208,68 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          mkdir -p Docs/Test_Results/Unreleased/{non_visual,visual}
-          (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) > Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos.png
+          mkdir -p apps/archx-agent/docs/Test_Results/Unreleased/{non_visual,visual}
+          (echo 'COMMAND: cargo test --locked'; cargo test --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked) > apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos.png
           for phase in 1 3; do
-            ARCHX_SNAPSHOT_AGENT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-agent-phase-$phase.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-            test -s Docs/Test_Results/Unreleased/visual/macos-agent-phase-$phase.png
-            if cmp -s Docs/Test_Results/Unreleased/visual/macos.png Docs/Test_Results/Unreleased/visual/macos-agent-phase-$phase.png; then echo "FAIL: macOS Agent phase $phase matches rest" >> Docs/Test_Results/Unreleased/non_visual/macos.log; exit 1; fi
-            echo "PASS: macOS Agent phase $phase differs from rest" >> Docs/Test_Results/Unreleased/non_visual/macos.log
+            ARCHX_SNAPSHOT_AGENT_PHASE=$phase ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-agent-phase-$phase.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+            test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-agent-phase-$phase.png
+            if cmp -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos.png apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-agent-phase-$phase.png; then echo "FAIL: macOS Agent phase $phase matches rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log; exit 1; fi
+            echo "PASS: macOS Agent phase $phase differs from rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log
           done
           for phase in 1 2; do
-            ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-training-hover-$phase.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-            test -s Docs/Test_Results/Unreleased/visual/macos-training-hover-$phase.png
+            ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-training-hover-$phase.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+            test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-training-hover-$phase.png
           done
           for phase in 1 2; do
-            ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-tuning-hover-$phase.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-            test -s Docs/Test_Results/Unreleased/visual/macos-tuning-hover-$phase.png
+            ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-tuning-hover-$phase.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+            test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-tuning-hover-$phase.png
           done
           for card in training tuning; do
-            if cmp -s Docs/Test_Results/Unreleased/visual/macos.png Docs/Test_Results/Unreleased/visual/macos-$card-hover-1.png; then echo "FAIL: macOS $card hover matches rest" >> Docs/Test_Results/Unreleased/non_visual/macos.log; exit 1; fi
-            echo "PASS: macOS $card hover phase differs from rest" >> Docs/Test_Results/Unreleased/non_visual/macos.log
+            if cmp -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos.png apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-$card-hover-1.png; then echo "FAIL: macOS $card hover matches rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log; exit 1; fi
+            echo "PASS: macOS $card hover phase differs from rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log
           done
-          ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-about.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-about.png
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-agent.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-agent.png
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_DRAFT='Sketch a new idea for a project' ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-agent-draft.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_CHAT=reasoning ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-agent-markdown.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-agent-markdown.png
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=reasoning ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-chat-wide.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=model-menu ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-model-menu.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-chat-wide.png
-          test -s Docs/Test_Results/Unreleased/visual/macos-model-menu.png
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-chat-review.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-chat-review.png
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-conversation-review.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-conversation-review.png
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-conversation-default.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-conversation-default.png
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT_CHAT_SCROLL=end ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-conversation-bottom.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-conversation-bottom.png
-          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_SETTINGS=import-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-import-review.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-import-review.png
-          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SETTINGS=import-verified-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-import-verified.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-import-verified.png
-          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_SETTINGS=custom-review ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-custom-endpoint.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-custom-endpoint.png
-          test -s Docs/Test_Results/Unreleased/visual/macos-agent-draft.png
-          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-settings.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-settings.png
-          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SETTINGS=models ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-models.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-models.png
-          ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-collapsed.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-collapsed.png
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-agent-collapsed.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-agent-collapsed.png
-          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-settings-collapsed.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-settings-collapsed.png
-          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_MODE=3 ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-coding.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-coding.png
-          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_MEMORY=custom ARCHX_SNAPSHOT=Docs/Test_Results/Unreleased/visual/macos-custom.png ./target/release/archx-ai-lab >> Docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-          test -s Docs/Test_Results/Unreleased/visual/macos-custom.png
+          ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-about.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-about.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-agent.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-agent.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_DRAFT='Sketch a new idea for a project' ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-agent-draft.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_CHAT=reasoning ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-agent-markdown.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-agent-markdown.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=reasoning ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-chat-wide.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=model-menu ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-model-menu.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-chat-wide.png
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-model-menu.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-chat-review.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-chat-review.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-conversation-review.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-conversation-review.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-conversation-default.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-conversation-default.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=conversation-review ARCHX_SNAPSHOT_CHAT_SCROLL=end ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-conversation-bottom.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-conversation-bottom.png
+          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_SETTINGS=import-review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-import-review.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-import-review.png
+          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SETTINGS=import-verified-review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-import-verified.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-import-verified.png
+          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_SETTINGS=custom-review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-custom-endpoint.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-custom-endpoint.png
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-agent-draft.png
+          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-settings.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-settings.png
+          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SETTINGS=models ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-models.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-models.png
+          ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-collapsed.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-collapsed.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-agent-collapsed.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-agent-collapsed.png
+          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-settings-collapsed.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-settings-collapsed.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_MODE=3 ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-coding.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-coding.png
+          ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_MEMORY=custom ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-custom.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-custom.png
       - name: Record results in repository
         if: always()
         continue-on-error: true # Concurrent evidence commits can conflict; never block OS build validation.
@@ -276,5 +277,5 @@ jobs:
         run: |
           git config user.name 'archx-ci[bot]'
           git config user.email 'archx-ci[bot]@users.noreply.github.com'
-          git add -A Docs/Test_Results/Unreleased/non_visual/ Docs/Test_Results/Unreleased/visual/
+          git add -A apps/archx-agent/docs/Test_Results/Unreleased/non_visual/ apps/archx-agent/docs/Test_Results/Unreleased/visual/
           git diff --cached --quiet || (git commit -m 'Record macOS GUI validation' && git pull --rebase origin arena/53d9bc26-archx-agent && git push origin HEAD:arena/53d9bc26-archx-agent)

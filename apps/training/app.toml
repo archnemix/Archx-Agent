@@ -1,0 +1,8 @@
+# Purpose: Model Training app manifest. Code and docs for this app live in this folder; the launcher only reads this file.
+id = "training"
+name = "Model Training"
+category = "BUILD MODELS"
+summary = "Design a dataset, train a small model, then evaluate it before it leaves the lab. Code for this app is being built here."
+status = "building"
+art = "workbench"
+modes = ["DESIGN", "TRAIN", "EVALUATE", "SHIP"]

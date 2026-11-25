@@ -1,0 +1,18 @@
+# Purpose: Declares the Archx Agent as its own crate so the launcher can host it in-process.
+[package]
+name = "archx-agent"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+name = "archx_agent"
+path = "src/lib.rs"
+
+[dependencies]
+archx-shared = { path = "../../shared" }
+iced = { version = "0.14.0", features = ["tokio", "image", "svg", "markdown", "sipper"] }
+keyring = { version = "4.2", default-features = true }
+serde_json = "1"
+tokio = { version = "1", features = ["rt", "time"] }
+zeroize = "1.8"

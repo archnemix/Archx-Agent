@@ -1,1580 +1,372 @@
-//! Purpose: Owns navigation, ephemeral Chat/Settings state, explicit provider actions, and screenshots.
-use std::collections::HashSet;
+//! Purpose: Owns launcher navigation, app discovery, the launcher↔app transition and launcher-only settings.
+//!
+//! The launcher knows nothing about any individual app's features. It reads
+//! `apps/*/app.toml` at start-up (`archx_shared::apps`), renders a tile per
+//! manifest, and hands the Agent its own state when the Agent surface is open.
+//! Launcher-only preferences (display scale, memory scope, data location) live
+//! here; app preferences live inside the app that owns them.
+
 use std::path::PathBuf;
 use std::time::Duration;
 
 use iced::time;
-use iced::task::sipper;
-use iced::window;
 use iced::{Element, Subscription, Task};
-use iced::widget::text_editor;
-use std::fmt;
 
-use crate::agent_visual::MODE_COUNT;
-use crate::app_tile::Art;
-use crate::home;
-use crate::model_catalog::{self, CatalogModel};
-use crate::credentials::{Provider, Vault, VaultError};
-use crate::custom_endpoint;
-use crate::provider_api::{self, Turn, Reply, CallError};
-use iced::widget::markdown;
-use crate::settings::{SecretText, Section, SettingsState};
-use zeroize::Zeroizing;
-use std::time::Instant;
+use archx_agent::app::{App as AgentApp, MemoryMode, Message as AgentMessage};
+use archx_shared::apps::{self, App};
+use archx_shared::storage::Area as StorageArea;
+use archx_shared::persist::DisplaySettings;
+use archx_shared::{storage, style};
+use crate::navigation;
+use crate::transition::Transition;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Page {
     Home,
-    Agent,
-    Settings,
     About,
+    Agent,
+    AgentSettings,
+    AgentDebug,
+    /// Launcher-owned settings (display scale, memory scope, storage, apps).
+    LabSettings,
 }
 
+impl Page {
+    /// The page a stored `last_page` id refers to.
+    pub fn from_id(id: &str) -> Self {
+        match id {
+            "agent" => Self::Agent,
+            "settings" => Self::AgentSettings,
+            "debug" => Self::AgentDebug,
+            "lab-settings" => Self::LabSettings,
+            "about" => Self::About,
+            _ => Self::Home,
+        }
+    }
+
+    pub fn id(self) -> &'static str {
+        match self {
+            Self::Home => "home",
+            Self::About => "about",
+            Self::Agent => "agent",
+            Self::AgentSettings => "settings",
+            Self::AgentDebug => "debug",
+            Self::LabSettings => "lab-settings",
+        }
+    }
+
+    pub fn is_agent_surface(self) -> bool {
+        matches!(self, Self::Agent | Self::AgentSettings | Self::AgentDebug)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Message {
+    Agent(AgentMessage),
+    Navigate(Page),
+    ToggleSidebar,
+    Tick,
+    Animate,
+    LaunchApp(String),
+    /// A transition finished (or arrived late); used by tests and the ticker.
+    TransitionTick(u64),
+    /// Launcher display scale, per area.
+    ScaleIn(Area),
+    ScaleOut(Area),
+    ScaleReset(Area),
+    /// Launcher memory scope for its own resident data.
+    LauncherScope(Scope),
+    /// Launcher memory scope for the Agent app, handed to it as a message.
+    AgentScope(Scope),
+    Wipe(Area),
+    WipeAll,
+    StorageReport(String),
+    RefreshApps,
+    DismissNotice,
+    /// The Agent asked to return to the launcher rail.
+    BackToLauncher,
+    /// Screenshot support.
+    SnapshotTick,
+    SnapshotReady(window::screenshot::Screenshot),
+    SnapshotSetPage(String),
+    SnapshotSetApp(String),
+}
+
+/// Which area of the interface a scale control affects.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MemoryMode {
+pub enum Area {
+    Chat,
+    Settings,
+    Launcher,
+}
+
+/// How much of an app's data may stay resident. Handed to the app as a message.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Scope {
     Light,
+    Balanced,
     Heavy,
     Custom,
 }
 
-pub struct ChatDraft {
-    pub id: u32,
-    pub mode: u8,
-    pub text: String,
-    pub editor: text_editor::Content,
-    pub formatted: Vec<(usize, markdown::Content, Option<markdown::Content>, bool)>,
-    pub partial: Option<(markdown::Content, Option<markdown::Content>)>,
-    pub partial_raw: Option<Reply>,
-    pub partial_reasoning_open: bool,
-    pub partial_reasoning_touched: bool,
-    pub incomplete_slots: Vec<usize>,
-    pub request_handle: Option<iced::task::Handle>,
-    pub turns: Vec<Turn>,
-    pub busy: bool,
-    pub follow_tail: bool,
-    pub error: Option<String>,
+impl Scope {
+    pub const ALL: [Self; 4] = [Self::Light, Self::Balanced, Self::Heavy, Self::Custom];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Light => "Light",
+            Self::Balanced => "Balanced",
+            Self::Heavy => "Heavy",
+            Self::Custom => "Custom",
+        }
+    }
+
+    /// The Agent's own memory-mode equivalent.
+    pub fn memory_mode(self) -> MemoryMode {
+        match self {
+            Self::Light => MemoryMode::Light,
+            Self::Heavy | Self::Balanced => MemoryMode::Heavy,
+            Self::Custom => MemoryMode::Custom,
+        }
+    }
 }
 
-#[derive(Clone)]
-pub struct SecretReply(pub Reply);
-impl fmt::Debug for SecretReply {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { f.write_str("[redacted reply]") }
-}
-
-
-#[derive(Clone)]
-pub struct EditorAction(pub text_editor::Action);
-impl fmt::Debug for EditorAction {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { f.write_str("[redacted editor action]") }
-}
-
-
-#[derive(Debug, Clone)]
-pub enum Message {
-    Navigate(Page),
-    ToggleSidebar,
-    NewChat,
-    OpenChat(u32),
-    SelectMode(u8),
-    EditDraft(u32, SecretText),
-    EditEditor(u32, EditorAction),
-    ClearDraft(u32),
-    MemoryPreview(MemoryMode),
-    ToggleAgentPreview,
-    TileHover(Art, bool),
-    Animate,
-    AgentPulse,
-    SettingsSection(Section),
-    OpenModelSettings,
-    OpenModelCatalogSettings,
-    SelectProvider(Provider),
-    EditKey(SecretText),
-    CustomUrl(String),
-    CustomHeaders(SecretText),
-    CustomBody(String),
-    CustomAnswer(String),
-    CustomDelta(String),
-    CustomStream,
-    CustomCurl(SecretText),
-    ImportCustomCurl,
-    ApproveCustom,
-    CustomOpenAiPreset,
-    CustomAnthropicPreset,
-    ExpectedWord(String),
-    SaveKey,
-    KeySaved(Provider, Result<u64, VaultError>),
-    RefreshKeys,
-    KeysLoaded(Provider, Result<Vec<u64>, VaultError>),
-    RemoveKey(u64),
-    KeyRemoved(Provider, Result<(), VaultError>),
-    RevealKey(u64),
-    HideKey,
-    KeyRevealed(u64, u64, Result<SecretText, VaultError>),
-    RevealExpired(u64),
-    EditModel(String),
-    AddModel,
-    StageCatalogId,
-    ChooseModel(usize),
-    RemoveModel(usize),
-    FetchModels,
-    ModelsFetched(Provider, u64, Result<Vec<CatalogModel>, String>),
-    SearchModels(String),
-    AddCatalogModel(Provider, usize),
-    OpenCatalogModal,
-    CloseCatalogModal,
-    SelectMatchingModels,
-    ClearCatalogSelection,
-    ToggleCatalogVerified,
-    CatalogNext,
-    CatalogPrevious,
-    ToggleCatalogSelection(Provider, usize),
-    ImportSelectedModels,
-    RequestCatalogProbe,
-    CancelCatalogProbe,
-    ConfirmCatalogProbe,
-    CatalogProbeProgress(Provider, u64, String, Result<(SecretText, u128), String>),
-    CatalogProbeDone(Provider, u64, Result<(), String>),
-    SendChat,
-    StopChat,
-    ChatResult(u32, Result<SecretReply, String>),
-    ToggleReasoning(u32, usize),
-    ToggleStreaming,
-    ToggleModelMenu,
-    ToggleModeMenu,
-    SearchChatModels(String),
-    ChatProgress(u32, SecretReply),
-    ChatScrolled(u32, bool),
-    JumpToLatest,
-    IgnoreMarkdownLink,
-    CopyCode(SecretText),
-    RunTest,
-    TestResult(Result<SecretText, String>),
-    SnapshotTick,
-    SnapshotReady(window::screenshot::Screenshot),
+/// The id the Agent understands for a launcher surface.
+pub fn surface_id(page: Page) -> &'static str {
+    match page {
+        Page::AgentSettings => "settings",
+        Page::AgentDebug => "debug",
+        _ => "agent",
+    }
 }
 
 pub struct App {
-    page: Page,
-    sidebar_expanded: bool,
-    drafts: Vec<ChatDraft>,
-    selected_draft: u32,
-    model_menu_open: bool,
-    mode_menu_open: bool,
-    chat_model_search: String,
-    memory_preview: MemoryMode,
-    settings: SettingsState,
-    key_cursor: [usize; Provider::COUNT],
-    probe_handle: Option<iced::task::Handle>,
-    keep_agent_preview: bool,
+    pub page: Page,
+    pub sidebar_expanded: bool,
+    pub apps: Vec<apps::App>,
+    pub transition: Option<Transition>,
+    pub display: DisplaySettings,
+    pub agent: AgentApp,
+    pub agent_scope: Scope,
+    pub launcher_scope: Scope,
+    pub notice: Option<String>,
+    pub storage_path: String,
+    pub memory_usage: Vec<archx_shared::memory::Usage>,
+    /// Tile artwork cycle for Discover.
+    phase: u8,
     snapshot: Option<PathBuf>,
     snapshot_requested: bool,
-    snapshot_scrolled: bool,
-    hovered: Option<Art>,
-    phase: u8,
-    agent_phase: u8,
-    frozen_snapshot_phase: bool,
+    snapshot_page: Option<String>,
+    snapshot_app: Option<String>,
+    ticker: bool,
 }
 
 impl App {
     pub fn new() -> Self {
         let snapshot = std::env::var_os("ARCHX_SNAPSHOT").map(PathBuf::from);
+        let discovered = apps::discover();
+        let persisted = archx_shared::persist::PersistedSettings::load();
+        let display = persisted.as_ref().map(|settings| settings.display).unwrap_or_default();
         let page = if snapshot.is_some() {
             match std::env::var("ARCHX_SNAPSHOT_PAGE").as_deref() {
-                Ok("about") => Page::About,
                 Ok("agent") => Page::Agent,
-                Ok("settings") => Page::Settings,
+                Ok("settings") => Page::AgentSettings,
+                Ok("debug") => Page::AgentDebug,
+                Ok("about") => Page::About,
+                Ok("lab-settings") => Page::LabSettings,
                 _ => Page::Home,
             }
-        } else {
-            Page::Home
-        };
-        let preview_art = if snapshot.is_some() && page == Page::Home {
-            match std::env::var("ARCHX_SNAPSHOT_HOVER").as_deref() {
-                Ok("training") => Some(Art::Training),
-                Ok("tuning") => Some(Art::Tuning),
-                _ => None,
-            }
-        } else {
-            None
-        };
-        let phase = if snapshot.is_some() {
-            std::env::var("ARCHX_SNAPSHOT_PHASE")
-                .ok()
-                .and_then(|value| value.parse::<u8>().ok())
-                .filter(|phase| *phase < 3)
-        } else {
-            None
-        };
-        let agent_phase = if snapshot.is_some() {
-            std::env::var("ARCHX_SNAPSHOT_AGENT_PHASE")
-                .ok()
-                .and_then(|value| value.parse::<u8>().ok())
-                .filter(|phase| *phase < MODE_COUNT)
-                .unwrap_or(0)
-        } else {
-            0
-        };
-        let preview_mode = if snapshot.is_some() && page == Page::Agent {
-            std::env::var("ARCHX_SNAPSHOT_MODE").ok()
-                .and_then(|value| value.parse::<u8>().ok())
-                .filter(|mode| *mode < MODE_COUNT)
-                .unwrap_or(0)
-        } else { 0 };
-        let preview_memory = if snapshot.is_some() && page == Page::Settings
-            && std::env::var("ARCHX_SNAPSHOT_MEMORY").as_deref() == Ok("custom") {
-            MemoryMode::Custom
-        } else { MemoryMode::Light };
-        // CI may capture an unsent draft state. Normal launches always start empty.
-        let preview_text = if snapshot.is_some() && page == Page::Agent {
-            std::env::var("ARCHX_SNAPSHOT_DRAFT").unwrap_or_default()
-        } else { String::new() };
-        let mut settings = SettingsState::default();
-        if snapshot.is_some() && page == Page::Settings {
-            settings.section = match std::env::var("ARCHX_SNAPSHOT_SETTINGS").as_deref() {
-                Ok("models" | "import-review" | "import-verified-review") => Section::Models,
-                _ if preview_memory == MemoryMode::Custom => Section::Lab,
-                _ => Section::Providers,
-            };
-        }
-        if snapshot.is_some() && page == Page::Settings &&
-            std::env::var("ARCHX_SNAPSHOT_SETTINGS").as_deref() == Ok("custom-review") {
-            settings.provider = Provider::Custom;
-            settings.custom.url = "https://example.invalid/v1/chat/completions".into();
-            settings.custom.headers = Zeroizing::new("Authorization: Bearer {{api_key}}".into());
-            settings.status = "Synthetic fixture: no request was sent and no destination was approved.".into();
-        }
-        if snapshot.is_some() && page == Page::Settings &&
-            matches!(std::env::var("ARCHX_SNAPSHOT_SETTINGS").as_deref(), Ok("import-review" | "import-verified-review")) {
-            settings.catalog[0] = vec![
-                CatalogModel { id: "vendor/alpha:free".into(), name: "Alpha".into(), free: true, router: false, reasoning: false },
-                CatalogModel { id: "vendor/beta".into(), name: "Beta".into(), free: false, router: false, reasoning: true },
-                CatalogModel { id: "vendor/gamma".into(), name: "Gamma".into(), free: false, router: false, reasoning: false },
-            ];
-            settings.probe_results.push(("vendor/beta".into(), true, "OK".into()));
-            settings.probe_results.push(("vendor/gamma".into(), false, "HTTP 429 · account quota exceeded".into()));
-            settings.catalog_modal = true;
-            settings.catalog_selected[0] = vec!["vendor/beta".into()];
-            if std::env::var("ARCHX_SNAPSHOT_SETTINGS").as_deref() == Ok("import-verified-review") {
-                settings.catalog_only_verified = true;
-                settings.catalog_selected[0].push("vendor/gamma".into());
-            }
-        }
-        let mut drafts = vec![ChatDraft { id: 1, mode: preview_mode,
-            editor: text_editor::Content::with_text(&preview_text), text: preview_text,
-            formatted: Vec::new(), partial: None, partial_raw: None, partial_reasoning_open: true, partial_reasoning_touched: false, incomplete_slots: Vec::new(), request_handle: None, turns: Vec::new(), busy: false, follow_tail: true, error: None }];
-        // Only scripted CI screenshots use synthetic messages; normal launches start empty.
-        if snapshot.is_some() && page == Page::Agent && matches!(std::env::var("ARCHX_SNAPSHOT_CHAT").as_deref(), Ok("reasoning" | "model-menu" | "review")) {
-            settings.models[0] = vec!["demo/model:free".into(), "demo/another".into()];
-            settings.chosen[0] = Some(0);
-            if matches!(std::env::var("ARCHX_SNAPSHOT_CHAT").as_deref(), Ok("reasoning" | "review")) {
-            drafts[0].turns = vec![
-                Turn { role: "user", content: "Show a short example".into() },
-                Turn { role: "assistant", content: "## Example\n\nA **bold** answer with `code`.\n\n- First item\n- Second item".into() },
-            ];
-            if std::env::var("ARCHX_SNAPSHOT_CHAT").as_deref() == Ok("review") {
-                drafts[0].turns[1].content = "# Server-sent events\n\nSSE keeps one HTTP response open and delivers updates as they arrive.\n\n```javascript\nconst source = new EventSource('/events');\nsource.onmessage = (event) => console.log(event.data);\n```\n\n| Feature | SSE | Polling |\n| :--- | :--- | :--- |\n| Connection | Persistent | Repeated requests |\n| Direction | Server to client | Request/response |".into();
-            }
-            let demo_answer = drafts[0].turns[1].content.clone();
-            drafts[0].formatted.push((1,
-                markdown::Content::parse(&demo_answer),
-                Some(markdown::Content::parse("The provider returned this synthetic reasoning content. It is collapsed unless the user opens it.")),
-                std::env::var("ARCHX_SNAPSHOT_CHAT").as_deref() == Ok("review")));
-            }
-        }
-        // Offline visual review only: several distinct turns exercise plain
-        // replies, returned reasoning, long-form Markdown, code and tables.
-        // A normal Chat session never receives these fixture messages.
-        if snapshot.is_some() && page == Page::Agent &&
-            std::env::var("ARCHX_SNAPSHOT_CHAT").as_deref() == Ok("conversation-review") {
-            settings.models[0] = vec!["demo/review-model".into()];
-            settings.chosen[0] = Some(0);
-            let turns = [
-                ("user", "Hi! How are you? Also explain how SSE streaming works."),
-                ("assistant", "I'm here to help. SSE keeps one HTTP response open while the server sends updates as they happen."),
-                ("user", "Can you show JavaScript and compare SSE with polling?"),
-                ("assistant", "## How SSE works\n\nA browser opens an `EventSource` and reads updates as they arrive. Unlike polling, the connection stays open.\n\n```javascript\nconst source = new EventSource('/events');\nsource.onmessage = (event) => console.log(event.data);\n```\n\n| Feature | SSE | Polling |\n| :--- | :--- | :--- |\n| Connection | Persistent | Repeated requests |\n| Direction | Server to client | Request/response |"),
-            ];
-            drafts[0].turns = turns.into_iter().map(|(role, content)| Turn { role, content: content.into() }).collect();
-            let answer_one = drafts[0].turns[1].content.clone();
-            let answer_two = drafts[0].turns[3].content.clone();
-            drafts[0].formatted = vec![
-                (1, markdown::Content::parse(&answer_one), None, false),
-                (3, markdown::Content::parse(&answer_two),
-                    Some(markdown::Content::parse("The user asked for a JavaScript example and a comparison. Explain the open connection and keep the code and table focused on that question.")), true),
-            ];
-        }
+        } else { Page::Home };
+        let mut agent = AgentApp::new(persisted);
+        // A screenshot run must never need the app's own launch path.
+        if snapshot.is_some() { agent.prepare_snapshot(surface_id(page)); }
         Self {
             page,
             sidebar_expanded: !(snapshot.is_some()
                 && std::env::var("ARCHX_SNAPSHOT_SIDEBAR").as_deref() == Ok("collapsed")),
-            drafts,
-            selected_draft: 1,
-            model_menu_open: snapshot.is_some() && page == Page::Agent
-                && std::env::var("ARCHX_SNAPSHOT_CHAT").as_deref() == Ok("model-menu"),
-            mode_menu_open: false,
-            chat_model_search: String::new(),
-            memory_preview: preview_memory,
-            settings,
-            key_cursor: [0; Provider::COUNT],
-            probe_handle: None,
-            keep_agent_preview: false,
+            apps: discovered,
+            // Screenshots are deterministic: no in-flight animation.
+            transition: None,
+            display,
+            agent,
+            agent_scope: Scope::Balanced,
+            launcher_scope: Scope::Light,
+            notice: None,
+            storage_path: storage::display_path(),
+            memory_usage: Vec::new(),
+            phase: 0,
             snapshot,
             snapshot_requested: false,
-            snapshot_scrolled: false,
-            hovered: preview_art,
-            phase: phase.unwrap_or(0),
-            agent_phase,
-            frozen_snapshot_phase: phase.is_some(),
+            snapshot_page: std::env::var("ARCHX_SNAPSHOT_CHAT").ok(),
+            snapshot_app: None,
+            ticker: false,
         }
+    }
+
+    /// The live app record for an id, if it is openable.
+    pub fn launchable(&self, id: &str) -> Option<&apps::App> {
+        self.apps.iter().find(|app| app.id == id && app.is_live())
+    }
+
+    fn go(&mut self, page: Page) -> Task<Message> {
+        if page == self.page { return Task::none(); }
+        // Leaving the Agent is an explicit exit: it aborts in-flight work there.
+        if !page.is_agent_surface() && self.page.is_agent_surface() {
+            self.agent.leave_app();
+        }
+        if self.snapshot.is_none() {
+            self.transition = Some(Transition::between(self.page, page));
+        }
+        self.page = page;
+        if page.is_agent_surface() { self.agent.enter_surface(surface_id(page)); }
+        self.ticker = self.snapshot.is_none();
+        Task::none()
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::Navigate(page) => {
-                if page == Page::Home {
-                    // Leaving the Agent is an exit, not a hidden background generation.
-                    // Abort every active chat and preserve any partial answer as incomplete.
-                    let active: Vec<_> = self.drafts.iter_mut().filter(|draft| draft.busy).map(|draft| {
-                        if let Some(handle) = draft.request_handle.take() { handle.abort(); }
-                        draft.id
-                    }).collect();
-                    for id in active {
-                        let _ = self.update(Message::ChatResult(id,
-                            Err("Agent closed. Any received text was preserved as incomplete.".into())));
-                    }
+            Message::Navigate(page) => return self.go(page),
+            Message::LaunchApp(id) => {
+                if self.launchable(&id).is_some() {
+                    // The Agent's manifest id is the only in-process app today.
+                    if id == "archx-agent" { return self.go(Page::Agent); }
                 }
-                if page != Page::Settings {
-                    self.settings.clear_secret();
-                    if let Some(handle) = self.probe_handle.take() { handle.abort(); }
-                    self.settings.probe_busy = false;
-                    self.settings.probe_nonce = self.settings.probe_nonce.wrapping_add(1);
+                self.notice = self.apps.iter().find(|app| app.id == id)
+                    .map(|app| format!("{} is not available yet ({}). Its folder and docs are in place; its code is not.", app.name, app.status));
+            }
+            Message::ToggleSidebar => self.sidebar_expanded = !self.sidebar_expanded,
+            Message::BackToLauncher => return self.go(Page::Home),
+            Message::RefreshApps => {
+                self.apps = apps::discover();
+                let count = self.apps.len();
+                self.notice = Some(format!("Rescanned apps: {count} manifest(s) found."));
+            }
+            Message::Tick | Message::Animate => {
+                if let Some(transition) = self.transition {
+                    let advanced = transition.advance(crate::transition::FRAME_MS);
+                    self.transition = (!advanced.is_complete()).then_some(advanced);
                 }
-                self.page = page;
-                self.model_menu_open = false;
-                self.mode_menu_open = false;
-                self.hovered = None;
-                self.settings.discard_catalog_staging();
-                self.settings.catalog_modal = false;
-                if page == Page::Settings { return self.update(Message::RefreshKeys); }
-            }
-            Message::OpenModelSettings => {
-                self.page = Page::Settings;
-                self.model_menu_open = false;
-                self.mode_menu_open = false;
-                self.settings.section = Section::Providers;
-                self.settings.discard_catalog_staging();
-                self.settings.catalog_modal = false;
-                return self.update(Message::RefreshKeys);
-            }
-            Message::OpenModelCatalogSettings => {
-                self.page = Page::Settings;
-                self.model_menu_open = false;
-                self.mode_menu_open = false;
-                self.settings.section = Section::Models;
-                self.settings.discard_catalog_staging();
-                self.settings.catalog_modal = false;
-                return self.update(Message::RefreshKeys);
-            }
-            Message::ToggleSidebar => {
-                self.sidebar_expanded = !self.sidebar_expanded;
-            }
-            Message::NewChat if matches!(self.page, Page::Agent | Page::Settings) => {
-                self.page = Page::Agent;
-                self.settings.clear_secret();
-                let id = self.drafts.last().map_or(1, |draft| draft.id + 1);
-                self.drafts.push(ChatDraft { id, mode: 0, text: String::new(), editor: text_editor::Content::new(), formatted: Vec::new(), partial: None, partial_raw: None, partial_reasoning_open: true, partial_reasoning_touched: false, incomplete_slots: Vec::new(), request_handle: None, turns: Vec::new(), busy: false, follow_tail: true, error: None });
-                self.selected_draft = id;
-                self.model_menu_open = false;
-                self.mode_menu_open = false;
-            }
-            Message::OpenChat(id) if matches!(self.page, Page::Agent | Page::Settings) && self.drafts.iter().any(|draft| draft.id == id) => {
-                self.page = Page::Agent;
-                self.settings.clear_secret();
-                self.selected_draft = id;
-                self.model_menu_open = false;
-                self.mode_menu_open = false;
-                if self.drafts.iter().any(|draft| draft.id == id && draft.follow_tail && !draft.turns.is_empty()) {
-                    return iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::START);
+                if self.page == Page::Home {
+                    self.phase = self.phase.wrapping_add(1);
+                    return Task::none();
                 }
             }
-            Message::SelectMode(mode) if self.page == Page::Agent && mode < MODE_COUNT => {
-                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == self.selected_draft) {
-                    draft.mode = mode;
-                    self.mode_menu_open = false;
+            Message::TransitionTick(elapsed) => {
+                if let Some(transition) = self.transition {
+                    let advanced = transition.advance(elapsed);
+                    self.transition = (!advanced.is_complete()).then_some(advanced);
                 }
             }
-            Message::EditEditor(id, EditorAction(action)) if self.page == Page::Agent && self.selected_draft == id => {
-                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) {
-                    if !draft.busy {
-                        let prior = draft.text.clone();
-                        draft.editor.perform(action);
-                        let updated = draft.editor.text();
-                        if updated.chars().count() <= 4000 { draft.text = updated; }
-                        else { draft.editor = text_editor::Content::with_text(&prior); }
-                    }
-                }
+            Message::ScaleIn(area) => self.scale(area, true),
+            Message::ScaleOut(area) => self.scale(area, false),
+            Message::ScaleReset(area) => {
+                self.display = match area {
+                    Area::Chat => DisplaySettings { chat: Default::default(), ..self.display },
+                    Area::Settings => DisplaySettings { settings: Default::default(), ..self.display },
+                    Area::Launcher => DisplaySettings { launcher: Default::default(), ..self.display },
+                };
+                self.save();
             }
-            Message::EditDraft(id, text) if self.page == Page::Agent && self.selected_draft == id => {
-                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) {
-                    if !draft.busy && text.0.chars().count() <= 4000 { draft.text = text.0.to_string(); draft.editor = text_editor::Content::with_text(&draft.text); }
-                }
+            Message::LauncherScope(scope) => {
+                self.launcher_scope = scope;
+                // The launcher's own resident data is tiny; recording the choice
+                // is what makes the stage matrix honest about intent.
+                self.notice = Some(format!("Launcher memory scope: {}. Launcher data is a few KB; this never caps another process."
+                    , scope.label()));
             }
-            Message::ClearDraft(id) if self.page == Page::Agent && self.selected_draft == id => {
-                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) {
-                    if !draft.busy { draft.text.clear(); draft.editor = text_editor::Content::new(); }
-                }
+            Message::AgentScope(scope) => {
+                self.agent_scope = scope;
+                return Task::batch([self.update(Message::Agent(AgentMessage::MemoryPreview(scope.memory_mode())))]);
             }
-            Message::MemoryPreview(memory) if self.page == Page::Settings => {
-                self.memory_preview = memory;
+            Message::Wipe(area) => {
+                let removed = match area {
+                    Area::Chat => storage::wipe(StorageArea::Chats),
+                    Area::Settings => storage::wipe(StorageArea::Settings),
+                    Area::Launcher => false,
+                };
+                self.notice = Some(if removed { "Wiped.".into() } else { "Nothing to wipe.".into() });
             }
-            Message::ToggleAgentPreview if self.page == Page::Settings && self.memory_preview == MemoryMode::Custom => {
-                self.keep_agent_preview = !self.keep_agent_preview;
-            }
-            Message::TileHover(art, true) if self.page == Page::Home && art != Art::Agent => {
-                self.hovered = Some(art);
-                self.phase = 0;
-            }
-            Message::TileHover(art, false) if self.hovered == Some(art) => {
-                self.hovered = None;
-                self.phase = 0;
-            }
-            Message::Animate if self.hovered.is_some() && !self.frozen_snapshot_phase => {
-                self.phase = (self.phase + 1) % 3;
-            }
-            Message::AgentPulse if self.page == Page::Home && self.snapshot.is_none() => {
-                self.agent_phase = (self.agent_phase + 1) % MODE_COUNT;
-            }
-            Message::SettingsSection(section) if self.page == Page::Settings => {
-                self.settings.clear_secret();
-                if section != Section::Models && self.settings.probe_busy {
-                    if let Some(handle) = self.probe_handle.take() { handle.abort(); }
-                    self.settings.probe_busy = false;
-                    self.settings.probe_nonce = self.settings.probe_nonce.wrapping_add(1);
-                }
-                self.settings.probe_pending = false;
-                if self.settings.catalog_modal && section != Section::Models {
-                    self.settings.discard_catalog_staging();
-                    self.settings.catalog_modal = false;
-                }
-                self.settings.section = section;
-            }
-            Message::SelectProvider(provider) if matches!(self.page, Page::Settings | Page::Agent) && !self.settings.key_busy && !self.settings.probe_busy => {
-                self.settings.clear_secret();
-                self.settings.custom_approved = false;
-                if self.settings.catalog_modal {
-                    self.settings.discard_catalog_staging();
-                    self.settings.catalog_modal = false;
-                }
-                self.settings.provider = provider;
-                self.settings.model_entry.clear();
-                self.settings.search.clear();
-                self.settings.probe_pending = false;
-                self.settings.catalog_nonce = self.settings.catalog_nonce.wrapping_add(1);
-                self.settings.catalog_busy = false;
-                self.settings.key_ids.clear();
-                self.settings.status.clear();
-                if self.page == Page::Settings { return self.update(Message::RefreshKeys); }
-            }
-            Message::CustomOpenAiPreset if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
-                self.settings.custom.headers = Zeroizing::new("Authorization: Bearer {{api_key}}".into());
-                self.settings.custom.body = r#"{"model":"{{model}}","messages":"{{messages}}","max_tokens":"{{max_tokens}}","stream":"{{stream}}"}"#.into();
-                self.settings.custom.answer_pointer = "/choices/0/message/content".into();
-                self.settings.custom.stream_pointer = "/choices/0/delta/content".into();
-                self.settings.custom.stream = false;
-                self.settings.custom_approved = false;
-                self.settings.status = "OpenAI-compatible shape loaded. Enter a URL and review all fields before approval.".into();
-            }
-            Message::CustomAnthropicPreset if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
-                self.settings.custom.headers = Zeroizing::new("x-api-key: {{api_key}}|anthropic-version: 2023-06-01".into());
-                self.settings.custom.body = r#"{"model":"{{model}}","messages":"{{messages}}","max_tokens":"{{max_tokens}}","stream":"{{stream}}"}"#.into();
-                self.settings.custom.answer_pointer = "/content/0/text".into();
-                self.settings.custom.stream_pointer = "/delta/text".into();
-                self.settings.custom.stream = false;
-                self.settings.custom_approved = false;
-                self.settings.status = "Anthropic-compatible shape loaded. Enter a URL and review all fields before approval.".into();
-            }
-            Message::CustomUrl(value) if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
-                if value.len() <= 2048 { self.settings.custom.url = value; self.settings.custom_approved = false; }
-            }
-            Message::CustomHeaders(value) if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
-                if value.0.len() <= 8192 { self.settings.custom.headers = value.0; self.settings.custom_approved = false; }
-            }
-            Message::CustomBody(value) if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
-                if value.len() <= 16_384 { self.settings.custom.body = value; self.settings.custom_approved = false; }
-            }
-            Message::CustomAnswer(value) if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
-                if value.len() <= 256 { self.settings.custom.answer_pointer = value; self.settings.custom_approved = false; }
-            }
-            Message::CustomDelta(value) if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
-                if value.len() <= 256 { self.settings.custom.stream_pointer = value; self.settings.custom_approved = false; }
-            }
-            Message::CustomStream if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
-                self.settings.custom.stream = !self.settings.custom.stream; self.settings.custom_approved = false;
-            }
-            Message::CustomCurl(value) if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
-                if value.0.len() <= 24_000 { self.settings.custom_curl = value; self.settings.custom_approved = false; }
-            }
-            Message::ImportCustomCurl if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
-                match custom_endpoint::parse_curl(&self.settings.custom_curl.0) {
-                    Ok((url, headers, body)) => {
-                        self.settings.custom.url = url;
-                        self.settings.custom.headers = Zeroizing::new(headers);
-                        self.settings.custom.body = body;
-                        self.settings.custom_curl = SecretText::default();
-                        self.settings.custom_approved = false;
-                        self.settings.status = "Parsed literal cURL fields. Review destination, headers and response pointer before approval.".into();
-                    }
-                    Err(error) => self.settings.status = error.into(),
-                }
-            }
-            Message::ApproveCustom if self.page == Page::Settings && self.settings.provider == Provider::Custom => {
-                if self.settings.custom_approved { self.settings.custom_approved = false; }
-                else { match self.settings.custom.check() {
-                    Ok(()) => { self.settings.custom_approved = true; self.settings.status = "Destination approved for this session. Add an exact model ID; send or run an explicit test when ready.".into(); }
-                    Err(error) => self.settings.status = error.into(),
-                }}
-            }
-            Message::ExpectedWord(value) if self.page == Page::Settings && !self.settings.test_busy && !self.settings.probe_busy => {
-                if value.len() <= 32 && value.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
-                    if value != self.settings.expected_word {
-                        // A prior pass cannot verify a different expected word.
-                        self.settings.probe_results.clear();
-                    }
-                    self.settings.expected_word = value;
-                }
-            }
-            Message::EditKey(value) if self.page == Page::Settings && self.settings.section != Section::Lab => {
-                if value.0.len() <= 1024 { self.settings.key_entry = value; }
-            }
-            Message::SaveKey if self.page == Page::Settings && self.settings.section != Section::Lab && !self.settings.key_entry.0.is_empty() && !self.settings.key_busy => {
-                self.settings.key_busy = true;
-                self.settings.custom_approved = false;
-                let provider = self.settings.provider;
-                let secret = std::mem::take(&mut self.settings.key_entry).0;
-                self.settings.clear_secret();
-                self.settings.status = "Saving to the OS vault…".into();
-                return Task::perform(async move {
-                    tokio::task::spawn_blocking(move || Vault::os().add(provider, secret))
-                        .await.unwrap_or(Err(VaultError::Unavailable))
-                }, move |result| Message::KeySaved(provider, result));
-            }
-            Message::KeySaved(provider, result) if self.settings.provider == provider => {
-                self.settings.key_busy = false;
-                match result {
-                    Ok(_) => {
-                        self.settings.section = Section::Models;
-                        let keys = self.update(Message::RefreshKeys);
-                        let catalog = self.update(Message::FetchModels);
-                        self.settings.status = "Key saved. Fetching model IDs only; no generation test will run without your confirmation.".into();
-                        return Task::batch([keys, catalog]);
-                    }
-                    Err(error) => self.settings.status = error.message().into(),
-                }
-                return self.update(Message::RefreshKeys);
-            }
-            Message::RefreshKeys if self.page == Page::Settings => {
-                let provider = self.settings.provider;
-                if !provider.needs_key() { self.settings.key_ids.clear(); return Task::none(); }
-                return Task::perform(async move {
-                    tokio::task::spawn_blocking(move || Vault::os().list(provider))
-                        .await.unwrap_or(Err(VaultError::Unavailable))
-                }, move |result| Message::KeysLoaded(provider, result));
-            }
-            Message::KeysLoaded(provider, result) if self.page == Page::Settings && self.settings.provider == provider => {
-                match result {
-                    Ok(ids) => self.settings.key_ids = ids,
-                    Err(error) => { self.settings.key_ids.clear(); self.settings.status = error.message().into(); }
-                }
-            }
-            Message::RemoveKey(id) if self.page == Page::Settings && !self.settings.key_busy && self.settings.key_ids.contains(&id) => {
-                self.settings.key_busy = true;
-                self.settings.clear_secret();
-                let provider = self.settings.provider;
-                return Task::perform(async move {
-                    tokio::task::spawn_blocking(move || Vault::os().remove(provider, id))
-                        .await.unwrap_or(Err(VaultError::Unavailable))
-                }, move |result| Message::KeyRemoved(provider, result));
-            }
-            Message::KeyRemoved(provider, result) if self.settings.provider == provider => {
-                self.settings.key_busy = false;
-                self.settings.status = match result { Ok(()) => "Key removed from OS vault.".into(), Err(error) => error.message().into() };
-                return self.update(Message::RefreshKeys);
-            }
-            Message::HideKey if self.page == Page::Settings => self.settings.clear_secret(),
-            Message::RevealKey(id) if self.page == Page::Settings && self.snapshot.is_none() && self.settings.key_ids.contains(&id) => {
-                self.settings.clear_secret();
-                let provider = self.settings.provider;
-                let nonce = self.settings.reveal_nonce;
-                return Task::perform(async move {
-                    let result = tokio::task::spawn_blocking(move || Vault::os().with_key(provider, id, |key| SecretText::new(key.to_owned())))
-                        .await.unwrap_or(Err(VaultError::Unavailable));
-                    (nonce, id, result)
-                }, |(nonce, id, result)| Message::KeyRevealed(nonce, id, result));
-            }
-            Message::KeyRevealed(nonce, id, result) if self.page == Page::Settings && nonce == self.settings.reveal_nonce => {
-                match result {
-                    Ok(key) => {
-                        self.settings.reveal = Some((id, key, Instant::now() + Duration::from_secs(15)));
-                        return Task::perform(async move { tokio::time::sleep(Duration::from_secs(15)).await; nonce }, Message::RevealExpired);
-                    }
-                    Err(error) => self.settings.status = error.message().into(),
-                }
-            }
-            Message::RevealExpired(nonce) if nonce == self.settings.reveal_nonce => self.settings.clear_secret(),
-            Message::EditModel(model) if self.page == Page::Settings && self.settings.section != Section::Lab => {
-                if model.len() <= 100 { self.settings.model_entry = model; }
-            }
-            Message::AddModel if self.page == Page::Settings && self.settings.section != Section::Lab => {
-                let provider = self.settings.provider;
-                let model = self.settings.model_entry.trim().to_owned();
-                let index = self.settings.index();
-                if provider_api::valid_model(provider, &model) && !self.settings.models[index].contains(&model) {
-                    self.settings.models[index].push(model);
-                    self.settings.model_entry.clear();
-                    self.settings.status = "Model added, not verified. Choose it from Chat when ready.".into();
-                } else { self.settings.status = "Invalid or duplicate model ID.".into(); }
-            }
-            Message::StageCatalogId if self.page == Page::Settings && self.settings.catalog_modal && !self.settings.probe_busy => {
-                let provider = self.settings.provider;
-                let id = self.settings.model_entry.trim().to_owned();
-                let index = self.settings.index();
-                if !provider_api::valid_model(provider, &id) || self.settings.models[index].contains(&id) {
-                    self.settings.status = "Enter a valid, not-yet-imported model ID.".into();
+            Message::WipeAll => {
+                let labels: BTreeSet<&'static str> = storage::wipe_all();
+                self.notice = Some(if labels.is_empty() {
+                    "No saved data found.".to_owned()
                 } else {
-                    if !self.settings.catalog[index].iter().any(|item| item.id == id) {
-                        self.settings.catalog[index].push(CatalogModel {
-                            id: id.clone(), name: id.clone(), free: false, router: false, reasoning: false,
+                    format!("Wiped: {}.", labels.into_iter().collect::<Vec<_>>().join(", "))
+                });
+            }
+            Message::DismissNotice => self.notice = None,
+            Message::StorageReport(path) => self.storage_path = path,
+            Message::Agent(agent_message) => {
+                // Agent messages map straight through; a "Back to launcher"
+                // request is translated so the app never needs to know the
+                // launcher's page enum.
+                if matches!(agent_message, AgentMessage::Open(_)) {
+                    if let AgentMessage::Open(page) = agent_message {
+                        return self.go(match page {
+                            archx_agent::app::Page::Settings => Page::AgentSettings,
+                            archx_agent::app::Page::Debug => Page::AgentDebug,
+                            _ => Page::Agent,
                         });
-                        self.settings.catalog_manual[index].push(id.clone());
-                    }
-                    if !self.settings.catalog_selected[index].contains(&id) {
-                        self.settings.catalog_selected[index].push(id);
-                    }
-                    self.settings.model_entry.clear();
-                    self.settings.search.clear();
-                    self.settings.catalog_page = self.settings.catalog[index].len().saturating_sub(1) / 60;
-                    self.settings.status = "ID staged and checked; it is not imported or tested until you choose those actions.".into();
-                }
-            }
-            Message::ChooseModel(slot) if matches!(self.page, Page::Settings | Page::Agent) && slot < self.settings.models[self.settings.index()].len() => {
-                let index = self.settings.index(); self.settings.chosen[index] = Some(slot);
-                if self.page == Page::Agent { self.model_menu_open = false; }
-            }
-            Message::RemoveModel(slot) if self.page == Page::Settings && slot < self.settings.models[self.settings.index()].len() => {
-                let index = self.settings.index();
-                self.settings.models[index].remove(slot);
-                self.settings.chosen[index] = None;
-            }
-            Message::SearchModels(query) if self.page == Page::Settings && self.settings.section != Section::Lab => {
-                if query.len() <= 100 { self.settings.search = query; self.settings.catalog_page = 0; }
-            }
-            Message::OpenCatalogModal if self.page == Page::Settings && self.settings.section == Section::Models => {
-                self.settings.discard_catalog_staging();
-                self.settings.catalog_modal = true;
-                self.settings.catalog_page = 0;
-            }
-            Message::CloseCatalogModal if self.page == Page::Settings => {
-                self.settings.discard_catalog_staging();
-                self.settings.catalog_modal = false;
-                self.settings.probe_pending = false;
-                // A running probe continues only while its dialog is visible.
-                if self.settings.probe_busy { return self.update(Message::CancelCatalogProbe); }
-            }
-            Message::CatalogNext if self.page == Page::Settings && self.settings.catalog_modal => {
-                self.settings.catalog_page = self.settings.catalog_page.saturating_add(1);
-            }
-            Message::CatalogPrevious if self.page == Page::Settings && self.settings.catalog_modal => {
-                self.settings.catalog_page = self.settings.catalog_page.saturating_sub(1);
-            }
-            Message::ClearCatalogSelection if self.page == Page::Settings && self.settings.catalog_modal && !self.settings.probe_busy => {
-                self.settings.catalog_selected[self.settings.index()].clear();
-            }
-            Message::ToggleCatalogVerified if self.page == Page::Settings && self.settings.catalog_modal && !self.settings.probe_busy => {
-                self.settings.catalog_only_verified = !self.settings.catalog_only_verified;
-            }
-            Message::SelectMatchingModels if self.page == Page::Settings && self.settings.catalog_modal && !self.settings.probe_busy => {
-                let index = self.settings.index();
-                let query = self.settings.search.trim().to_lowercase();
-                let added: HashSet<&str> = self.settings.models[index].iter().map(String::as_str).collect();
-                let mut selected: HashSet<String> = self.settings.catalog_selected[index].iter().cloned().collect();
-                for item in &self.settings.catalog[index] {
-                    if !added.contains(item.id.as_str()) &&
-                        (query.is_empty() || item.id.to_lowercase().contains(&query) || item.name.to_lowercase().contains(&query)) &&
-                        selected.insert(item.id.clone()) {
-                        self.settings.catalog_selected[index].push(item.id.clone());
                     }
                 }
-            }
-            Message::AddCatalogModel(provider, slot) if self.page == Page::Settings && self.settings.section != Section::Lab && self.settings.provider == provider => {
-                let index = self.settings.index();
-                if let Some(item) = self.settings.catalog[index].get(slot) {
-                    let model = item.id.clone();
-                    if provider_api::valid_model(provider, &model) && !self.settings.models[index].contains(&model) {
-                        self.settings.models[index].push(model);
-                        self.settings.status = "Model added, not verified. Testing is optional and may be billable.".into();
-                    }
+                let task = self.agent.update(agent_message).map(Message::Agent);
+                if self.agent.left_for_launcher {
+                    return Task::batch([task, self.go(Page::Home)]);
                 }
-            }
-            Message::ToggleCatalogSelection(provider, slot) if self.page == Page::Settings && self.settings.provider == provider && !self.settings.probe_busy => {
-                let index = self.settings.index();
-                if let Some(item) = self.settings.catalog[index].get(slot) {
-                    if let Some(where_at) = self.settings.catalog_selected[index].iter().position(|id| id == &item.id) {
-                        self.settings.catalog_selected[index].remove(where_at);
-                    } else if !self.settings.models[index].contains(&item.id) {
-                        self.settings.catalog_selected[index].push(item.id.clone());
-                    }
-                }
-            }
-            Message::ImportSelectedModels if self.page == Page::Settings && !self.settings.probe_busy => {
-                let index = self.settings.index();
-                let importable: HashSet<String> = self.settings.importable_catalog_ids().into_iter().collect();
-                if importable.is_empty() && self.settings.catalog_only_verified {
-                    self.settings.status = "No checked IDs have passed the expected-word probe. Test selected models with confirmation, or turn off verified-only.".into();
-                    return Task::none();
-                }
-                let checked = std::mem::take(&mut self.settings.catalog_selected[index]);
-                let skipped = checked.len().saturating_sub(importable.len());
-                for id in checked {
-                    if importable.contains(&id) { self.settings.models[index].push(id); }
-                    else if self.settings.catalog_only_verified &&
-                        self.settings.catalog[index].iter().any(|item| item.id == id) &&
-                        !self.settings.models[index].contains(&id) {
-                        self.settings.catalog_selected[index].push(id);
-                    }
-                }
-                self.settings.status = format!("Added {} models · {skipped} skipped. Verification is a point-in-time test, not a future availability guarantee. No model was activated automatically.", importable.len());
-                self.settings.discard_catalog_staging();
-                self.settings.catalog_modal = false;
-            }
-            Message::RequestCatalogProbe if self.page == Page::Settings && !self.settings.probe_busy => {
-                let count = self.settings.catalog_selected[self.settings.index()].len();
-                if count > 0 { self.settings.probe_pending = true; }
-                else { self.settings.status = "Select at least one model first. All models begin unchecked.".into(); }
-            }
-            Message::CancelCatalogProbe if self.page == Page::Settings => {
-                self.settings.probe_pending = false;
-                if self.settings.probe_busy {
-                    if let Some(handle) = self.probe_handle.take() { handle.abort(); }
-                    self.settings.probe_busy = false;
-                    self.settings.probe_nonce = self.settings.probe_nonce.wrapping_add(1);
-                    self.settings.status = "Testing stopped. Results already received remain visible; no further models will be tested.".into();
-                }
-            }
-            Message::ConfirmCatalogProbe if self.page == Page::Settings && self.settings.probe_pending && !self.settings.probe_busy && self.snapshot.is_none() => {
-                let provider = self.settings.provider;
-                let index = self.settings.index();
-                let ids = self.settings.catalog_selected[index].clone();
-                if provider == Provider::Custom {
-                    self.settings.probe_pending = false;
-                    self.settings.status = "Custom IDs use the single-model test after endpoint approval; batch probes are for fixed providers.".into();
-                    return Task::none();
-                }
-                self.settings.probe_pending = false;
-                self.settings.probe_busy = true;
-                self.settings.probe_results.clear();
-                self.settings.probe_nonce = self.settings.probe_nonce.wrapping_add(1);
-                let nonce = self.settings.probe_nonce;
-                let cursor = self.key_cursor[index];
-                let word = if self.settings.expected_word.is_empty() { "OK".to_owned() } else { self.settings.expected_word.clone() };
-                let task = Task::sip(sipper(async move |mut sender| {
-                    for (offset, id) in ids.into_iter().enumerate() {
-                        let result = match selected_key(provider, cursor.wrapping_add(offset)).await {
-                            Ok(key) => probe_catalog_model(provider, id.clone(), key, &word).await,
-                            Err(error) => Err(error),
-                        };
-                        sender.send((id, result)).await;
-                    }
-                    Ok::<(), String>(())
-                }), move |(id, result)| Message::CatalogProbeProgress(provider, nonce, id, result),
-                    move |result| Message::CatalogProbeDone(provider, nonce, result));
-                let (task, handle) = task.abortable();
-                self.probe_handle = Some(handle);
-                self.settings.status = "Testing selected models (up to 256 output tokens per attempt); transient HTTP failures may be retried once. Stop cancels remaining requests.".into();
                 return task;
             }
-            Message::CatalogProbeProgress(provider, nonce, id, result) if self.page == Page::Settings &&
-                self.settings.provider == provider && self.settings.probe_busy && self.settings.probe_nonce == nonce => {
-                // Only display a bounded plain-text response. Never display auth or raw transport errors.
-                let (ok, output) = match result {
-                    Ok((text, ms)) => {
-                        let received: String = text.0.chars().filter(|c| !c.is_control() || *c == '\n').take(240).collect();
-                        let expected = if self.settings.expected_word.is_empty() { "OK" } else { &self.settings.expected_word };
-                        let passed = text.0.to_lowercase().contains(&expected.to_lowercase());
-                        (passed, format!("{ms} ms · {} · {received}", if passed { "expected word found" } else { "expected word missing" }))
-                    },
-                    Err(error) => (false, error),
-                };
-                self.settings.probe_results.push((id, ok, output));
-            }
-            Message::CatalogProbeDone(provider, nonce, result) if self.page == Page::Settings &&
-                self.settings.provider == provider && self.settings.probe_nonce == nonce => {
-                self.settings.probe_busy = false;
-                self.probe_handle = None;
-                self.settings.status = match result {
-                    Ok(()) => "Testing finished. Verified-only imports require the expected word; results are not a future availability guarantee.".into(),
-                    Err(error) => error,
-                };
-            }
-            Message::FetchModels if self.settings.provider != Provider::Custom && self.page == Page::Settings && self.settings.section != Section::Lab && !self.settings.catalog_busy && self.snapshot.is_none() => {
-                let provider = self.settings.provider;
-                self.settings.catalog_busy = true;
-                self.settings.catalog_nonce = self.settings.catalog_nonce.wrapping_add(1);
-                let nonce = self.settings.catalog_nonce;
-                self.settings.status = "Fetching catalog; no generation request is being sent…".into();
-                return Task::perform(async move {
-                    let key = if matches!(provider, Provider::OpenRouter | Provider::OllamaLocal) { None } else {
-                        let result = tokio::task::spawn_blocking(move || {
-                            let vault = Vault::os();
-                            let id = vault.list(provider)?.first().copied().ok_or(VaultError::MissingKey)?;
-                            vault.with_key(provider, id, |secret| Zeroizing::new(secret.to_owned()))
-                        }).await.map_err(|_| VaultError::Unavailable).and_then(|result| result)
-                            .map_err(|error| error.message().to_owned());
-                        match result { Ok(key) => Some(key), Err(error) => return Err(error) }
-                    };
-                    model_catalog::fetch(provider, key).await.map_err(CallError::message)
-                }, move |result| Message::ModelsFetched(provider, nonce, result));
-            }
-            Message::ModelsFetched(provider, nonce, result) if self.settings.provider == provider && self.settings.catalog_nonce == nonce => {
-                self.settings.catalog_busy = false;
-                match result {
-                    Ok(models) => {
-                        let count = models.len();
-                        let index = self.settings.index();
-                        let staged: Vec<CatalogModel> = self.settings.catalog[index].iter()
-                            .filter(|item| self.settings.catalog_manual[index].contains(&item.id)).cloned().collect();
-                        let staged_ids: HashSet<&str> = staged.iter().map(|item| item.id.as_str()).collect();
-                        self.settings.catalog_selected[index].retain(|id| staged_ids.contains(id.as_str()));
-                        self.settings.catalog_page = 0;
-                        self.settings.probe_results.clear();
-                        let mut fresh = models;
-                        for item in staged {
-                            if !fresh.iter().any(|model| model.id == item.id) { fresh.push(item); }
-                        }
-                        self.settings.catalog[index] = fresh;
-                        self.settings.status = format!("Fetched {count} models. Search and add individual choices; no models were added automatically.");
-                    }
-                    Err(error) => self.settings.status = error,
+            Message::SnapshotTick => {
+                if !self.snapshot_requested {
+                    self.snapshot_requested = true;
+                    return window::latest().and_then(window::screenshot).map(Message::SnapshotReady);
                 }
-            }
-            Message::SendChat if self.page == Page::Agent => return self.send_chat(false),
-            Message::StopChat if self.page == Page::Agent => {
-                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == self.selected_draft && draft.busy) {
-                    if let Some(handle) = draft.request_handle.take() { handle.abort(); }
-                    return self.update(Message::ChatResult(self.selected_draft,
-                        Err("Generation stopped. Text received so far is preserved but incomplete.".into())));
-                }
-            },
-            Message::RunTest if self.page == Page::Settings && !self.settings.test_busy => return self.send_chat(true),
-            Message::IgnoreMarkdownLink => {}
-            Message::CopyCode(code) if self.page == Page::Agent && self.snapshot.is_none() => {
-                // Clipboard access is an explicit user action, not code execution.
-                return iced::clipboard::write(code.0.to_string());
-            }
-            Message::ToggleModelMenu if self.page == Page::Agent => {
-                self.model_menu_open = !self.model_menu_open;
-                self.mode_menu_open = false;
-            }
-            Message::ToggleModeMenu if self.page == Page::Agent => {
-                self.mode_menu_open = !self.mode_menu_open;
-                self.model_menu_open = false;
-            }
-            Message::SearchChatModels(value) if self.page == Page::Agent => {
-                if value.chars().count() <= 100 { self.chat_model_search = value; }
-            }
-            Message::ToggleStreaming if self.page == Page::Agent => {
-                self.settings.stream_chat = !self.settings.stream_chat;
-            }
-            Message::ChatScrolled(id, at_end) if self.page == Page::Agent && self.snapshot.is_none() && id == self.selected_draft => {
-                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) {
-                    draft.follow_tail = at_end;
-                }
-            }
-            Message::JumpToLatest if self.page == Page::Agent => {
-                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == self.selected_draft) {
-                    draft.follow_tail = true;
-                    return iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::START);
-                }
-            }
-            Message::ChatProgress(id, SecretReply(reply)) => {
-                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id && draft.busy) {
-                    draft.partial = Some((markdown::Content::parse(&reply.content), reply.reasoning.as_ref().map(|r| markdown::Content::parse(r))));
-                    draft.partial_raw = Some(reply);
-                    if self.page == Page::Agent && self.selected_draft == id && draft.follow_tail {
-                        return iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::START);
-                    }
-                }
-            }
-            Message::ToggleReasoning(id, index) if self.page == Page::Agent => {
-                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) {
-                    if draft.busy && index == draft.turns.len() &&
-                        draft.partial.as_ref().is_some_and(|(_, reasoning)| reasoning.is_some()) {
-                        draft.partial_reasoning_open = !draft.partial_reasoning_open;
-                        draft.partial_reasoning_touched = true;
-                    } else if let Some((_, _, _, expanded)) = draft.formatted.iter_mut().find(|(slot, _, _, _)| *slot == index) {
-                        *expanded = !*expanded;
-                    }
-                }
-            }
-            Message::ChatResult(id, result) => {
-                let at_tail = self.page == Page::Agent && self.selected_draft == id &&
-                    self.drafts.iter().any(|draft| draft.id == id && draft.follow_tail);
-                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id && draft.busy) {
-                    draft.busy = false;
-                    draft.partial = None;
-                    draft.request_handle = None;
-                    match result {
-                        Ok(SecretReply(reply)) => {
-                            draft.partial_raw = None;
-                            let slot = draft.turns.len();
-                            let body = markdown::Content::parse(&reply.content);
-                            let reasoning = reply.reasoning.as_ref().map(|r| markdown::Content::parse(r));
-                            let open = draft.partial_reasoning_touched && draft.partial_reasoning_open;
-                            draft.formatted.push((slot, body, reasoning, open));
-                            draft.turns.push(Turn { role: "assistant", content: reply.content });
-                        },
-                        Err(error) => {
-                            // Preserve already-received streaming text. Mark it incomplete
-                            // and exclude it from subsequent provider context.
-                            if let Some(partial) = draft.partial_raw.take().filter(|r|
-                                !r.content.trim().is_empty() || r.reasoning.as_ref().is_some_and(|r| !r.trim().is_empty())) {
-                                let slot = draft.turns.len();
-                                let body = if partial.content.is_empty() { "Response interrupted before an answer.".to_owned() } else { partial.content };
-                                draft.formatted.push((slot, markdown::Content::parse(&body),
-                                    partial.reasoning.as_ref().map(|r| markdown::Content::parse(r)),
-                                    draft.partial_reasoning_touched && draft.partial_reasoning_open));
-                                draft.turns.push(Turn { role: "assistant", content: body });
-                                draft.incomplete_slots.push(slot);
-                            } else if let Some(last) = draft.turns.pop() {
-                                // No response arrived. Restore the input instead of
-                                // silently resending after a possible billed request.
-                                if last.role == "user" { draft.text = last.content; draft.editor = text_editor::Content::with_text(&draft.text); }
-                                else { draft.turns.push(last); }
-                            }
-                            draft.error = Some(error);
-                        },
-                    }
-                    if at_tail { return iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::START); }
-                }
-            }
-            Message::TestResult(result) => {
-                self.settings.test_busy = false;
-                self.settings.status = match result {
-                    Ok(content) => {
-                        let received: String = content.0.chars().filter(|c| !c.is_control() || *c == '\n').take(240).collect();
-                        let word = if self.settings.expected_word.is_empty() { "OK" } else { &self.settings.expected_word };
-                        let passed = received.to_lowercase().contains(&word.to_lowercase());
-                        self.settings.test_evidence = Some(format!("Sent: Reply with the word {word}.  ·  Received: {received}  ·  Expected word: {}", if passed { "found" } else { "not found" }));
-                        if passed { "Generation probe received the expected word (not a permanent availability guarantee)." } else { "Generation returned text, but the expected word was not found." }.into()
-                    }
-                    Err(error) => {
-                        self.settings.test_evidence = Some(format!("Sent: Reply with the word {}.  ·  Failed: {error}", self.settings.expected_word));
-                        error
-                    }
-                };
-            },
-            Message::SnapshotTick if self.snapshot.is_some() && !self.snapshot_requested => {
-                if !self.snapshot_scrolled && self.page == Page::Agent &&
-                    std::env::var("ARCHX_SNAPSHOT_CHAT_SCROLL").as_deref() == Ok("end") {
-                    self.snapshot_scrolled = true;
-                    return Task::batch([
-                        // Snapshot fixtures use the default top anchor, unlike live Chat.
-                        iced::widget::operation::snap_to_end("chat-log"),
-                        Task::perform(async { tokio::time::sleep(Duration::from_millis(500)).await; }, |_| Message::SnapshotTick)
-                    ]);
-                }
-                self.snapshot_requested = true;
-                return window::latest()
-                    .and_then(window::screenshot)
-                    .map(Message::SnapshotReady);
             }
             Message::SnapshotReady(screenshot) => {
                 if let Some(path) = &self.snapshot {
                     if let Some(directory) = path.parent() {
-                        std::fs::create_dir_all(directory)
-                            .expect("Create screenshot directory");
+                        let _ = std::fs::create_dir_all(directory);
                     }
-                    image::save_buffer(
-                        path,
-                        &screenshot.rgba,
-                        screenshot.size.width,
-                        screenshot.size.height,
-                        image::ColorType::Rgba8,
-                    )
-                    .expect("Save OS screenshot");
+                    let _ = image::save_buffer(path, &screenshot.rgba, screenshot.size.width, screenshot.size.height,
+                        image::ColorType::Rgba8);
                     return window::latest().and_then(window::close);
                 }
             }
-            _ => {}
+            Message::SnapshotSetPage(_) | Message::SnapshotSetApp(_) => {}
         }
         Task::none()
     }
 
-    fn send_chat(&mut self, test: bool) -> Task<Message> {
-        if self.snapshot.is_some() { return Task::none(); }
-        let provider = self.settings.provider;
-        let Some(model) = self.settings.selected_model().map(str::to_owned) else {
-            let notice = "Select a provider and model in Chat, or add one in Settings → Connections & models.";
-            if test { self.settings.status = notice.into(); }
-            else if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == self.selected_draft) { draft.error = Some(notice.into()); }
-            return Task::none();
+    fn scale(&mut self, area: Area, larger: bool) {
+        self.display = match (area, larger) {
+            (Area::Chat, true) => DisplaySettings { chat: self.display.chat.larger(), ..self.display },
+            (Area::Chat, false) => DisplaySettings { chat: self.display.chat.smaller(), ..self.display },
+            (Area::Settings, true) => DisplaySettings { settings: self.display.settings.larger(), ..self.display },
+            (Area::Settings, false) => DisplaySettings { settings: self.display.settings.smaller(), ..self.display },
+            (Area::Launcher, true) => DisplaySettings { launcher: self.display.launcher.larger(), ..self.display },
+            (Area::Launcher, false) => DisplaySettings { launcher: self.display.launcher.smaller(), ..self.display },
         };
-        let index = self.settings.index();
-        let cursor = self.key_cursor[index];
-        if provider == Provider::Custom && !self.settings.custom_approved {
-            self.settings.status = "Approve the custom destination in Settings → Providers before sending any prompt or key.".into();
-            if let Some(draft) = self.drafts.iter_mut().find(|d| d.id == self.selected_draft) {
-                draft.error = Some(self.settings.status.clone());
-            }
-            return Task::none();
-        }
-        let custom = self.settings.custom.clone();
-        let id = self.selected_draft;
-        let turns = if test {
-            self.settings.test_busy = true;
-            self.settings.test_evidence = None;
-            self.settings.status = "Sending a small billable generation test…".into();
-            let word = if self.settings.expected_word.is_empty() { "OK" } else { &self.settings.expected_word };
-            vec![Turn { role: "user", content: format!("Reply with the word {word}.") }]
-        } else {
-            let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) else { return Task::none(); };
-            if draft.mode != 0 || draft.busy || draft.text.trim().is_empty() || draft.text.chars().count() > 4000 { return Task::none(); }
-            draft.error = None;
-            draft.partial_raw = None;
-            draft.partial_reasoning_open = true;
-            draft.partial_reasoning_touched = false;
-            draft.busy = true;
-            draft.follow_tail = true;
-            draft.turns.push(Turn { role: "user", content: std::mem::take(&mut draft.text) });
-            draft.editor = text_editor::Content::new();
-            draft.turns.iter().enumerate().rev()
-                .filter(|(slot, _)| !draft.incomplete_slots.contains(slot))
-                .take(12).map(|(_, turn)| turn.clone()).collect::<Vec<_>>()
-                .into_iter().rev().collect()
-        };
-        self.key_cursor[index] = cursor.wrapping_add(1);
-        if test || !self.settings.stream_chat {
-            let task = async move {
-                let selected = selected_key(provider, cursor).await?;
-                if provider == Provider::Custom {
-                    custom_endpoint::send(custom, model, selected, turns, if test { 256 } else { 4096 }).await
-                } else {
-                    provider_api::send(provider, model, selected, turns, if test { 256 } else { 4096 }).await
-                }.map_err(CallError::message)
-            };
-            if test { Task::perform(task, |result| Message::TestResult(result.map(|reply| SecretText::new(reply.content)))) }
-            else {
-                let (task, handle) = Task::perform(task, move |result| Message::ChatResult(id, result.map(SecretReply))).abortable();
-                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) { draft.request_handle = Some(handle); }
-                Task::batch([task, iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::START)])
-            }
-        } else {
-            let task = Task::sip(sipper(async move |mut progress| {
-                let selected = selected_key(provider, cursor).await?;
-                if provider == Provider::Custom {
-                    custom_endpoint::send_stream(custom, model, selected, turns, 4096, &mut progress).await
-                } else {
-                    provider_api::send_stream(provider, model, selected, turns, &mut progress, 4096).await
-                }.map_err(CallError::message)
-            }), move |reply| Message::ChatProgress(id, SecretReply(reply)),
-                move |result| Message::ChatResult(id, result.map(SecretReply)));
-            let (task, handle) = task.abortable();
-            if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) { draft.request_handle = Some(handle); }
-            Task::batch([task, iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::START)])
+        self.save();
+    }
+
+    fn save(&mut self) {
+        if let Some(error) = self.agent.save_display(self.display) {
+            self.notice = Some(error);
         }
     }
 
     pub fn view(&self) -> Element<'_, Message> {
-        home::view(self.page, self.sidebar_expanded, self.hovered, self.phase, self.agent_phase, &self.drafts, self.selected_draft, self.memory_preview, self.keep_agent_preview, &self.settings, self.model_menu_open, self.mode_menu_open, &self.chat_model_search)
+        navigation::view(self).map(|message| message)
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
         let snapshot = if self.snapshot.is_some() && !self.snapshot_requested {
             time::every(Duration::from_secs(5)).map(|_| Message::SnapshotTick)
-        } else {
-            Subscription::none()
-        };
-        let animation = if self.page == Page::Home && self.hovered.is_some() && !self.frozen_snapshot_phase {
-            time::every(Duration::from_millis(700)).map(|_| Message::Animate)
-        } else {
-            Subscription::none()
-        };
-        let agent = if self.page == Page::Home && self.snapshot.is_none() {
-            time::every(Duration::from_millis(1500)).map(|_| Message::AgentPulse)
-        } else {
-            Subscription::none()
-        };
-        Subscription::batch([snapshot, animation, agent])
+        } else { Subscription::none() };
+        let ticker = if self.ticker && self.transition.is_some_and(|transition| !transition.is_complete()) {
+            time::every(Duration::from_millis(crate::transition::FRAME_MS)).map(|_| Message::Tick)
+        } else { Subscription::none() };
+        Subscription::batch([snapshot, ticker])
     }
+
 }
 
-// Only explicit, confirmed catalog probes may retry. A rejected HTTP request
-// has no usable reply; transport timeouts are never retried because the first
-// request could already have generated and billed an answer.
-fn retryable_probe_failure(error: CallError) -> bool {
-    matches!(error, CallError::Rejected(408 | 429 | 500..=599))
-}
-
-async fn probe_catalog_model(provider: Provider, model: String, key: Zeroizing<String>, word: &str)
-    -> Result<(SecretText, u128), String> {
-    let start = Instant::now();
-    for attempt in 0..2 {
-        match provider_api::send(provider, model.clone(), key.clone(),
-            vec![Turn { role: "user", content: format!("Reply with the word {word}.") }], 256).await {
-            Ok(reply) => return Ok((SecretText::new(reply.content), start.elapsed().as_millis())),
-            Err(error) if attempt == 0 && retryable_probe_failure(error) => {
-                tokio::time::sleep(Duration::from_millis(250)).await;
-            }
-            Err(CallError::Rejected(code)) => return Err(format!("HTTP {code} after up to two attempts; check the model and quota.")),
-            Err(error) => return Err(error.message()),
-        }
-    }
-    unreachable!("Probe returns after at most two attempts")
-}
-
-// Select a vault key only for an explicit send/test, never during selection.
-async fn selected_key(provider: Provider, cursor: usize) -> Result<Zeroizing<String>, String> {
-    if !provider.needs_key() { return Ok(Zeroizing::new(String::new())); }
-    if provider == Provider::Custom {
-        let has_keys = tokio::task::spawn_blocking(|| Vault::os().list(Provider::Custom)).await
-            .map_err(|_| VaultError::Unavailable).and_then(|r| r).map_err(|e| e.message().to_owned())?;
-        if has_keys.is_empty() { return Ok(Zeroizing::new(String::new())); }
-    }
-    tokio::task::spawn_blocking(move || {
-        let vault = Vault::os();
-        let keys = vault.list(provider)?;
-        let key_id = keys.get(cursor % keys.len().max(1)).copied().ok_or(VaultError::MissingKey)?;
-        vault.with_key(provider, key_id, |secret| Zeroizing::new(secret.to_owned()))
-    }).await.map_err(|_| VaultError::Unavailable)
-        .and_then(|result| result).map_err(|error| error.message().to_owned())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn model_setup_is_session_only_and_other_modes_cannot_send() {
-        let mut app = App::new();
-        let _ = app.update(Message::Navigate(Page::Settings));
-        let _ = app.update(Message::SettingsSection(Section::Models));
-        let _ = app.update(Message::EditModel("vendor/model:free".into()));
-        let _ = app.update(Message::AddModel);
-        assert_eq!(app.settings.selected_model(), None);
-        let _ = app.update(Message::ChooseModel(0));
-        assert_eq!(app.settings.selected_model(), Some("vendor/model:free"));
-        let _ = app.update(Message::Navigate(Page::Agent));
-        let _ = app.update(Message::SelectMode(3));
-        let _ = app.update(Message::EditDraft(1, SecretText::new("private unsent".into())));
-        let _ = app.update(Message::SendChat);
-        assert!(app.drafts[0].turns.is_empty());
-        assert_eq!(App::new().settings.selected_model(), None);
-    }
-
-    #[test]
-    fn catalog_requires_individual_add_and_ignores_stale_provider_results() {
-        let mut app = App::new();
-        let _ = app.update(Message::Navigate(Page::Settings));
-        let _ = app.update(Message::SettingsSection(Section::Models));
-        let model = CatalogModel { id: "vendor/model:free".into(), name: "Free model".into(), free: true, router: false, reasoning: false };
-        let _ = app.update(Message::ModelsFetched(Provider::OpenRouter, 0, Ok(vec![model.clone()])));
-        assert_eq!(app.settings.catalog[0].len(), 1);
-        assert!(app.settings.models[0].is_empty());
-        let _ = app.update(Message::SearchModels("free".into()));
-        assert_eq!(app.settings.search, "free");
-        let _ = app.update(Message::AddCatalogModel(Provider::OpenRouter, 0));
-        let _ = app.update(Message::AddCatalogModel(Provider::OpenRouter, 0));
-        assert_eq!(app.settings.models[0], vec![model.id]);
-        let _ = app.update(Message::SelectProvider(Provider::Gemini));
-        let _ = app.update(Message::ModelsFetched(Provider::OpenRouter, 0, Ok(Vec::new())));
-        assert_eq!(app.settings.catalog[0].len(), 1);
-        assert!(app.settings.models[2].is_empty());
-    }
-
-    #[test]
-    fn catalog_import_is_unchecked_and_never_probes_without_confirmation() {
-        let mut app = App::new();
-        let _ = app.update(Message::Navigate(Page::Settings));
-        app.settings.catalog[0] = vec![CatalogModel {
-            id: "vendor/one:free".into(), name: "One".into(), free: true, router: false, reasoning: false,
-        }, CatalogModel {
-            id: "vendor/two".into(), name: "Two".into(), free: false, router: false, reasoning: false,
-        }];
-        assert!(app.settings.catalog_selected[0].is_empty());
-        let _ = app.update(Message::ImportSelectedModels);
-        assert!(app.settings.models[0].is_empty());
-        let _ = app.update(Message::ToggleCatalogSelection(Provider::OpenRouter, 1));
-        assert_eq!(app.settings.catalog_selected[0], vec!["vendor/two"]);
-        let _ = app.update(Message::ImportSelectedModels);
-        assert_eq!(app.settings.models[0], vec!["vendor/two"]);
-        assert_eq!(app.settings.chosen[0], None);
-        assert!(!app.settings.probe_busy && !app.settings.probe_pending);
-        let _ = app.update(Message::ToggleCatalogSelection(Provider::OpenRouter, 0));
-        let _ = app.update(Message::RequestCatalogProbe);
-        assert!(app.settings.probe_pending);
-        assert!(!app.settings.probe_busy);
-        let _ = app.update(Message::CancelCatalogProbe);
-        assert!(!app.settings.probe_pending);
-    }
-
-    #[test]
-    fn agent_settings_and_catalog_have_no_arbitrary_model_quota() {
-        let mut app = App::new();
-        let _ = app.update(Message::Navigate(Page::Agent));
-        let _ = app.update(Message::Navigate(Page::Settings));
-        assert_eq!(app.page, Page::Settings);
-        let _ = app.update(Message::SettingsSection(Section::Models));
-        app.settings.catalog[0] = (0..75).map(|i| CatalogModel {
-            id: format!("provider/model-{i}"), name: format!("Model {i}"),
-            free: false, router: false, reasoning: false,
-        }).collect();
-        let _ = app.update(Message::OpenCatalogModal);
-        assert!(app.settings.catalog_modal);
-        let _ = app.update(Message::SelectMatchingModels);
-        assert_eq!(app.settings.catalog_selected[0].len(), 75);
-        assert!(app.settings.models[0].is_empty());
-        let _ = app.update(Message::ImportSelectedModels);
-        assert_eq!(app.settings.models[0].len(), 75);
-        assert!(!app.settings.catalog_modal);
-        let _ = app.update(Message::OpenChat(1));
-        assert_eq!(app.page, Page::Agent);
-        let _ = app.update(Message::Navigate(Page::Home));
-        assert_eq!(app.page, Page::Home);
-        assert_eq!(app.settings.models[0].len(), 75);
-    }
-
-    #[test]
-    fn dialog_manual_id_is_provisional_until_import_and_survives_fetch() {
-        let mut app = App::new();
-        let _ = app.update(Message::Navigate(Page::Settings));
-        let _ = app.update(Message::SettingsSection(Section::Models));
-        let _ = app.update(Message::OpenCatalogModal);
-        let _ = app.update(Message::EditModel("vendor/manual".into()));
-        let _ = app.update(Message::StageCatalogId);
-        assert_eq!(app.settings.catalog_selected[0], vec!["vendor/manual"]);
-        assert_eq!(app.settings.catalog_manual[0], vec!["vendor/manual"]);
-        assert!(app.settings.models[0].is_empty());
-        let _ = app.update(Message::ModelsFetched(Provider::OpenRouter, app.settings.catalog_nonce,
-            Ok(vec![CatalogModel { id: "vendor/fetched".into(), name: "Fetched".into(),
-                free: false, router: false, reasoning: false }])));
-        assert_eq!(app.settings.catalog_selected[0], vec!["vendor/manual"]);
-        assert_eq!(app.settings.catalog[0].len(), 2);
-        let _ = app.update(Message::CloseCatalogModal);
-        assert!(app.settings.catalog_manual[0].is_empty());
-        assert!(app.settings.catalog_selected[0].is_empty());
-        assert_eq!(app.settings.catalog[0].len(), 1);
-        assert!(app.settings.models[0].is_empty());
-        let _ = app.update(Message::OpenCatalogModal);
-        let _ = app.update(Message::EditModel("vendor/manual".into()));
-        let _ = app.update(Message::StageCatalogId);
-        let _ = app.update(Message::ImportSelectedModels);
-        assert_eq!(app.settings.models[0], vec!["vendor/manual"]);
-        assert!(!app.settings.catalog_modal);
-        assert!(app.settings.catalog_manual[0].is_empty());
-    }
-
-    #[test]
-    fn verified_only_import_requires_expected_word_and_never_auto_tests() {
-        let mut app = App::new();
-        let _ = app.update(Message::Navigate(Page::Settings));
-        let _ = app.update(Message::SettingsSection(Section::Models));
-        app.settings.catalog[0] = ["vendor/one", "vendor/two"].into_iter().map(|id| CatalogModel {
-            id: id.into(), name: id.into(), free: false, router: false, reasoning: false,
-        }).collect();
-        let _ = app.update(Message::OpenCatalogModal);
-        let _ = app.update(Message::SelectMatchingModels);
-        let _ = app.update(Message::ToggleCatalogVerified);
-        assert!(app.settings.catalog_only_verified);
-        assert_eq!(app.settings.importable_catalog_ids().len(), 0);
-        let _ = app.update(Message::ImportSelectedModels);
-        assert!(app.settings.catalog_modal);
-        assert!(app.settings.models[0].is_empty());
-        assert!(!app.settings.probe_busy && !app.settings.probe_pending);
-        app.settings.probe_busy = true;
-        let _ = app.update(Message::CatalogProbeProgress(Provider::OpenRouter, 0, "vendor/one".into(),
-            Ok((SecretText::new("Not this time".into()), 34))));
-        let _ = app.update(Message::CatalogProbeProgress(Provider::OpenRouter, 0, "vendor/two".into(),
-            Ok((SecretText::new("OK, ready".into()), 42))));
-        app.settings.probe_busy = false;
-        assert!(!app.settings.probe_results[0].1);
-        assert!(app.settings.probe_results[1].1);
-        let _ = app.update(Message::ImportSelectedModels);
-        assert_eq!(app.settings.models[0], vec!["vendor/two"]);
-        assert_eq!(app.settings.catalog_selected[0], vec!["vendor/one"]);
-    }
-
-    #[test]
-    fn probe_retries_only_explicit_http_transients() {
-        assert!(retryable_probe_failure(CallError::Rejected(408)));
-        assert!(retryable_probe_failure(CallError::Rejected(429)));
-        assert!(retryable_probe_failure(CallError::Rejected(503)));
-        assert!(!retryable_probe_failure(CallError::Transport)); // may have been billed
-        assert!(!retryable_probe_failure(CallError::Rejected(401)));
-        assert!(!retryable_probe_failure(CallError::InvalidResponse));
-    }
-
-    #[test]
-    fn chat_setup_opens_unified_settings_and_chat_can_switch_models() {
-        let mut app = App::new();
-        let _ = app.update(Message::Navigate(Page::Agent));
-        let _ = app.update(Message::OpenModelSettings);
-        assert_eq!(app.page, Page::Settings);
-        assert_eq!(app.settings.section, Section::Providers);
-        let _ = app.update(Message::EditModel("vendor/first".into()));
-        let _ = app.update(Message::AddModel);
-        let _ = app.update(Message::EditModel("vendor/second".into()));
-        let _ = app.update(Message::AddModel);
-        let _ = app.update(Message::Navigate(Page::Agent));
-        let _ = app.update(Message::ChooseModel(0));
-        assert_eq!(app.settings.selected_model(), Some("vendor/first"));
-        let _ = app.update(Message::SelectProvider(Provider::Gemini));
-        assert_eq!(app.settings.selected_model(), None);
-        let _ = app.update(Message::SelectProvider(Provider::OpenRouter));
-        assert_eq!(app.settings.selected_model(), Some("vendor/first"));
-        assert!(app.settings.stream_chat);
-        let _ = app.update(Message::ToggleStreaming);
-        assert!(!app.settings.stream_chat);
-    }
-
-    #[test]
-    fn chat_picker_stays_collapsed_until_opened_and_closes_after_choice() {
-        let mut app = App::new();
-        let _ = app.update(Message::Navigate(Page::Agent));
-        assert!(!app.model_menu_open);
-        let _ = app.update(Message::ToggleModelMenu);
-        assert!(app.model_menu_open);
-        let _ = app.update(Message::SearchChatModels("demo".into()));
-        assert_eq!(app.chat_model_search, "demo");
-        app.settings.models[0].push("demo/model".into());
-        let _ = app.update(Message::ChooseModel(0));
-        assert_eq!(app.settings.selected_model(), Some("demo/model"));
-        assert!(!app.model_menu_open);
-        let _ = app.update(Message::ToggleModeMenu);
-        assert!(app.mode_menu_open);
-        let _ = app.update(Message::SelectMode(2));
-        assert!(!app.mode_menu_open);
-    }
-
-    #[test]
-    fn reasoning_auto_opens_during_stream_and_user_toggle_wins_after_completion() {
-        let mut app = App::new();
-        app.page = Page::Agent;
-        app.drafts[0].busy = true;
-        app.drafts[0].turns.push(Turn { role: "user", content: "Question".into() });
-        let partial = Reply { content: "Answer".into(), reasoning: Some("Working".into()) };
-        let _ = app.update(Message::ChatProgress(1, SecretReply(partial.clone())));
-        assert!(app.drafts[0].partial_reasoning_open);
-        let _ = app.update(Message::ToggleReasoning(1, 1));
-        assert!(!app.drafts[0].partial_reasoning_open);
-        let _ = app.update(Message::ChatProgress(1, SecretReply(partial.clone())));
-        assert!(!app.drafts[0].partial_reasoning_open);
-        let _ = app.update(Message::ToggleReasoning(1, 1));
-        let _ = app.update(Message::ChatResult(1, Ok(SecretReply(partial))));
-        assert!(app.drafts[0].formatted[0].3); // explicit user-open persists
-        let _ = app.update(Message::ToggleReasoning(1, 1));
-        assert!(!app.drafts[0].formatted[0].3);
-    }
-
-    #[test]
-    fn untouched_reasoning_collapses_when_stream_completes() {
-        let mut app = App::new();
-        app.page = Page::Agent;
-        app.drafts[0].busy = true;
-        app.drafts[0].turns.push(Turn { role: "user", content: "Question".into() });
-        let _ = app.update(Message::ChatProgress(1, SecretReply(Reply {
-            content: "Answer".into(), reasoning: Some("Working".into()),
-        })));
-        let _ = app.update(Message::ChatResult(1, Ok(SecretReply(Reply {
-            content: "Answer".into(), reasoning: Some("Working".into()),
-        }))));
-        assert!(!app.drafts[0].formatted[0].3);
-    }
-
-    #[test]
-    fn interrupted_stream_keeps_received_text_but_excludes_it_from_context() {
-        let mut app = App::new();
-        let _ = app.update(Message::Navigate(Page::Agent));
-        app.drafts[0].busy = true;
-        app.drafts[0].turns.push(Turn { role: "user", content: "Prompt".into() });
-        let _ = app.update(Message::ChatProgress(1, SecretReply(Reply {
-            content: "Received paragraph".into(), reasoning: Some("Returned reasoning".into()),
-        })));
-        let _ = app.update(Message::ChatResult(1, Err("Stopped".into())));
-        assert_eq!(app.drafts[0].turns[1].content, "Received paragraph");
-        assert_eq!(app.drafts[0].incomplete_slots, vec![1]);
-        assert!(!app.drafts[0].busy);
-        assert_eq!(app.drafts[0].error.as_deref(), Some("Stopped"));
-    }
-
-    #[test]
-    fn live_chat_respects_manual_scroll_and_jump_to_latest() {
-        let mut app = App::new();
-        app.page = Page::Agent;
-        app.drafts[0].busy = true;
-        app.drafts[0].turns.push(Turn { role: "user", content: "prompt".into() });
-        let _ = app.update(Message::ChatScrolled(1, false));
-        assert!(!app.drafts[0].follow_tail);
-        let _ = app.update(Message::ChatProgress(1, SecretReply(Reply { content: "half".into(), reasoning: None })));
-        assert!(!app.drafts[0].follow_tail);
-        let _ = app.update(Message::JumpToLatest);
-        assert!(app.drafts[0].follow_tail);
-        let _ = app.update(Message::ChatScrolled(42, false)); // stale chat must not steal the scroll state
-        assert!(app.drafts[0].follow_tail);
-        let _ = app.update(Message::ChatResult(1, Ok(SecretReply(Reply { content: "done".into(), reasoning: None }))));
-        assert_eq!(app.drafts[0].turns[1].content, "done");
-    }
-
-    #[test]
-    fn failed_send_restores_draft_without_reusing_it_as_hidden_context() {
-        let mut app = App::new();
-        app.drafts[0].busy = true;
-        app.drafts[0].turns.push(Turn { role: "user", content: "synthetic prompt".into() });
-        let _ = app.update(Message::ChatResult(1, Err("synthetic transport failure".into())));
-        assert!(!app.drafts[0].busy);
-        assert_eq!(app.drafts[0].text, "synthetic prompt");
-        assert!(app.drafts[0].turns.is_empty());
-    }
-
-    #[test]
-    fn a_pending_key_write_blocks_duplicate_submissions_and_provider_switches() {
-        let mut app = App::new();
-        let _ = app.update(Message::Navigate(Page::Settings));
-        let _ = app.update(Message::EditKey(SecretText::new("synthetic-key".into())));
-        let _ = app.update(Message::SaveKey); // Task is not run in this state test.
-        assert!(app.settings.key_busy);
-        assert!(app.settings.key_entry.0.is_empty());
-        let _ = app.update(Message::SelectProvider(Provider::Gemini));
-        assert_eq!(app.settings.provider, Provider::OpenRouter);
-        let _ = app.update(Message::SaveKey);
-        let _ = app.update(Message::KeySaved(Provider::OpenRouter, Err(VaultError::Unavailable)));
-        assert!(!app.settings.key_busy);
-    }
-
-    #[test]
-    fn sensitive_messages_redact_their_debug_representation() {
-        let message = Message::EditKey(SecretText::new("synthetic-private-value".into()));
-        assert!(!format!("{message:?}").contains("synthetic-private-value"));
-    }
-
-    #[test]
-    fn leaving_agent_cancels_generation_and_restores_unanswered_input() {
-        let mut app = App::new();
-        app.page = Page::Agent;
-        app.drafts[0].busy = true;
-        app.drafts[0].turns.push(Turn { role: "user", content: "unsent after exit".into() });
-        let _ = app.update(Message::Navigate(Page::Home));
-        assert_eq!(app.page, Page::Home);
-        assert!(!app.drafts[0].busy);
-        assert!(app.drafts[0].turns.is_empty());
-        assert_eq!(app.drafts[0].text, "unsent after exit");
-    }
-
-    #[test]
-    fn navigation_changes_only_to_available_pages() {
-        let mut app = App::new();
-        assert_eq!(app.page, Page::Home);
-        let _ = app.update(Message::Navigate(Page::About));
-        assert_eq!(app.page, Page::About);
-        let _ = app.update(Message::Navigate(Page::Home));
-        assert_eq!(app.page, Page::Home);
-    }
-
-    #[test]
-    fn agent_kinetic_type_cycles_only_on_home() {
-        let mut app = App::new();
-        for _ in 0..MODE_COUNT - 1 {
-            let _ = app.update(Message::AgentPulse);
-        }
-        assert_eq!(app.agent_phase, MODE_COUNT - 1);
-        let _ = app.update(Message::AgentPulse);
-        assert_eq!(app.agent_phase, 0);
-        let _ = app.update(Message::Navigate(Page::About));
-        let _ = app.update(Message::AgentPulse);
-        assert_eq!(app.agent_phase, 0);
-    }
-
-    #[test]
-    fn session_only_drafts_keep_separate_mode_previews() {
-        let mut app = App::new();
-        let _ = app.update(Message::Navigate(Page::Agent));
-        let _ = app.update(Message::SelectMode(3));
-        assert_eq!(app.drafts[0].mode, 3);
-        let _ = app.update(Message::NewChat);
-        assert_eq!(app.drafts.len(), 2);
-        assert_eq!(app.selected_draft, 2);
-        assert_eq!(app.drafts[1].mode, 0);
-        let _ = app.update(Message::SelectMode(6));
-        assert_eq!(app.drafts[1].mode, 0);
-        let _ = app.update(Message::OpenChat(77));
-        assert_eq!(app.selected_draft, 2);
-        let _ = app.update(Message::OpenChat(1));
-        assert_eq!(app.drafts[0].mode, 3);
-        assert_eq!(app.selected_draft, 1);
-    }
-
-    #[test]
-    fn shared_sidebar_toggle_survives_navigation_and_reopens() {
-        let mut app = App::new();
-        assert!(app.sidebar_expanded);
-        let _ = app.update(Message::ToggleSidebar);
-        assert!(!app.sidebar_expanded);
-        let _ = app.update(Message::Navigate(Page::Agent));
-        let _ = app.update(Message::Navigate(Page::Settings));
-        assert!(!app.sidebar_expanded);
-        let _ = app.update(Message::ToggleSidebar);
-        assert!(app.sidebar_expanded);
-        assert_eq!(app.page, Page::Settings);
-    }
-
-    #[test]
-    fn unsent_input_stays_in_its_session_draft_and_cannot_be_submitted() {
-        let mut app = App::new();
-        let _ = app.update(Message::Navigate(Page::Agent));
-        let _ = app.update(Message::EditDraft(1, SecretText::new("First idea ✓".into())));
-        let _ = app.update(Message::NewChat);
-        assert!(app.drafts[1].text.is_empty());
-        let _ = app.update(Message::EditDraft(1, SecretText::new("wrong draft".into())));
-        let _ = app.update(Message::EditDraft(2, SecretText::new("Second idea".into())));
-        let _ = app.update(Message::OpenChat(1));
-        assert_eq!(app.drafts[0].text, "First idea ✓");
-        assert_eq!(app.drafts[1].text, "Second idea");
-        let _ = app.update(Message::ClearDraft(2));
-        assert_eq!(app.drafts[1].text, "Second idea");
-        let _ = app.update(Message::ClearDraft(1));
-        assert!(app.drafts[0].text.is_empty());
-        assert!(App::new().drafts[0].text.is_empty());
-    }
-
-    #[test]
-    fn memory_preview_never_changes_outside_shared_settings() {
-        let mut app = App::new();
-        let _ = app.update(Message::MemoryPreview(MemoryMode::Heavy));
-        assert_eq!(app.memory_preview, MemoryMode::Light);
-        let _ = app.update(Message::Navigate(Page::Settings));
-        let _ = app.update(Message::MemoryPreview(MemoryMode::Custom));
-        let _ = app.update(Message::ToggleAgentPreview);
-        assert!(app.keep_agent_preview);
-        let _ = app.update(Message::Navigate(Page::Agent));
-        let _ = app.update(Message::ToggleAgentPreview);
-        assert!(app.keep_agent_preview);
-        assert_eq!(App::new().memory_preview, MemoryMode::Light);
-    }
-
-    #[test]
-    fn type_motion_only_runs_while_an_unavailable_card_is_hovered() {
-        let mut app = App::new();
-        let _ = app.update(Message::TileHover(Art::Agent, true));
-        let _ = app.update(Message::Animate);
-        assert_eq!(app.phase, 0);
-        let _ = app.update(Message::TileHover(Art::Training, true));
-        let _ = app.update(Message::Animate);
-        assert_eq!(app.phase, 1);
-        let _ = app.update(Message::TileHover(Art::Training, false));
-        let _ = app.update(Message::Animate);
-        assert_eq!(app.phase, 0);
-        let _ = app.update(Message::TileHover(Art::Tuning, true));
-        let _ = app.update(Message::Navigate(Page::About));
-        let _ = app.update(Message::Animate);
-        assert_eq!(app.hovered, None);
-        assert_eq!(app.phase, 0);
-    }
-}

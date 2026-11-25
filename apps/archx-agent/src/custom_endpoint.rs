@@ -5,7 +5,8 @@ use std::time::Duration;
 use reqwest::{Client, Url, redirect, header::{HeaderName, HeaderValue}};
 use serde_json::{json, Value};
 use zeroize::Zeroizing;
-use crate::provider_api::{CallError, Reply, Turn};
+use archx_shared::diagnostics;
+use archx_shared::provider_api::{CallError, Failure, Reply, Trace, Turn};
 
 // Only these cURL options have a meaning. Reject all others rather than
 // accidentally interpreting a shell pipeline, @file body, -k or a redirect.
@@ -144,64 +145,103 @@ impl Profile {
     }
 }
 
-pub async fn send(profile: Profile, model: String, key: Zeroizing<String>, turns: Vec<Turn>, max_tokens: u32) -> Result<Reply, CallError> {
+pub async fn send(profile: Profile, model: String, key: Zeroizing<String>, turns: Vec<Turn>, max_tokens: u32) -> Result<(Reply, Trace), Failure> {
     send_inner(profile, model, key, turns, max_tokens, None).await
 }
 
 pub async fn send_stream(profile: Profile, model: String, key: Zeroizing<String>, turns: Vec<Turn>, max_tokens: u32,
-    progress: &mut sipper::Sender<Reply>) -> Result<Reply, CallError> {
+    progress: &mut sipper::Sender<Reply>) -> Result<(Reply, Trace), Failure> {
     send_inner(profile, model, key, turns, max_tokens, Some(progress)).await
 }
 
+fn failure(kind: CallError, trace: Trace) -> Failure {
+    Failure { diagnosis: archx_shared::provider_api::to_diagnosis(kind, None), trace, may_have_billed: kind != CallError::InvalidInput }
+}
+
 async fn send_inner(profile: Profile, model: String, key: Zeroizing<String>, turns: Vec<Turn>, max_tokens: u32,
-    mut progress: Option<&mut sipper::Sender<Reply>>) -> Result<Reply, CallError> {
-    profile.check().map_err(|_| CallError::InvalidInput)?;
-    if turns.is_empty() || max_tokens == 0 || max_tokens > 4096 { return Err(CallError::InvalidInput); }
+    mut progress: Option<&mut sipper::Sender<Reply>>) -> Result<(Reply, Trace), Failure> {
+    profile.check().map_err(|_| failure(CallError::InvalidInput, Trace::default()))?;
+    if turns.is_empty() || max_tokens == 0 || max_tokens > 4096 { return Err(failure(CallError::InvalidInput, Trace::default())); }
     let client = Client::builder().no_proxy().redirect(redirect::Policy::none())
-        .timeout(Duration::from_secs(45)).build().map_err(|_| CallError::Transport)?;
-    let mut body: Value = serde_json::from_str(&profile.body).map_err(|_| CallError::InvalidInput)?;
+        .timeout(Duration::from_secs(diagnostics::REQUEST_TIMEOUT_SECS)).build()
+        .map_err(|_| failure(CallError::Transport, Trace::default()))?;
+    let mut body: Value = serde_json::from_str(&profile.body).map_err(|_| failure(CallError::InvalidInput, Trace::default()))?;
     expand(&mut body, &model, &turns, max_tokens, profile.stream);
-    let mut request = client.post(validate_url(&profile.url).map_err(|_| CallError::InvalidInput)?).json(&body);
+    let request_bytes = body.to_string().len();
+    let mut request = client.post(validate_url(&profile.url).map_err(|_| failure(CallError::InvalidInput, Trace::default()))?).json(&body);
     for line in profile.headers.split(['\n', '|']) {
         if line.trim().is_empty() { continue; }
-        let (name, value) = line.split_once(':').ok_or(CallError::InvalidInput)?;
-        validate_header(line).map_err(|_| CallError::InvalidInput)?;
+        let (name, value) = line.split_once(':').ok_or(failure(CallError::InvalidInput, Trace::default()))?;
+        validate_header(line).map_err(|_| failure(CallError::InvalidInput, Trace::default()))?;
         let value = Zeroizing::new(value.trim().replace("{{api_key}}", key.as_str()));
         request = request.header(name.trim(), value.as_str());
     }
-    let mut response = request.send().await.map_err(|_| CallError::Transport)?;
-    if !response.status().is_success() { return Err(CallError::Rejected(response.status().as_u16())); }
+    let started = std::time::Instant::now();
+    let mut response = request.send().await.map_err(|_| Failure {
+        diagnosis: diagnostics::transport(true),
+        trace: Trace { request_bytes, ..Trace::default() }, may_have_billed: true })?;
+    let status = response.status().as_u16();
+    let retry_after = response.headers().get("retry-after").and_then(|value| value.to_str().ok())
+        .and_then(diagnostics::retry_after);
     let mut bytes = Vec::new();
     let mut read = 0usize;
     let mut reply = Reply::default();
     let mut done = false;
-    while let Some(chunk) = response.chunk().await.map_err(|_| CallError::Transport)? {
+    let mut provider_message = String::new();
+    while let Some(chunk) = response.chunk().await.map_err(|_| Failure {
+        diagnosis: diagnostics::transport(true),
+        trace: Trace { status: Some(status), duration_ms: started.elapsed().as_millis(), request_bytes, response_bytes: read, provider_message: String::new() },
+        may_have_billed: true })? {
         read = read.saturating_add(chunk.len());
-        if read > 2 * 1024 * 1024 { return Err(CallError::Oversized); }
+        if read > 2 * 1024 * 1024 { return Err(failure(CallError::Oversized, Trace { status: Some(status), ..Trace::default() })); }
         bytes.extend_from_slice(&chunk);
+        // A non-2xx body is the provider's own explanation; keep it short.
+        if !(200..300).contains(&status) {
+            if bytes.len() > 4_096 { break; }
+            continue;
+        }
         if profile.stream {
             while let Some(end) = bytes.iter().position(|b| *b == b'\n') {
                 let line = bytes.drain(..=end).collect::<Vec<_>>();
-                let line = std::str::from_utf8(&line).map_err(|_| CallError::InvalidResponse)?;
+                let line = std::str::from_utf8(&line).map_err(|_| failure(CallError::InvalidResponse, Trace::default()))?;
                 let Some(data) = line.trim().strip_prefix("data:") else { continue; };
                 if data.trim() == "[DONE]" { done = true; break; }
-                let frame: Value = serde_json::from_str(data.trim()).map_err(|_| CallError::InvalidResponse)?;
-                let delta = frame.pointer(&profile.stream_pointer).and_then(Value::as_str)
-                    .ok_or(CallError::InvalidResponse)?;
-                if reply.content.len().saturating_add(delta.len()) > 96 * 1024 { return Err(CallError::Oversized); }
+                let frame: Value = serde_json::from_str(data.trim()).map_err(|_| failure(CallError::InvalidResponse, Trace::default()))?;
+                if let Some(error) = frame.get("error") {
+                    provider_message = archx_shared::debug_log::redact(&error.to_string()).chars().take(280).collect();
+                    break;
+                }
+                // A custom wrapper may simply omit the delta on keep-alive frames.
+                let Some(delta) = frame.pointer(&profile.stream_pointer).and_then(Value::as_str) else { continue };
+                if reply.content.len().saturating_add(delta.len()) > 96 * 1024 {
+                    return Err(failure(CallError::Oversized, Trace { status: Some(status), ..Trace::default() }));
+                }
                 reply.content.push_str(delta);
                 if let Some(sender) = progress.as_mut() { sender.send(reply.clone()).await; }
             }
-            if done { break; }
+            if done || !provider_message.is_empty() { break; }
         }
     }
+    let trace = Trace { status: Some(status), duration_ms: started.elapsed().as_millis(), request_bytes, response_bytes: read, provider_message: provider_message.clone() };
+    if !(200..300).contains(&status) {
+        let hint = (!provider_message.is_empty()).then_some(provider_message.as_str());
+        return Err(Failure { diagnosis: diagnostics::from_http(status, hint).with_retry_after(retry_after), trace, may_have_billed: true });
+    }
+    if !provider_message.is_empty() {
+        return Err(Failure { diagnosis: diagnostics::from_http(500, Some(&provider_message)), trace, may_have_billed: true });
+    }
     if profile.stream {
-        if reply.content.is_empty() { return Err(CallError::InvalidResponse); }
+        if reply.content.is_empty() { return Err(failure(CallError::InvalidResponse, trace)); }
         // Some user-built wrappers close cleanly without a [DONE] sentinel.
-        Ok(reply)
+        Ok((reply, trace))
     } else {
-        let body: Value = serde_json::from_slice(&bytes).map_err(|_| CallError::InvalidResponse)?;
+        let body: Value = serde_json::from_slice(&bytes).map_err(|_| Failure {
+            diagnosis: diagnostics::invalid_response("the response was not JSON"),
+            trace: Trace { provider_message: archx_shared::debug_log::redact(String::from_utf8_lossy(&bytes).chars().take(280).collect()), ..trace },
+            may_have_billed: true })?;
         parse_answer(&body, &profile.answer_pointer)
+            .map(|reply| (reply, trace.clone()))
+            .map_err(|error| failure(error, trace))
     }
 }
 

@@ -1,24 +1,16 @@
-//! Purpose: Starts the native Archx AI Lab GUI without a console in Windows release builds.
+//! Purpose: Starts the native Archx AI Lab launcher, which discovers apps from `apps/*/app.toml`, without a console on Windows release builds.
 #![cfg_attr(all(target_os = "windows", not(debug_assertions)), windows_subsystem = "windows")]
 
-mod agent;
-mod agent_visual;
 mod app;
-mod app_tile;
-mod credentials;
-mod custom_endpoint;
-mod home;
 mod navigation;
-mod model_catalog;
-mod provider_api;
-mod settings;
-mod style;
+mod transition;
 
+#[cfg(not(test))]
 use iced::{window, Font, Theme};
 
 fn brand_icon() -> window::Icon {
     window::icon::from_file_data(
-        include_bytes!("../assets/brand/archnemix-icon.png"),
+        include_bytes!("../shared/assets/brand/archnemix-icon.png"),
         None,
     )
     .expect("Bundled brand icon must decode")
@@ -37,15 +29,15 @@ fn main() -> iced::Result {
         })
         .subscription(app::App::subscription)
         .theme(|_: &app::App| Theme::Dark)
-        .font(include_bytes!("../assets/fonts/Manrope.ttf").as_slice());
+        .font(include_bytes!("../shared/assets/fonts/Manrope.ttf").as_slice());
 
     // Registering a second font family distorted glyph advances on the macOS
     // runner. Keep that OS on the already-validated Manrope family until the
     // renderer issue can be isolated without compromising the Agent visual.
     #[cfg(not(target_os = "macos"))]
     let application = application
-        .font(include_bytes!("../assets/fonts/SpaceGrotesk-Medium.ttf").as_slice())
-        .font(include_bytes!("../assets/fonts/SpaceGrotesk-SemiBold.ttf").as_slice());
+        .font(include_bytes!("../shared/assets/fonts/SpaceGrotesk-Medium.ttf").as_slice())
+        .font(include_bytes!("../shared/assets/fonts/SpaceGrotesk-SemiBold.ttf").as_slice());
 
     application.default_font(Font::with_name("Manrope")).run()
 }

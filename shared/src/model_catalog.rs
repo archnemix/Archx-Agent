@@ -6,8 +6,8 @@ use reqwest::{redirect, Client, RequestBuilder};
 use serde_json::Value;
 use zeroize::Zeroizing;
 
-use crate::credentials::Provider;
-use crate::provider_api::{valid_model, CallError};
+use archx_shared::credentials::Provider;
+use archx_shared::provider_api::{valid_model, CallError};
 
 const MAX_CATALOG_BYTES: usize = 8 * 1024 * 1024;
 // Bound untrusted network payloads, not the number of models a user may add.
@@ -82,39 +82,43 @@ async fn read_json(mut response: reqwest::Response) -> Result<(Value, usize), Ca
 }
 
 pub async fn fetch(provider: Provider, key: Option<Zeroizing<String>>) -> Result<Vec<CatalogModel>, CallError> {
+    fetch_via(provider, key, &archx_shared::endpoints::Registry::new()).await
+}
+
+/// Fetches using the user-editable model-list URL for this provider.
+pub async fn fetch_via(provider: Provider, key: Option<Zeroizing<String>>, endpoints: &archx_shared::endpoints::Registry)
+    -> Result<Vec<CatalogModel>, CallError> {
     let client = Client::builder().https_only(provider != Provider::OllamaLocal).no_proxy().redirect(redirect::Policy::none())
-        .timeout(Duration::from_secs(25)).build().map_err(|_| CallError::Transport)?;
+        .timeout(Duration::from_secs(archx_shared::diagnostics::CATALOG_TIMEOUT_SECS)).build().map_err(|_| CallError::Transport)?;
     let mut all = Vec::new();
     let mut token: Option<String> = None;
     let mut seen = HashSet::new();
     let mut page_tokens = HashSet::new();
     let mut total_bytes = 0usize;
     for page in 0usize.. {
+        if provider == Provider::Custom { return Err(CallError::InvalidInput); }
+        let url = endpoints.resolve(provider, archx_shared::endpoints::Kind::Models, "");
+        let needs_key = provider != Provider::OllamaLocal;
+        let secret = || -> Result<&str, CallError> {
+            key.as_ref().map(|key| key.as_str()).ok_or(CallError::InvalidInput)
+        };
         let request: RequestBuilder = match provider {
-            Provider::OpenRouter => client.get("https://openrouter.ai/api/v1/models")
+            // OpenRouter paginates by explicit limit/offset; other providers
+            // page with a token or return the whole list at once.
+            Provider::OpenRouter => client.get(url)
                 .query(&[("limit", "1000"), ("offset", &page.saturating_mul(1000).to_string()), ("endpoints", "/api/v1/chat/completions")]),
-            Provider::Grok => client.get("https://api.x.ai/v1/language-models")
-                .bearer_auth(key.as_ref().ok_or(CallError::InvalidInput)?.as_str()),
             Provider::Gemini => {
-                let mut request = client.get("https://generativelanguage.googleapis.com/v1beta/models")
-                    .query(&[("pageSize", "1000")])
-                    .header("x-goog-api-key", key.as_ref().ok_or(CallError::InvalidInput)?.as_str());
+                let mut request = client.get(url).query(&[("pageSize", "1000")])
+                    .header("x-goog-api-key", secret()?);
                 if let Some(ref page) = token { request = request.query(&[("pageToken", page)]); }
                 request
             }
-            Provider::OpenAI => client.get("https://api.openai.com/v1/models")
-                .bearer_auth(key.as_ref().ok_or(CallError::InvalidInput)?.as_str()),
-            Provider::Anthropic => client.get("https://api.anthropic.com/v1/models")
-                .header("x-api-key", key.as_ref().ok_or(CallError::InvalidInput)?.as_str())
+            Provider::Anthropic => client.get(url)
+                .header("x-api-key", secret()?)
                 .header("anthropic-version", "2023-06-01"),
-            Provider::Groq => client.get("https://api.groq.com/openai/v1/models")
-                .bearer_auth(key.as_ref().ok_or(CallError::InvalidInput)?.as_str()),
-            Provider::Zai => client.get("https://api.z.ai/api/paas/v4/models")
-                .bearer_auth(key.as_ref().ok_or(CallError::InvalidInput)?.as_str()),
-            Provider::OllamaLocal => client.get("http://127.0.0.1:11434/api/tags"),
-            Provider::Custom => return Err(CallError::InvalidInput),
-            Provider::OllamaCloud => client.get("https://ollama.com/api/tags")
-                .bearer_auth(key.as_ref().ok_or(CallError::InvalidInput)?.as_str()),
+            Provider::OllamaLocal => client.get(url),
+            _ if needs_key => client.get(url).bearer_auth(secret()?),
+            _ => client.get(url),
         };
         let (body, page_bytes) = read_json(request.send().await.map_err(|_| CallError::Transport)?).await?;
         total_bytes = total_bytes.saturating_add(page_bytes);

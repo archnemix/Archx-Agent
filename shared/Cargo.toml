@@ -1,0 +1,23 @@
+# Purpose: Declares the app-neutral crate every Archx app compiles: storage, vault, transports, diagnostics and design tokens.
+[package]
+name = "archx-shared"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+name = "archx_shared"
+path = "src/lib.rs"
+
+[dependencies]
+iced = { version = "0.14.0", features = ["tokio", "image", "svg", "markdown", "sipper"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
+keyring = { version = "4.2", default-features = true }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde_json = "1"
+sipper = "0.1"
+tokio = { version = "1", features = ["rt", "time"] }
+zeroize = "1.8"
+
+[dev-dependencies]
+# Nothing beyond the runtime dependencies: tests here touch only the filesystem.

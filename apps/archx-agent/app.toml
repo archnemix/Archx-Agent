@@ -1,0 +1,11 @@
+# Purpose: Archx Agent app manifest. The launcher discovers this file and renders its tile; no launcher code names the app.
+id = "archx-agent"
+name = "Archx Agent"
+category = "SIX MODES / ONE AGENT"
+summary = "Chat, research, build and learn with an agent that keeps keys in the OS vault and never acts without your say."
+status = "live"
+art = "agent"
+modes = ["Chat", "Tasks", "Research", "Coding", "Learning", "Play"]
+# The app's crate root, relative to this folder. The launcher hosts this module
+# tree in-process; the app never edits launcher files to ship a change.
+entry = "src/lib.rs"

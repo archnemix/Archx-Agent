@@ -1,4 +1,12 @@
-# Purpose: Declares the native Archx AI Lab desktop application and its GUI/screenshot dependencies.
+# Purpose: Declares the Archx AI Lab workspace: the launcher binary, the Archx Agent app and the shared crate.
+[workspace]
+members = ["shared", "apps/archx-agent"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
 [package]
 name = "archx-ai-lab"
 version = "0.1.0"
@@ -6,12 +14,11 @@ edition = "2024"
 publish = false
 
 [dependencies]
+archx-agent = { path = "apps/archx-agent" }
+archx-shared = { path = "shared" }
 iced = { version = "0.14.0", features = ["tokio", "image", "svg", "markdown", "sipper"] }
 image = { version = "0.25", default-features = false, features = ["png"] }
-keyring = { version = "4.2", default-features = true }
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 serde_json = "1"
-sipper = "0.1"
 tokio = { version = "1", features = ["rt", "time"] }
 zeroize = "1.8"
 

@@ -1,0 +1,33 @@
+{
+  "_description": "Curated free-tier annotations for models the Agent is likely to offer. Maintained by hand from the public list at github.com/mnfst/awesome-free-llm-apis and each provider's own pricing page; verified on the date below. A missing id means 'no known free tier', never 'paid only'.",
+  "checked": "2026-11-23",
+  "source": "https://github.com/mnfst/awesome-free-llm-apis",
+  "models": {
+    "openrouter/free": "free router · rate-limited by OpenRouter",
+    "google/gemini-2.0-flash-exp:free": "free endpoint · 200 req/day",
+    "google/gemini-2.5-flash": "free tier · 10 RPM / 250 req/day",
+    "google/gemini-2.5-flash-lite": "free tier · 15 RPM / 1000 req/day",
+    "google/gemini-2.5-pro": "free tier · 5 RPM / 100 req/day",
+    "google/gemini-2.0-flash": "free tier · 15 RPM / 1500 req/day",
+    "meta-llama/llama-3.3-70b-instruct:free": "free endpoint · shared pool",
+    "deepseek/deepseek-chat-v3-0324:free": "free endpoint · shared pool",
+    "deepseek-r1:free": "free endpoint · shared pool",
+    "qwen/qwen-2.5-72b-instruct:free": "free endpoint · shared pool",
+    "mistralai/mistral-small-3.2-24b-instruct:free": "free endpoint · shared pool",
+    "llama-3.3-70b-versatile": "free tier · 30 RPM / 1000 req/day on Groq",
+    "llama-3.1-8b-instant": "free tier · 30 RPM / 14400 req/day on Groq",
+    "gemma2-9b-it": "free tier · 30 RPM / 14400 req/day on Groq",
+    "qwen/qwen3-32b": "free tier · Groq preview allowance",
+    "grok-4-fast": "free tier · limited requests via xAI console",
+    "grok-3-mini": "free tier · limited requests via xAI console",
+    "claude-3-5-haiku-latest": "trial credits on new Anthropic accounts",
+    "gpt-4o-mini": "no standing free tier · pay as you go",
+    "gpt-4.1-mini": "no standing free tier · pay as you go",
+    "glm-4.5-flash": "free tier · Z.ai flash allowance",
+    "glm-4.5-air": "free tier · limited daily requests on Z.ai",
+    "llama3.2:3b": "local model · no cost, runs on this machine",
+    "llama3.2:1b": "local model · no cost, runs on this machine",
+    "qwen2.5:3b": "local model · no cost, runs on this machine",
+    "smollm2:135m": "local model · no cost, runs on this machine"
+  }
+}

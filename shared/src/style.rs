@@ -357,6 +357,14 @@ pub fn chat_thinking(_: &Theme) -> container::Style {
     style.text_color = Some(GREY);
     style
 }
+/// `.thinking-body`: the dashed top divider is replaced by a 1px hairline
+/// (Iced has no dashed borders) and the body is muted 13px text that scrolls.
+pub fn chat_thinking_body(_: &Theme) -> container::Style {
+    container::Style::default()
+        .background(Color::TRANSPARENT)
+        .border(Border { color: BORDER_2, width: 1.0, radius: 0.0.into() })
+}
+
 pub fn chat_avatar(assistant: bool, _: &Theme) -> container::Style {
     container::Style::default().background(if assistant { WHITE } else { Color::from_rgb8(26, 26, 26) })
         .border(Border { color: if assistant { WHITE } else { LINE }, width: 1.0, radius: 8.0.into() })
