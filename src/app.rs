@@ -155,7 +155,7 @@ pub struct App {
     pub storage_path: String,
     pub memory_usage: Vec<archx_shared::memory::Usage>,
     /// Tile artwork cycle for Discover.
-    phase: u8,
+    pub(crate) phase: u8,
     /// Which tile art is lit for a scripted screenshot (`training`/`tuning`).
     pub(crate) hovered: Option<String>,
     snapshot: Option<PathBuf>,

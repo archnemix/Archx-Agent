@@ -86,7 +86,7 @@ fn rail(state: &Launcher) -> Element<'static, Message> {
     let mut content = column![
         image(BRAND.clone()).width(116).height(116).content_fit(ContentFit::Contain),
         space().height(24),
-        text("WORKSPACES").size(10 * scale).color(style::DIM),
+        text("WORKSPACES").size(10.0 * scale).color(style::DIM),
         space().height(10),
         expanded_action(Icon::Home, "Discover", Message::Navigate(Page::Home), page == Page::Home),
         space().height(8)
@@ -104,7 +104,7 @@ fn rail(state: &Launcher) -> Element<'static, Message> {
             content = content.push(expanded_action(Icon::Agent, label,
                 Message::Navigate(target), page.is_agent_surface()));
         } else {
-            content = content.push(container(text(format!("    {label}")).size(12 * scale).color(style::DIM))
+            content = content.push(container(text(format!("    {label}")).size(12.0 * scale).color(style::DIM))
                 .padding([10, 15]).width(Fill));
         }
         content = content.push(space().height(6));
@@ -117,7 +117,7 @@ fn rail(state: &Launcher) -> Element<'static, Message> {
     content = content.push(expanded_action(Icon::Info, "About", Message::Navigate(Page::About), page == Page::About));
     content = content.push(space().height(6));
     content = content.push(hint(button(row![glyph(Icon::Collapse, false, 19),
-            text("Collapse navigation").size(12).color(style::GREY)]).spacing(12).align_y(Center)
+            text("Collapse navigation").size(12).color(style::GREY)].spacing(12).align_y(Center))
             .width(Fill).padding([10, 14]).on_press(Message::ToggleSidebar).style(style::rail_toggle),
         "Collapse navigation"));
     container(content.width(Fill).height(Fill).padding(20))
@@ -225,7 +225,7 @@ fn discover(state: &Launcher) -> Element<'static, Message> {
         space().height(24),
         text("The Lab").size(style::TYPE_PAGE * scale).font(style::DISPLAY).color(style::WHITE),
         space().height(style::SPACE_1),
-        text("One place for the AI apps you make your own.").size(15 * scale).color(style::GREY),
+        text("One place for the AI apps you make your own.").size(15.0 * scale).color(style::GREY),
         space().height(style::SPACE_3),
         hero,
         space().height(style::SPACE_4),
@@ -253,17 +253,17 @@ fn about(state: &Launcher) -> Element<'static, Message> {
     column![
         text("ARCHX  /  ABOUT").size(11).color(style::DIM),
         space().height(31),
-        text("More than a chat window.").size(35 * scale).font(style::DISPLAY).color(style::WHITE),
+        text("More than a chat window.").size(35.0 * scale).font(style::DISPLAY).color(style::WHITE),
         space().height(16),
-        text("Archx AI Lab is the Archnemix launcher for AI tools and experiences.").size(16 * scale).color(style::GREY),
+        text("Archx AI Lab is the Archnemix launcher for AI tools and experiences.").size(16.0 * scale).color(style::GREY),
         space().height(40),
         container(column![
             text("THIS IS THE BEGINNING").size(11).color(style::DIM),
             space().height(18),
             text("The Lab hosts every app it finds in apps/. Each folder owns its code, docs and manifest; the launcher only reads the manifest.")
-                .size(17 * scale).color(style::WHITE),
+                .size(17.0 * scale).color(style::WHITE),
             space().height(12),
-            text(format!("Installed here: {}.", names.join(", "))).size(13 * scale).color(style::GREY)
+            text(format!("Installed here: {}.", names.join(", "))).size(13.0 * scale).color(style::GREY)
         ].width(Fill)).padding(30).width(Fill).style(style::surface)
     ].padding(36).width(Fill).into()
 }
@@ -305,7 +305,7 @@ fn lab_settings(state: &Launcher) -> Element<'static, Message> {
     column![
         text("LAB SETTINGS").size(11).color(style::DIM),
         space().height(20),
-        text("Launcher").size(28 * scale).font(style::DISPLAY).color(style::WHITE),
+        text("Launcher").size(28.0 * scale).font(style::DISPLAY).color(style::WHITE),
         space().height(6),
         text("Options that belong to the launcher itself: how the Lab looks, how much the Agent may keep resident, where apps live, and wiping. App settings stay inside each app.")
             .size(12.5).color(style::GREY),
@@ -363,8 +363,8 @@ fn lab_settings(state: &Launcher) -> Element<'static, Message> {
     ].padding(36).width(Fill).into()
 }
 
-pub fn view(state: &Launcher) -> Element<'static, Message> {
-    let body: Element<'static, Message> = match state.page {
+pub fn view(state: &Launcher) -> Element<'_, Message> {
+    let body: Element<'_, Message> = match state.page {
         Page::Home => scrollable(discover(state)).width(Fill).height(Fill).style(style::quiet_scroll).into(),
         Page::About => scrollable(about(state)).width(Fill).height(Fill).style(style::quiet_scroll).into(),
         Page::LabSettings => scrollable(lab_settings(state)).width(Fill).height(Fill).style(style::quiet_scroll).into(),
