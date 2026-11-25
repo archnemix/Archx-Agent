@@ -146,13 +146,11 @@ impl ChatStore {
                 })).collect::<Vec<_>>(),
             }));
         }
+        // `storage::save` adds the envelope; a second one here would nest it and
+        // make the file unreadable.
         json!({
-            "version": 1,
-            "kind": "chats",
-            "body": {
-                "chats": self.chats.iter().map(StoredChat::to_json).collect::<Vec<_>>(),
-                "catalogs": catalogs,
-            }
+            "chats": self.chats.iter().map(StoredChat::to_json).collect::<Vec<_>>(),
+            "catalogs": catalogs,
         })
     }
 
