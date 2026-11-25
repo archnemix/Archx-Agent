@@ -155,7 +155,7 @@ impl PersistedSettings {
             "stream_chat": self.stream_chat,
             "dialog_timeout_secs": self.dialog_timeout_secs,
             "import_page_size": self.import_page_size,
-            "last_page": page_id(self.last_page),
+            "last_page": page_id(&self.last_page),
         })
     }
 
