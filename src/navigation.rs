@@ -211,7 +211,8 @@ fn discover(state: &Launcher) -> Element<'static, Message> {
     let mut line = row![].spacing(17).width(Fill);
     let mut per_line = 0;
     for app in &state.apps {
-        line = line.push(tile(app, state.phase, state.hovered.as_deref()));
+        let cycle = if app.art == "agent" { state.agent_phase } else { state.phase };
+        line = line.push(tile(app, cycle, state.hovered.as_deref()));
         per_line += 1;
         if per_line == 3 { cards = cards.push(line); line = row![].spacing(17).width(Fill); per_line = 0; }
     }

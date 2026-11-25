@@ -156,6 +156,8 @@ pub struct App {
     pub memory_usage: Vec<archx_shared::memory::Usage>,
     /// Tile artwork cycle for Discover.
     pub(crate) phase: u8,
+    /// Agent word-mark cycle (the Agent's own mode count).
+    pub(crate) agent_phase: u8,
     /// Which tile art is lit for a scripted screenshot (`training`/`tuning`).
     pub(crate) hovered: Option<String>,
     snapshot: Option<PathBuf>,
@@ -198,8 +200,14 @@ impl App {
             notice: None,
             storage_path: storage::display_path(),
             memory_usage: Vec::new(),
+            // Two independent fixtures, as the CI captures expect: the Discover
+            // shelf cycle (`_PHASE`, 0..=2) and the Agent word-mark cycle
+            // (`_AGENT_PHASE`, 0..MODE_COUNT).
             phase: std::env::var("ARCHX_SNAPSHOT_PHASE").ok()
-                .and_then(|value| value.parse::<u8>().ok()).unwrap_or(0),
+                .and_then(|value| value.parse::<u8>().ok()).filter(|phase| *phase <= 2).unwrap_or(0),
+            agent_phase: std::env::var("ARCHX_SNAPSHOT_AGENT_PHASE").ok()
+                .and_then(|value| value.parse::<u8>().ok())
+                .filter(|phase| *phase < archx_agent::agent_visual::MODE_COUNT).unwrap_or(0),
             hovered: std::env::var("ARCHX_SNAPSHOT_HOVER").ok(),
             snapshot,
             snapshot_requested: false,
