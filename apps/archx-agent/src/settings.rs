@@ -380,11 +380,10 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
             .on_press(if showing { Message::HideKey } else { Message::RevealKey(id) }).style(style::tiny_button));
         row = row.push(button(text("Remove").size(10.5))
             .on_press_maybe((!state.key_busy).then_some(Message::RemoveKey(id))).style(style::tiny_button));
-        keys = keys.push(column![row,
-            if resting && !slot.reason.is_empty() {
-                text(slot.reason.clone()).size(10.5).color(style::GREY).into()
-            } else { space().height(0).into() }
-        ].spacing(2));
+        let reason: Element<'static, Message> = if resting && !slot.reason.is_empty() {
+            Element::from(text(slot.reason.clone()).size(10.5).color(style::GREY))
+        } else { Element::from(space().height(0)) };
+        keys = keys.push(column![row, reason].spacing(2));
     }
     let rotation: Element<'_, Message> = row![
         {
@@ -487,7 +486,7 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
             failure
         ].spacing(3)).padding([6, 8]).width(Fill).style(style::card));
     }
-    let bulk: Element<'_, Message> = row![
+    let bulk = row![
         text(format!("{selected} ticked")).size(11).color(if selected > 0 { style::WHITE } else { style::DIM }).width(Fill),
         button(text("Tick matching").size(10.5)).on_press(Message::BulkSelectMatching).style(style::tiny_button),
         button(text("Clear").size(10.5)).on_press(Message::BulkClearSelection).style(style::tiny_button),
@@ -500,7 +499,7 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
         button(text("Remove").size(10.5)).on_press_maybe((selected > 0).then_some(Message::BulkRemoveSelected))
             .style(style::tiny_button)
     ].spacing(6).align_y(Center);
-    let pager: Element<'_, Message> = row![
+    let pager = row![
         button(text("Previous").size(10.5)).on_press_maybe((page > 0).then_some(Message::ModelPagePrevious)).style(style::tiny_button),
         text(format!("Page {} of {} · {} model(s) shown of {}", page + 1, total_pages, shown.len(), visible.len()))
             .size(10.5).color(style::DIM).width(Fill),
@@ -530,11 +529,11 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
         surface(column![
             eyebrow("ADDED MODELS  /  SCROLLABLE, PAGED, BULK"),
             space().height(10),
-            bulk,
+            Element::from(bulk),
             space().height(8),
             scrollable(list).height(340).style(style::quiet_scroll),
             space().height(6),
-            pager
+            Element::from(pager)
         ].width(Fill)),
         surface(column![
             eyebrow("AUTOMATIC HEALTH"),
@@ -578,7 +577,7 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
 /// Runtime memory: one row per cache per stage, with measured sizes.
 // The measured sizes and the keep/drop matrix are the app's, not the page's:
 // they are passed in so the page never keeps a second copy that could drift.
-fn runtime<'a>(state: &'a SettingsState, usage: &'a [archx_shared::memory::Usage],
+fn runtime<'a>(_state: &'a SettingsState, usage: &'a [archx_shared::memory::Usage],
     budget: &'a archx_shared::memory::Budget) -> Element<'a, Message> {
     let mut matrix = column![].spacing(6);
     for item in archx_shared::memory::Item::ALL {
@@ -623,7 +622,7 @@ fn runtime<'a>(state: &'a SettingsState, usage: &'a [archx_shared::memory::Usage
 }
 
 /// Storage & display: where data lives, per-area text scale, and wiping.
-fn storage<'a>(state: &'a SettingsState, display: &'a archx_shared::persist::DisplaySettings,
+fn storage<'a>(state: &SettingsState, display: &archx_shared::persist::DisplaySettings,
     path: &'a str) -> Element<'a, Message> {
     let mut wipes = column![].spacing(6);
     for area in archx_shared::storage::Area::ALL {

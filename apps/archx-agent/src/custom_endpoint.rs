@@ -237,7 +237,7 @@ async fn send_inner(profile: Profile, model: String, key: Zeroizing<String>, tur
     } else {
         let body: Value = serde_json::from_slice(&bytes).map_err(|_| Failure {
             diagnosis: diagnostics::invalid_response("the response was not JSON"),
-            trace: Trace { provider_message: archx_shared::debug_log::redact(String::from_utf8_lossy(&bytes).chars().take(280).collect()), ..trace },
+            trace: Trace { provider_message: archx_shared::debug_log::redact(&String::from_utf8_lossy(&bytes).chars().take(280).collect::<String>()), ..trace },
             may_have_billed: true })?;
         parse_answer(&body, &profile.answer_pointer)
             .map(|reply| (reply, trace.clone()))

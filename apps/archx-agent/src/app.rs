@@ -356,7 +356,7 @@ impl App {
     pub fn new(persisted: Option<PersistedSettings>) -> Self {
         let snapshot = std::env::var_os("ARCHX_SNAPSHOT").map(PathBuf::from);
         let store = ChatStore::load().unwrap_or_default();
-        let persisted = persisted.filter(|settings| snapshot.is_none()).unwrap_or_default();
+        let persisted = persisted.filter(|_| snapshot.is_none()).unwrap_or_default();
         let mut settings = SettingsState::default();
         settings.provider = persisted.provider;
         settings.models = persisted.models;
@@ -979,10 +979,9 @@ impl App {
             return Task::none();
         };
         if provider == Provider::Custom && !self.settings.custom_approved {
-            self.settings.status = "Approve the custom destination before sending any prompt or key.".into();
-            if let Some(draft) = self.current_mut() {
-                draft.error = Some(self.settings.status.clone());
-            }
+            let message = "Approve the custom destination before sending any prompt or key.".to_owned();
+            self.settings.status = message.clone();
+            if let Some(draft) = self.current_mut() { draft.error = Some(message); }
             return Task::none();
         }
         let now = storage::now_secs();
@@ -992,8 +991,9 @@ impl App {
         let plan: Vec<u64> = if provider.needs_key() {
             let picks = self.key_plan(now);
             if picks.is_empty() {
-                self.settings.status = "No usable vault key. Add one in Providers.".into();
-                if let Some(draft) = self.current_mut() { draft.error = Some(self.settings.status.clone()); }
+                let message = "No usable vault key. Add one in Providers.".to_owned();
+                self.settings.status = message.clone();
+                if let Some(draft) = self.current_mut() { draft.error = Some(message); }
                 return Task::none();
             }
             picks
