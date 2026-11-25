@@ -623,7 +623,8 @@ fn runtime<'a>(_state: &'a SettingsState, usage: &'a [archx_shared::memory::Usag
 
 /// Storage & display: where data lives, per-area text scale, and wiping.
 fn storage<'a>(state: &SettingsState, display: &archx_shared::persist::DisplaySettings,
-    path: &'a str) -> Element<'a, Message> {
+    path: &str) -> Element<'a, Message> {
+    let shown_path = path.to_owned();
     let mut wipes = column![].spacing(6);
     for area in archx_shared::storage::Area::ALL {
         wipes = wipes.push(row![
@@ -661,7 +662,7 @@ fn storage<'a>(state: &SettingsState, display: &archx_shared::persist::DisplaySe
         surface(column![
             eyebrow("DATA  /  WHERE IT LIVES"),
             space().height(8),
-            text(path).size(11.5).font(style::LABEL).color(style::WHITE),
+            text(shown_path.clone()).size(11.5).font(style::LABEL).color(style::WHITE),
             space().height(6),
             text("Small JSON files, each replaced atomically: settings, chats, model tests, debug journal. No API key ever enters them; the writer refuses a credential-shaped field.")
                 .size(11).color(style::GREY),
