@@ -6,8 +6,8 @@
 
 use serde_json::{json, Value};
 
-use archx_shared::model_catalog::CatalogModel;
-use archx_shared::storage::{self, Area, SaveError};
+use crate::model_catalog::CatalogModel;
+use crate::storage::{self, Area, SaveError};
 
 pub const MAX_CHATS: usize = 200;
 pub const MAX_TITLE_CHARS: usize = 80;
@@ -82,12 +82,12 @@ impl StoredChat {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ChatStore {
     pub chats: Vec<StoredChat>,
-    pub catalogs: [Vec<CatalogModel>; archx_shared::credentials::Provider::COUNT],
-    pub catalog_fetched: [u64; archx_shared::credentials::Provider::COUNT],
+    pub catalogs: [Vec<CatalogModel>; crate::credentials::Provider::COUNT],
+    pub catalog_fetched: [u64; crate::credentials::Provider::COUNT],
 }
 
 impl ChatStore {
-    pub fn new() -> Self { Self { chats: Vec::new(), catalogs: std::array::from_fn(|_| Vec::new()), catalog_fetched: [0; archx_shared::credentials::Provider::COUNT] } }
+    pub fn new() -> Self { Self { chats: Vec::new(), catalogs: std::array::from_fn(|_| Vec::new()), catalog_fetched: [0; crate::credentials::Provider::COUNT] } }
 
     /// Replaces or inserts one chat; empty chats are never stored.
     pub fn upsert(&mut self, chat: StoredChat) {
@@ -123,19 +123,19 @@ impl ChatStore {
         chats
     }
 
-    pub fn store_catalog(&mut self, provider: archx_shared::credentials::Provider, models: Vec<CatalogModel>) {
+    pub fn store_catalog(&mut self, provider: crate::credentials::Provider, models: Vec<CatalogModel>) {
         self.catalogs[provider.index()] = models;
         self.catalog_fetched[provider.index()] = storage::now_secs();
     }
 
-    pub fn age_of_catalog(&self, provider: archx_shared::credentials::Provider) -> Option<u64> {
+    pub fn age_of_catalog(&self, provider: crate::credentials::Provider) -> Option<u64> {
         let at = self.catalog_fetched[provider.index()];
         (at > 0).then(|| storage::now_secs().saturating_sub(at))
     }
 
     pub fn to_json(&self) -> Value {
         let mut catalogs = serde_json::Map::new();
-        for provider in archx_shared::credentials::Provider::ALL {
+        for provider in crate::credentials::Provider::ALL {
             let models = &self.catalogs[provider.index()];
             if models.is_empty() { continue; }
             catalogs.insert(provider.name().into(), json!({
@@ -170,13 +170,13 @@ impl ChatStore {
             store.chats.drain(..excess);
         }
         if let Some(catalogs) = body.get("catalogs").and_then(Value::as_object) {
-            for provider in archx_shared::credentials::Provider::ALL {
+            for provider in crate::credentials::Provider::ALL {
                 let Some(entry) = catalogs.get(provider.name()) else { continue };
                 store.catalog_fetched[provider.index()] = entry.get("fetched").and_then(Value::as_u64).unwrap_or(0);
                 if let Some(models) = entry.get("models").and_then(Value::as_array) {
                     store.catalogs[provider.index()] = models.iter().take(8192).filter_map(|model| {
                         let id = model.get("id").and_then(Value::as_str)?;
-                        if !archx_shared::provider_api::valid_model(provider, id) { return None; }
+                        if !crate::provider_api::valid_model(provider, id) { return None; }
                         Some(CatalogModel {
                             id: id.to_owned(),
                             name: model.get("name").and_then(Value::as_str).unwrap_or(id).chars().take(100).collect(),
@@ -205,7 +205,7 @@ impl ChatStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use archx_shared::credentials::Provider;
+    use crate::credentials::Provider;
 
     fn chat(id: u32, text: &str, updated: u64) -> StoredChat {
         StoredChat {

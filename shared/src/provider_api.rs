@@ -6,8 +6,8 @@ use sipper::Sender;
 use serde_json::{json, Value};
 use zeroize::Zeroizing;
 
-use archx_shared::credentials::Provider;
-use archx_shared::diagnostics::{self, Diagnosis, Stage};
+use crate::credentials::Provider;
+use crate::diagnostics::{self, Diagnosis, Stage};
 
 // Bound transport bytes separately from visible text. SSE framing and escaped
 // JSON can be much larger than the rendered answer, even for normal replies.
@@ -110,7 +110,7 @@ fn provider_message(body: &Value) -> String {
             Value::Object(_) | Value::Array(_) => candidate.to_string(),
             _ => continue,
         };
-        let text = archx_shared::debug_log::redact(text.trim());
+        let text = crate::debug_log::redact(text.trim());
         if !text.is_empty() {
             return text.chars().take(MAX_PROVIDER_MESSAGE).collect();
         }
@@ -123,7 +123,7 @@ fn http_failure(status: u16, body: &[u8], retry_after: Option<u64>, trace: Trace
     let text = String::from_utf8_lossy(body);
     let parsed: Option<Value> = serde_json::from_str(&text).ok();
     let message = parsed.as_ref().map(provider_message).filter(|message| !message.is_empty())
-        .unwrap_or_else(|| archx_shared::debug_log::redact(text.chars().take(MAX_PROVIDER_MESSAGE).collect()));
+        .unwrap_or_else(|| crate::debug_log::redact(text.chars().take(MAX_PROVIDER_MESSAGE).collect()));
     let diagnosis = diagnostics::from_http(status, Some(&message)).with_retry_after(retry_after);
     Failure {
         diagnosis,
@@ -176,7 +176,7 @@ pub fn valid_model(provider: Provider, model: &str) -> bool {
 
 /// The documented chat URL with the model substituted in.
 fn endpoint(provider: Provider, model: &str) -> String {
-    archx_shared::endpoints::default_template(provider).chat.replace("{model}", model)
+    crate::endpoints::default_template(provider).chat.replace("{model}", model)
 }
 
 /// Where this provider's chat requests go, for display in Settings and Debug.
@@ -220,7 +220,7 @@ pub fn request_size(provider: Provider, model: &str, turns: &[Turn], max_output_
 /// Sends one chat request using the provider's **current** endpoints (the
 /// user-editable registry wins over the documented default).
 pub async fn send_via(provider: Provider, model: String, key: Zeroizing<String>, turns: Vec<Turn>, max_output_tokens: u32,
-    endpoints: &archx_shared::endpoints::Registry) -> Result<(Reply, Trace), Failure> {
+    endpoints: &crate::endpoints::Registry) -> Result<(Reply, Trace), Failure> {
     validate(provider, &model, &turns, max_output_tokens)?;
     let started = Instant::now();
     let body = payload(provider, &model, &turns, max_output_tokens);
@@ -231,7 +231,7 @@ pub async fn send_via(provider: Provider, model: String, key: Zeroizing<String>,
         .redirect(redirect::Policy::none())
         .timeout(Duration::from_secs(diagnostics::REQUEST_TIMEOUT_SECS))
         .build().map_err(|_| Failure::from(CallError::Transport))?;
-    let url = endpoints.resolve(provider, archx_shared::endpoints::Kind::Chat, &model);
+    let url = endpoints.resolve(provider, crate::endpoints::Kind::Chat, &model);
     let request = client.post(url).json(&body);
     let request = match provider {
         Provider::Gemini => request.header("x-goog-api-key", key.as_str()),
@@ -273,7 +273,7 @@ pub async fn send_via(provider: Provider, model: String, key: Zeroizing<String>,
         Ok(body) => body,
         Err(_) => return Err(Failure {
             diagnosis: diagnostics::invalid_response("the response was not JSON"),
-            trace: Trace { provider_message: archx_shared::debug_log::redact(String::from_utf8_lossy(&bytes).chars().take(MAX_PROVIDER_MESSAGE).collect()), ..trace },
+            trace: Trace { provider_message: crate::debug_log::redact(String::from_utf8_lossy(&bytes).chars().take(MAX_PROVIDER_MESSAGE).collect()), ..trace },
             may_have_billed: true,
         }),
     };
@@ -318,12 +318,12 @@ fn stream_delta(provider: Provider, body: &Value, reply: &mut Reply) {
 
 /// Returns the provider's own error text from an SSE `error` frame, if present.
 fn stream_error_message(frame: &Value) -> Option<String> {
-    let text = archx_shared::debug_log::redact(&frame.get("error")?.to_string());
+    let text = crate::debug_log::redact(&frame.get("error")?.to_string());
     (!text.is_empty()).then(|| text.chars().take(MAX_PROVIDER_MESSAGE).collect())
 }
 
 pub async fn send_stream_via(provider: Provider, model: String, key: Zeroizing<String>, turns: Vec<Turn>, progress: &mut Sender<Reply>, max_output_tokens: u32,
-    endpoints: &archx_shared::endpoints::Registry) -> Result<(Reply, Trace), Failure> {
+    endpoints: &crate::endpoints::Registry) -> Result<(Reply, Trace), Failure> {
     validate(provider, &model, &turns, max_output_tokens)?;
     let started = Instant::now();
     let mut body = payload(provider, &model, &turns, max_output_tokens);
@@ -332,7 +332,7 @@ pub async fn send_stream_via(provider: Provider, model: String, key: Zeroizing<S
     let client = Client::builder().https_only(provider != Provider::OllamaLocal).no_proxy().redirect(redirect::Policy::none())
         .timeout(Duration::from_secs(diagnostics::REQUEST_TIMEOUT_SECS)).build()
         .map_err(|_| Failure::from(CallError::Transport))?;
-    let url = endpoints.resolve(provider, archx_shared::endpoints::Kind::Stream, &model);
+    let url = endpoints.resolve(provider, crate::endpoints::Kind::Stream, &model);
     let request = client.post(url).json(&body);
     let request = match provider {
         Provider::Gemini => request.header("x-goog-api-key", key.as_str()),
@@ -488,14 +488,14 @@ mod tests {
         let body = br#"{"error":{"message":"You exceeded your current quota, please check your plan","type":"insufficient_quota"}}"#;
         let failure = http_failure(429, body, Some(120), Trace::default());
         assert_eq!(failure.diagnosis.http_status, Some(429));
-        assert_eq!(failure.diagnosis.owner, archx_shared::diagnostics::Owner::Key);
+        assert_eq!(failure.diagnosis.owner, crate::diagnostics::Owner::Key);
         assert_eq!(failure.diagnosis.retry_after, Some(120));
         assert!(failure.trace.provider_message.contains("exceeded your current quota"));
         assert!(failure.may_have_billed);
 
         // A retired model must bench the model, never the key.
         let retired = http_failure(404, br#"{"error":{"message":"models/gemini-1.0-pro is not found"}}"#, None, Trace::default());
-        assert_eq!(retired.diagnosis.owner, archx_shared::diagnostics::Owner::Model);
+        assert_eq!(retired.diagnosis.owner, crate::diagnostics::Owner::Model);
         assert_eq!(retired.diagnosis.cooldown, None);
 
         // An HTML error page is reduced to a redacted excerpt.

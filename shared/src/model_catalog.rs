@@ -6,8 +6,8 @@ use reqwest::{redirect, Client, RequestBuilder};
 use serde_json::Value;
 use zeroize::Zeroizing;
 
-use archx_shared::credentials::Provider;
-use archx_shared::provider_api::{valid_model, CallError};
+use crate::credentials::Provider;
+use crate::provider_api::{valid_model, CallError};
 
 const MAX_CATALOG_BYTES: usize = 8 * 1024 * 1024;
 // Bound untrusted network payloads, not the number of models a user may add.
@@ -82,14 +82,14 @@ async fn read_json(mut response: reqwest::Response) -> Result<(Value, usize), Ca
 }
 
 pub async fn fetch(provider: Provider, key: Option<Zeroizing<String>>) -> Result<Vec<CatalogModel>, CallError> {
-    fetch_via(provider, key, &archx_shared::endpoints::Registry::new()).await
+    fetch_via(provider, key, &crate::endpoints::Registry::new()).await
 }
 
 /// Fetches using the user-editable model-list URL for this provider.
-pub async fn fetch_via(provider: Provider, key: Option<Zeroizing<String>>, endpoints: &archx_shared::endpoints::Registry)
+pub async fn fetch_via(provider: Provider, key: Option<Zeroizing<String>>, endpoints: &crate::endpoints::Registry)
     -> Result<Vec<CatalogModel>, CallError> {
     let client = Client::builder().https_only(provider != Provider::OllamaLocal).no_proxy().redirect(redirect::Policy::none())
-        .timeout(Duration::from_secs(archx_shared::diagnostics::CATALOG_TIMEOUT_SECS)).build().map_err(|_| CallError::Transport)?;
+        .timeout(Duration::from_secs(crate::diagnostics::CATALOG_TIMEOUT_SECS)).build().map_err(|_| CallError::Transport)?;
     let mut all = Vec::new();
     let mut token: Option<String> = None;
     let mut seen = HashSet::new();
@@ -97,7 +97,7 @@ pub async fn fetch_via(provider: Provider, key: Option<Zeroizing<String>>, endpo
     let mut total_bytes = 0usize;
     for page in 0usize.. {
         if provider == Provider::Custom { return Err(CallError::InvalidInput); }
-        let url = endpoints.resolve(provider, archx_shared::endpoints::Kind::Models, "");
+        let url = endpoints.resolve(provider, crate::endpoints::Kind::Models, "");
         let needs_key = provider != Provider::OllamaLocal;
         let secret = || -> Result<&str, CallError> {
             key.as_ref().map(|key| key.as_str()).ok_or(CallError::InvalidInput)

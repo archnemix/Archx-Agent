@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use reqwest::{redirect, Client};
 use serde_json::Value;
 
-use archx_shared::credentials::Provider;
+use crate::credentials::Provider;
 
 pub const MODELS_DEV_URL: &str = "https://models.dev/api.json";
 /// The curated free-tier registry shipped with the app.
@@ -44,7 +44,7 @@ impl Source {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct Meta {
     /// e.g. "text", "text+image", "text+audio", "embedding".
     pub input_modalities: Vec<String>,
@@ -107,8 +107,8 @@ impl Meta {
         self.output_limit = self.output_limit.or(other.output_limit);
         self.cost_in = self.cost_in.or(other.cost_in);
         self.cost_out = self.cost_out.or(other.cost_out);
-        self.free_tier = self.free_tier.or(other.free_tier);
-        self.deprecation = self.deprecation.or(other.deprecation);
+        self.free_tier = self.free_tier.take().or(other.free_tier);
+        self.deprecation = self.deprecation.take().or(other.deprecation);
         self.source = self.source.or(other.source);
     }
 }
@@ -242,7 +242,7 @@ pub async fn fetch_models_dev() -> Result<Registry, String> {
 }
 
 /// Cached document: `model-meta.json` beside the other data files.
-pub fn cache_path() -> std::path::PathBuf { archx_shared::storage::root().join("model-meta.json") }
+pub fn cache_path() -> std::path::PathBuf { crate::storage::root().join("model-meta.json") }
 
 pub fn save_cache(registry: &Registry) -> Result<(), std::io::Error> {
     let mut by_provider = serde_json::Map::new();
@@ -257,7 +257,7 @@ pub fn save_cache(registry: &Registry) -> Result<(), std::io::Error> {
         }
         by_provider.insert(provider.clone(), Value::Object(entry));
     }
-    let document = serde_json::json!({"version": 1, "kind": "model-meta", "fetched": archx_shared::storage::now_secs(), "providers": by_provider});
+    let document = serde_json::json!({"version": 1, "kind": "model-meta", "fetched": crate::storage::now_secs(), "providers": by_provider});
     let path = cache_path();
     if let Some(parent) = path.parent() { std::fs::create_dir_all(parent)?; }
     std::fs::write(&path, serde_json::to_vec(&document).map_err(|_| std::io::Error::other("encode"))?)

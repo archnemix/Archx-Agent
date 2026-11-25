@@ -9,7 +9,7 @@
 use serde_json::{json, Value};
 use zeroize::Zeroizing;
 
-use archx_shared::credentials::Provider;
+use crate::credentials::Provider;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Template {
@@ -121,6 +121,8 @@ impl Registry {
     pub fn new() -> Self { Self { overrides: std::array::from_fn(|_| None) } }
 
     pub fn value(&self, provider: Provider, kind: Kind) -> String {
+        // `overrides[i]` is `Option<[Option<String>; 3]>`; index the slot first,
+        // then unwrap the slot's own Option.
         self.overrides[provider.index()]
             .as_ref()
             .and_then(|slots| slots[kind.index()].clone())
@@ -276,7 +278,7 @@ mod tests {
         registry.set(Provider::Gemini, Kind::Models, "https://mirror.example/v1beta/models").unwrap();
         let restored = Registry::from_json(&registry.to_json());
         assert_eq!(restored.value(Provider::Gemini, Kind::Models), "https://mirror.example/v1beta/models");
-        assert_eq!(archx_shared::storage::credential_field(&registry.to_json()), None);
+        assert_eq!(crate::storage::credential_field(&registry.to_json()), None);
         // A hand-edited plain-HTTP remote URL is ignored on load.
         let hostile = json!({ "OpenAI": { "Chat URL": "http://evil.example/v1" } });
         assert!(Registry::from_json(&hostile).is_default(Provider::OpenAI));

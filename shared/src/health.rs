@@ -12,7 +12,7 @@
 
 use serde_json::{json, Value};
 
-use archx_shared::diagnostics::{Diagnosis, Owner};
+use crate::diagnostics::{Diagnosis, Owner};
 
 /// Consecutive provider-side failures before a model is auto-disabled.
 pub const PROVIDER_FAILURE_LIMIT: u32 = 3;
@@ -118,7 +118,7 @@ impl KeyHealthSet {
         slot.failures = slot.failures.saturating_add(1);
         slot.last_used = now;
         if diagnosis.retries_key() {
-            let seconds = diagnosis.cooldown.unwrap_or(archx_shared::diagnostics::KEY_COOLDOWN_SECS);
+            let seconds = diagnosis.cooldown.unwrap_or(crate::diagnostics::KEY_COOLDOWN_SECS);
             slot.cooldown_until = now.saturating_add(seconds);
             slot.reason = diagnosis.summary.clone();
             return true;
@@ -129,7 +129,7 @@ impl KeyHealthSet {
     /// A model-specific failure proves nothing about the key, so no cooldown.
     pub fn record_neutral(&mut self, id: u64) {
         if let Some(slot) = self.slots.iter_mut().find(|slot| slot.id == id) {
-            slot.last_used = archx_shared::storage::now_secs();
+            slot.last_used = crate::storage::now_secs();
         }
     }
 
@@ -300,7 +300,7 @@ impl ModelHealthSet {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use archx_shared::diagnostics::{from_http, transport};
+    use crate::diagnostics::{from_http, transport};
 
     #[test]
     fn rotation_skips_a_resting_key_and_wraps() {
@@ -317,7 +317,7 @@ mod tests {
         set.advance();
         assert_eq!(set.pick(100), Some((2, 3)));
         // After the window elapses the key returns with a clean count.
-        assert_eq!(set.expire(100 + archx_shared::diagnostics::KEY_COOLDOWN_SECS), 1);
+        assert_eq!(set.expire(100 + crate::diagnostics::KEY_COOLDOWN_SECS), 1);
         assert_eq!(set.healthy(500), 3);
         assert_eq!(set.pick(500), Some((1, 2)));
     }
@@ -385,15 +385,15 @@ mod tests {
         keys.record_failure(2, &from_http(429, Some("quota")), 50);
         let restored = KeyHealthSet::from_json(&keys.to_json());
         assert_eq!(restored.slots.len(), 2);
-        assert_eq!(restored.slot(2).map(|slot| slot.cooldown_until), Some(50 + archx_shared::diagnostics::KEY_COOLDOWN_SECS));
-        assert_eq!(archx_shared::storage::credential_field(&keys.to_json()), None);
+        assert_eq!(restored.slot(2).map(|slot| slot.cooldown_until), Some(50 + crate::diagnostics::KEY_COOLDOWN_SECS));
+        assert_eq!(crate::storage::credential_field(&keys.to_json()), None);
 
         let mut models = ModelHealthSet::new();
         models.sync(&["vendor/a".into()]);
         models.disable("vendor/a", "retired", 5);
         let restored = ModelHealthSet::from_json(&models.to_json());
         assert!(!restored.is_enabled("vendor/a"));
-        assert_eq!(archx_shared::storage::credential_field(&models.to_json()), None);
+        assert_eq!(crate::storage::credential_field(&models.to_json()), None);
         // Corrupt or hostile input degrades to an empty set instead of panicking.
         assert!(ModelHealthSet::from_json(&json!({"models": "nope"})).slots.is_empty());
         assert!(KeyHealthSet::from_json(&json!({"keys": [{"id": 0}, {"id": "x"}]})).slots.is_empty());

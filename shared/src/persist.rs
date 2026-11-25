@@ -7,10 +7,10 @@
 
 use serde_json::{json, Map, Value};
 
-use archx_shared::credentials::Provider;
-use archx_shared::endpoints::Registry;
-use archx_shared::health::{KeyHealthSet, ModelHealthSet};
-use archx_shared::storage::{self, Area, SaveError};
+use crate::credentials::Provider;
+use crate::endpoints::Registry;
+use crate::health::{KeyHealthSet, ModelHealthSet};
+use crate::storage::{self, Area, SaveError};
 
 /// Text scale multiplier applied to one area of the interface.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -174,7 +174,7 @@ impl PersistedSettings {
                 if let Some(models) = entry.get("models").and_then(Value::as_array) {
                     settings.models[index] = models.iter()
                         .filter_map(Value::as_str)
-                        .filter(|id| archx_shared::provider_api::valid_model(provider, id))
+                        .filter(|id| crate::provider_api::valid_model(provider, id))
                         .take(2048).map(str::to_owned).collect();
                 }
                 settings.chosen[index] = entry.get("chosen").and_then(Value::as_u64)
@@ -239,9 +239,9 @@ mod tests {
         settings.chosen[Provider::Gemini.index()] = Some(1);
         settings.display.chat = TextScale::from_percent(120);
         settings.stream_chat = false;
-        settings.endpoints.set(Provider::Gemini, archx_shared::endpoints::Kind::Models, "https://mirror.example/v1beta/models").unwrap();
+        settings.endpoints.set(Provider::Gemini, crate::endpoints::Kind::Models, "https://mirror.example/v1beta/models").unwrap();
         settings.keys.sync(&[1, 2]);
-        settings.keys.record_failure(2, &archx_shared::diagnostics::from_http(429, Some("quota")), 100);
+        settings.keys.record_failure(2, &crate::diagnostics::from_http(429, Some("quota")), 100);
         settings.model_health.sync(&["gemini-2.5-pro".into()]);
         settings.model_health.disable("gemini-2.5-pro", "retired", 200);
 
@@ -251,7 +251,7 @@ mod tests {
         assert_eq!(restored.chosen[Provider::Gemini.index()], Some(1));
         assert_eq!(restored.display.chat.percent(), 120);
         assert!(!restored.stream_chat);
-        assert!(restored.endpoints.is_override(Provider::Gemini, archx_shared::endpoints::Kind::Models));
+        assert!(restored.endpoints.is_override(Provider::Gemini, crate::endpoints::Kind::Models));
         assert_eq!(restored.keys.slot(2).map(|slot| slot.cooldown_until), Some(400));
         assert!(!restored.model_health.is_enabled("gemini-2.5-pro"));
     }

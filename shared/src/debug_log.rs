@@ -13,7 +13,7 @@
 
 use serde_json::{json, Value};
 
-use archx_shared::diagnostics::Diagnosis;
+use crate::diagnostics::Diagnosis;
 
 pub const MAX_ENTRIES: usize = 200;
 
@@ -158,13 +158,13 @@ impl Journal {
         self.next_id = self.next_id.saturating_add(1);
         self.entries.push(Entry {
             id,
-            at: archx_shared::storage::now_secs(),
+            at: crate::storage::now_secs(),
             provider,
             model,
             key_id,
             streamed,
             outcome: Outcome::Pending,
-            started_ms: archx_shared::storage::now_secs() as u128 * 1000,
+            started_ms: crate::storage::now_secs() as u128 * 1000,
             duration_ms: 0,
             status: None,
             request_bytes,
@@ -292,7 +292,7 @@ pub fn redact(input: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use archx_shared::diagnostics::{from_http, transport};
+    use crate::diagnostics::{from_http, transport};
 
     #[test]
     fn journal_records_success_and_failure_with_bounded_metadata() {
