@@ -142,11 +142,15 @@ fn write_atomic(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     std::fs::rename(&temporary, path)
 }
 
-pub fn save(area: Area, document: &Value) -> Result<(), SaveError> {
-    if let Some(field) = credential_field(document) {
+/// Writes one area. The document is checked for credential-shaped fields *and*
+/// wrapped in a versioned envelope here, so every writer produces a file that
+/// `load` can read back; a caller cannot ship a body without its header.
+pub fn save(area: Area, document: Value) -> Result<(), SaveError> {
+    if let Some(field) = credential_field(&document) {
         return Err(SaveError::Credential(field));
     }
-    let bytes = serde_json::to_vec_pretty(document).map_err(|_| SaveError::Io)?;
+    let envelope = envelope(area.id(), document);
+    let bytes = serde_json::to_vec_pretty(&envelope).map_err(|_| SaveError::Io)?;
     write_atomic(&area.path(), &bytes).map_err(|_| SaveError::Io)
 }
 
@@ -156,6 +160,13 @@ pub fn save(area: Area, document: &Value) -> Result<(), SaveError> {
 pub fn load(area: Area) -> Option<Result<Value, ()>> {
     let bytes = std::fs::read(area.path()).ok()?;
     Some(serde_json::from_slice(&bytes).map_err(|_| ()))
+}
+
+/// Reads the body of one area's envelope. `None` means the file is missing,
+/// corrupt, or was not written by this version; the caller starts fresh.
+pub fn load_body(area: Area) -> Option<Value> {
+    let document = load(area)?.ok()?;
+    body(&document).cloned()
 }
 
 /// Deletes one area (and any leftover temporary file).
@@ -185,18 +196,23 @@ pub fn display_path() -> String {
     root().display().to_string()
 }
 
+/// The only envelope version this build writes and reads.
+pub const ENVELOPE_VERSION: u64 = 1;
+
 /// A stable, versioned envelope so a future migration can recognise old files.
 pub fn envelope(kind: &str, body: Value) -> Value {
     let mut map = Map::new();
-    map.insert("version".into(), Value::from(1));
+    map.insert("version".into(), Value::from(ENVELOPE_VERSION));
     map.insert("kind".into(), Value::from(kind));
     map.insert("body".into(), body);
     Value::Object(map)
 }
 
-/// Reads the `body` of an envelope, rejecting a document of another kind.
+/// Reads the `body` of an envelope, rejecting a document without this version
+/// header. `save` always writes one, so a missing header means the file was
+/// written by something else (or by hand) and is not trusted.
 pub fn body(value: &Value) -> Option<&Value> {
-    if value.get("version").and_then(Value::as_u64) != Some(1) {
+    if value.get("version").and_then(Value::as_u64) != Some(ENVELOPE_VERSION) {
         return None;
     }
     value.get("body")
@@ -236,15 +252,15 @@ mod tests {
     fn save_load_wipe_use_the_override_directory_and_are_atomic() {
         let dir = scratch("roundtrip");
         unsafe { std::env::set_var("ARCHX_CONFIG_DIR", &dir) };
-        let document = envelope("settings", json!({"display": {"chat_scale": 1.0}}));
-        save(Area::Settings, &document).expect("save");
+        save(Area::Settings, json!({"display": {"chat_scale": 1.0}})).expect("save");
+        let stored = load(Area::Settings).expect("file").expect("json");
+        assert_eq!(body(&stored).and_then(|body| body.get("display")), Some(&json!({"chat_scale": 1.0})));
         assert!(Area::Settings.exists());
-        assert_eq!(load(Area::Settings), Some(Ok(document.clone())));
         // No temporary file survives a successful write.
         assert!(!dir.join("settings.json.tmp").exists());
         // A refused document leaves the previous file untouched.
-        assert_eq!(save(Area::Settings, &json!({"api_key": "x"})), Err(SaveError::Credential("api_key".into())));
-        assert_eq!(load(Area::Settings), Some(Ok(document)));
+        assert_eq!(save(Area::Settings, json!({"api_key": "x"})), Err(SaveError::Credential("api_key".into())));
+        assert_eq!(load(Area::Settings), Some(Ok(stored)));
         assert!(wipe(Area::Settings));
         assert!(!Area::Settings.exists());
         assert_eq!(load(Area::Settings), None);

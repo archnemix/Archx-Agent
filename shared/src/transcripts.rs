@@ -157,7 +157,8 @@ impl ChatStore {
     }
 
     pub fn from_json(value: &Value) -> Option<Self> {
-        let body = storage::body(value)?;
+        // A bare body and a whole envelope both read, as in `PersistedSettings`.
+        let body = storage::body(value).unwrap_or(value);
         let mut store = Self::new();
         for chat in body.get("chats").and_then(Value::as_array)?.iter().take(MAX_CHATS * 2) {
             if let Some(chat) = StoredChat::from_json(chat) {
@@ -191,15 +192,9 @@ impl ChatStore {
         Some(store)
     }
 
-    pub fn save(&self) -> Result<(), SaveError> { storage::save(Area::Chats, &self.to_json()) }
+    pub fn save(&self) -> Result<(), SaveError> { storage::save(Area::Chats, self.to_json()) }
 
-    pub fn load() -> Option<Self> {
-        let area = storage::load(Area::Chats)?;
-        match area {
-            Ok(value) => Self::from_json(&value),
-            Err(()) => None,
-        }
-    }
+    pub fn load() -> Option<Self> { Self::from_json(&storage::load_body(Area::Chats)?) }
 }
 
 #[cfg(test)]

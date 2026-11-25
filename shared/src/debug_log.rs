@@ -242,6 +242,8 @@ impl Journal {
 
     pub fn from_json(value: &Value) -> Self {
         let mut journal = Self::new();
+        // Accepts a bare body or a whole envelope, as the other areas do.
+        let value = crate::storage::body(value).unwrap_or(value);
         if let Some(entries) = value.get("entries").and_then(Value::as_array) {
             for entry in entries.iter().rev().take(MAX_ENTRIES).rev() {
                 if let Some(entry) = Entry::from_json(entry) {

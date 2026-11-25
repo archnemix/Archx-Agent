@@ -406,8 +406,8 @@ impl App {
             keys: persisted.keys,
             model_health: persisted.model_health,
             store,
-            journal: debug_log::Journal::from_json(&storage::load(storage::Area::Debug)
-                .and_then(Result::ok).unwrap_or(serde_json::Value::Null)),
+            journal: debug_log::Journal::from_json(&storage::load_body(storage::Area::Debug)
+                .unwrap_or(serde_json::Value::Null)),
             journal_filter: debug_log::Filter::All,
             endpoints: persisted.endpoints,
             endpoint_draft: None,

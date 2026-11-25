@@ -653,8 +653,8 @@ impl App {
             // ---------- debug page ------------------------------------------------
             Message::DebugFilter(filter) => self.journal_filter = filter,
             Message::DebugRefresh => {
-                self.journal = debug_log::Journal::from_json(&storage::load(storage::Area::Debug)
-                    .and_then(Result::ok).unwrap_or(serde_json::Value::Null));
+                self.journal = debug_log::Journal::from_json(&storage::load_body(storage::Area::Debug)
+                    .unwrap_or(serde_json::Value::Null));
                 self.settings.status = "Debug journal reloaded from disk.".into();
             }
             Message::DebugExport if self.snapshot.is_none() => {
@@ -859,7 +859,7 @@ impl App {
             stream_chat: self.settings.stream_chat,
             dialog_timeout_secs: diagnostics::REQUEST_TIMEOUT_SECS as u16,
             import_page_size: 60,
-            last_page: "agent",
+            last_page: "agent".to_owned(),
         }
     }
 
@@ -901,27 +901,23 @@ impl App {
     }
 
     pub(super) fn persist_tests(&mut self) {
+        // `storage::save` adds the envelope; writing one here would nest it.
         let document = serde_json::json!({
-            "version": 1,
-            "kind": "model-tests",
-            "body": {
-                "provider": self.settings.provider.name(),
-                "expected_word": self.settings.expected_word,
-                "results": self.settings.probe_results.iter().map(|(id, ok, output)| serde_json::json!({
-                    "id": id, "ok": ok, "output": output, "at": storage::now_secs(),
-                })).collect::<Vec<_>>(),
-                "evidence": self.settings.test_evidence,
-            }
+            "provider": self.settings.provider.name(),
+            "expected_word": self.settings.expected_word,
+            "results": self.settings.probe_results.iter().map(|(id, ok, output)| serde_json::json!({
+                "id": id, "ok": ok, "output": output, "at": storage::now_secs(),
+            })).collect::<Vec<_>>(),
+            "evidence": self.settings.test_evidence,
         });
-        if let Err(error) = storage::save(storage::Area::ModelTests, &document) {
+        if let Err(error) = storage::save(storage::Area::ModelTests, document) {
             self.notice = Some(error.message());
         }
     }
 
     /// Reloads probe results saved by a previous run.
     pub(super) fn load_probe_results(&mut self) {
-        let Some(Ok(document)) = storage::load(storage::Area::ModelTests) else { return; };
-        let Some(body) = storage::body(&document) else { return; };
+        let Some(body) = storage::load_body(storage::Area::ModelTests) else { return; };
         if body.get("provider").and_then(serde_json::Value::as_str) != Some(self.settings.provider.name()) { return; }
         if let Some(word) = body.get("expected_word").and_then(serde_json::Value::as_str) {
             if !word.is_empty() { self.settings.expected_word = word.chars().take(32).collect(); }
@@ -947,7 +943,7 @@ impl App {
     }
 
     pub(super) fn save_journal(&mut self) {
-        if let Err(error) = storage::save(storage::Area::Debug, &self.journal.to_json()) {
+        if let Err(error) = storage::save(storage::Area::Debug, self.journal.to_json()) {
             if self.journal.len() > 0 { self.notice = Some(error.message()); }
         }
     }

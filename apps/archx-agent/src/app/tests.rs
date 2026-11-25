@@ -3,6 +3,33 @@
 use super::*;
 use archx_shared::health::KeyHealthSet;
 
+/// `ARCHX_CONFIG_DIR` is process-wide, so any test that changes it must hold
+/// this guard: a neighbour clearing the variable mid-test would otherwise make
+/// an unrelated save fail. The guard is also the lock that serialises them.
+static CONFIG_DIR_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+struct ConfigDir {
+    _guard: std::sync::MutexGuard<'static, ()>,
+    path: std::path::PathBuf,
+}
+
+impl ConfigDir {
+    fn new(tag: &str) -> Self {
+        let guard = CONFIG_DIR_LOCK.lock().unwrap_or_else(|error| error.into_inner());
+        let path = std::env::temp_dir().join(format!("archx-{tag}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&path);
+        unsafe { std::env::set_var("ARCHX_CONFIG_DIR", &path) };
+        Self { _guard: guard, path }
+    }
+}
+
+impl Drop for ConfigDir {
+    fn drop(&mut self) {
+        unsafe { std::env::remove_var("ARCHX_CONFIG_DIR") };
+        let _ = std::fs::remove_dir_all(&self.path);
+    }
+}
+
 fn app() -> App {
     App::new(None)
 }
@@ -37,9 +64,7 @@ fn new_chat_does_not_pile_up_empty_drafts() {
 
 #[test]
 fn an_empty_chat_is_never_written_to_disk() {
-    let dir = std::env::temp_dir().join(format!("archx-empty-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&dir);
-    unsafe { std::env::set_var("ARCHX_CONFIG_DIR", &dir) };
+    let _dir = ConfigDir::new("cfg");
     let mut app = configured();
     app.drafts[0].turns.push(Turn { role: "user", content: "persisted".into() });
     app.persist_chat(app.drafts[0].id);
@@ -50,15 +75,11 @@ fn an_empty_chat_is_never_written_to_disk() {
     let store = archx_shared::transcripts::ChatStore::load().expect("store written");
     assert_eq!(store.chats.len(), 1);
     assert!(store.get(empty_id).is_none());
-    unsafe { std::env::remove_var("ARCHX_CONFIG_DIR") };
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 #[test]
 fn transcripts_survive_a_restart_with_reasoning() {
-    let dir = std::env::temp_dir().join(format!("archx-restart-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&dir);
-    unsafe { std::env::set_var("ARCHX_CONFIG_DIR", &dir) };
+    let _dir = ConfigDir::new("cfg");
     let mut app = configured();
     app.drafts[0].turns = vec![
         Turn { role: "user", content: "explain".into() },
@@ -77,8 +98,6 @@ fn transcripts_survive_a_restart_with_reasoning() {
     assert_eq!(restored.drafts[0].reasoning[1].as_deref(), Some("because"));
     assert_eq!(restored.drafts[0].model.as_deref(), Some("vendor/one"));
     assert_eq!(restored.settings.chosen[Provider::OpenRouter.index()], Some(0));
-    unsafe { std::env::remove_var("ARCHX_CONFIG_DIR") };
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 #[test]
@@ -192,16 +211,16 @@ fn model_pages_are_bounded_and_never_render_the_whole_list() {
 #[test]
 fn endpoints_are_editable_validated_and_resettable() {
     let mut app = configured();
-    let _ = app.update(Message::EditEndpoint(archx_shared::endpoints::Kind::Chat, "https://gateway.example/v1/chat".into()));
+    let _ = app.update(Message::EditEndpoint(archx_shared::endpoints::Kind::Chat, "https://gateway.example/v1/{model}".into()));
     let _ = app.update(Message::SaveEndpoint(archx_shared::endpoints::Kind::Chat));
-    assert_eq!(app.endpoints.value(Provider::OpenRouter, archx_shared::endpoints::Kind::Chat), "https://gateway.example/v1/chat");
+    assert_eq!(app.endpoints.value(Provider::OpenRouter, archx_shared::endpoints::Kind::Chat), "https://gateway.example/v1/{model}");
     // A plain-HTTP remote URL is refused and the previous value stays.
     let _ = app.update(Message::EditEndpoint(archx_shared::endpoints::Kind::Chat, "http://evil.example/v1".into()));
     let _ = app.update(Message::SaveEndpoint(archx_shared::endpoints::Kind::Chat));
-    assert_eq!(app.endpoints.value(Provider::OpenRouter, archx_shared::endpoints::Kind::Chat), "https://gateway.example/v1/chat");
+    assert_eq!(app.endpoints.value(Provider::OpenRouter, archx_shared::endpoints::Kind::Chat), "https://gateway.example/v1/{model}");
     let _ = app.update(Message::ResetEndpoint(archx_shared::endpoints::Kind::Chat));
     assert_eq!(app.endpoints.value(Provider::OpenRouter, archx_shared::endpoints::Kind::Chat),
-        "https://openrouter.ai/api/v1/chat/completions");
+        archx_shared::endpoints::default_value(Provider::OpenRouter, archx_shared::endpoints::Kind::Chat));
 }
 
 #[test]
@@ -217,9 +236,7 @@ fn the_provider_picker_opens_and_closes() {
 
 #[test]
 fn probe_results_are_saved_and_reloaded_until_overwritten() {
-    let dir = std::env::temp_dir().join(format!("archx-tests-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&dir);
-    unsafe { std::env::set_var("ARCHX_CONFIG_DIR", &dir) };
+    let _dir = ConfigDir::new("cfg");
     let mut app = configured();
     app.settings.probe_results.push(("vendor/one".into(), true, "42 ms · expected word found · OK".into()));
     app.persist_tests();
@@ -235,8 +252,6 @@ fn probe_results_are_saved_and_reloaded_until_overwritten() {
     again.load_probe_results();
     assert_eq!(again.settings.probe_results.len(), 1);
     assert_eq!(again.settings.probe_results[0].0, "vendor/two");
-    unsafe { std::env::remove_var("ARCHX_CONFIG_DIR") };
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 #[test]
@@ -272,9 +287,7 @@ fn runtime_matrix_releases_what_it_says_it_releases() {
 
 #[test]
 fn display_scale_is_per_area_and_saved() {
-    let dir = std::env::temp_dir().join(format!("archx-scale-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&dir);
-    unsafe { std::env::set_var("ARCHX_CONFIG_DIR", &dir) };
+    let _dir = ConfigDir::new("scale");
     let mut app = configured();
     let _ = app.update(Message::ScaleIn(Area::Chat));
     let _ = app.update(Message::ScaleIn(Area::Chat));
@@ -284,12 +297,7 @@ fn display_scale_is_per_area_and_saved() {
     let restored = App::new(archx_shared::persist::PersistedSettings::load());
     assert_eq!(restored.display.chat.percent(), 110);
     assert_eq!(restored.display.settings.percent(), 100);
-    let _ = restored_display_reset();
-    unsafe { std::env::remove_var("ARCHX_CONFIG_DIR") };
-    let _ = std::fs::remove_dir_all(dir);
 }
-
-fn restored_display_reset() {}
 
 #[test]
 fn other_modes_cannot_send_and_send_without_a_model_says_so() {

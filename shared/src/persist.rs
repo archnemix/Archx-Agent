@@ -64,6 +64,8 @@ impl DisplaySettings {
     pub fn measure_narrower(self) -> Self { Self { chat_measure: self.chat_measure.saturating_sub(40).max(Self::MEASURE_MIN), ..self } }
 
     pub fn to_json(self) -> Value {
+        // Item 10 asks for a text size per area, so each area keeps its own
+        // key. `chat_measure` is the reading width, not a size.
         json!({
             "chat_scale": self.chat.percent(),
             "settings_scale": self.settings.percent(),
@@ -102,7 +104,7 @@ pub struct PersistedSettings {
     pub stream_chat: bool,
     pub dialog_timeout_secs: u16,
     pub import_page_size: u16,
-    pub last_page: &'static str,
+    pub last_page: String,
 }
 
 impl Default for PersistedSettings {
@@ -119,41 +121,41 @@ impl Default for PersistedSettings {
             stream_chat: true,
             dialog_timeout_secs: 45,
             import_page_size: 60,
-            last_page: "home",
+            last_page: "home".to_owned(),
         }
     }
 }
 
-fn page_id(page: &'static str) -> &'static str {
+/// Only the launcher's own page ids are valid on disk; anything else becomes Home.
+fn page_id(page: &str) -> &str {
     match page { "agent" => "agent", "settings" => "settings", "debug" => "debug", "about" => "about", _ => "home" }
 }
 
 impl PersistedSettings {
     pub fn to_json(&self) -> Value {
+        // Health is keyed by model id / key id, and both repeat across providers,
+        // so each provider keeps its own block. A wrong value here would make the
+        // file unreadable at start-up, so the writer is tested against a reload.
         let mut providers = Map::new();
         for provider in Provider::ALL {
             let index = provider.index();
             providers.insert(provider.name().into(), json!({
-                "models": self.models[index],
+                "models": self.models[index].clone(),
                 "chosen": self.chosen[index],
                 "keys": self.keys_for(provider).to_json(),
                 "model_health": self.model_health_for(provider).to_json(),
             }));
         }
         json!({
-            "version": 1,
-            "kind": "settings",
-            "body": {
-                "provider": self.provider.name(),
-                "providers": providers,
-                "custom_url": self.custom_url,
-                "endpoints": self.endpoints.to_json(),
-                "display": self.display.to_json(),
-                "stream_chat": self.stream_chat,
-                "dialog_timeout_secs": self.dialog_timeout_secs,
-                "import_page_size": self.import_page_size,
-                "last_page": self.last_page,
-            }
+            "provider": self.provider.name(),
+            "providers": providers,
+            "custom_url": self.custom_url.clone(),
+            "endpoints": self.endpoints.to_json(),
+            "display": self.display.to_json(),
+            "stream_chat": self.stream_chat,
+            "dialog_timeout_secs": self.dialog_timeout_secs,
+            "import_page_size": self.import_page_size,
+            "last_page": page_id(self.last_page),
         })
     }
 
@@ -162,7 +164,9 @@ impl PersistedSettings {
     fn model_health_for(&self, _provider: Provider) -> &ModelHealthSet { &self.model_health }
 
     pub fn from_json(value: &Value) -> Option<Self> {
-        let body = storage::body(value)?;
+        // Accepts either a bare body or a whole envelope, so the on-disk file,
+        // the to_json() round trip and the tests all read the same way.
+        let body = storage::body(value).unwrap_or(value);
         let mut settings = Self::default();
         settings.provider = Provider::ALL.iter().copied()
             .find(|provider| Some(provider.name()) == body.get("provider").and_then(Value::as_str))
@@ -196,17 +200,15 @@ impl PersistedSettings {
             .map(|raw| raw.clamp(15, 180) as u16).unwrap_or(45);
         settings.import_page_size = body.get("import_page_size").and_then(Value::as_u64)
             .map(|raw| raw.clamp(20, 200) as u16).unwrap_or(60);
-        settings.last_page = page_id(match body.get("last_page").and_then(Value::as_str) {
-            Some("agent") => "agent", Some("settings") => "settings", Some("debug") => "debug", Some("about") => "about", _ => "home",
-        });
+        settings.last_page = page_id(body.get("last_page").and_then(Value::as_str).unwrap_or("home")).to_owned();
         Some(settings)
     }
 
     pub fn save(&self) -> Result<(), SaveError> {
-        storage::save(Area::Settings, &self.to_json())
+        storage::save(Area::Settings, self.to_json())
     }
 
-    pub fn load() -> Option<Self> { Self::from_json(&storage::load(Area::Settings)?.ok()?) }
+    pub fn load() -> Option<Self> { Self::from_json(&storage::load_body(Area::Settings)?) }
 }
 
 #[cfg(test)]
@@ -287,6 +289,34 @@ mod tests {
         assert_eq!(settings.display.chat.percent(), TextScale::MAX);
         assert_eq!(settings.display.chat_measure, DisplaySettings::MEASURE_MIN);
         assert_eq!(settings.dialog_timeout_secs, 180);
+    }
+
+    /// The whole promise of item 5: what a user configured is still there after
+    /// a restart. The envelope is easy to get wrong in either direction (a body
+    /// written without its header, or a reader that reads the header), and both
+    /// mistakes look exactly like "it forgot everything", so they are pinned.
+    #[test]
+    fn a_configured_provider_survives_a_save_and_reload() {
+        let dir = std::env::temp_dir().join(format!("archx-persist-round-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        unsafe { std::env::set_var("ARCHX_CONFIG_DIR", &dir) };
+        let mut settings = PersistedSettings::default();
+        settings.provider = Provider::Groq;
+        settings.models[Provider::Groq.index()] = vec!["llama-3.1-8b".into(), "qwen-2.5".into()];
+        settings.chosen[Provider::Groq.index()] = Some(1);
+        // Two slots, so the reload also proves health is not renumbered.
+        settings.keys.sync(&[1, 2]);
+        settings.keys.record_failure(1, &crate::diagnostics::from_http(429, None), 1_000);
+        settings.display.chat = TextScale::from_percent(120);
+        settings.save().expect("save");
+        let loaded = PersistedSettings::load().expect("reload");
+        assert_eq!(loaded.provider, Provider::Groq);
+        assert_eq!(loaded.models[Provider::Groq.index()], vec!["llama-3.1-8b", "qwen-2.5"]);
+        assert_eq!(loaded.chosen[Provider::Groq.index()], Some(1));
+        assert_eq!(loaded.display.chat.percent(), 120);
+        assert!(loaded.keys.slot(1).is_some_and(|slot| slot.cooldown_until > 0));
+        unsafe { std::env::remove_var("ARCHX_CONFIG_DIR") };
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]

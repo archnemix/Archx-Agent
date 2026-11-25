@@ -228,7 +228,7 @@ impl Registry {
     }
 }
 
-fn default_value(provider: Provider, kind: Kind) -> String {
+pub fn default_value(provider: Provider, kind: Kind) -> String {
     let template = default_template(provider);
     match kind { Kind::Chat => template.chat, Kind::Stream => template.stream, Kind::Models => template.models }.to_owned()
 }
