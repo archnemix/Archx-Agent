@@ -10,13 +10,13 @@ use std::time::Duration;
 use iced::widget::{button, column, container, image, mouse_area, row, scrollable, space, svg, text, tooltip};
 use iced::{Center, ContentFit, Element, Fill, FillPortion};
 
-use crate::app::{Area, Message, Page, Scope, State};
+use crate::app::{App as Launcher, Area, Message, Page, Scope};
 use archx_shared::apps::App;
 use archx_shared::persist::TextScale;
 use archx_shared::style;
 
 static BRAND: LazyLock<image::Handle> = LazyLock::new(|| {
-    image::Handle::from_bytes(include_bytes!("../assets/brand/archnemix-sidebar.png").to_vec())
+    image::Handle::from_bytes(include_bytes!("../shared/assets/brand/archnemix-sidebar.png").to_vec())
 });
 
 #[derive(Clone, Copy)]
@@ -24,13 +24,13 @@ enum Icon { Home, Agent, About, Settings, Expand, Collapse, Info }
 
 fn glyph(icon: Icon, selected: bool, size: u32) -> svg::Svg<'static> {
     let bytes: &'static [u8] = match icon {
-        Icon::Home => include_bytes!("../assets/icons/house.svg"),
-        Icon::Agent => include_bytes!("../assets/icons/message-circle.svg"),
-        Icon::About => include_bytes!("../assets/icons/info.svg"),
-        Icon::Settings => include_bytes!("../assets/icons/settings-2.svg"),
-        Icon::Expand => include_bytes!("../assets/icons/panel-left-open.svg"),
-        Icon::Collapse => include_bytes!("../assets/icons/panel-left-close.svg"),
-        Icon::Info => include_bytes!("../assets/icons/info.svg"),
+        Icon::Home => include_bytes!("../shared/assets/icons/house.svg"),
+        Icon::Agent => include_bytes!("../shared/assets/icons/message-circle.svg"),
+        Icon::About => include_bytes!("../shared/assets/icons/info.svg"),
+        Icon::Settings => include_bytes!("../shared/assets/icons/settings-2.svg"),
+        Icon::Expand => include_bytes!("../shared/assets/icons/panel-left-open.svg"),
+        Icon::Collapse => include_bytes!("../shared/assets/icons/panel-left-close.svg"),
+        Icon::Info => include_bytes!("../shared/assets/icons/info.svg"),
     };
     svg(svg::Handle::from_memory(bytes))
         .width(size).height(size)
@@ -64,7 +64,7 @@ fn divider() -> Element<'static, Message> {
     container(space().height(1)).width(42).style(style::rail_divider).into()
 }
 
-fn rail(state: &State) -> Element<'static, Message> {
+fn rail(state: &Launcher) -> Element<'static, Message> {
     let scale = state.display.launcher.factor();
     let page = state.page;
     if !state.sidebar_expanded {
@@ -107,7 +107,6 @@ fn rail(state: &State) -> Element<'static, Message> {
             content = content.push(container(text(format!("    {label}")).size(12 * scale).color(style::DIM))
                 .padding([10, 15]).width(Fill));
         }
-        space();
         content = content.push(space().height(6));
     }
     content = content.push(space().height(10));
@@ -157,7 +156,7 @@ fn tile(app: &App, phase: u8, hovered: Option<&str>) -> Element<'static, Message
             ]
         ].width(Fill).height(Fill).padding(style::SPACE_2))
             .width(Fill).height(140).clip(true).style(move |theme| style::workbench_surface(theme, lit));
-        mouse_area(panel).on_enter(Message::Animate).on_exit(Message::Animate).into()
+        panel.into()
     };
     let id = app.id.clone();
     let card = column![
@@ -176,7 +175,7 @@ fn tile(app: &App, phase: u8, hovered: Option<&str>) -> Element<'static, Message
         .into()
 }
 
-fn discover(state: &State) -> Element<'static, Message> {
+fn discover(state: &Launcher) -> Element<'static, Message> {
     let scale = state.display.launcher.factor();
     let featured = state.apps.iter().find(|app| app.is_live());
     let hero: Element<'static, Message> = match featured {
@@ -212,7 +211,7 @@ fn discover(state: &State) -> Element<'static, Message> {
     let mut line = row![].spacing(17).width(Fill);
     let mut per_line = 0;
     for app in &state.apps {
-        line = line.push(tile(app, state.phase, state.hovered()));
+        line = line.push(tile(app, state.phase, state.hovered.as_deref()));
         per_line += 1;
         if per_line == 3 { cards = cards.push(line); line = row![].spacing(17).width(Fill); per_line = 0; }
     }
@@ -248,7 +247,7 @@ fn discover(state: &State) -> Element<'static, Message> {
     ].padding(36).width(Fill).into()
 }
 
-fn about(state: &State) -> Element<'static, Message> {
+fn about(state: &Launcher) -> Element<'static, Message> {
     let scale = state.display.launcher.factor();
     let names: Vec<String> = state.apps.iter().map(|app| format!("{} ({})", app.name, app.status)).collect();
     column![
@@ -285,7 +284,7 @@ fn scale_row(label: &'static str, area: Area, scale: TextScale, note: &'static s
 /// Launcher-owned settings: the display scale for every area, the memory scope
 /// handed to the Agent, the app folder, and wiping. App-specific options stay in
 /// the app's own Settings so the two never collide.
-fn lab_settings(state: &State) -> Element<'static, Message> {
+fn lab_settings(state: &Launcher) -> Element<'static, Message> {
     let scale = state.display.launcher.factor();
     let mut scopes = row![].spacing(8);
     for scope in Scope::ALL {
@@ -364,7 +363,7 @@ fn lab_settings(state: &State) -> Element<'static, Message> {
     ].padding(36).width(Fill).into()
 }
 
-pub fn view(state: &State) -> Element<'static, Message> {
+pub fn view(state: &Launcher) -> Element<'static, Message> {
     let body: Element<'static, Message> = match state.page {
         Page::Home => scrollable(discover(state)).width(Fill).height(Fill).style(style::quiet_scroll).into(),
         Page::About => scrollable(about(state)).width(Fill).height(Fill).style(style::quiet_scroll).into(),
@@ -375,12 +374,13 @@ pub fn view(state: &State) -> Element<'static, Message> {
             // in the Agent view (the Agent has its own).
             match state.transition {
                 Some(transition) if !transition.is_complete() => {
-                    let progress = transition.progress();
-                    // Iced has no per-widget opacity, so the transition is a
-                    // measured slide: the surface settles upward while it fades
-                    // in via the canvas behind it (see `Docs/Validation`).
-                    let _ = progress;
-                    container(column![space().height(transition.offset()), content])
+                    // Iced 0.14 has no per-widget opacity, so the arriving app
+                    // moves instead of fading: it starts slightly below its final
+                    // place and settles within 220 ms (ease-out cubic). The
+                    // measured offset is the slide; nothing is hidden from the
+                    // user while it runs. See Plan/Architecture.md.
+                    let offset = transition.offset().clamp(0.0, 28.0);
+                    container(column![space().height(offset), content])
                         .width(Fill).height(Fill).style(style::canvas).into()
                 }
                 _ => content,

@@ -5,8 +5,9 @@ mod app;
 mod navigation;
 mod transition;
 
+use iced::window;
 #[cfg(not(test))]
-use iced::{window, Font, Theme};
+use iced::{Font, Theme};
 
 fn brand_icon() -> window::Icon {
     window::icon::from_file_data(

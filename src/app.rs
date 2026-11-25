@@ -6,14 +6,16 @@
 //! Launcher-only preferences (display scale, memory scope, data location) live
 //! here; app preferences live inside the app that owns them.
 
+use std::collections::BTreeSet;
 use std::path::PathBuf;
 use std::time::Duration;
 
 use iced::time;
+use iced::window;
 use iced::{Element, Subscription, Task};
 
 use archx_agent::app::{App as AgentApp, MemoryMode, Message as AgentMessage};
-use archx_shared::apps::{self, App};
+use archx_shared::apps;
 use archx_shared::storage::Area as StorageArea;
 use archx_shared::persist::DisplaySettings;
 use archx_shared::{storage, style};
@@ -155,7 +157,7 @@ pub struct App {
     /// Tile artwork cycle for Discover.
     phase: u8,
     /// Which tile art is lit for a scripted screenshot (`training`/`tuning`).
-    hovered: Option<String>,
+    pub(crate) hovered: Option<String>,
     snapshot: Option<PathBuf>,
     snapshot_requested: bool,
     snapshot_page: Option<String>,
@@ -361,10 +363,6 @@ impl App {
     pub fn view(&self) -> Element<'_, Message> {
         navigation::view(self).map(|message| message)
     }
-
-    /// The tile lit for this frame: a scripted hover when set, otherwise the
-    /// Discover cycle.
-    pub fn hovered(&self) -> Option<&str> { self.hovered.as_deref() }
 
     pub fn subscription(&self) -> Subscription<Message> {
         let snapshot = if self.snapshot.is_some() {
