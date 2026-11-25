@@ -28,9 +28,15 @@ internels/              internal helper material and the web reference
 
 An app is a folder with an `app.toml`. The launcher scans `apps/*/app.toml` at
 start-up (`shared/src/apps.rs`), renders one Discover tile per manifest, and opens
-only those whose `status = "live"`. No launcher code names an app, so adding a
-folder is the whole integration. The contract and the settings split are written
-down in [Plan/Architecture.md](apps/archx-agent/docs/Plan/Architecture.md).
+only those whose `status = "live"`. The manifest declares the app's crate, entry
+file, the `module::function` the launcher renders, and its docs folder — so the
+app compiles from the manifest and CI rejects a manifest that disagrees with the
+files on disk.
+
+**If you are an AI or a person starting an app, read
+[Adding_An_App.md](apps/archx-agent/docs/Plan/Adding_An_App.md).** It is
+self-contained: folder, manifest, crate, workspace line, entry function, the tests
+that enforce the contract, and the rules every app obeys.
 
 ## Where things are documented
 

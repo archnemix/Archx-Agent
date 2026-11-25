@@ -9,6 +9,9 @@ orientation lives in the root `README.md`.
 - [Rules](Rules.md): working rules; read before making changes.
 - [design.md](design.md): AI Lab visual system and cross-OS review criteria.
 - [Plan/](Plan/README.md): agreed scope and architecture.
+- [Plan/Adding_An_App.md](Plan/Adding_An_App.md): the self-contained guide for
+  starting a new app in the Lab — manifest fields, crate wiring, the tests that
+  enforce the contract.
 - [Roadmap](Roadmap.md): ordered implementation steps once scope is agreed.
 - [Thinking](Thinking.md): work-round decisions and problem resolutions.
 - [Change](Change.md): user-requested scope changes.

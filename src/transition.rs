@@ -45,7 +45,7 @@ pub struct Transition {
 impl Transition {
     /// Starts a transition, choosing the direction from the two pages.
     pub fn between(from: Page, to: Page) -> Self {
-        let app_pages = |page: Page| matches!(page, Page::Agent | Page::Settings | Page::Debug);
+        let app_pages = |page: Page| page.is_agent_surface();
         let direction = match (app_pages(from), app_pages(to)) {
             (false, true) => Direction::Enter,
             (true, false) => Direction::Leave,
@@ -96,7 +96,7 @@ mod tests {
     fn directions_follow_the_page_kind() {
         assert_eq!(Transition::between(Page::Home, Page::Agent).direction, Direction::Enter);
         assert_eq!(Transition::between(Page::Agent, Page::Home).direction, Direction::Leave);
-        assert_eq!(Transition::between(Page::Agent, Page::Settings).direction, Direction::Within);
+        assert_eq!(Transition::between(Page::Agent, Page::AgentSettings).direction, Direction::Within);
         assert_eq!(Transition::between(Page::Home, Page::About).direction, Direction::Within);
         assert!(Direction::Enter.slide() > Direction::Within.slide());
     }

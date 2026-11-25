@@ -92,6 +92,9 @@ impl From<Failure> for CallError {
             (Stage::Request, _) => CallError::InvalidInput,
             (Stage::Transport, _) => CallError::Transport,
             (Stage::Http, Some(status)) => CallError::Rejected(status),
+            // An HTTP-stage failure always carries the status when it came from a
+            // real response; without one there is no body to trust either.
+            (Stage::Http, None) => CallError::InvalidResponse,
             (Stage::Bounds, _) => CallError::Oversized,
             (Stage::Parse, _) => CallError::InvalidResponse,
         }
@@ -112,7 +115,7 @@ fn provider_message(body: &Value) -> String {
         };
         let text = crate::debug_log::redact(text.trim());
         if !text.is_empty() {
-            return text.chars().take(MAX_PROVIDER_MESSAGE).collect();
+            return text.chars().take(MAX_PROVIDER_MESSAGE).collect::<String>();
         }
     }
     String::new()
@@ -123,7 +126,7 @@ fn http_failure(status: u16, body: &[u8], retry_after: Option<u64>, trace: Trace
     let text = String::from_utf8_lossy(body);
     let parsed: Option<Value> = serde_json::from_str(&text).ok();
     let message = parsed.as_ref().map(provider_message).filter(|message| !message.is_empty())
-        .unwrap_or_else(|| crate::debug_log::redact(text.chars().take(MAX_PROVIDER_MESSAGE).collect()));
+        .unwrap_or_else(|| crate::debug_log::redact(&text.chars().take(MAX_PROVIDER_MESSAGE).collect::<String>()));
     let diagnosis = diagnostics::from_http(status, Some(&message)).with_retry_after(retry_after);
     Failure {
         diagnosis,
@@ -273,7 +276,7 @@ pub async fn send_via(provider: Provider, model: String, key: Zeroizing<String>,
         Ok(body) => body,
         Err(_) => return Err(Failure {
             diagnosis: diagnostics::invalid_response("the response was not JSON"),
-            trace: Trace { provider_message: crate::debug_log::redact(String::from_utf8_lossy(&bytes).chars().take(MAX_PROVIDER_MESSAGE).collect()), ..trace },
+            trace: Trace { provider_message: crate::debug_log::redact(&String::from_utf8_lossy(&bytes).chars().take(MAX_PROVIDER_MESSAGE).collect::<String>()), ..trace },
             may_have_billed: true,
         }),
     };

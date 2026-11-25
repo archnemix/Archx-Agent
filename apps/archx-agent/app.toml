@@ -1,4 +1,43 @@
-# Purpose: Archx Agent app manifest. The launcher discovers this file and renders its tile; no launcher code names the app.
+# Purpose: Archx Agent app manifest — the whole contract between this app and the launcher.
+#
+# ---------------------------------------------------------------------------
+# FOR AN AI OR A PERSON STARTING A NEW APP IN THIS LAB
+# ---------------------------------------------------------------------------
+# An app is one folder under `apps/`. The launcher reads ONLY this file: it does
+# not know any app's name, features or files. Copy this file into
+# `apps/<your-id>/app.toml`, change the values, add a crate, and the app appears
+# on Discover and becomes openable — with no edit to the launcher, ever.
+#
+# Fields, in the order they matter:
+#   id        REQUIRED. Must equal the folder name. lowercase letters, digits, `-`.
+#   name      REQUIRED. Shown on the tile and in the rail.
+#   category  Short uppercase line above the name, e.g. "BUILD MODELS".
+#   summary   One or two sentences; shown on the tile and in the featured slot.
+#   status    live | preview | building | planned. ONLY `live` opens.
+#   art       agent (tall word-mark panel) or workbench (stage words).
+#   modes     Up to 12 short stage words, 24 characters each, e.g. ["DESIGN", "TRAIN"].
+#   crate     The crate name declared in the workspace (e.g. "archx-agent").
+#   entry     Library entry point relative to this folder (e.g. "src/lib.rs").
+#   view      The function the launcher calls, as "module::function".
+#             It takes `&App` and returns `Element<'_, Message>`.
+#   docs      This app's documentation folder, relative to this folder.
+#   requires  Extra crates this app links. `archx-shared` is implicit and must
+#             never be copied into an app.
+#
+# Build-time rules (enforced by tests in `shared/src/apps.rs`):
+#   1. Every manifest parses, ids are unique, and id == folder name.
+#   2. `status = "live"` requires `crate`, `entry` and `view`.
+#   3. A declared `entry` file, `docs` folder and `Cargo.toml` must exist.
+#   4. The crate named by `crate` must be a workspace member.
+#   5. `archx-shared` is never vendored into an app folder.
+#
+# Runtime rules:
+#   * Never edit launcher files to add an app.
+#   * Settings belong to the app that owns them; the launcher only holds its own
+#     (per-area text scale, memory scope, app folder, wiping).
+#   * Secrets live in the OS vault through `archx_shared::credentials`, never in
+#     a file this manifest declares.
+
 id = "archx-agent"
 name = "Archx Agent"
 category = "SIX MODES / ONE AGENT"
@@ -6,6 +45,8 @@ summary = "Chat, research, build and learn with an agent that keeps keys in the 
 status = "live"
 art = "agent"
 modes = ["Chat", "Tasks", "Research", "Coding", "Learning", "Play"]
-# The app's crate root, relative to this folder. The launcher hosts this module
-# tree in-process; the app never edits launcher files to ship a change.
+crate = "archx-agent"
 entry = "src/lib.rs"
+view = "home::view"
+docs = "docs"
+requires = ["archx-shared"]

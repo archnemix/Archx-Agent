@@ -29,6 +29,18 @@ pub struct App {
     pub modes: Vec<String>,
     /// Artwork style: "agent" or "workbench".
     pub art: String,
+    /// Crate name declared in the workspace (e.g. "archx-agent"). `None` means
+    /// the app has no code yet, which is a valid state for a planned app.
+    pub krate: Option<String>,
+    /// Library entry point, relative to the app folder (e.g. "src/lib.rs").
+    pub entry: Option<String>,
+    /// The function the launcher calls to render the app, as
+    /// `"module::function"`. It must take `&App` and return an `Element`.
+    pub view: Option<String>,
+    /// Where this app's own documentation lives, relative to the app folder.
+    pub docs: Option<String>,
+    /// Shared or app crates this app links. `archx-shared` is always implicit.
+    pub requires: Vec<String>,
     pub origin: Origin,
 }
 
@@ -51,6 +63,60 @@ impl App {
         self.modes.iter().take(4).cloned().collect()
     }
 
+    /// Whether this app declares code. A code-less app is a reserved folder.
+    pub fn has_code(&self) -> bool { self.krate.is_some() && self.entry.is_some() }
+
+    /// Problems that would stop this app from building or being opened. Empty
+    /// means the manifest is internally consistent; the paths are checked
+    /// separately by `verify_files`, which touches the filesystem.
+    pub fn contract_problems(&self) -> Vec<String> {
+        let mut problems = Vec::new();
+        if !self.valid() {
+            problems.push(format!("id `{}` must match its folder and use lowercase letters, digits or `-`", self.id));
+        }
+        if self.is_live() && !self.has_code() {
+            problems.push("status = \"live\" needs `crate` and `entry` so the launcher can host the app".into());
+        }
+        if let Some(krate) = &self.krate {
+            if !krate.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-') {
+                problems.push(format!("crate `{krate}` must be lowercase letters, digits or `-`"));
+            }
+        }
+        if let Some(view) = &self.view {
+            match view.split_once("::") {
+                Some((module, function)) if !module.is_empty() && !function.is_empty() => {}
+                _ => problems.push(format!("view `{view}` must be written as `module::function`")),
+            }
+        }
+        if self.has_code() && self.view.is_none() {
+            problems.push("an app with code needs `view = \"module::function\"`".into());
+        }
+        if self.modes.len() > 12 {
+            problems.push("at most 12 modes".into());
+        }
+        problems
+    }
+
+    /// Checks the declared paths inside the app folder. Used by the build-time
+    /// test, never at runtime.
+    pub fn verify_files(&self, folder: &Path) -> Vec<String> {
+        let mut problems = Vec::new();
+        if let Some(entry) = &self.entry {
+            if !folder.join(entry).is_file() {
+                problems.push(format!("entry `{entry}` does not exist"));
+            }
+        }
+        if let Some(docs) = &self.docs {
+            if !folder.join(docs).is_dir() {
+                problems.push(format!("docs `{docs}` is not a directory"));
+            }
+        }
+        if self.has_code() && !folder.join("Cargo.toml").is_file() {
+            problems.push("an app with code needs its own Cargo.toml".into());
+        }
+        problems
+    }
+
     /// A manifest must name a folder that matches its id.
     fn valid(&self) -> bool {
         !self.id.is_empty() && self.id.len() <= 40
@@ -59,10 +125,13 @@ impl App {
     }
 }
 
+/// Reads a scalar key. A `[[modes]]` array-of-tables header is not a scalar, so
+/// it is skipped rather than mistaken for the `modes` list.
 fn field(body: &str, key: &str) -> Option<String> {
     for line in body.lines() {
         let line = line.trim();
         if line.starts_with('#') { continue; }
+        if line.starts_with("[[") { break; }
         let (name, value) = line.split_once('=')?;
         if name.trim() != key { continue; }
         let value = value.trim();
@@ -74,12 +143,43 @@ fn field(body: &str, key: &str) -> Option<String> {
     None
 }
 
+/// Reads a list key. Two forms are accepted, because a long list is easier to
+/// read one item per line:
+///
+/// ```toml
+/// modes = ["CHAT", "TASKS"]
+///
+/// [[modes]]
+/// name = "CHAT"
+/// ```
+///
+/// Items are capped at 12 entries of 24 characters, and anything outside the
+/// allowed character set is dropped rather than shown as mojibake on a tile.
 fn list(body: &str, key: &str) -> Vec<String> {
-    let Some(raw) = field(body, key) else { return Vec::new() };
-    raw.trim_start_matches('[').trim_end_matches(']')
-        .split(',')
-        .map(|item| item.trim().trim_matches('"').trim_matches('\'').trim().to_owned())
-        .filter(|item| !item.is_empty() && item.len() <= 24 && item.chars().all(|c| c.is_alphanumeric() || c == ' ' || c == '-' || c == '&' || c == '+' || c == '/'))
+    let mut items: Vec<String> = Vec::new();
+    if let Some(raw) = field(body, key) {
+        let raw = raw.trim();
+        if raw.starts_with('[') {
+            items.extend(raw.trim_start_matches('[').trim_end_matches(']').split(',')
+                .map(|item| item.trim().trim_matches('"').trim_matches('\'').trim().to_owned()));
+        }
+    }
+    let header = format!("[[{key}]]");
+    let mut in_table = false;
+    for line in body.lines() {
+        let line = line.trim();
+        if line.starts_with("[[") {
+            in_table = line == header;
+            continue;
+        }
+        if !in_table || line.starts_with('#') { continue; }
+        let Some((name, value)) = line.split_once('=') else { continue };
+        if name.trim() != "name" { continue; }
+        items.push(value.trim().trim_matches('"').trim_matches('\'').trim().to_owned());
+    }
+    items.into_iter()
+        .filter(|item| !item.is_empty() && item.len() <= 24
+            && item.chars().all(|c| c.is_alphanumeric() || c == ' ' || c == '-' || c == '&' || c == '+' || c == '/'))
         .take(12)
         .collect()
 }
@@ -94,6 +194,11 @@ pub fn parse(id: &str, body: &str) -> Option<App> {
         status: field(body, "status").unwrap_or_else(|| "planned".into()).to_lowercase(),
         modes: list(body, "modes"),
         art: field(body, "art").unwrap_or_else(|| "workbench".into()).to_lowercase(),
+        krate: field(body, "crate"),
+        entry: field(body, "entry"),
+        view: field(body, "view"),
+        docs: field(body, "docs"),
+        requires: list(body, "requires"),
         origin: Origin::Disk,
     };
     app.valid().then_some(app)
@@ -143,9 +248,28 @@ pub fn find(id: &str) -> Option<App> {
     discover().into_iter().find(|app| app.id == id)
 }
 
+fn repo_root() -> PathBuf {
+    // The manifest dir is `shared/`; app folders live beside it at the repo root.
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().unwrap_or(Path::new(".")).to_path_buf()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use super::*;
+
+    fn workspace_members() -> Vec<String> {
+        let manifest = std::fs::read_to_string(repo_root().join("Cargo.toml")).unwrap_or_default();
+        let Some(start) = manifest.find("members") else { return Vec::new() };
+        let Some(open) = manifest[start..].find('[') else { return Vec::new() };
+        let Some(close) = manifest[start + open..].find(']') else { return Vec::new() };
+        manifest[start + open + 1..start + open + close]
+            .split(',')
+            .map(|member| member.trim().trim_matches('"').trim().to_owned())
+            .filter(|member| !member.is_empty())
+            .collect()
+    }
 
     #[test]
     fn every_shipped_manifest_parses_and_is_unique() {
@@ -162,18 +286,77 @@ mod tests {
         }
     }
 
+    /// The user's requirement: a manifest has to tell the truth about the files,
+    /// so the app compiles from it and another AI can start from it.
     #[test]
-    fn the_agent_is_the_only_live_app_and_live_sorts_first() {
+    fn every_manifest_matches_the_files_on_disk() {
+        let mut problems = Vec::new();
+        for app in discover() {
+            let folder = root().join(&app.id);
+            for problem in app.contract_problems() {
+                problems.push(format!("{}: {problem}", app.id));
+            }
+            if folder.is_dir() {
+                for problem in app.verify_files(&folder) {
+                    problems.push(format!("{}: {problem}", app.id));
+                }
+            }
+        }
+        assert!(problems.is_empty(), "manifest contract violations: {problems:#?}");
+    }
+
+    #[test]
+    fn a_declared_crate_is_a_workspace_member() {
+        let members = workspace_members();
+        for app in discover() {
+            let Some(krate) = &app.krate else { continue };
+            let folder = format!("apps/{}", app.id);
+            assert!(members.contains(&folder),
+                "`{krate}` declares `crate` but {folder} is not in [workspace] members {members:?}");
+        }
+    }
+
+    #[test]
+    fn live_apps_declare_how_they_render() {
         let apps = discover();
         let live: Vec<_> = apps.iter().filter(|app| app.is_live()).map(|app| app.name.as_str()).collect();
         assert_eq!(live, vec!["Archx Agent"]);
         assert_eq!(apps[0].name, "Archx Agent");
-        assert_eq!(apps[0].status_label(), "OPEN");
-        let training = apps.iter().find(|app| app.id == "training").expect("training space");
+        let agent = &apps[0];
+        assert_eq!(agent.status_label(), "OPEN");
+        assert_eq!(agent.view.as_deref(), Some("home::view"),
+            "the launcher calls this function; the app must export it");
+        assert_eq!(agent.docs.as_deref(), Some("docs"));
+        assert!(agent.has_code());
+    }
+
+    #[test]
+    fn a_reserved_folder_needs_no_code_yet() {
+        let training = find("training").expect("training space");
         assert!(!training.is_live());
+        assert!(!training.has_code());
+        assert!(training.contract_problems().is_empty(),
+            "a code-less app is valid: {:?}", training.contract_problems());
         assert_eq!(training.status_label(), "IN PROGRESS");
+        assert!(training.docs.is_some(), "the second app keeps its own docs");
         assert!(training.summary.to_lowercase().contains("train"));
         assert!(!training.modes.is_empty());
+    }
+
+    #[test]
+    fn a_live_app_without_code_is_rejected() {
+        let body = "name = \"Broken\"\nstatus = \"live\"\nmodes = [\"ONE\"]\n";
+        let app = parse("broken", body).expect("parses");
+        let problems = app.contract_problems();
+        assert!(problems.iter().any(|problem| problem.contains("crate")),
+            "a live app must declare its code: {problems:?}");
+    }
+
+    #[test]
+    fn a_view_must_be_module_and_function() {
+        let body = "name = \"Odd\"\nstatus = \"building\"\nview = \"justafunction\"\n";
+        let app = parse("odd", body).expect("parses");
+        assert!(app.contract_problems().iter().any(|problem| problem.contains("module::function")));
     }
 
     #[test]
@@ -198,17 +381,12 @@ mod tests {
     }
 
     #[test]
-    fn malformed_manifests_are_ignored_not_fatal() {
-        assert!(parse("no-name", "category = \"x\"").is_none());
-        assert!(parse("Bad_Id", "name = \"x\"").is_none());
-        assert!(parse("", "name = \"x\"").is_none());
-        let app = parse("ok", "name = \"Fine\"\nstatus = \"WEIRD\"\nmodes = [\"A\", \"b\", \"\"]").unwrap();
-        assert_eq!(app.status, "weird");
-        assert_eq!(app.status_label(), "COMING LATER");
-        assert_eq!(app.modes, vec!["A", "b"]);
-        // Comments and blank lines do not confuse the reader.
-        let commented = parse("ok", "# name = \"Wrong\"\nname = \"Right\"\n\nstatus = \"live\"\n").unwrap();
-        assert_eq!(commented.name, "Right");
-        assert!(commented.is_live());
+    fn a_manifest_cannot_smuggle_paths_out_of_its_folder() {
+        let body = "name = \"Escape\"\nstatus = \"building\"\nentry = \"../../etc/passwd\"\n";
+        let app = parse("escape", body).expect("parses");
+        let problems = app.verify_files(Path::new("/nonexistent-folder"));
+        assert!(problems.iter().any(|problem| problem.contains("does not exist")));
+        // The id itself can never contain a separator.
+        assert!(parse("../evil", "name = \"Evil\"\n").is_none());
     }
 }

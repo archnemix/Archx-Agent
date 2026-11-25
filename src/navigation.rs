@@ -93,9 +93,13 @@ fn rail(state: &State) -> Element<'static, Message> {
     ];
     // One rail entry per discoverable app, from its manifest.
     for app in &state.apps {
-        let target = if app.id == "archx-agent" { Page::Agent } else { Page::Home };
-        let openable = app.is_live() && app.id == "archx-agent";
-        let label: &'static str = if openable { "Archx Agent" } else if app.id == "training" { "Model Training" } else { "Workspace" };
+        // In-process hosting: the launcher links exactly the Agent crate today.
+        // A later app adds its crate to `src/` and one arm here; its tile, rail
+        // entry, modes and status already come from its manifest.
+        let hosted = app.id == "archx-agent";
+        let openable = app.is_live() && hosted;
+        let target = if hosted { Page::Agent } else { Page::Home };
+        let label: &'static str = if app.id == "archx-agent" { "Archx Agent" } else { "Workspace" };
         if openable {
             content = content.push(expanded_action(Icon::Agent, label,
                 Message::Navigate(target), page.is_agent_surface()));

@@ -4,6 +4,10 @@ This folder belongs to the **Model Training** app (`apps/training/`). It is
 reserved and intentionally almost empty: the app's code and documentation are
 being written by the person who owns it, not by the Launcher.
 
+**Before writing code, read
+[../../archx-agent/docs/Plan/Adding_An_App.md](../../archx-agent/docs/Plan/Adding_An_App.md)** —
+it is the complete, self-contained contract for an app in this Lab.
+
 ## What exists today
 
 - `../app.toml` — the manifest the Launcher reads. It is the only contract
@@ -16,8 +20,12 @@ being written by the person who owns it, not by the Launcher.
   summary = "…"
   status = "building"     # live | preview | building | planned
   art = "workbench"       # agent | workbench
-  modes = ["DESIGN", "TRAIN", "EVALUATE", "SHIP"]
+  docs = "docs"
+  requires = ["archx-shared"]
   ```
+
+  No `crate`, `entry` or `view` yet: that is a valid code-less manifest, and CI
+  asserts it stays valid (`a_reserved_folder_needs_no_code_yet`).
 
   `status = "building"` keeps the tile on Discover but not openable. Changing it
   to `live` is what makes the Launcher's "open" path available; no launcher code

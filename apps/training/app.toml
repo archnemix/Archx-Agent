@@ -1,4 +1,11 @@
 # Purpose: Model Training app manifest. Code and docs for this app live in this folder; the launcher only reads this file.
+#
+# This app is intentionally code-less: `status = "building"` with no `crate`.
+# That is a valid manifest — the tile appears on Discover and does not open.
+# When its code lands, add `crate`, `entry` and `view`, then flip `status` to
+# "live". No launcher file has to change for that. See
+# `apps/archx-agent/app.toml` for the full annotated field list.
+
 id = "training"
 name = "Model Training"
 category = "BUILD MODELS"
@@ -6,3 +13,5 @@ summary = "Design a dataset, train a small model, then evaluate it before it lea
 status = "building"
 art = "workbench"
 modes = ["DESIGN", "TRAIN", "EVALUATE", "SHIP"]
+docs = "docs"
+requires = ["archx-shared"]
