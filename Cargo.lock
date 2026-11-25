@@ -148,8 +148,11 @@ version = "0.1.0"
 dependencies = [
  "archx-shared",
  "iced",
+ "image",
  "keyring",
+ "reqwest",
  "serde_json",
+ "sipper",
  "tokio",
  "zeroize",
 ]
