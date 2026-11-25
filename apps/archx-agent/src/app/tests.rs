@@ -208,12 +208,12 @@ fn endpoints_are_editable_validated_and_resettable() {
 #[test]
 fn the_provider_picker_opens_and_closes() {
     let mut app = app();
-    assert!(!app.provider_picker_open);
+    assert!(!app.settings.provider_picker);
     let _ = app.update(Message::OpenProviderPicker);
-    assert!(app.provider_picker_open);
+    assert!(app.settings.provider_picker);
     let _ = app.update(Message::SelectProvider(Provider::Groq));
     assert_eq!(app.settings.provider, Provider::Groq);
-    assert!(!app.provider_picker_open, "choosing a provider closes the list");
+    assert!(!app.settings.provider_picker, "choosing a provider closes the list");
 }
 
 #[test]

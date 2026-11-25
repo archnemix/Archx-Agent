@@ -75,7 +75,7 @@ impl<'a> markdown::Viewer<'a, Message> for ChatViewer {
 /// scroller so short traces do not leave an empty 300 px box (the reference's
 /// `.thinking-body` grows to `max-height: 300px` and then scrolls).
 fn reasoning_size(content: &markdown::Content) -> u16 {
-    28 + (content.items().count() as u16).saturating_mul(18)
+    28 + (content.items().len() as u16).saturating_mul(18)
 }
 
 fn chat_md<'a>(items: impl IntoIterator<Item = &'a markdown::Item>) -> Element<'a, Message> {
@@ -165,7 +165,7 @@ fn model_menu<'a>(settings: &'a SettingsState, search: &'a str, health: &'a arch
     models = models.push(row![
         text(format!("{count} models · this session")).size(11).color(style::DIM),
         space().width(Fill),
-        button(text("Manage models ↗").size(11)).on_press(Message::OpenModelCatalogSettings)
+        button(text("Manage models ↗").size(11)).on_press(Message::Open(Page::Settings))
             .style(style::ghost_button)
     ].align_y(Center));
     container(row![container(scrollable(providers).height(340).style(style::quiet_scroll)).width(155), container(scrollable(models).height((count as f32 * 36.0 + 96.0).clamp(150.0, 290.0)).style(style::quiet_scroll)).width(Fill)]
@@ -209,14 +209,14 @@ fn rail<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &'a SettingsState,
         space().height(16),
         button(container(row![
             icon(Glyph::Plus, 15, style::BLACK),
-            text("New chat").size(13 * scale).font(style::STRONG).color(style::BLACK)
+            text("New chat").size(13.0 * scale).font(style::STRONG).color(style::BLACK)
         ].spacing(8).align_y(Center)).center_x(Fill))
             .width(Fill).padding([8, 16])
             .on_press(Message::NewChat).style(style::primary_button),
         space().height(20),
         container(row![
-            text("CHATS").size(11 * scale).font(style::LABEL).color(style::DIM),
-            text("· saved").size(11 * scale).color(style::DIM)
+            text("CHATS").size(11.0 * scale).font(style::LABEL).color(style::DIM),
+            text("· saved").size(11.0 * scale).color(style::DIM)
         ].spacing(6)).padding([0, 10]),
         space().height(8)
     ];
@@ -236,7 +236,7 @@ fn rail<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &'a SettingsState,
         };
         history = history.push(row![
             button(text(format!("{:02}  {title}", id))
-                .size(12 * scale).font(style::LABEL).color(if selected_draft { style::WHITE } else { style::GREY }))
+                .size(12.0 * scale).font(style::LABEL).color(if selected_draft { style::WHITE } else { style::GREY }))
                 .width(Fill).padding([8, 12]).on_press(Message::OpenChat(id))
                 .style(move |theme, status| style::list_row(selected_draft, theme, status)),
             button(text("×").size(13)).on_press(Message::DeleteChat(id))
@@ -249,15 +249,15 @@ fn rail<'a>(drafts: &'a [ChatDraft], selected: u32, settings: &'a SettingsState,
         space().height(12),
         button(row![
             container(space().width(7).height(7)).style(move |theme| style::status_dot(connected, theme)),
-            text(badge_label).size(11 * scale).font(style::LABEL).color(style::GREY).width(Fill),
+            text(badge_label).size(11.0 * scale).font(style::LABEL).color(style::GREY).width(Fill),
         ].spacing(8).align_y(Center))
             .width(Fill).padding([8, 10])
             .on_press(Message::Open(Page::Settings)).style(style::endpoint_badge),
         space().height(8),
         row![
             icon(Glyph::Lock, 11, style::DIM),
-            text("OS vault keys").size(10 * scale).color(style::DIM).width(Fill),
-            text(concat!("v", env!("CARGO_PKG_VERSION"))).size(10 * scale).color(style::DIM)
+            text("OS vault keys").size(10.0 * scale).color(style::DIM).width(Fill),
+            text(concat!("v", env!("CARGO_PKG_VERSION"))).size(10.0 * scale).color(style::DIM)
         ].spacing(6).align_y(Center).padding([0, 4])
     ].width(Fill);
     let rail = container(column![
@@ -309,7 +309,7 @@ pub fn view<'a>(app: &'a crate::app::App) -> Element<'a, Message> {
         for (slot, turn) in draft.turns.iter().enumerate() {
             let assistant = turn.role != "user";
             let mut body = column![
-                text(if assistant { "Assistant" } else { "You" }).size(13 * scale).font(style::STRONG).color(style::WHITE)
+                text(if assistant { "Assistant" } else { "You" }).size(13.0 * scale).font(style::STRONG).color(style::WHITE)
             ].spacing(7).width(Fill);
             if !assistant {
                 body = body.push(container(text(turn.content.clone()).size(style::AGENT_BODY_SIZE * scale).color(style::WHITE))
@@ -339,12 +339,12 @@ pub fn view<'a>(app: &'a crate::app::App) -> Element<'a, Message> {
                 body = body.push(text(turn.content.clone()).size(style::AGENT_BODY_SIZE * scale).color(style::WHITE));
             }
             if assistant && draft.incomplete_slots.contains(&slot) {
-                body = body.push(text("Incomplete · excluded from future context").size(11 * scale).color(style::GREY));
+                body = body.push(text("Incomplete · excluded from future context").size(11.0 * scale).color(style::GREY));
             }
             log = log.push(row![avatar(assistant), body].spacing(style::AGENT_GAP_GROUP * scale).width(Fill));
         }
         if let Some((content, reasoning)) = &draft.partial {
-            let mut body = column![text("Assistant  ·  responding").size(13 * scale).font(style::STRONG).color(style::GREY)].spacing(8);
+            let mut body = column![text("Assistant  ·  responding").size(13.0 * scale).font(style::STRONG).color(style::GREY)].spacing(8);
             if let Some(reasoning) = reasoning {
                 let open = draft.partial_reasoning_open;
                 let mut disclosure = column![button(row![
@@ -365,7 +365,7 @@ pub fn view<'a>(app: &'a crate::app::App) -> Element<'a, Message> {
             body = body.push(chat_md_scaled(content.items(), style::AGENT_BODY_SIZE * scale));
             log = log.push(row![avatar(true), body].spacing(style::AGENT_GAP_GROUP * scale).width(Fill));
         }
-        let list = scrollable(container(container(log).max_width(display.chat_measure).width(Fill).padding([24, 20]))
+        let list = scrollable(container(container(log).max_width(f32::from(display.chat_measure)).width(Fill).padding([24, 20]))
             .center_x(Fill)).id("chat-log").width(Fill).height(Fill).style(style::quiet_scroll);
         let list = if app.snapshot_active() { list } else { list.anchor_bottom() };
         let id = draft.id;
@@ -391,9 +391,9 @@ pub fn view<'a>(app: &'a crate::app::App) -> Element<'a, Message> {
         container(column![
             icon(Glyph::Monitor, 44, style::MUTED_2),
             space().height(24),
-            text(empty_heading(active_mode, connected)).size(26 * scale).font(style::STRONG).color(style::WHITE),
+            text(empty_heading(active_mode, connected)).size(26.0 * scale).font(style::STRONG).color(style::WHITE),
             space().height(8),
-            text(empty_body(active_mode, connected)).size(15 * scale).color(style::GREY),
+            text(empty_body(active_mode, connected)).size(15.0 * scale).color(style::GREY),
             space().height(24),
             actions
         ].align_x(Center)).center_x(Fill)
@@ -407,7 +407,7 @@ pub fn view<'a>(app: &'a crate::app::App) -> Element<'a, Message> {
         text_editor::<Message, iced::Theme, iced::Renderer>(&draft.editor)
             .placeholder(if active_mode == 0 { "Send a message…  (Enter to send, Shift+Enter for a new line)" }
                 else { "Draft only · this mode cannot send" })
-            .height(42).max_height(126).padding([8, 10]).size(15 * scale)
+            .height(42).max_height(126).padding([8, 10]).size(15.0 * scale)
             .style(style::chat_editor)
             .on_action(move |action| Message::EditEditor(draft.id, crate::app::EditorAction(action)))
             .key_binding(move |event| {
@@ -437,7 +437,7 @@ pub fn view<'a>(app: &'a crate::app::App) -> Element<'a, Message> {
                 .style(move |theme, status| style::mini_toggle(stream_chat, theme, status)),
             send_control
         ].spacing(8).align_y(Center)
-    ].spacing(6)).max_width(display.chat_measure).width(Fill)
+    ].spacing(6)).max_width(f32::from(display.chat_measure)).width(Fill)
         .padding(iced::Padding { top: 12.0, right: 12.0, bottom: 8.0, left: 12.0 }).style(style::chat_panel);
     let error_notice: Element<'_, Message> = match current.and_then(|draft| draft.error.as_deref()) {
         Some(error) => container(column![
@@ -445,7 +445,7 @@ pub fn view<'a>(app: &'a crate::app::App) -> Element<'a, Message> {
             text("Open Request debug for the stage, owner, timing and what the provider said.")
                 .size(10.5).color(style::TEXT_2)
         ].spacing(3))
-            .max_width(display.chat_measure).width(Fill).padding([7, 12]).style(style::chat_error).into(),
+            .max_width(f32::from(display.chat_measure)).width(Fill).padding([7, 12]).style(style::chat_error).into(),
         None => space().height(0).into(),
     };
     let jump: Element<'_, Message> = if current.is_some_and(|draft| !draft.follow_tail && !draft.turns.is_empty()) {
@@ -460,7 +460,7 @@ pub fn view<'a>(app: &'a crate::app::App) -> Element<'a, Message> {
         container(composer).center_x(Fill),
         space().height(8),
         text("Chats are saved on this computer · keys stay in the OS vault · replies use up to 12 recent turns")
-            .size(11 * scale).color(style::DIM),
+            .size(11.0 * scale).color(style::DIM),
     ].align_x(Center).width(Fill).padding([12, 20]);
 
     let main = column![

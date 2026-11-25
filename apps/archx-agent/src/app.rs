@@ -20,18 +20,17 @@ use iced::widget::{markdown, text_editor};
 use iced::{Element, Subscription, Task};
 use zeroize::Zeroizing;
 
+use archx_shared::credentials::{Provider, Vault, VaultError};
 use archx_shared::diagnostics::{self, Diagnosis};
 use archx_shared::health::{KeyHealthSet, ModelHealthSet};
-use archx_shared::persist::{DisplaySettings, PersistedSettings};
-use archx_shared::storage;
-use archx_shared::transcripts::{ChatStore, StoredChat};
-use crate::{agent, debug_log, debug_page, endpoints, home, model_catalog, model_meta,
-    provider_api, settings, style, transcripts};
-use archx_shared::credentials::{Provider, Vault, VaultError};
-use crate::custom_endpoint;
 use archx_shared::model_catalog::CatalogModel;
+use archx_shared::persist::{DisplaySettings, PersistedSettings};
 use archx_shared::provider_api::{Failure, Reply, Turn};
+use archx_shared::{debug_log, endpoints, model_catalog, model_meta, provider_api, storage, transcripts};
+use archx_shared::transcripts::{ChatStore, StoredChat};
+use crate::custom_endpoint;
 use crate::settings::{SecretText, Section, SettingsState};
+use crate::{agent, debug_page, home, settings};
 
 /// The Agent's own surfaces. The launcher decides which one is shown.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -100,7 +99,7 @@ impl ChatDraft {
         StoredChat::derived_title(&turns)
     }
 
-    fn to_stored(&self, model: Option<String>) -> StoredChat {
+    pub(crate) fn to_stored(&self, model: Option<String>) -> StoredChat {
         StoredChat {
             id: self.id,
             title: self.title(),
@@ -306,10 +305,9 @@ pub struct App {
     pub sidebar_expanded: bool,
     pub drafts: Vec<ChatDraft>,
     pub selected_draft: u32,
-    next_chat_id: u32,
+    pub(crate) next_chat_id: u32,
     pub model_menu_open: bool,
     pub mode_menu_open: bool,
-    pub provider_picker_open: bool,
     pub chat_model_search: String,
     pub memory_preview: MemoryMode,
     pub keep_agent_preview: bool,
@@ -338,13 +336,13 @@ pub struct App {
     pub storage_path: String,
     pub debug_selected: Option<u64>,
     pub reasoning_open_default: bool,
-    agent_phase: u8,
-    snapshot: Option<PathBuf>,
-    snapshot_requested: bool,
-    snapshot_scrolled: bool,
-    snapshot_chat: Option<String>,
-    frozen_snapshot_phase: bool,
-    phase: u8,
+    pub(crate) agent_phase: u8,
+    pub(crate) snapshot: Option<PathBuf>,
+    pub(crate) snapshot_requested: bool,
+    pub(crate) snapshot_scrolled: bool,
+    pub(crate) snapshot_chat: Option<String>,
+    pub(crate) frozen_snapshot_phase: bool,
+    pub(crate) phase: u8,
     pub hovered: bool,
     /// Measured cache sizes shown on the Runtime page.
     pub memory_usage: Vec<archx_shared::memory::Usage>,
@@ -402,7 +400,6 @@ impl App {
             next_chat_id,
             model_menu_open: false,
             mode_menu_open: false,
-            provider_picker_open: false,
             chat_model_search: String::new(),
             memory_preview: MemoryMode::Light,
             keep_agent_preview: false,
@@ -472,7 +469,7 @@ impl App {
             "custom-review" => {
                 self.settings.provider = Provider::Custom;
                 self.settings.custom.url = "https://example.invalid/v1/chat/completions".into();
-                self.settings.custom.headers = "Authorization: Bearer {{api_key}}".into();
+                self.settings.custom.headers = "Authorization: Bearer {{api_key}}".to_owned().into();
                 self.settings.status = "Synthetic fixture: no request was sent and no destination was approved.".into();
             }
             "import-review" | "import-verified-review" => {
@@ -581,7 +578,7 @@ impl App {
         self.settings.clear_secret();
         self.model_menu_open = false;
         self.mode_menu_open = false;
-        self.provider_picker_open = false;
+        self.settings.provider_picker = false;
         self.persist_now();
         Task::none()
     }
@@ -596,13 +593,13 @@ impl App {
     /// The launcher passes its own surface id ("agent", "settings", "debug") so
     /// the app never needs to name the launcher's page enum.
     pub fn prepare_snapshot(&mut self, surface: &str) {
+        if self.snapshot.is_none() { return; }
         self.snapshot_setup = true;
         self.page = match surface {
             "settings" => Page::Settings,
             "debug" => Page::Debug,
             _ => Page::Chat,
         };
-        if self.snapshot.is_none() { return; }
         if self.snapshot_chat.as_deref() == Some("debug") { self.page = Page::Debug; }
         if std::env::var("ARCHX_SNAPSHOT_MEMORY").as_deref() == Ok("custom") {
             self.memory_preview = MemoryMode::Custom;
@@ -630,7 +627,7 @@ impl App {
 
     // ----------------------------------------------------------------- state
 
-    fn scale(&mut self, area: Area, larger: bool) {
+    pub(crate) fn scale(&mut self, area: Area, larger: bool) {
         self.display = match (area, larger) {
             (Area::Chat, true) => DisplaySettings { chat: self.display.chat.larger(), ..self.display },
             (Area::Chat, false) => DisplaySettings { chat: self.display.chat.smaller(), ..self.display },
@@ -729,7 +726,7 @@ impl App {
                 self.page = page;
                 self.model_menu_open = false;
                 self.mode_menu_open = false;
-                self.provider_picker_open = false;
+                self.settings.provider_picker = false;
                 if page == Page::Settings { return self.update(Message::RefreshKeys); }
             }
             Message::ToggleSidebar => self.sidebar_expanded = !self.sidebar_expanded,
@@ -963,7 +960,6 @@ impl App {
         }
         Task::none()
     }
-}
 
     /// Sends the composer text (or runs the explicit settings test).
     ///
@@ -972,7 +968,7 @@ impl App {
     /// the request is retried exactly once on the next key. Every attempt is
     /// recorded in the journal, and a model-specific refusal disables the model
     /// (never the key).
-    fn send_chat(&mut self, test: bool) -> Task<Message> {
+    pub(crate) fn send_chat(&mut self, test: bool) -> Task<Message> {
         if self.snapshot.is_some() { return Task::none(); }
         let provider = self.settings.provider;
         let model = self.settings.selected_model().map(str::to_owned);
@@ -1099,7 +1095,7 @@ impl App {
     }
 
     /// Keys to try, in order: the healthy pick first, then one other healthy key.
-    fn key_plan(&self, now: u64) -> Vec<u64> {
+    pub(crate) fn key_plan(&self, now: u64) -> Vec<u64> {
         let mut plan = Vec::new();
         if let Some((position, id)) = self.keys.pick(now) {
             plan.push(id);
@@ -1116,7 +1112,7 @@ impl App {
 
     // ---------------------------------------------------------------- outcomes
 
-    fn finish_attempt(&mut self, outcome: &AttemptOutcome) {
+    pub(crate) fn finish_attempt(&mut self, outcome: &AttemptOutcome) {
         let now = storage::now_secs();
         self.keys.record_success(outcome.key_id, now);
         self.model_health.record_success(&outcome.model, now);
@@ -1128,7 +1124,7 @@ impl App {
         self.persist_settings();
     }
 
-    fn fail_attempt(&mut self, failure: &Failure, attempts: usize, journal_id: u64) {
+    pub(crate) fn fail_attempt(&mut self, failure: &Failure, attempts: usize, journal_id: u64) {
         let now = storage::now_secs();
         self.journal.finish_failed(journal_id, failure.trace.duration_ms, failure.diagnosis.clone(),
             failure.trace.provider_message.clone());
@@ -1143,9 +1139,10 @@ impl App {
         self.persist_settings();
     }
 
-    fn current_model_id(&self) -> String {
+    pub(crate) fn current_model_id(&self) -> String {
         self.settings.selected_model().unwrap_or("").to_owned()
     }
+}
 
 /// One successful attempt, carried from the async task back into `update`.
 #[derive(Debug, Clone)]

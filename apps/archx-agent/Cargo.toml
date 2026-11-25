@@ -12,7 +12,10 @@ path = "src/lib.rs"
 [dependencies]
 archx-shared = { path = "../../shared" }
 iced = { version = "0.14.0", features = ["tokio", "image", "svg", "markdown", "sipper"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
 keyring = { version = "4.2", default-features = true }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 serde_json = "1"
+sipper = "0.1"
 tokio = { version = "1", features = ["rt", "time"] }
 zeroize = "1.8"

@@ -13,6 +13,7 @@ use zeroize::Zeroizing;
 
 use crate::app::{App, Message, MemoryMode, MemoryScope, Page};
 use archx_shared::credentials::{Provider, Vault, VaultError};
+use archx_shared::health::{KeyHealthSet, ModelHealthSet};
 use crate::custom_endpoint;
 use archx_shared::debug_log;
 use archx_shared::diagnostics;
@@ -41,16 +42,17 @@ impl App {
                 self.settings.catalog_busy = false;
                 self.settings.key_ids.clear();
                 self.settings.status.clear();
-                self.provider_picker_open = false;
+                self.settings.provider_picker = false;
                 self.bulk_clear();
                 self.persist_settings();
                 if self.page == Page::Settings { return self.update(Message::RefreshKeys); }
             }
             Message::OpenProviderPicker => {
-                self.provider_picker_open = true;
+                // One flag, read by the settings view: the app owns it.
+                self.settings.provider_picker = true;
             }
             Message::CloseProviderPicker => {
-                self.provider_picker_open = false;
+                self.settings.provider_picker = false;
             }
             Message::RefreshKeys => {
                 let provider = self.settings.provider;
@@ -135,7 +137,13 @@ impl App {
                 match result {
                     Ok(secret) => {
                         self.settings.reveal = Some((id, secret, std::time::Instant::now() + Duration::from_secs(15)));
-                        return iced::time::every(Duration::from_secs(15)).map(move |_| Message::RevealExpired(nonce));
+                        // A revealed key hides itself after 15 s. The deadline is
+                        // also checked on render, so a suspended timer can only
+                        // hide it later, never keep it visible longer.
+                        return iced::Task::perform(
+                            async move { tokio::time::sleep(Duration::from_secs(15)).await; nonce },
+                            Message::RevealExpired);
+
                     }
                     Err(error) => self.settings.status = error.message().into(),
                 }
@@ -462,9 +470,9 @@ impl App {
             Message::ScaleOut(area) => self.scale(area, false),
             Message::ScaleReset(area) => {
                 self.display = match area {
-                    Area::Chat => archx_shared::persist::DisplaySettings { chat: Default::default(), ..self.display },
-                    Area::Settings => archx_shared::persist::DisplaySettings { settings: Default::default(), ..self.display },
-                    Area::Launcher => archx_shared::persist::DisplaySettings { launcher: Default::default(), ..self.display },
+                    crate::app::Area::Chat => archx_shared::persist::DisplaySettings { chat: Default::default(), ..self.display },
+                    crate::app::Area::Settings => archx_shared::persist::DisplaySettings { settings: Default::default(), ..self.display },
+                    crate::app::Area::Launcher => archx_shared::persist::DisplaySettings { launcher: Default::default(), ..self.display },
                 };
                 let _ = self.persist_settings();
             }

@@ -93,14 +93,10 @@ pub struct SettingsState {
     /// Key rest windows and the rotation toggle, mirrored for rendering only.
     pub key_health: KeyHealthSet,
     pub key_auto_rotate: bool,
-    /// Measured cache sizes for the Runtime page.
-    pub usage: Vec<archx_shared::memory::Usage>,
-    /// Keep/drop matrix for the Runtime page.
-    pub budget: archx_shared::memory::Budget,
-    /// Model health (enabled/disabled per id).
-    pub model_health: ModelHealthSet,
     /// Public metadata for the rows (models.dev + free-tier registry).
     pub meta: Option<archx_shared::model_meta::Registry>,
+    /// Model health (enabled/disabled per id), mirrored for rendering only.
+    pub model_health: ModelHealthSet,
 }
 impl Default for SettingsState {
     fn default() -> Self {
@@ -112,7 +108,8 @@ impl Default for SettingsState {
             probe_pending: false, probe_busy: false, probe_nonce: 0, probe_results: Vec::new(), catalog_busy: false, catalog_nonce: 0, models: std::array::from_fn(|_| Vec::new()),
             chosen: [None; Provider::COUNT], status: String::new(), test_busy: false, test_evidence: None, stream_chat: true, key_busy: false, custom: Profile::default(), custom_curl: SecretText::default(), custom_approved: false, expected_word: "OK".into(),
             bulk_selected: HashSet::new(), model_page: 0, model_page_size: 25, provider_picker: false,
-            endpoint_draft: None }
+            endpoint_draft: None, key_health: KeyHealthSet::new(), key_auto_rotate: true,
+            model_health: ModelHealthSet::new(), meta: None }
     }
 }
 impl SettingsState {
@@ -228,8 +225,8 @@ pub fn view<'a>(state: &'a SettingsState, memory: MemoryMode, keep_agent: bool,
         match state.section {
             Section::Providers => providers(state),
             Section::Models => models(state),
-            Section::Runtime => runtime(state),
-            Section::Storage => storage(state, &display),
+            Section::Runtime => runtime(state, usage, budget),
+            Section::Storage => storage(state, display),
             Section::Lab => lab(memory, keep_agent),
         }
     ].width(Fill).padding(iced::Padding { top: 24.0, right: 28.0, bottom: 40.0, left: 28.0 });
@@ -579,10 +576,13 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
 }
 
 /// Runtime memory: one row per cache per stage, with measured sizes.
-fn runtime(state: &SettingsState) -> Element<'static, Message> {
+// The measured sizes and the keep/drop matrix are the app's, not the page's:
+// they are passed in so the page never keeps a second copy that could drift.
+fn runtime<'a>(state: &'a SettingsState, usage: &'a [archx_shared::memory::Usage],
+    budget: &'a archx_shared::memory::Budget) -> Element<'a, Message> {
     let mut matrix = column![].spacing(6);
     for item in archx_shared::memory::Item::ALL {
-        let usage = state.usage.iter().find(|usage| usage.item == item);
+        let usage = usage.iter().find(|usage| usage.item == item);
         let mut row = row![
             column![
                 text(item.label()).size(12.5).font(style::STRONG).color(style::WHITE),
@@ -592,7 +592,7 @@ fn runtime(state: &SettingsState) -> Element<'static, Message> {
                 .size(11).color(style::GREY).width(140)
         ].spacing(8).align_y(Center);
         for stage in archx_shared::memory::Stage::ALL {
-            let keep = state.budget.keeps(stage, item);
+            let keep = budget.keeps(stage, item);
             row = row.push(button(text(if keep { "keep" } else { "drop" }).size(10)
                 .color(if keep { style::WHITE } else { style::DIM }))
                 .padding([5, 8]).on_press(Message::ToggleRuntime(stage, item))
@@ -600,7 +600,7 @@ fn runtime(state: &SettingsState) -> Element<'static, Message> {
         }
         matrix = matrix.push(container(row).padding([6, 8]).width(Fill).style(style::card));
     }
-    let resident = archx_shared::memory::resident_total(&state.usage);
+    let resident = archx_shared::memory::resident_total(usage);
     column![
         surface(column![
             eyebrow("RESIDENT CACHES  /  MEASURED"),
@@ -623,7 +623,7 @@ fn runtime(state: &SettingsState) -> Element<'static, Message> {
 }
 
 /// Storage & display: where data lives, per-area text scale, and wiping.
-fn storage(state: &SettingsState, display: &archx_shared::persist::DisplaySettings) -> Element<'static, Message> {
+fn storage<'a>(state: &'a SettingsState, display: &'a archx_shared::persist::DisplaySettings) -> Element<'a, Message> {
     let path = archx_shared::storage::display_path();
     let mut wipes = column![].spacing(6);
     for area in archx_shared::storage::Area::ALL {
@@ -664,7 +664,7 @@ fn storage(state: &SettingsState, display: &archx_shared::persist::DisplaySettin
             space().height(8),
             text(path).size(11.5).font(style::LABEL).color(style::WHITE),
             space().height(6),
-            text("Four small JSON files, each replaced atomically: settings, chats, model tests, debug journal. No API key ever enters them; the writer refuses a credential-shaped field.")
+            text("Small JSON files, each replaced atomically: settings, chats, model tests, debug journal. No API key ever enters them; the writer refuses a credential-shaped field.")
                 .size(11).color(style::GREY),
             space().height(10),
             wipes,
