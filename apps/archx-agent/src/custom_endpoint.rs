@@ -267,7 +267,7 @@ mod tests {
         let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
         let reply = rt.block_on(send(profile, "smol-wrapper".into(), Zeroizing::new(String::new()),
             vec![Turn { role: "user", content: "Reply with the word OK.".into() }], 64)).unwrap();
-        assert!(!reply.content.trim().is_empty(), "real model returned no text");
+        assert!(!reply.0.content.trim().is_empty(), "real model returned no text");
     }
     #[test]
     fn parses_literal_curl_and_typed_templates() {

@@ -2,7 +2,6 @@
 
 use super::*;
 use archx_shared::health::KeyHealthSet;
-use crate::settings::SecretText;
 
 fn app() -> App {
     App::new(None)

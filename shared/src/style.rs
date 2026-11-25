@@ -377,7 +377,7 @@ mod thinking_tests {
         // `.thinking { border: 1px dashed var(--border-2); background: accent 3% }`
         assert_eq!(panel.border.width, 1.0);
         assert_eq!(panel.border.color, BORDER_2);
-        assert_eq!(panel.background, Some(Color::from_rgba(1.0, 1.0, 1.0, 0.03)));
+        assert_eq!(panel.background, Some(iced::Background::Color(Color::from_rgba(1.0, 1.0, 1.0, 0.03))));
     }
 
     #[test]
@@ -386,7 +386,7 @@ mod thinking_tests {
         assert_eq!(body.border.width, 1.0);
         assert_eq!(body.border.color, BORDER_2);
         assert_eq!(body.border.radius, 0.0.into());
-        assert_eq!(body.background, Some(Color::TRANSPARENT));
+        assert_eq!(body.background, Some(iced::Background::Color(Color::TRANSPARENT)));
     }
 }
 

@@ -78,17 +78,7 @@ fn reasoning_size(content: &markdown::Content) -> u16 {
     28 + (content.items().len() as u16).saturating_mul(18)
 }
 
-fn chat_md<'a>(items: impl IntoIterator<Item = &'a markdown::Item>) -> Element<'a, Message> {
-    let mut settings = markdown::Settings::with_text_size(style::AGENT_BODY_SIZE, iced::Theme::Dark);
-    settings.h1_size = 24.into();
-    settings.h2_size = 20.into();
-    settings.code_size = 12.into();
-    settings.spacing = 11.into();
-    markdown::view_with(items, settings, &ChatViewer)
-}
-
-/// Real configuration state only: never invent connectivity we cannot prove.
-pub fn endpoint_label(provider: &str, model: Option<&str>) -> String {
+fn endpoint_label(provider: &str, model: Option<&str>) -> String {
     match model {
         Some(model) => format!("{provider} · {model}"),
         None => "no provider configured".to_owned(),

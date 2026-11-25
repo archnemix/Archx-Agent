@@ -342,7 +342,6 @@ pub struct App {
     pub(crate) snapshot_scrolled: bool,
     pub(crate) snapshot_chat: Option<String>,
     pub(crate) frozen_snapshot_phase: bool,
-    pub(crate) phase: u8,
     pub hovered: bool,
     /// Measured cache sizes shown on the Runtime page.
     pub memory_usage: Vec<archx_shared::memory::Usage>,
@@ -429,7 +428,6 @@ impl App {
             snapshot_scrolled: false,
             snapshot_chat: std::env::var("ARCHX_SNAPSHOT_CHAT").ok(),
             frozen_snapshot_phase: false,
-            phase: 0,
             hovered: false,
             memory_usage: Vec::new(),
             left_for_launcher: false,

@@ -300,7 +300,7 @@ mod tests {
         let ok = journal.begin("OpenRouter", "vendor/model".into(), 1, true, 812);
         journal.finish_ok(ok, 2_310, 1_204, 88, 9_001);
         let failed = journal.begin("Gemini", "gemini-2".into(), 0, false, 640);
-        journal.finish_failed(failed, 45_000, transport(true), "read timeout");
+        journal.finish_failed(failed, 45_000, transport(true), "read timeout".to_owned());
         let entries = journal.view(Filter::All);
         assert_eq!(entries.len(), 2);
         // Newest first.
