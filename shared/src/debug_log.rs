@@ -278,15 +278,16 @@ impl Journal {
 /// before it is stored or displayed.
 pub fn redact(input: &str) -> String {
     let mut out = String::with_capacity(input.len());
-    for token in input.split_inclusive(char::is_whitespace) {
-        let trimmed = token.trim();
-        let lower = trimmed.to_ascii_lowercase();
-        let looks_secret = trimmed.len() >= 20 && (
+    for (index, token) in input.split_whitespace().enumerate() {
+        if index > 0 { out.push(' '); }
+        let lower = token.to_ascii_lowercase();
+        let looks_secret = token.len() >= 20 && (
             lower.starts_with("sk-") || lower.starts_with("gsk_") || lower.starts_with("aiza")
-                || lower.starts_with("bearer") || (trimmed.chars().filter(|c| c.is_ascii_alphanumeric()).count() > 24
-                    && trimmed.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))));
-        if looks_secret { out.push_str("[redacted]"); }
-        else { out.push_str(token); }
+                || lower.starts_with("bearer") || (token.chars().filter(|c| c.is_ascii_alphanumeric()).count() > 24
+                    && token.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))));
+        // The word around the secret is what makes the message readable, so the
+        // redaction replaces the token and leaves the spacing alone.
+        if looks_secret { out.push_str("[redacted]"); } else { out.push_str(token); }
     }
     out.chars().take(600).collect()
 }

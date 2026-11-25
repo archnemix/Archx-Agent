@@ -143,7 +143,11 @@ impl Registry {
     pub fn set(&mut self, provider: Provider, kind: Kind, raw: &str) -> Result<(), &'static str> {
         if provider == Provider::Custom { return Err("Custom endpoints are edited in the provider form."); }
         let value = raw.trim().to_owned();
-        validate(&value, matches!(kind, Kind::Chat | Kind::Stream))?;
+        // Only a provider that documents a `{model}` slot needs one in an
+        // override; OpenAI and Groq carry the model in the body, so requiring a
+        // placeholder there would reject their own documented default.
+        let documents_model_slot = default_value(provider, kind).contains("{model}");
+        validate(&value, documents_model_slot)?;
         let slot = &mut self.overrides[provider.index()].get_or_insert_with(|| std::array::from_fn(|_| None));
         slot[kind.index()] = Some(value);
         // Setting a value back to the documented default clears the override so

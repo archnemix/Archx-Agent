@@ -214,8 +214,15 @@ pub const EMBEDDED: [(&str, &str); 2] = [
 /// Directory searched at runtime. `ARCHX_APPS_DIR` overrides it for tests.
 pub fn root() -> PathBuf {
     if let Some(path) = std::env::var_os("ARCHX_APPS_DIR") { return PathBuf::from(path); }
-    // The manifest dir is `shared/`; app folders live beside it at the repo root.
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().unwrap_or(Path::new(".")).join("apps")
+    // Compiled into `shared/`, so the app folders sit one level up. Walk up from
+    // the build directory instead of trusting the process cwd, because a test
+    // binary inherits cargo's cwd, not this crate's.
+    let mut dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    loop {
+        if dir.join("apps").is_dir() { return dir.join("apps"); }
+        if !dir.pop() { break; }
+    }
+    PathBuf::from("apps")
 }
 
 fn scan(dir: &Path) -> Vec<App> {

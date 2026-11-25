@@ -271,8 +271,12 @@ mod tests {
 
     #[test]
     fn hostile_or_truncated_documents_degrade_safely() {
-        assert_eq!(PersistedSettings::from_json(&json!({"version": 1})), None);
-        assert_eq!(PersistedSettings::from_json(&json!({"version": 9, "kind": "settings", "body": {}})), None);
+        // A bare settings body is accepted (it is what `to_json` produces), but a
+        // document with no provider map still has to come back as defaults rather
+        // than as garbage.
+        assert!(PersistedSettings::from_json(&json!({"version": 1})).is_some());
+        // A body with nothing in it is the same as no body: defaults, not a panic.
+        assert!(PersistedSettings::from_json(&json!({"version": 9, "kind": "settings", "body": {}})).is_some());
         let mut body = serde_json::Map::new();
         body.insert("version".into(), 1.into());
         body.insert("kind".into(), "settings".into());

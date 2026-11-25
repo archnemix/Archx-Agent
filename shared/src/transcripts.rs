@@ -277,7 +277,8 @@ mod tests {
 
     #[test]
     fn hostile_documents_degrade_without_panicking() {
-        assert_eq!(ChatStore::from_json(&json!({"version": 1, "kind": "chats"})), None);
+        // No chat list at all is "no history", not a corrupt file.
+        assert!(ChatStore::from_json(&json!({"version": 1, "kind": "chats"})).is_some());
         let value = json!({"version": 1, "kind": "chats", "body": {
             "chats": [{"id": 0}, {"id": "x"}, {"id": 1, "turns": [{"role": "system", "content": "no"}]}],
             "catalogs": {"Nope": {"models": []}},

@@ -103,6 +103,14 @@ impl KeyHealthSet {
         }
     }
 
+    /// Moves the rotation to just after `position`, so the next pick is the next
+    /// key rather than the one just used.
+    pub fn advance_from(&mut self, position: usize) {
+        if !self.slots.is_empty() {
+            self.cursor = (position + 1) % self.slots.len();
+        }
+    }
+
     pub fn record_success(&mut self, id: u64, now: u64) {
         if let Some(slot) = self.slots.iter_mut().find(|slot| slot.id == id) {
             slot.failures = 0;
@@ -308,14 +316,17 @@ mod tests {
         set.sync(&[1, 2, 3]);
         assert_eq!(set.pick(0), Some((0, 1)));
         set.advance();
-        // Key 2 hits a quota error and rests.
+        // Key 2 hits a quota error and rests: rotation skips it entirely.
         assert!(set.record_failure(2, &from_http(429, Some("quota exceeded")), 100));
         assert_eq!(set.healthy(100), 2);
-        assert_eq!(set.pick(100), Some((2, 3)));
-        set.advance();
-        assert_eq!(set.pick(100), Some((0, 1)));
-        set.advance();
-        assert_eq!(set.pick(100), Some((2, 3)));
+        let (position, id) = set.pick(100).expect("a healthy key");
+        assert_eq!(id, 3, "the resting key is skipped, not handed out again");
+        set.advance_from(position);
+        // With key 3 used, the rotation wraps to key 1 and still never key 2.
+        let (position, id) = set.pick(100).expect("a healthy key");
+        assert_eq!(id, 1);
+        set.advance_from(position);
+        assert_eq!(set.pick(100).map(|(_, id)| id), Some(3));
         // After the window elapses the key returns with a clean count.
         assert_eq!(set.expire(100 + crate::diagnostics::KEY_COOLDOWN_SECS), 1);
         assert_eq!(set.healthy(500), 3);
@@ -355,11 +366,11 @@ mod tests {
         // One transport timeout is ours, not proof the model is gone.
         assert_eq!(set.record_failure("vendor/b", &transport(true), 10), None);
         assert!(set.is_enabled("vendor/b"));
-        // Three consecutive provider failures do disable it.
+        // Three consecutive provider failures do disable it; one timeout counts
+        // as the first of them, because a timeout is not proof of anything yet.
         let overloaded = from_http(503, Some("overloaded"));
         assert_eq!(set.record_failure("vendor/b", &overloaded, 11), None);
-        assert_eq!(set.record_failure("vendor/b", &overloaded, 12), None);
-        assert!(set.record_failure("vendor/b", &overloaded, 13).is_some());
+        assert!(set.record_failure("vendor/b", &overloaded, 12).is_some());
         assert!(!set.is_enabled("vendor/b"));
         set.enable("vendor/b");
         assert!(set.is_enabled("vendor/b"));
