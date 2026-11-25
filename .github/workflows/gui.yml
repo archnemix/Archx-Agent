@@ -6,6 +6,7 @@ on:
     branches: [arena/53d9bc26-archx-agent]
     paths:
       - 'src/**'
+      - 'shared/**'
       - 'apps/**'
       - 'assets/**'
       - 'Cargo.toml'
