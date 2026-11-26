@@ -8,8 +8,9 @@ on:
       - 'src/**'
       - 'shared/**'
       - 'apps/**'
-      - 'assets/**'
+      - 'build.rs'
       - 'Cargo.toml'
+      - 'Cargo.lock'
       - '.github/workflows/gui.yml'
       - 'internels/ci-trigger.txt'
   workflow_dispatch:
