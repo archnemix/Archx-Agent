@@ -462,10 +462,10 @@ fn sweep_panel(state: &SettingsState) -> Element<'static, Message> {
         }
         for verdict in sweep.gone.iter().take(40) {
             body = body.push(row![
-                text("·").size(11.5).color(style::DIM),
-                text(verdict.model.clone()).size(11.5).font(style::LABEL).color(style::WHITE).width(Fill),
-                text(verdict.reason.label()).size(10.5).color(style::WARN)
-            ].spacing(6).align_y(Center));
+                text(verdict.model.clone()).size(11.5).font(style::LABEL).color(style::WHITE),
+                text(verdict.reason.label()).size(10.5).color(style::WARN),
+                space().width(Fill)
+            ].spacing(10).align_y(Center));
         }
         if !unlisted.is_empty() {
             body = body.push(text(format!("Absent from the provider list, nothing else confirms it, so left enabled ({}): {}",
