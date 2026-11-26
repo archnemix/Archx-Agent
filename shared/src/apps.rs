@@ -319,6 +319,14 @@ mod tests {
             .collect()
     }
 
+    /// `ARCHX_APPS_DIR` is process-wide and the real-tree tests read it through
+    /// `root()`, so every test that touches it holds this lock.
+    static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    fn env_lock() -> std::sync::MutexGuard<'static, ()> {
+        ENV_LOCK.lock().unwrap_or_else(|error| error.into_inner())
+    }
+
     /// Writes a throwaway `apps/` tree so readiness can be tested without
     /// touching the real folders.
     fn scratch_apps(folders: &[(&str, &str)]) -> PathBuf {
@@ -335,6 +343,7 @@ mod tests {
 
     #[test]
     fn every_shipped_manifest_parses_and_is_unique() {
+        let _lock = env_lock();
         let apps = discover();
         assert!(apps.len() >= 2, "expected the Agent and at least one reserved folder");
         let ids: std::collections::HashSet<_> = apps.iter().map(|app| app.id.as_str()).collect();
@@ -352,6 +361,7 @@ mod tests {
     /// so the app compiles from it and another AI can start from it.
     #[test]
     fn every_manifest_matches_the_files_on_disk() {
+        let _lock = env_lock();
         let mut problems = Vec::new();
         for app in discover() {
             let folder = root().join(&app.id);
@@ -369,6 +379,7 @@ mod tests {
 
     #[test]
     fn a_declared_crate_is_a_workspace_member() {
+        let _lock = env_lock();
         let members = workspace_members();
         for app in discover() {
             let Some(krate) = &app.krate else { continue };
@@ -380,6 +391,7 @@ mod tests {
 
     #[test]
     fn live_apps_declare_how_they_render() {
+        let _lock = env_lock();
         let apps = registered();
         let live: Vec<_> = apps.iter().filter(|app| app.is_live()).map(|app| app.name.as_str()).collect();
         assert_eq!(live, vec!["Archx Agent"]);
@@ -393,6 +405,7 @@ mod tests {
 
     #[test]
     fn a_reserved_folder_needs_no_code_yet() {
+        let _lock = env_lock();
         let training = find_any("training").expect("training space");
         assert!(!training.is_live());
         assert!(!training.has_code());
@@ -409,6 +422,7 @@ mod tests {
     fn an_unready_folder_is_invisible_to_the_launcher() {
         let not_ready = "id = \"two\"\nname = \"Two\"\nstatus = \"live\"\nready = false\ncrate = \"two\"\nentry = \"src/lib.rs\"\nview = \"home::view\"\n";
         let missing = "id = \"three\"\nname = \"Three\"\nstatus = \"live\"\ncrate = \"three\"\nentry = \"src/lib.rs\"\nview = \"home::view\"\n";
+        let _lock = env_lock();
         let dir = scratch_apps(&[("one", READY_MANIFEST), ("two", not_ready), ("three", missing)]);
         unsafe { std::env::set_var("ARCHX_APPS_DIR", &dir) };
         assert_eq!(discover().len(), 3, "the folders are still discoverable for diagnostics");

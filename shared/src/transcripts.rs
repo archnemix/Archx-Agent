@@ -158,7 +158,9 @@ impl ChatStore {
         // A bare body and a whole envelope both read, as in `PersistedSettings`.
         let body = storage::body(value).unwrap_or(value);
         let mut store = Self::new();
-        for chat in body.get("chats").and_then(Value::as_array)?.iter().take(MAX_CHATS * 2) {
+        // A file with no chat list is "no history", not a corrupt document.
+        let chats = body.get("chats").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]);
+        for chat in chats.iter().take(MAX_CHATS * 2) {
             if let Some(chat) = StoredChat::from_json(chat) {
                 if !chat.is_empty() { store.chats.push(chat); }
             }
