@@ -441,7 +441,9 @@ mod tests {
         let missing = "id = \"three\"\nname = \"Three\"\nstatus = \"live\"\ncrate = \"three\"\nentry = \"src/lib.rs\"\nview = \"home::view\"\n";
         let dir = scratch_apps(&[("one", READY_MANIFEST), ("two", not_ready), ("three", missing)]);
         set_thread_directory(Some(dir.clone()));
-        assert_eq!(discover().len(), 3, "the folders are still discoverable for diagnostics");
+        let ids: Vec<String> = discover().into_iter().map(|app| app.id).collect();
+        assert!(ids.contains(&"one".to_owned()) && ids.contains(&"two".to_owned()) && ids.contains(&"three".to_owned()),
+            "every folder is still discoverable for diagnostics: {ids:?}");
         let shown = registered();
         assert_eq!(shown.iter().map(|app| app.id.as_str()).collect::<Vec<_>>(), vec!["one"],
             "only the ready app gets a tile");
