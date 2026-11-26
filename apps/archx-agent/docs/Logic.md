@@ -59,11 +59,14 @@ Settings → Models → `Fetch models` emits `Message::FetchModels` (`src/app.rs
 Settings → Models → **Sweep added models** emits `Message::SweepModels`. It is the only place that removes models from the working list, and it never deletes anything.
 
 1. **Two sources, read-only.** The provider's live `/models` list is fetched with the same `model_catalog::fetch_via` path as `Fetch models` (fixed origin, no redirects, bounded, same key rule: OpenRouter and local Ollama need none). The cached `models.dev` registry supplies `status` and `type`. Neither request sends a generation prompt.
-2. **One pure decision.** `archx_shared::model_meta::sweep` returns a verdict per added id:
-   * `GoneFromProvider` — the live list answered and does not contain it;
-   * `Deprecated` — the live list has it, but models.dev says `status = "deprecated"`;
-   * `Unknown` — neither source mentions it. **Reported, never disabled.** Silence is not proof; a private or just-released id would otherwise be swept by mistake.
-3. **A failed fetch proves nothing.** If `/models` errors, the sweep runs on models.dev alone and the status line says so. `Err` is never read as an empty list.
+2. **One decision, but never on a single silent source.** `archx_shared::model_meta::sweep` returns a verdict per added id:
+   * `Deprecated` — models.dev says `status = "deprecated"`, whatever the live list says. Disabled.
+   * `GoneFromProvider` — models.dev still lists the id while the provider's own `/models` has dropped it. Two sources read, one answer. Disabled.
+   * `Unlisted` — missing from the live list and unknown to models.dev. **Reported, never disabled.** This is exactly the shape of a private, beta or hand-typed ID, and the app supports adding an exact ID on purpose.
+   * `Unknown` — no source had anything to say. **Reported, never disabled.**
+
+   The rule is deliberately strict: absence from `/models` alone proves nothing, because provider lists are known to omit private and unannounced models. `SweepReason::is_evidence()` is the single place that encodes it, and there is a test named after this case.
+3. **A failed fetch proves nothing.** If `/models` errors, the sweep runs on models.dev alone and the status line says so. `Err` is never read as an empty list — that is how an outage would otherwise look like a mass retirement.
 4. **Nothing changes until you press Disable.** The verdict is displayed with its reason first. On `SweepApply` each gone model gets a health-slot disable carrying the reason ("no longer offered by the provider"), a currently chosen disabled model is deselected, and the ids are kept in `settings.sweep_undo`. Rows stay in the list, disabled, so they can be re-checked later.
 5. **Undo is exact.** `SweepUndo` re-enables exactly the ids that sweep disabled — not every disabled model, which would also re-enable models the user disabled by hand.
 6. **The why survives a restart.** The reason lives in the health slot, which is persisted per provider, so a row still explains itself in a later session; the Undo list is in-session only and is documented as such.

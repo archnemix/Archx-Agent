@@ -486,13 +486,14 @@ impl App {
                 let index = self.settings.index();
                 self.settings.models[index] = vec![
                     "demo/still-listed".into(), "demo/dropped".into(),
-                    "demo/retired".into(), "demo/unlisted-private".into(),
+                    "demo/retired".into(), "demo/hand-typed-private".into(),
                 ];
                 self.settings.chosen[index] = Some(3);
                 self.model_health.sync(&self.settings.models[index]);
                 self.settings.meta = Some(archx_shared::model_meta::parse_models_dev(&serde_json::json!({
                     "openrouter": {"models": {
                         "demo/still-listed": {"type": "chat", "status": "beta"},
+                        "demo/dropped": {"type": "chat"},
                         "demo/retired": {"type": "chat", "status": "deprecated"}
                     }}
                 })));

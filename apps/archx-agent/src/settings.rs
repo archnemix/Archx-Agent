@@ -452,6 +452,7 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
 fn sweep_panel(state: &SettingsState) -> Element<'static, Message> {
     let verdicts = state.sweep.as_ref().map(|sweep| sweep.gone.len()).unwrap_or(0);
     let reported = state.sweep.is_some();
+    let unlisted = state.sweep.as_ref().map(|sweep| sweep.unlisted.clone()).unwrap_or_default();
     let unknown = state.sweep.as_ref().map(|sweep| sweep.unknown.clone()).unwrap_or_default();
     let undo = state.sweep_undo.clone();
     let mut body = column![].spacing(6);
@@ -466,12 +467,18 @@ fn sweep_panel(state: &SettingsState) -> Element<'static, Message> {
                 text(verdict.reason.label()).size(10.5).color(style::WARN)
             ].spacing(6).align_y(Center));
         }
-        if unknown.is_empty() {
-            body = body.push(text("Displayed only: nothing is disabled until you press Disable.")
-                .size(10.5).color(style::DIM));
-        } else {
-            body = body.push(text(format!("{} model(s) neither source knows; left enabled: {}",
+        if !unlisted.is_empty() {
+            body = body.push(text(format!("Absent from the provider list, nothing else confirms it, so left enabled ({}): {}",
+                unlisted.len(), unlisted.iter().take(6).cloned().collect::<Vec<_>>().join(", ")))
+                .size(10.5).color(style::GREY));
+        }
+        if !unknown.is_empty() {
+            body = body.push(text(format!("Neither source knows these, so left enabled ({}): {}",
                 unknown.len(), unknown.iter().take(6).cloned().collect::<Vec<_>>().join(", ")))
+                .size(10.5).color(style::GREY));
+        }
+        if unlisted.is_empty() && unknown.is_empty() {
+            body = body.push(text("Displayed only: nothing is disabled until you press Disable.")
                 .size(10.5).color(style::DIM));
         }
     }
@@ -493,7 +500,7 @@ fn sweep_panel(state: &SettingsState) -> Element<'static, Message> {
     surface(column![
         eyebrow("MODELS THAT NO LONGER EXIST  /  EVIDENCE, THEN ONE CLICK"),
         space().height(8),
-        text("Compares the ids you added with the provider's live /models list and cached models.dev metadata. A model is only reported gone when one of them positively says so, and nothing is ever deleted.")
+        text("Compares the ids you added with the provider's live /models list and cached models.dev metadata. A model is reported gone only when a source positively says so: models.dev marks it deprecated, or models.dev still lists it while the provider has dropped it. One silent source is never enough, because a private or hand-typed ID looks exactly like that. Nothing is ever deleted.")
             .size(11).color(style::GREY),
         space().height(8),
         Element::from(actions),

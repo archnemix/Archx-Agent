@@ -226,6 +226,17 @@ impl Registry {
         meta
     }
 
+    /// Whether models.dev has *any* entry for this id under this provider. A
+    /// bare `{"name": ...}` still proves the id exists in the catalog.
+    pub fn knows(&self, provider: Provider, model: &str) -> bool {
+        let provider_id = models_dev_provider(provider);
+        if provider_id.is_empty() { return false; }
+        let Some(models) = self.by_provider.get(provider_id) else { return false };
+        let key = model.to_ascii_lowercase();
+        models.contains_key(&key)
+            || model.rsplit('/').next().is_some_and(|tail| models.contains_key(&tail.to_ascii_lowercase()))
+    }
+
     pub fn len(&self) -> usize { self.by_provider.values().map(HashMap::len).sum() }
 
     pub fn is_empty(&self) -> bool { self.by_provider.is_empty() }
@@ -262,26 +273,33 @@ pub async fn fetch_models_dev() -> Result<Registry, String> {
 /// Why a model in the user's list is considered gone.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SweepReason {
-    /// The provider's live `/models` answered and does not list this id.
+    /// models.dev still knows this id (as a live model) but the provider's own
+    /// `/models` no longer lists it: two sources, both read, one answer.
     GoneFromProvider,
-    /// The provider's live `/models` answered, lists it, but models.dev marks
-    /// it `status = "deprecated"`.
+    /// models.dev marks it `status = "deprecated"`, whatever the live list says.
     Deprecated,
-    /// Neither source knows it. Never acted on by the sweep: silence is not
-    /// proof, and a private or freshly released id would be swept by mistake.
+    /// Absent from the live list, but models.dev never heard of it either. Never
+    /// acted on: that is exactly the shape of a private, beta or hand-typed id,
+    /// which this app supports on purpose by letting a user add an exact ID.
+    Unlisted,
+    /// No source had anything to say. Never acted on.
     Unknown,
 }
 
 impl SweepReason {
     pub fn label(&self) -> &'static str {
         match self {
-            Self::GoneFromProvider => "no longer offered by the provider",
+            Self::GoneFromProvider => "dropped by the provider; models.dev still lists it",
             Self::Deprecated => "marked deprecated by models.dev",
+            Self::Unlisted => "absent from the provider list; no other source to confirm",
             Self::Unknown => "not in either source",
         }
     }
-    /// Only positive evidence retires a row.
-    pub fn is_evidence(&self) -> bool { !matches!(self, Self::Unknown) }
+    /// Only positive evidence retires a row. `Unlisted` is deliberately not
+    /// evidence: one silent source is not proof of absence.
+    pub fn is_evidence(&self) -> bool {
+        matches!(self, Self::GoneFromProvider | Self::Deprecated)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -294,21 +312,28 @@ pub struct SweepVerdict {
 pub struct Sweep {
     /// Models with positive evidence that they no longer exist.
     pub gone: Vec<SweepVerdict>,
-    /// Models no live source could vouch for; reported, never disabled.
+    /// Missing from the live list, but nothing confirms it: reported, never
+    /// disabled. This is where a private or hand-typed id lands.
+    pub unlisted: Vec<String>,
+    /// No source had anything to say; reported, never disabled.
     pub unknown: Vec<String>,
     /// True when the provider list was actually consulted.
     pub provider_checked: bool,
 }
 
 impl Sweep {
-    pub fn is_empty(&self) -> bool { self.gone.is_empty() && self.unknown.is_empty() }
+    pub fn is_empty(&self) -> bool {
+        self.gone.is_empty() && self.unlisted.is_empty() && self.unknown.is_empty()
+    }
     pub fn summary(&self) -> String {
         if self.is_empty() { return "Nothing to sweep: every added model is still listed.".to_owned(); }
         let mut parts = Vec::new();
         if !self.gone.is_empty() { parts.push(format!("{} gone", self.gone.len())); }
+        if !self.unlisted.is_empty() { parts.push(format!("{} unlisted", self.unlisted.len())); }
         if !self.unknown.is_empty() { parts.push(format!("{} unverified", self.unknown.len())); }
         let scope = if self.provider_checked { "provider list + models.dev" } else { "models.dev" };
-        format!("Sweep ({scope}): {}", parts.join(", "))
+        let tail = if self.gone.is_empty() { "; nothing is confirmed gone" } else { "" };
+        format!("Sweep ({scope}): {}{tail}", parts.join(", "))
     }
     /// The model ids that would be disabled, in list order.
     pub fn ids(&self) -> Vec<String> { self.gone.iter().map(|verdict| verdict.model.clone()).collect() }
@@ -323,9 +348,11 @@ impl Sweep {
 ///   `None` means it could not be consulted, so absence from it proves nothing.
 /// * `meta` — models.dev registry, or `None` when it is not cached yet.
 ///
-/// A model is reported gone only on positive evidence: a successful provider
-/// list that omits it, or a models.dev `status` of `deprecated`. Everything
-/// else that neither source mentions is listed as unverified.
+/// A model is reported gone only when a source positively says so:
+/// models.dev marks it `deprecated`, or models.dev knows the id as a live model
+/// while the provider's own list has dropped it. Absence from one source alone
+/// is never enough — a private, beta or hand-typed id looks exactly like that,
+/// and this app lets a user add such an id on purpose.
 pub fn sweep(kind: Provider, added: &[String], live: Option<&[String]>, meta: Option<&Registry>) -> Sweep {
     let mut sweep = Sweep { provider_checked: live.is_some(), ..Sweep::default() };
     let live: Option<std::collections::HashSet<String>> = live
@@ -336,16 +363,23 @@ pub fn sweep(kind: Provider, added: &[String], live: Option<&[String]>, meta: Op
         // provider echoes the bare id; try the tail as well.
         let tail = key.rsplit('/').next().unwrap_or(&key).to_owned();
         let in_provider = live.as_ref().map(|set| set.contains(&key) || set.contains(&tail));
-        let found = meta.map(|registry| registry.lookup(kind, model)).filter(|meta| !meta.is_empty());
-        let deprecated = found.as_ref().and_then(|meta| meta.status.as_deref()) == Some("deprecated");
-        let reason = match (in_provider, deprecated) {
-            (Some(false), _) => SweepReason::GoneFromProvider,
-            (_, true) => SweepReason::Deprecated,
-            (Some(true), false) => continue,
-            (None, false) => SweepReason::Unknown,
+        // `known` is "models.dev has an entry for this id", which is different
+        // from "the entry says something useful" — a bare `{name}` still
+        // proves the id exists in the catalog's taxonomy.
+        let known = meta.map(|registry| registry.knows(kind, model)).unwrap_or(false);
+        let deprecated = meta.map(|registry| registry.lookup(kind, model))
+            .and_then(|meta| meta.status)
+            .as_deref() == Some("deprecated");
+        let reason = match (in_provider, deprecated, known) {
+            (_, true, _) => SweepReason::Deprecated,
+            (Some(true), false, _) => continue,
+            (Some(false), false, true) => SweepReason::GoneFromProvider,
+            (Some(false), false, false) => SweepReason::Unlisted,
+            (None, false, _) => SweepReason::Unknown,
         };
         match reason {
             SweepReason::Unknown => sweep.unknown.push(model.clone()),
+            SweepReason::Unlisted => sweep.unlisted.push(model.clone()),
             reason => sweep.gone.push(SweepVerdict { model: model.clone(), reason }),
         }
     }
@@ -479,13 +513,15 @@ mod tests {
         let meta = registry_with(&[
             ("live-model", "chat", None),
             ("deprecated-model", "chat", Some("deprecated")),
+            // models.dev still lists it: the provider dropped it, so it is gone.
+            ("retired-model", "chat", None),
         ]);
         let verdict = sweep(Provider::OpenRouter, &added, Some(&live), Some(&meta));
         assert!(verdict.provider_checked);
-        // Absent from a successful provider list: gone.
         assert_eq!(verdict.gone[0], SweepVerdict {
             model: "retired-model".to_owned(), reason: SweepReason::GoneFromProvider,
         });
+        assert!(verdict.gone[0].reason.is_evidence());
         // Present but deprecated: gone for a different, recorded reason.
         assert_eq!(verdict.gone[1].reason, SweepReason::Deprecated);
         assert_eq!(verdict.gone.len(), 2);
@@ -524,8 +560,25 @@ mod tests {
         let meta = registry_with(&[("retired-model", "chat", Some("deprecated"))]);
         let verdict = sweep(Provider::OpenRouter, &added, Some(&live), Some(&meta));
         assert_eq!(verdict.gone.len(), 1, "one row, one verdict: {:?}", verdict.gone);
-        assert_eq!(verdict.gone[0].reason, SweepReason::GoneFromProvider);
-        assert_eq!(verdict.gone[0].reason.label(), "no longer offered by the provider");
+        assert_eq!(verdict.gone[0].reason, SweepReason::Deprecated,
+            "an explicit deprecation is the clearer reason");
+    }
+
+    #[test]
+    fn a_hand_typed_private_model_is_never_swept_on_one_silent_source() {
+        // The app lets a user add an exact ID because provider lists omit
+        // private, beta and unannounced models. Such an id is absent from
+        // /models *and* unknown to models.dev, so it must be reported only.
+        let added = strings(&["acme/internal-preview-1"]);
+        let live = strings(&["live-model"]);
+        let meta = registry_with(&[("live-model", "chat", None)]);
+        let verdict = sweep(Provider::OpenRouter, &added, Some(&live), Some(&meta));
+        assert!(verdict.gone.is_empty(), "must not disable: {:?}", verdict.gone);
+        assert_eq!(verdict.unlisted, added);
+        assert!(!SweepReason::Unlisted.is_evidence());
+        assert_eq!(verdict.ids(), Vec::<String>::new());
+        assert!(verdict.summary().contains("1 unlisted"));
+        assert!(verdict.summary().contains("nothing is confirmed gone"));
     }
 
     #[test]

@@ -196,9 +196,11 @@ fn the_sweep_disables_only_models_a_source_calls_gone_and_undoes_cleanly() {
     let _dir = ConfigDir::new("sweep");
     let mut app = configured();
     app.settings.models[Provider::OpenRouter.index()].push("vendor/retired".into());
+    app.settings.models[Provider::OpenRouter.index()].push("vendor/private-hand-typed".into());
     app.model_health.sync(&app.settings.models[Provider::OpenRouter.index()]);
     app.settings.chosen[Provider::OpenRouter.index()] = Some(2);
     // The provider still lists `vendor/retired`; models.dev says it is retired.
+    // `vendor/private-hand-typed` is in no source at all, as a private model is.
     app.settings.meta = Some(archx_shared::model_meta::parse_models_dev(&serde_json::json!({
         "openrouter": {"models": {"vendor/retired": {"type": "chat", "status": "deprecated"}}}
     })));
@@ -206,6 +208,8 @@ fn the_sweep_disables_only_models_a_source_calls_gone_and_undoes_cleanly() {
     let _ = app.update(Message::SweepChecked(Provider::OpenRouter, app.settings.sweep_nonce, Ok(live)));
     let sweep = app.settings.sweep.clone().expect("a verdict is shown, nothing changed yet");
     assert_eq!(sweep.ids(), vec!["vendor/retired".to_owned()]);
+    assert_eq!(sweep.unlisted, vec!["vendor/private-hand-typed".to_owned()],
+        "a private hand-typed id is reported, never swept");
     assert!(app.model_health.is_enabled("vendor/retired"), "checking alone disables nothing");
 
     let _ = app.update(Message::SweepApply);
@@ -214,6 +218,7 @@ fn the_sweep_disables_only_models_a_source_calls_gone_and_undoes_cleanly() {
     assert_eq!(app.settings.chosen[Provider::OpenRouter.index()], None, "a disabled model cannot stay chosen");
     let reason = app.model_health.slot("vendor/retired").map(|slot| slot.reason.clone()).unwrap_or_default();
     assert_eq!(reason, "marked deprecated by models.dev", "the row keeps why it went");
+    assert!(app.model_health.is_enabled("vendor/private-hand-typed"), "never touched");
     assert_eq!(app.settings.sweep_undo, vec!["vendor/retired".to_owned()]);
 
     let _ = app.update(Message::SweepUndo);
