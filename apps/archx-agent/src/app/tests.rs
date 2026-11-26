@@ -3,9 +3,11 @@
 use super::*;
 use archx_shared::health::KeyHealthSet;
 
-/// `ARCHX_CONFIG_DIR` is process-wide, so any test that changes it must hold
-/// this guard: a neighbour clearing the variable mid-test would otherwise make
-/// an unrelated save fail. The guard is also the lock that serialises them.
+/// `ARCHX_CONFIG_DIR` is process-wide, so **every test that writes or wipes
+/// storage must hold one of these** — not only the tests that set it. A test
+/// that skipped the guard used to inherit whichever directory a neighbour had
+/// just pointed at, and its wipe deleted the neighbour's file mid-test. Holding
+/// one guard for the whole test is what makes the two mutually exclusive.
 static CONFIG_DIR_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 struct ConfigDir {
@@ -64,7 +66,7 @@ fn new_chat_does_not_pile_up_empty_drafts() {
 
 #[test]
 fn an_empty_chat_is_never_written_to_disk() {
-    let _dir = ConfigDir::new("cfg");
+    let _dir = ConfigDir::new("empty");
     let mut app = configured();
     app.drafts[0].turns.push(Turn { role: "user", content: "persisted".into() });
     app.persist_chat(app.drafts[0].id);
@@ -79,7 +81,7 @@ fn an_empty_chat_is_never_written_to_disk() {
 
 #[test]
 fn transcripts_survive_a_restart_with_reasoning() {
-    let _dir = ConfigDir::new("cfg");
+    let _dir = ConfigDir::new("restart");
     let mut app = configured();
     app.drafts[0].turns = vec![
         Turn { role: "user", content: "explain".into() },
@@ -102,6 +104,7 @@ fn transcripts_survive_a_restart_with_reasoning() {
 
 #[test]
 fn wiping_chats_keeps_provider_settings_and_vault_keys() {
+    let _dir = ConfigDir::new("wipe-chats");
     let mut app = configured();
     app.settings.key_ids = vec![1, 2];
     app.drafts[0].turns.push(Turn { role: "user", content: "keep me out of the wipe".into() });
@@ -115,6 +118,7 @@ fn wiping_chats_keeps_provider_settings_and_vault_keys() {
 
 #[test]
 fn wiping_settings_clears_configuration_but_not_chats() {
+    let _dir = ConfigDir::new("wipe-settings");
     let mut app = configured();
     app.drafts[0].turns.push(Turn { role: "user", content: "chat survives".into() });
     let _ = app.update(Message::WipeArea(storage::Area::Settings));
@@ -236,7 +240,7 @@ fn the_provider_picker_opens_and_closes() {
 
 #[test]
 fn probe_results_are_saved_and_reloaded_until_overwritten() {
-    let _dir = ConfigDir::new("cfg");
+    let _dir = ConfigDir::new("probes");
     let mut app = configured();
     app.settings.probe_results.push(("vendor/one".into(), true, "42 ms · expected word found · OK".into()));
     app.persist_tests();
