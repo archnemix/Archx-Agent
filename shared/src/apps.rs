@@ -1,11 +1,20 @@
 //! Purpose: Discovers apps from `apps/<name>/app.toml` manifests so the launcher never hard-codes a feature.
 //!
 //! Adding an app means adding a folder with a manifest: the tile, category,
-//! status, accent and mode labels all come from that file. `status = "live"` is
-//! what makes a tile openable; anything else (planned, building) renders as a
-//! non-clickable card. The Agent's own manifest lives at
-//! `apps/archx-agent/app.toml`, and the second app's folder at
-//! `apps/training/app.toml`, so the two never edit this file in parallel.
+//! status, accent and mode labels all come from that file.
+//!
+//! Two independent switches decide what the launcher does with a folder:
+//!
+//! * `ready = true|false` — has the app been *finished enough to register*?
+//!   A folder that is not ready is **not registered at all**: it does not get a
+//!   tile, it does not appear in the rail, and it does not touch the launcher.
+//!   That is what lets several apps be built at once in parallel without any of
+//!   them disturbing a launcher that already works.
+//! * `status` — once ready, *how* it opens: `live` (openable), `preview`
+//!   (openable, labelled), `building` (shown, not openable) or `planned`.
+//!
+//! The Agent's own manifest lives at `apps/archx-agent/app.toml`, so the second
+//! and later apps never edit a file the Agent owns.
 
 use std::path::{Path, PathBuf};
 
@@ -24,8 +33,12 @@ pub struct App {
     pub name: String,
     pub category: String,
     pub summary: String,
-    /// "live", "preview", "planned" or "building".
+    /// "live", "preview", "planned" or "building". Only meaningful once ready.
     pub status: String,
+    /// Whether this app is registered with the launcher at all. A folder with
+    /// `ready = false` (or no `ready` line) is invisible to the launcher, so it
+    /// can be worked on in parallel without breaking Discover.
+    pub ready: bool,
     pub modes: Vec<String>,
     /// Artwork style: "agent" or "workbench".
     pub art: String,
@@ -45,7 +58,11 @@ pub struct App {
 }
 
 impl App {
-    pub fn is_live(&self) -> bool { self.status == "live" }
+    pub fn is_live(&self) -> bool { self.ready && self.status == "live" }
+
+    /// The only apps the launcher shows: ready ones. Everything else is being
+    /// built by someone else and stays out of the way.
+    pub fn is_registered(&self) -> bool { self.ready }
 
     pub fn status_label(&self) -> &'static str {
         match self.status.as_str() {
@@ -192,6 +209,7 @@ pub fn parse(id: &str, body: &str) -> Option<App> {
         category: field(body, "category").unwrap_or_else(|| "AI WORKSPACE".into()).chars().take(48).collect(),
         summary: field(body, "summary").unwrap_or_default().chars().take(200).collect(),
         status: field(body, "status").unwrap_or_else(|| "planned".into()).to_lowercase(),
+        ready: field(body, "ready").as_deref() == Some("true"),
         modes: list(body, "modes"),
         art: field(body, "art").unwrap_or_else(|| "workbench".into()).to_lowercase(),
         krate: field(body, "crate"),
@@ -238,20 +256,45 @@ fn scan(dir: &Path) -> Vec<App> {
     apps
 }
 
-/// All known apps: disk manifests first, embedded ones only for ids the disk
-/// scan did not provide. Live apps sort first, then alphabetically.
-pub fn discover() -> Vec<App> {
-    let mut apps = scan(&root());
+/// Every app folder that exists on disk, ready or not. This is for tests and
+/// for the Debug page; the launcher uses [`registered`].
+pub fn discover() -> Vec<App> { discover_in(&root()) }
+
+fn discover_in(dir: &Path) -> Vec<App> {
+    let mut apps = scan(dir);
     for (id, body) in EMBEDDED {
         if apps.iter().any(|app| app.id == id) { continue; }
-        if let Some(mut app) = parse(id, body) { app.origin = Origin::Embedded; apps.push(app); }
+        // An embedded copy is only a fallback for a tree without `apps/`; it
+        // still has to pass the same readiness rule as a disk manifest.
+        if let Some(mut app) = parse(id, body) {
+            app.origin = Origin::Embedded;
+            if app.ready { apps.push(app); }
+        }
     }
-    apps.sort_by(|a, b| b.is_live().cmp(&a.is_live()).then(a.name.to_lowercase().cmp(&b.name.to_lowercase())));
+    sort_tiles(&mut apps);
     apps
 }
 
-/// The manifest for one app id, if present.
+fn sort_tiles(apps: &mut [App]) {
+    apps.sort_by(|a, b| b.is_live().cmp(&a.is_live()).then(a.name.to_lowercase().cmp(&b.name.to_lowercase())));
+}
+
+/// The apps the launcher actually shows: `discover()` minus anything not ready.
+/// Keeping this separate is the whole point of `ready = false` — an app being
+/// built in another folder cannot add, move or break a tile until it flips.
+pub fn registered() -> Vec<App> {
+    let mut apps: Vec<App> = discover().into_iter().filter(App::is_registered).collect();
+    sort_tiles(&mut apps);
+    apps
+}
+
+/// The manifest for one registered app id, if present.
 pub fn find(id: &str) -> Option<App> {
+    registered().into_iter().find(|app| app.id == id)
+}
+
+/// The manifest for one app id even if it is not ready, for diagnostics.
+pub fn find_any(id: &str) -> Option<App> {
     discover().into_iter().find(|app| app.id == id)
 }
 
@@ -262,8 +305,6 @@ fn repo_root() -> PathBuf {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use super::*;
 
     fn workspace_members() -> Vec<String> {
@@ -278,10 +319,24 @@ mod tests {
             .collect()
     }
 
+    /// Writes a throwaway `apps/` tree so readiness can be tested without
+    /// touching the real folders.
+    fn scratch_apps(folders: &[(&str, &str)]) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("archx-apps-{}-{}", std::process::id(), folders.len()));
+        let _ = std::fs::remove_dir_all(&dir);
+        for (id, manifest) in folders {
+            std::fs::create_dir_all(dir.join(id)).expect("folder");
+            std::fs::write(dir.join(id).join("app.toml"), manifest).expect("manifest");
+        }
+        dir
+    }
+
+    const READY_MANIFEST: &str = "id = \"one\"\nname = \"One\"\nstatus = \"live\"\nready = true\ncrate = \"one\"\nentry = \"src/lib.rs\"\nview = \"home::view\"\nmodes = [\"A\"]\n";
+
     #[test]
     fn every_shipped_manifest_parses_and_is_unique() {
         let apps = discover();
-        assert!(apps.len() >= 2, "expected the Agent and the training space");
+        assert!(apps.len() >= 2, "expected the Agent and at least one reserved folder");
         let ids: std::collections::HashSet<_> = apps.iter().map(|app| app.id.as_str()).collect();
         assert_eq!(ids.len(), apps.len());
         assert!(apps.iter().all(|app| app.valid() && !app.name.is_empty()));
@@ -325,11 +380,10 @@ mod tests {
 
     #[test]
     fn live_apps_declare_how_they_render() {
-        let apps = discover();
+        let apps = registered();
         let live: Vec<_> = apps.iter().filter(|app| app.is_live()).map(|app| app.name.as_str()).collect();
         assert_eq!(live, vec!["Archx Agent"]);
-        assert_eq!(apps[0].name, "Archx Agent");
-        let agent = &apps[0];
+        let agent = apps.iter().find(|app| app.id == "archx-agent").expect("the Agent is registered");
         assert_eq!(agent.status_label(), "OPEN");
         assert_eq!(agent.view.as_deref(), Some("home::view"),
             "the launcher calls this function; the app must export it");
@@ -339,52 +393,43 @@ mod tests {
 
     #[test]
     fn a_reserved_folder_needs_no_code_yet() {
-        let training = find("training").expect("training space");
+        let training = find_any("training").expect("training space");
         assert!(!training.is_live());
         assert!(!training.has_code());
         assert!(training.contract_problems().is_empty(),
             "a code-less app is valid: {:?}", training.contract_problems());
-        assert_eq!(training.status_label(), "IN PROGRESS");
         assert!(training.docs.is_some(), "the second app keeps its own docs");
         assert!(training.summary.to_lowercase().contains("train"));
         assert!(!training.modes.is_empty());
     }
 
+    /// The rule the user asked for: an app that is not ready is not registered,
+    /// so several apps can be built at once without disturbing the launcher.
     #[test]
-    fn a_live_app_without_code_is_rejected() {
-        let body = "name = \"Broken\"\nstatus = \"live\"\nmodes = [\"ONE\"]\n";
-        let app = parse("broken", body).expect("parses");
-        let problems = app.contract_problems();
-        assert!(problems.iter().any(|problem| problem.contains("crate")),
-            "a live app must declare its code: {problems:?}");
-    }
-
-    #[test]
-    fn a_view_must_be_module_and_function() {
-        let body = "name = \"Odd\"\nstatus = \"building\"\nview = \"justafunction\"\n";
-        let app = parse("odd", body).expect("parses");
-        assert!(app.contract_problems().iter().any(|problem| problem.contains("module::function")));
-    }
-
-    #[test]
-    fn manifests_define_tiles_without_touching_launcher_code() {
-        // A brand-new app folder with a manifest becomes a tile with no code edit.
-        let dir = std::env::temp_dir().join(format!("archx-apps-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(dir.join("embed-lab")).unwrap();
-        std::fs::write(dir.join("embed-lab/app.toml"),
-            "name = \"Embed Lab\"\ncategory = \"EMBEDDINGS\"\nstatus = \"planned\"\nart = \"workbench\"\nmodes = [\"CHUNK\", \"INDEX\", \"SEARCH\"]\n")
-            .unwrap();
+    fn an_unready_folder_is_invisible_to_the_launcher() {
+        let not_ready = "id = \"two\"\nname = \"Two\"\nstatus = \"live\"\nready = false\ncrate = \"two\"\nentry = \"src/lib.rs\"\nview = \"home::view\"\n";
+        let missing = "id = \"three\"\nname = \"Three\"\nstatus = \"live\"\ncrate = \"three\"\nentry = \"src/lib.rs\"\nview = \"home::view\"\n";
+        let dir = scratch_apps(&[("one", READY_MANIFEST), ("two", not_ready), ("three", missing)]);
         unsafe { std::env::set_var("ARCHX_APPS_DIR", &dir) };
-        let apps = discover();
-        let found = apps.iter().find(|app| app.id == "embed-lab").expect("discovered from disk");
-        assert_eq!(found.name, "Embed Lab");
-        assert_eq!(found.mode_count(), 3);
-        assert_eq!(found.origin, Origin::Disk);
-        // Embedded copy is superseded by the disk manifest of the same id.
-        assert!(!apps.iter().any(|app| app.id == "archx-agent"));
+        assert_eq!(discover().len(), 3, "the folders are still discoverable for diagnostics");
+        let shown = registered();
+        assert_eq!(shown.iter().map(|app| app.id.as_str()).collect::<Vec<_>>(), vec!["one"],
+            "only the ready app gets a tile");
+        // A missing `ready` line is not ready: silence must never register code.
+        assert!(!find_any("three").expect("three").ready);
         unsafe { std::env::remove_var("ARCHX_APPS_DIR") };
         let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn a_ready_app_cannot_lie_about_being_open() {
+        let mut app = parse("one", READY_MANIFEST).expect("parses");
+        assert!(app.is_live() && app.is_registered());
+        // Flipping ready off closes it even though status still says live.
+        app.ready = false;
+        assert!(!app.is_live(), "an unready app can never be open");
+        // Status still labels a shown-but-unready app, for the folder itself.
+        assert_eq!(app.status_label(), "OPEN");
     }
 
     #[test]

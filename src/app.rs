@@ -170,7 +170,8 @@ pub struct App {
 impl App {
     pub fn new() -> Self {
         let snapshot = std::env::var_os("ARCHX_SNAPSHOT").map(PathBuf::from);
-        let discovered = apps::discover();
+        // Only ready apps are registered; a folder still being built stays dark.
+        let discovered = apps::registered();
         let persisted = archx_shared::persist::PersistedSettings::load();
         let display = persisted.as_ref().map(|settings| settings.display).unwrap_or_default();
         let page = if snapshot.is_some() {
@@ -251,9 +252,14 @@ impl App {
             Message::ToggleSidebar => self.sidebar_expanded = !self.sidebar_expanded,
             Message::BackToLauncher => return self.go(Page::Home),
             Message::RefreshApps => {
-                self.apps = apps::discover();
+                self.apps = apps::registered();
                 let count = self.apps.len();
-                self.notice = Some(format!("Rescanned apps: {count} manifest(s) found."));
+                let hidden = apps::discover().len().saturating_sub(count);
+                self.notice = Some(if hidden == 0 {
+                    format!("Rescanned apps: {count} ready app(s).")
+                } else {
+                    format!("Rescanned apps: {count} ready app(s); {hidden} folder(s) are still being built and stay hidden.")
+                });
             }
             Message::Tick | Message::Animate => {
                 if let Some(transition) = self.transition {

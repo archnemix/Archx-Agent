@@ -2,7 +2,8 @@
 //!
 //! The launcher's rail and tile shelf are generated from `apps/*/app.toml`
 //! (`archx_shared::apps`). Nothing here names a specific app: a new manifest appears as
-//! a tile, and a manifest with `status = "live"` becomes openable.
+//! a tile. Only `ready = true` folders are passed in here at all; among those, a
+//! manifest with `status = "live"` becomes openable.
 
 use std::sync::LazyLock;
 use std::time::Duration;

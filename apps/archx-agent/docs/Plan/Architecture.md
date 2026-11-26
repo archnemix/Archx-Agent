@@ -82,16 +82,28 @@ id = "archx-agent"      # must equal the folder name
 name = "Archx Agent"
 category = "SIX MODES / ONE AGENT"
 summary = "…"
+ready = true            # registered with the launcher at all
 status = "live"         # live | preview | building | planned
 art = "agent"           # agent | workbench
 modes = ["CHAT", "…"]   # ≤ 12 entries, ≤ 24 characters each
 entry = "src/lib.rs"
 ```
 
-Only `status = "live"` tiles open. Discovery scans the disk (`ARCHX_APPS_DIR`
-overrides the root) and falls back to manifests compiled into `archx-shared`, so
-a checkout without `apps/` still renders. Adding an app requires no launcher
-edit — that is the test the second app will prove.
+Two switches, deliberately separate:
+
+* `ready` decides whether the launcher **sees** the folder. `ready = false` (or
+  no line at all) means no tile, no rail entry, no build — `apps::registered()`
+  filters it out before the launcher ever looks. This is what allows two to five
+  apps to be built in parallel: a half-built app is dark, so it cannot disturb a
+  launcher that works.
+* `status` decides how a registered app **opens**. `live` and `preview` open;
+  `building` and `planned` render a card that says so.
+
+`App::is_live()` is therefore `ready && status == "live"`, so a folder can never
+open by accident: forgetting `ready` keeps it closed. Discovery scans the disk
+(`ARCHX_APPS_DIR` overrides the root) and falls back to manifests compiled into
+`archx-shared`, so a checkout without `apps/` still renders. Adding an app
+requires no launcher edit — that is the test the second app will prove.
 
 ### Settings ownership
 

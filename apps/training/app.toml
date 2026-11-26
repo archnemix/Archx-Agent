@@ -1,15 +1,20 @@
 # Purpose: Model Training app manifest. Code and docs for this app live in this folder; the launcher only reads this file.
 #
-# This app is intentionally code-less: `status = "building"` with no `crate`.
-# That is a valid manifest — the tile appears on Discover and does not open.
-# When its code lands, add `crate`, `entry` and `view`, then flip `status` to
-# "live". No launcher file has to change for that. See
-# `apps/archx-agent/app.toml` for the full annotated field list.
+# This app is intentionally code-less and UNREGISTERED: `ready = false`, no
+# `crate`. That is a valid manifest, and the launcher ignores it completely — no
+# tile, no rail entry, no build. That is what lets it be built here without
+# disturbing the launcher or the Agent.
+#
+# When its code lands: add `crate`, `entry` and `view`, register the crate in the
+# root `Cargo.toml` members, then flip `ready = true` and `status = "live"`. No
+# launcher file has to change for that. See `apps/archx-agent/app.toml` for the
+# full annotated field list, and `apps/archx-agent/docs/Plan/Adding_An_App.md`.
 
 id = "training"
 name = "Model Training"
 category = "BUILD MODELS"
 summary = "Design a dataset, train a small model, then evaluate it before it leaves the lab. Code for this app is being built here."
+ready = false
 status = "building"
 art = "workbench"
 modes = ["DESIGN", "TRAIN", "EVALUATE", "SHIP"]

@@ -13,7 +13,14 @@
 #   name      REQUIRED. Shown on the tile and in the rail.
 #   category  Short uppercase line above the name, e.g. "BUILD MODELS".
 #   summary   One or two sentences; shown on the tile and in the featured slot.
-#   status    live | preview | building | planned. ONLY `live` opens.
+#   ready     REQUIRED to appear at all. true | false.
+#             false (or omitted) = the launcher ignores this folder completely:
+#             no tile, no rail entry, no build. Use it while an app is being
+#             built, so two to five apps can be in progress at once without any
+#             of them disturbing a launcher that already works. Flip to true only
+#             when the app opens and its own tests pass.
+#   status    live | preview | building | planned. Only applies once `ready = true`;
+#             ONLY `live` and `preview` open.
 #   art       agent (tall word-mark panel) or workbench (stage words).
 #   modes     Up to 12 short stage words, 24 characters each, e.g. ["DESIGN", "TRAIN"].
 #   crate     The crate name declared in the workspace (e.g. "archx-agent").
@@ -26,10 +33,13 @@
 #
 # Build-time rules (enforced by tests in `shared/src/apps.rs`):
 #   1. Every manifest parses, ids are unique, and id == folder name.
-#   2. `status = "live"` requires `crate`, `entry` and `view`.
+#   2. `ready = true` registers the app; `status = "live"` additionally requires
+#      `crate`, `entry` and `view`.
 #   3. A declared `entry` file, `docs` folder and `Cargo.toml` must exist.
 #   4. The crate named by `crate` must be a workspace member.
 #   5. `archx-shared` is never vendored into an app folder.
+#   6. An unready folder is never registered, so it may hold anything (or
+#      nothing) and cannot disturb the launcher.
 #
 # Runtime rules:
 #   * Never edit launcher files to add an app.
@@ -42,6 +52,7 @@ id = "archx-agent"
 name = "Archx Agent"
 category = "SIX MODES / ONE AGENT"
 summary = "Chat, research, build and learn with an agent that keeps keys in the OS vault and never acts without your say."
+ready = true
 status = "live"
 art = "agent"
 modes = ["Chat", "Tasks", "Research", "Coding", "Learning", "Play"]
