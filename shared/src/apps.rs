@@ -444,9 +444,11 @@ mod tests {
         let ids: Vec<String> = discover().into_iter().map(|app| app.id).collect();
         assert!(ids.contains(&"one".to_owned()) && ids.contains(&"two".to_owned()) && ids.contains(&"three".to_owned()),
             "every folder is still discoverable for diagnostics: {ids:?}");
-        let shown = registered();
-        assert_eq!(shown.iter().map(|app| app.id.as_str()).collect::<Vec<_>>(), vec!["one"],
-            "only the ready app gets a tile");
+        // The embedded fallbacks are appended to any scan, so only the scratch
+        // ids are judged here.
+        let shown: Vec<String> = registered().into_iter().map(|app| app.id)
+            .filter(|id| ["one", "two", "three"].contains(&id.as_str())).collect();
+        assert_eq!(shown, vec!["one".to_owned()], "only the ready app gets a tile");
         // A missing `ready` line is not ready: silence must never register code.
         assert!(!find_any("three").expect("three").ready);
         set_thread_directory(None);
