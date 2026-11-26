@@ -75,6 +75,40 @@
 - First redesigned CI run passed both focused tests and release/snapshot checks on all three OSes; the Windows PE subsystem is 2 (GUI, no console), but screenshots revealed two layout problems before handoff: app names were below the initial Windows/Linux viewport, and the Agent artwork was cropped on the smaller macOS runner display. Linux also wrapped the inert Library label awkwardly.
 - Reduced unused vertical space and app-cover height so names can appear above the fold at 1280 × 800, changed the Agent artwork to `Contain` to preserve its silhouette, and simplified sidebar labels without OS-dependent glyphs. A new three-OS build/screenshot review is required before claiming the layout fixes.
 
+## What the green build actually proves (2026-11-23)
+
+CI `45825074913` passed every job — Linux, Windows and macOS all built, tested and
+screenshotted the real GUI. The numbers, taken from the committed logs:
+
+| Job | Result |
+| --- | --- |
+| `archx-shared` | 87 passed, 0 failed |
+| `archx-agent` | 27 passed, 1 ignored (the opt-in real llama.cpp probe) |
+| launcher | 3 passed, 0 failed |
+| screenshots | Agent phases 1 and 3 differ from the rest; tile hover differs from rest; Windows also passes `GUI subsystem 2` and the PE product metadata check |
+
+The bugs this cycle found were all of the "green tests, dark feature" kind, and
+each one is now pinned by a test or a screenshot check:
+
+* **Persistence never reloaded.** `save` wrote the bare body, readers expected a
+  versioned envelope, and no writer added one. Providers, models, chats, probe
+  results and the journal were silently lost on every restart — the exact promise
+  of item 5. `storage::save` now owns the envelope, `load_body` is the only reader,
+  and two writers that nested a second envelope were fixed.
+* **No manifest ever parsed.** `field()` used `?` on the first line without `=`,
+  which is the blank line after every manifest's comment header. The Agent tile in
+  the screenshots only existed because of the embedded fallback copy.
+* **The launcher ignored readiness.** Fixed by `ready` (see above).
+* **Tests fought over one directory.** `ARCHX_CONFIG_DIR` is process-wide; three CI
+  runs each failed a different storage test, and each passed alone. Storage and app
+  discovery now take a thread-local override.
+* **The Agent tile ignored the pointer**, which is why the hover screenshot was
+  byte-identical to the resting one.
+* **The Windows build never ran** because `build.rs` still pointed at `assets/`,
+  after the brand files moved to `shared/assets/`.
+* **A tile said its name twice and never said what it does** — the summary was
+  missing from the card.
+
 ## Storage tests get their own directory (2026-11-23)
 
 Three CI runs in a row failed a *different* storage test each time: the empty-chat
