@@ -13,6 +13,15 @@
 //! * `status` — once ready, *how* it opens: `live` (openable), `preview`
 //!   (openable, labelled), `building` (shown, not openable) or `planned`.
 //!
+//! `ready = false` is how an app under construction stays out of the way at
+//! *runtime*: the folder can hold anything, and the launcher never sees it. The
+//! second question — "may this app go into the shared release at all?" — is a
+//! *build* question, and it is answered at compile time instead: an app that has
+//! registered its crate joins `[workspace] members`, and an app that has not has
+//! no code in the binary. `registered()` therefore lists only apps that are ready
+//! **and** compiled in, which means the release is a per-app hold rather than a
+//! one-way door. See `Plan/Adding_An_App.md` §7.
+//!
 //! The Agent's own manifest lives at `apps/archx-agent/app.toml`, so the second
 //! and later apps never edit a file the Agent owns.
 
@@ -54,15 +63,19 @@ pub struct App {
     pub docs: Option<String>,
     /// Shared or app crates this app links. `archx-shared` is always implicit.
     pub requires: Vec<String>,
+    /// Whether this app's crate was compiled into *this* binary. Set by
+    /// `Builder`, never read from a manifest — an app cannot publish itself.
+    pub built: bool,
     pub origin: Origin,
 }
 
 impl App {
     pub fn is_live(&self) -> bool { self.ready && self.status == "live" }
 
-    /// The only apps the launcher shows: ready ones. Everything else is being
-    /// built by someone else and stays out of the way.
-    pub fn is_registered(&self) -> bool { self.ready }
+    /// The only apps the launcher shows: ready, **and** in this release. A
+    /// code-less reserved folder passes because it makes no claim to run; a
+    /// folder with code passes only if its crate was compiled in.
+    pub fn is_registered(&self) -> bool { self.ready && self.release() != Release::Held }
 
     pub fn status_label(&self) -> &'static str {
         match self.status.as_str() {
@@ -221,6 +234,7 @@ pub fn parse(id: &str, body: &str) -> Option<App> {
         view: field(body, "view"),
         docs: field(body, "docs"),
         requires: list(body, "requires"),
+        built: false,
         origin: Origin::Disk,
     };
     app.valid().then_some(app)
@@ -273,24 +287,17 @@ fn scan(dir: &Path) -> Vec<App> {
     apps
 }
 
-/// Every app folder that exists on disk, ready or not. This is for tests and
-/// for the Debug page; the launcher uses [`registered`].
-pub fn discover() -> Vec<App> { discover_in(&root()) }
-
-fn discover_in(dir: &Path) -> Vec<App> {
-    let mut apps = scan(dir);
-    for (id, body) in EMBEDDED {
-        if apps.iter().any(|app| app.id == id) { continue; }
-        // An embedded copy is only a fallback for a tree without `apps/`; it
-        // still has to pass the same readiness rule as a disk manifest.
-        if let Some(mut app) = parse(id, body) {
-            app.origin = Origin::Embedded;
-            if app.ready { apps.push(app); }
-        }
-    }
-    sort_tiles(&mut apps);
-    apps
+/// Every app folder that exists on disk, ready or not, with `built` set by
+/// `built`. Tests and the Debug page use this; the launcher uses `Builder`.
+pub fn discover_with(built: &[&'static str]) -> Vec<App> {
+    let mut builder = Builder::new();
+    for id in built { builder = builder.register(id); }
+    builder.discover()
 }
+
+/// Nothing compiled in: every app that declares code is held. Used by the
+/// manifest-contract tests, which care about the files, not the release.
+pub fn discover() -> Vec<App> { discover_with(&[]) }
 
 fn sort_tiles(apps: &mut [App]) {
     apps.sort_by(|a, b| b.is_live().cmp(&a.is_live()).then(a.name.to_lowercase().cmp(&b.name.to_lowercase())));
@@ -300,9 +307,22 @@ fn sort_tiles(apps: &mut [App]) {
 /// Keeping this separate is the whole point of `ready = false` — an app being
 /// built in another folder cannot add, move or break a tile until it flips.
 pub fn registered() -> Vec<App> {
-    let mut apps: Vec<App> = discover().into_iter().filter(App::is_registered).collect();
+    let mut apps: Vec<App> = discover_with(COMPILED_APPS).into_iter().filter(App::is_registered).collect();
     sort_tiles(&mut apps);
     apps
+}
+
+/// The apps compiled into this binary, kept in one place so the launcher and the
+/// contract tests agree. The launcher's own registration is written in
+/// `src/main.rs`; this list exists so a library caller gets the same answer.
+pub const COMPILED_APPS: &[&str] = &["archx-agent"];
+
+/// Apps whose folder is ready but which are held out of this release, with the
+/// reason — shown in launcher settings so a hold is never silent.
+pub fn held() -> Vec<App> {
+    discover_with(COMPILED_APPS).into_iter()
+        .filter(|app| app.ready && app.release() == Release::Held)
+        .collect()
 }
 
 /// The manifest for one registered app id, if present.
@@ -318,6 +338,80 @@ pub fn find_any(id: &str) -> Option<App> {
 fn repo_root() -> PathBuf {
     // The manifest dir is `shared/`; app folders live beside it at the repo root.
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().unwrap_or(Path::new(".")).to_path_buf()
+}
+
+/// A code-less folder that is still part of the release is shown on Discover as
+/// a reserved card. A folder that *has* code but was not built in is a release
+/// hold: its author has not finished, so the launcher must not show a tile that
+/// cannot open.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Release {
+    /// No code declared: a reserved space, valid whether or not it is built.
+    Reserved,
+    /// Code declared and compiled into this binary: the app is part of the release.
+    Built,
+    /// Code declared but not compiled into this binary: held out of the release.
+    Held,
+}
+
+impl App {
+    pub fn release(&self) -> Release {
+        match (self.has_code(), self.built) {
+            (false, _) => Release::Reserved,
+            (true, true) => Release::Built,
+            (true, false) => Release::Held,
+        }
+    }
+}
+
+/// Collects the apps this binary was compiled with, then turns manifests into
+/// the list the launcher is allowed to show.
+///
+/// Every `register` call is written by hand in the launcher's `main.rs` — the one
+/// place a human must type a line to publish an app. That is deliberate: it is
+/// the release switch the user asked for ("publish it in the version, or hold
+/// that app"), it is visible in a diff, and it cannot be flipped by editing an
+/// app's own folder.
+pub struct Builder {
+    apps: Vec<App>,
+    built: std::collections::BTreeSet<&'static str>,
+}
+
+impl Builder {
+    pub fn new() -> Self { Self { apps: Vec::new(), built: Default::default() } }
+
+    /// Records that `id`'s crate is part of this binary.
+    pub fn register(mut self, id: &'static str) -> Self {
+        self.built.insert(id);
+        self
+    }
+
+    /// Reads every manifest on disk (or the embedded copy in a tree without
+    /// `apps/`), stamps each with whether its crate is in this binary, and
+    /// returns them all — held apps included, so they can be reported.
+    pub fn discover(mut self) -> Vec<App> {
+        let dir = root();
+        self.apps = scan(&dir);
+        for (id, body) in EMBEDDED {
+            if self.apps.iter().any(|app| app.id == id) { continue; }
+            if let Some(mut app) = parse(id, body) {
+                app.origin = Origin::Embedded;
+                self.apps.push(app);
+            }
+        }
+        for app in &mut self.apps {
+            app.built = self.built.contains(app.id.as_str());
+        }
+        sort_tiles(&mut self.apps);
+        self.apps
+    }
+
+    /// Just the apps the launcher shows: ready, and either code-less or compiled in.
+    pub fn registered(self) -> Vec<App> {
+        let mut apps: Vec<App> = self.discover().into_iter().filter(App::is_registered).collect();
+        sort_tiles(&mut apps);
+        apps
+    }
 }
 
 #[cfg(test)]
@@ -448,8 +542,9 @@ mod tests {
         assert!(ids.contains(&"one".to_owned()) && ids.contains(&"two".to_owned()) && ids.contains(&"three".to_owned()),
             "every folder is still discoverable for diagnostics: {ids:?}");
         // The embedded fallbacks are appended to any scan, so only the scratch
-        // ids are judged here.
-        let shown: Vec<String> = registered().into_iter().map(|app| app.id)
+        // ids are judged here. "one" is the only ready app whose crate is built.
+        let shown: Vec<String> = Builder::new().register("one").registered().into_iter()
+            .map(|app| app.id)
             .filter(|id| ["one", "two", "three"].contains(&id.as_str())).collect();
         assert_eq!(shown, vec!["one".to_owned()], "only the ready app gets a tile");
         // A missing `ready` line is not ready: silence must never register code.
@@ -458,9 +553,62 @@ mod tests {
         let _ = std::fs::remove_dir_all(dir);
     }
 
+    /// The release hold the user asked for: a ready app whose crate is not in the
+    /// build is held out, and one whose crate is in the build is published.
+    /// Nothing in the app's own folder can flip this.
+    #[test]
+    fn a_ready_app_is_published_only_when_its_crate_is_built() {
+        let dir = scratch_apps(&[("one", READY_MANIFEST)]);
+        set_thread_directory(Some(dir.clone()));
+
+        let held = Builder::new().discover();
+        let one = held.iter().find(|app| app.id == "one").expect("discovered");
+        assert_eq!(one.release(), Release::Held, "ready, but not in this build");
+        assert!(one.is_live(), "the app itself is finished");
+        assert!(!one.is_registered(), "and still not published");
+        let none: Vec<_> = Builder::new().registered().into_iter()
+            .filter(|app| app.id == "one").collect();
+        assert!(none.is_empty(), "a hold produces no tile");
+
+        let published = Builder::new().register("one").discover();
+        let one = published.iter().find(|app| app.id == "one").expect("discovered");
+        assert_eq!(one.release(), Release::Built);
+        assert!(one.is_registered());
+
+        // A folder with no code is a reserved space, not a hold: it can be shown
+        // without being built.
+        let reserved = parse("two", "id = \"two\"\nname = \"Two\"\nready = true\nstatus = \"building\"\n").expect("parses");
+        assert_eq!(reserved.release(), Release::Reserved);
+
+        set_thread_directory(None);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    /// The launcher's compiled list and the workspace members must agree, or a
+    /// released app silently loses its tile (or a held one gains one).
+    #[test]
+    fn a_compiled_app_is_a_workspace_member_and_a_ready_one_is_compiled() {
+        let members = workspace_members();
+        for id in COMPILED_APPS {
+            assert!(members.contains(&format!("apps/{id}")),
+                "`{id}` is registered in the launcher but apps/{id} is not a workspace member {members:?}");
+            let app = find_any(id).unwrap_or_else(|| panic!("`{id}` is registered but has no manifest"));
+            assert!(app.ready, "`{id}` is compiled in but its manifest is not ready");
+        }
+        // Every ready app that declares code must be either compiled in or
+        // deliberately held — never silently missing.
+        for app in discover() {
+            if app.ready && app.has_code() {
+                assert!(COMPILED_APPS.contains(&app.id.as_str()) || app.release() == Release::Held,
+                    "`{}` is ready with code; decide whether it is released or held", app.id);
+            }
+        }
+    }
+
     #[test]
     fn a_ready_app_cannot_lie_about_being_open() {
         let mut app = parse("one", READY_MANIFEST).expect("parses");
+        app.built = true;
         assert!(app.is_live() && app.is_registered());
         // Flipping ready off closes it even though status still says live.
         app.ready = false;

@@ -146,6 +146,8 @@ pub struct App {
     pub page: Page,
     pub sidebar_expanded: bool,
     pub apps: Vec<apps::App>,
+    /// Ready apps this build does not publish. Reported, never shown as tiles.
+    pub held_apps: Vec<apps::App>,
     pub transition: Option<Transition>,
     pub display: DisplaySettings,
     pub agent: AgentApp,
@@ -170,8 +172,16 @@ pub struct App {
 impl App {
     pub fn new() -> Self {
         let snapshot = std::env::var_os("ARCHX_SNAPSHOT").map(PathBuf::from);
-        // Only ready apps are registered; a folder still being built stays dark.
-        let discovered = apps::registered();
+        // Only released apps are registered: ready, and compiled in by
+        // `crate::release()`. A folder still being built stays dark.
+        let mut all = crate::release().discover();
+        // Harness only: mark one held app as present so it can be rendered and
+        // judged. No effect unless ARCHX_SNAPSHOT_APPS names it.
+        crate::projection(&mut all);
+        let discovered: Vec<apps::App> = all.iter().filter(|app| app.is_registered()).cloned().collect();
+        let held = all.iter()
+            .filter(|app| app.ready && app.release() == apps::Release::Held).cloned()
+            .collect();
         let persisted = archx_shared::persist::PersistedSettings::load();
         let display = persisted.as_ref().map(|settings| settings.display).unwrap_or_default();
         let page = if snapshot.is_some() {
@@ -192,6 +202,7 @@ impl App {
             sidebar_expanded: !(snapshot.is_some()
                 && std::env::var("ARCHX_SNAPSHOT_SIDEBAR").as_deref() == Ok("collapsed")),
             apps: discovered,
+            held_apps: held,
             // Screenshots are deterministic: no in-flight animation.
             transition: None,
             display,
@@ -252,13 +263,17 @@ impl App {
             Message::ToggleSidebar => self.sidebar_expanded = !self.sidebar_expanded,
             Message::BackToLauncher => return self.go(Page::Home),
             Message::RefreshApps => {
-                self.apps = apps::registered();
+                let released = crate::release();
+                let held = released.discover().into_iter()
+                    .filter(|app| app.ready && app.release() == apps::Release::Held).count();
+                self.apps = crate::release().registered();
+                self.held_apps = crate::release().discover().into_iter()
+                    .filter(|app| app.ready && app.release() == apps::Release::Held).collect();
                 let count = self.apps.len();
-                let hidden = apps::discover().len().saturating_sub(count);
-                self.notice = Some(if hidden == 0 {
-                    format!("Rescanned apps: {count} ready app(s).")
+                self.notice = Some(if held == 0 {
+                    format!("Rescanned apps: {count} released app(s).")
                 } else {
-                    format!("Rescanned apps: {count} ready app(s); {hidden} folder(s) are still being built and stay hidden.")
+                    format!("Rescanned apps: {count} released; {held} finished app(s) are held out of this build.")
                 });
             }
             Message::Tick | Message::Animate => {

@@ -323,8 +323,13 @@ fn lab_settings(state: &Launcher) -> Element<'static, Message> {
         ].spacing(8).align_y(Center)).padding([8, 12]).width(Fill).style(style::card).into(),
         None => space().height(0).into(),
     };
-    let apps: Vec<String> = state.apps.iter()
-        .map(|app| format!("{} · {} · {}", app.name, app.status, app.id)).collect();
+    let mut apps: Vec<String> = state.apps.iter()
+        .map(|app| format!("{} · {} · {} · released", app.name, app.status, app.id)).collect();
+    // A hold must never be silent: the user has to be able to see that an app is
+    // finished and deliberately out of this build.
+    for app in &state.held_apps {
+        apps.push(format!("{} · {} · {} · held out of this build", app.name, app.status, app.id));
+    }
     column![
         text("LAB SETTINGS").size(11).color(style::DIM),
         space().height(20),
@@ -366,7 +371,7 @@ fn lab_settings(state: &Launcher) -> Element<'static, Message> {
             space().height(10),
             row![
                 button(text("Rescan apps").size(11)).on_press(Message::RefreshApps).style(style::control_button),
-                text("Add a folder with app.toml; it appears here and on Discover.").size(10.5).color(style::DIM).width(Fill)
+                text("Add a folder with app.toml, then release it here. A held app keeps its tile out of this build until you publish it.").size(10.5).color(style::DIM).width(Fill)
             ].spacing(8).align_y(Center)
         ].width(Fill)).padding(20).width(Fill).style(style::card),
         space().height(14),

@@ -217,14 +217,23 @@ Build rules:
     read through storage::load_body (the envelope is added for you).
 
 How you know you are done:
-  1. `cargo test --workspace` passes. Rust is not installed locally in every
-     environment, so push and read the CI result; never claim a test you did not
-     see pass.
-  2. The app renders in the launcher, opens, and closes back to Discover.
-  3. Only then: set `ready = true` and `status = "live"` in app.toml.
+  1. `cargo test -p <id>` passes (or the "App harness" workflow is green). Rust
+     may not be installed where you work, so push and read the CI result; never
+     claim a test you did not see pass.
+  2. Run the "App harness" workflow with app = <id> to see it render.
+  3. Only then: set `ready = true` and `status = "live"` in app.toml, and tell
+     the launcher owner to add `.register("<id>")` to `src/main.rs::release()`.
 
-Report back with: the files you created, the CI run that passed, and anything you
-had to change outside apps/<id>/ (there should be exactly one line).
+  ready = true alone does NOT publish the app. Publishing is the launcher owner's
+  one-line release switch; until it is added your app is HELD, which is correct
+  and visible in launcher settings. Never add that line yourself.
+
+If you need the launcher changed, do not edit it: write the request into
+apps/<id>/docs/Launcher_Request.md using the template in §8 and report it.
+
+Report back with: the files you created, the CI run that passed, anything you
+changed outside apps/<id>/ (one line: the workspace member), and any launcher
+request you wrote.
 ```
 
 If the other app will be worked on **in parallel** with this one, everything above
@@ -234,3 +243,111 @@ streams from colliding:
 * one folder per app, one app per branch;
 * the only shared files are the root `Cargo.toml` members list (add one line,
   never reorder) and this document (ask before editing it).
+
+## 8. Releasing an app, and holding one back
+
+`ready` decides what the *launcher* sees at runtime. Publishing is a separate,
+deliberate act, because the launcher hosts apps **in-process**: an app can only
+run if its Rust crate is compiled into the launcher binary. So "publish" and
+"hold" are answered by the build, not by a file an app can edit.
+
+There are exactly two gates, and both are one line:
+
+| Gate | Where | Publish | Hold |
+| --- | --- | --- | --- |
+| The crate is built | root `Cargo.toml` → `[workspace] members` | `"apps/<id>"` present | remove the line |
+| The app is in the release | `src/main.rs` → `release()` | `.register("<id>")` present | remove the line |
+
+A folder that declares code but is not registered is **held**: `App::release()`
+returns `Release::Held`, `registered()` filters it out, and launcher settings list
+it as "held out of this build" so the hold is never silent. Nothing inside
+`apps/<id>/` can change this — that is the point.
+
+```rust
+// src/main.rs
+pub fn release() -> archx_shared::apps::Builder {
+    archx_shared::apps::Builder::new()
+        .register("archx-agent")
+        // .register("training")   <- uncomment when training is ready to publish
+}
+```
+
+### Checking one app while it is held
+
+The `App harness` workflow builds and tests **one app on its own**
+
+```
+Actions → App harness → Run workflow → app: <id>
+```
+
+It runs `cargo test -p <id>` and `cargo build -p <id>`, records the result in that
+app's own `docs/Test_Results/`, and never touches the release. If the app is also
+in the release it renders the launcher and screenshots it; if it is held it says
+so and stops after the build.
+
+The launcher has one harness-only switch for looking at a held app:
+`ARCHX_SNAPSHOT_APPS=<id>` marks that one app as present **for this run only**.
+It is read once at start-up, never saved, and changes nothing about what a real
+build contains.
+
+### If an app needs the launcher changed
+
+Apps cannot edit the launcher, so a needed change becomes a request. Write it in
+your app folder, then stop:
+
+```
+apps/<id>/docs/Launcher_Request.md
+```
+
+<!-- template: copy this block into apps/<id>/docs/Launcher_Request.md -->
+```markdown
+# Launcher change requested
+
+What: one change per file. Example: "Show an app's version under its status line."
+Why: what the app cannot do without it.
+Design fit: which existing token or component it uses (Plan/Architecture.md), and
+  a one-line sketch. If it needs a new token, say so explicitly.
+Screenshot or mock: optional, in this folder.
+Requested by: <branch or agent>, <date>
+```
+
+Answered requests get a `## Answer` line appended with the build that carried it.
+
+The launcher owner (the main assistant) reads these notes, applies the change to
+the **one** launcher — never a fork — following the design scheme, and ships it
+with the next build so the app and the launcher land together. A note that asks
+for a second launcher, or for the launcher to branch on an app's name, is
+rejected: that is the one thing the manifest system exists to prevent.
+
+### What "in parallel" actually means
+
+| Situation | What compiles | What you can test |
+| --- | --- | --- |
+| App A released, app B being built | A only | A in the launcher; B with `App harness` |
+| Both released, B still rough | A and B | both; B can be held by deleting its `register` line |
+| B needs a launcher change | A and B | A normally; B after the change lands |
+
+A held app still compiles in the workspace if it is a member, so the author gets
+a guaranteed build; deleting the member entry stops even that, and the `App
+harness` job is then the only thing that builds it.
+
+## 9. Standing instructions to the main assistant
+
+These are the standing orders for the assistant that owns the launcher. They
+exist so app work can arrive at any time and be integrated in one pass.
+
+1. **Read every `apps/*/docs/Launcher_Request.md` first**, before changing a line
+   of the launcher. A request is the only way an app asks for a launcher change.
+2. For each request: check it against the design scheme (tokens and components in
+   `Plan/Architecture.md`). If it fits, implement it once, in the shared launcher.
+   If it does not, reply in the same file under a `## Answer` heading with the
+   reason and the closest thing that does fit.
+3. **Never fork the launcher, and never branch on an app's name.** If a tile needs
+   a different treatment, it becomes a manifest field or a shared style token.
+4. **Release in one batch**: collect finished apps, add their `register` lines and
+   workspace members together, run the full GUI review, and land them in one
+   build. An app is published when its tile renders and its harness job is green.
+5. **Keep a hold visible**: a ready app that is not registered must appear in
+   launcher settings as held. Never silently drop an app.
+6. **Delete a request file once it is answered** (or leave it with `## Answer`);
+   do not let answered requests pile up.

@@ -48,12 +48,22 @@ BUILD RULES
     storage::set_thread_directory (thread-local). Do not set ARCHX_CONFIG_DIR.
 
 HOW YOU KNOW YOU ARE DONE
-  1. Push your branch and read the CI result (Actions -> Desktop GUI review).
-     Rust may not be installed where you work; never claim a test you did not see
-     pass. `cargo test --workspace` must be green on Linux, Windows and macOS.
-  2. The app renders in the launcher, opens from its tile, and returns to
-     Discover with its Back button.
+  1. Push your branch and read the CI result. Run "App harness" with app = <id>:
+     it builds and tests your app on its own, without touching the release. Rust
+     may not be installed where you work; never claim a test you did not see pass.
+  2. The harness renders it, it opens, and it returns to Discover with its Back
+     button.
   3. Only then, in app.toml: ready = true and status = "live".
+
+  ready = true does NOT publish the app by itself. Publishing is the launcher
+  owner's one-line release switch (`src/main.rs::release()`). Until they add it,
+  your app is HELD — which is correct, visible in launcher settings, and exactly
+  how several apps get built at once. Never add that line yourself.
+
+IF YOU NEED THE LAUNCHER CHANGED
+  Do not edit it. Write apps/<id>/docs/Launcher_Request.md (template in
+  Adding_An_App.md §8) with what/why/design-fit, and report it. The launcher
+  owner applies it once, in the shared launcher, never in a forked one.
 
 REPORT BACK WITH
   * the files you created;

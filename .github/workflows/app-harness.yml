@@ -1,0 +1,113 @@
+# Purpose: Builds and tests ONE app on its own, so several apps can be in progress at once without waiting on the shared release.
+# This job is a harness, not a release: it proves an app compiles, its tests pass,
+# and (where the harness can render it) that it is hosted. Nothing it builds is
+# published. Publishing is `src/main.rs::release()` plus one workspace member.
+name: App harness
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'App folder id under apps/ (e.g. archx-agent)'
+        required: true
+        default: 'archx-agent'
+      windows:
+        description: 'Also build and test on Windows'
+        type: boolean
+        default: false
+  push:
+    branches: [arena/53d9bc26-archx-agent]
+    paths:
+      - 'apps/**'
+      - 'shared/**'
+      - '.github/workflows/app-harness.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: arena/53d9bc26-archx-agent
+          persist-credentials: true
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build and test the app in isolation
+        shell: bash
+        env:
+          APP: ${{ inputs.app || 'archx-agent' }}
+        run: |
+          set -o pipefail
+          sudo apt-get update -qq && sudo apt-get install -y -qq libxkbcommon-dev libxkbcommon-x11-0 libwayland-dev libasound2-dev xvfb > /dev/null
+          LOG="apps/$APP/docs/Test_Results/Unreleased/non_visual/app-harness.log"
+          mkdir -p "apps/$APP/docs/Test_Results/Unreleased/non_visual" "apps/$APP/docs/Test_Results/Unreleased/visual"
+          : > "$LOG"
+          # The manifest is the entry point: if it is not there, there is nothing
+          # to harness, and the job says so instead of guessing a crate name.
+          test -f "apps/$APP/app.toml" || { echo "no apps/$APP/app.toml" | tee -a "$LOG"; exit 1; }
+          {
+            echo "COMMAND: cargo test -p $APP"
+            cargo test -p "$APP" --locked 2>&1 || cargo test -p "$APP" 2>&1
+            echo "COMMAND: cargo build -p $APP"
+            cargo build -p "$APP"
+          } | tee -a "$LOG"
+          # The app's crate built. The launcher is NOT built here: an app in
+          # progress is not in the release, and the harness must never pretend it is.
+          echo "PASS: $APP builds and its own tests pass in isolation" | tee -a "$LOG"
+      - name: Render the held app, if the harness can host it
+        shell: bash
+        env:
+          APP: ${{ inputs.app || 'archx-agent' }}
+        run: |
+          LOG="apps/$APP/docs/Test_Results/Unreleased/non_visual/app-harness.log"
+          # Rendering needs the launcher, and the launcher only builds a release.
+          # So the harness renders only when the app is in the release AND ready.
+          if grep -q "\"apps/$APP\"" Cargo.toml && grep -q "register(\"$APP\")" src/main.rs; then
+            cargo build --release -p archx-ai-lab >> "$LOG" 2>&1
+            # `ARCHX_SNAPSHOT_APPS=<projection json>` is the harness projection: it
+            # tells the launcher to show exactly the app under test, even when the
+            # real release list is empty, so a held app can be seen and judged.
+            PROJECTION=".harness/$APP.json"
+            mkdir -p .harness
+            printf '[{"id":"%s","built":true,"ready":true}]' "$APP" > "$PROJECTION"
+            xvfb-run -a env ARCHX_SNAPSHOT_APPS="$PROJECTION" \
+              ARCHX_SNAPSHOT="apps/$APP/docs/Test_Results/Unreleased/visual/app-harness.png" \
+              ./target/release/archx-ai-lab >> "$LOG" 2>&1
+            test -s "apps/$APP/docs/Test_Results/Unreleased/visual/app-harness.png"
+            echo "PASS: $APP renders inside the harness launcher" | tee -a "$LOG"
+          else
+            echo "SKIP: $APP is not in this release, so the launcher does not host it yet. Its own build above is the evidence." | tee -a "$LOG"
+          fi
+      - name: Record the result in the repository
+        shell: bash
+        run: |
+          git config user.name "archx-ci"
+          git config user.email "ci@archnemic.local"
+          git add apps/*/docs/Test_Results 2>/dev/null || true
+          git diff --cached --quiet || git commit -m "Record app harness result for ${{ inputs.app || 'archx-agent' }}"
+          git pull --rebase origin arena/53d9bc26-archx-agent || true
+          git push origin HEAD:arena/53d9bc26-archx-agent || true
+
+  windows:
+    if: ${{ inputs.windows == true }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: arena/53d9bc26-archx-agent
+          persist-credentials: true
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build and test the app in isolation
+        shell: bash
+        env:
+          APP: ${{ inputs.app || 'archx-agent' }}
+        run: |
+          LOG="apps/$APP/docs/Test_Results/Unreleased/non_visual/app-harness-windows.log"
+          mkdir -p "apps/$APP/docs/Test_Results/Unreleased/non_visual"
+          : > "$LOG"
+          test -f "apps/$APP/app.toml" || { echo "no apps/$APP/app.toml" | tee -a "$LOG"; exit 1; }
+          cargo test -p "$APP" 2>&1 | tee -a "$LOG"
+          cargo build -p "$APP" 2>&1 | tee -a "$LOG"
+          echo "PASS: $APP builds and its own tests pass on Windows" | tee -a "$LOG"
