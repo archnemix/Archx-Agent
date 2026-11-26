@@ -153,6 +153,14 @@ fn a_resting_key_is_skipped_and_another_key_is_tried_once() {
     let plan = app.key_plan(now);
     assert_eq!(plan.len(), 2, "one primary plus one fallback");
     assert_ne!(plan[0], plan[1]);
+    // Consecutive turns must actually move through the keys: an advanced cursor
+    // is the difference between rotation and using the first key forever.
+    let mut used = Vec::new();
+    for _ in 0..3 { used.push(app.key_plan(now)[0]); }
+    let mut distinct = used.clone();
+    distinct.sort_unstable();
+    distinct.dedup();
+    assert_eq!(distinct.len(), 3, "three turns used three different keys: {used:?}");
 }
 
 #[test]

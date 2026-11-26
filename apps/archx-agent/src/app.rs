@@ -1093,9 +1093,13 @@ impl App {
     }
 
     /// Keys to try, in order: the healthy pick first, then one other healthy key.
-    pub(crate) fn key_plan(&self, now: u64) -> Vec<u64> {
+    ///
+    /// This advances the rotation. Without that the cursor never moves and the
+    /// first healthy key is used for every request, which is not rotation at all.
+    pub(crate) fn key_plan(&mut self, now: u64) -> Vec<u64> {
         let mut plan = Vec::new();
         if let Some((position, id)) = self.keys.pick(now) {
+            self.keys.advance_from(position);
             plan.push(id);
             // One fallback key for a key-specific refusal.
             if self.keys.auto_rotate {
