@@ -149,7 +149,11 @@ fn field(body: &str, key: &str) -> Option<String> {
         let line = line.trim();
         if line.starts_with('#') { continue; }
         if line.starts_with("[[") { break; }
-        let (name, value) = line.split_once('=')?;
+        // A blank line, or a line that is not a key = value pair, is skipped.
+        // Using `?` here aborted the whole lookup on the first blank line, which
+        // is why a manifest with a comment header and a blank line parsed to
+        // nothing at all.
+        let Some((name, value)) = line.split_once('=') else { continue };
         if name.trim() != key { continue; }
         let value = value.trim();
         let value = value.strip_prefix('"').and_then(|value| value.strip_suffix('"'))
@@ -340,6 +344,20 @@ mod tests {
     }
 
     const READY_MANIFEST: &str = "id = \"one\"\nname = \"One\"\nstatus = \"live\"\nready = true\ncrate = \"one\"\nentry = \"src/lib.rs\"\nview = \"home::view\"\nmodes = [\"A\"]\n";
+
+    /// A shipped manifest starts with a comment block and a blank line. The
+    /// parser used to abort on the blank line, so this pins the shape that is
+    /// actually on disk rather than a tidy one-line fixture.
+    #[test]
+    fn a_manifest_with_a_comment_header_and_blank_lines_still_parses() {
+        let _lock = env_lock();
+        let raw = std::fs::read_to_string(root().join("archx-agent/app.toml")).expect("manifest on disk");
+        assert!(raw.contains("\n\n"), "the real manifest has blank lines between comments and keys");
+        let app = parse("archx-agent", &raw).expect("a commented manifest parses");
+        assert_eq!(app.name, "Archx Agent");
+        assert!(app.ready, "`ready = true` must be read past the comment header");
+        assert_eq!(app.view.as_deref(), Some("home::view"));
+    }
 
     #[test]
     fn every_shipped_manifest_parses_and_is_unique() {
