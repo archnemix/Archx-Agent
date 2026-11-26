@@ -553,6 +553,107 @@ impl App {
                 Err(error) => self.settings.status = error,
             },
 
+            // ---------- sweep models that no longer exist --------------------------
+            Message::SweepModels if self.settings.provider != Provider::Custom && self.snapshot.is_none() => {
+                let provider = self.settings.provider;
+                let added = self.settings.models[self.settings.index()].clone();
+                if added.is_empty() {
+                    self.settings.status = "No models are added for this provider, so there is nothing to sweep.".into();
+                    return Task::none();
+                }
+                if self.settings.meta.is_none() {
+                    self.settings.meta = archx_shared::model_meta::load_cache().map(|(registry, _)| registry);
+                }
+                let meta_known = self.settings.meta.is_some();
+                self.settings.sweep_nonce = self.settings.sweep_nonce.wrapping_add(1);
+                let nonce = self.settings.sweep_nonce;
+                let registry = self.endpoints.clone();
+                self.settings.sweep = None;
+                self.settings.sweep_undo.clear();
+                self.settings.sweep_busy = true;
+                self.settings.status = if meta_known {
+                    format!("Checking {} added model(s) against the provider's live list…", added.len())
+                } else {
+                    format!("Checking {} added model(s) against the provider's live list (no models.dev cache yet)…", added.len())
+                };
+                // Same rule as FetchModels: OpenRouter's list is public and a
+                // local Ollama needs no key. Anything else without a vault key
+                // fails quietly into "models.dev only" instead of stopping.
+                if matches!(provider, Provider::OpenRouter | Provider::OllamaLocal) {
+                    return Task::perform(async move {
+                        model_catalog::fetch_via(provider, None, &registry).await
+                            .map(|models| models.into_iter().map(|model| model.id).collect::<Vec<_>>())
+                            .map_err(CallError::message)
+                    }, move |result| Message::SweepChecked(provider, nonce, result));
+                }
+                return Task::perform(async move {
+                    let key = choose_key(provider, 0).await.map(|(_, key)| key).ok();
+                    if key.is_none() {
+                        return Err("No vault key for this provider, so only models.dev was consulted.".to_owned());
+                    }
+                    model_catalog::fetch_via(provider, key, &registry).await
+                        .map(|models| models.into_iter().map(|model| model.id).collect::<Vec<_>>())
+                        .map_err(CallError::message)
+                }, move |result| Message::SweepChecked(provider, nonce, result));
+            }
+            Message::SweepChecked(provider, nonce, result) if provider == self.settings.provider && self.settings.sweep_nonce == nonce => {
+                self.settings.sweep_busy = false;
+                let index = self.settings.index();
+                // `Err` means the live list could not be consulted, which is not
+                // the same as an empty list: never treat it as "all gone".
+                let live = result;
+                let sweep = archx_shared::model_meta::sweep(provider, &self.settings.models[index],
+                    live.as_ref().ok().map(Vec::as_slice), self.settings.meta.as_ref());
+                self.settings.status = match &live {
+                    Err(error) => format!("{error} Showing only what models.dev can prove."),
+                    Ok(_) => sweep.summary(),
+                };
+                self.settings.sweep = Some(sweep);
+                self.settings.sweep_undo.clear();
+            }
+            Message::SweepApply => {
+                let Some(sweep) = self.settings.sweep.take() else { return Task::none(); };
+                let ids = sweep.ids();
+                if ids.is_empty() {
+                    self.settings.status = "The sweep found nothing to disable; nothing was changed.".into();
+                    return Task::none();
+                }
+                let now = storage::now_secs();
+                let index = self.settings.index();
+                self.model_health.sync(&self.settings.models[index]);
+                for verdict in &sweep.gone {
+                    self.model_health.disable(&verdict.model, verdict.reason.label(), now);
+                }
+                // Never leave the composer pointing at a model just disabled.
+                if self.settings.selected_model().is_some_and(|model| ids.iter().any(|id| id == model)) {
+                    self.settings.chosen[index] = None;
+                }
+                // The durable record is per model: the health slot keeps the
+                // reason ("no longer offered by the provider") with a timestamp,
+                // so a row explains itself after a restart. `sweep_undo` is the
+                // in-session Undo and needs no disk format of its own.
+                self.settings.sweep_undo = ids.clone();
+                self.settings.status = format!("Disabled {} model(s); Undo puts them back and re-enables them.", ids.len());
+                self.bulk_clear();
+                let _ = self.persist_settings();
+            }
+            Message::SweepUndo => {
+                let ids = std::mem::take(&mut self.settings.sweep_undo);
+                for id in &ids { self.model_health.enable(id); }
+                self.settings.sweep = None;
+                self.settings.status = if ids.is_empty() {
+                    "Nothing to undo.".to_owned()
+                } else {
+                    format!("Re-enabled {} model(s).", ids.len())
+                };
+                let _ = self.persist_settings();
+            }
+            Message::SweepDismiss => {
+                self.settings.sweep = None;
+                self.settings.sweep_undo.clear();
+                self.settings.sweep_busy = false;
+            }
+
             // ---------- provider settings sections --------------------------------
             Message::SettingsSection(section) => {
                 self.settings.clear_secret();

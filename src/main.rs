@@ -28,8 +28,19 @@ pub fn projection(apps: &mut [archx_shared::apps::App]) {
     let Ok(id) = std::env::var("ARCHX_SNAPSHOT_APPS") else { return };
     let id = id.trim();
     if id.is_empty() { return; }
+    let mut found = false;
     for app in apps.iter_mut() {
-        if app.id == id { app.built = true; }
+        if app.id == id {
+            app.built = true;
+            found = true;
+            // The harness greps this line: a screenshot on its own cannot prove
+            // which app was rendered, and this one can. Only ever printed when
+            // the projection is requested, so a normal run stays silent.
+            println!("release-discover: {} built", app.id);
+        }
+    }
+    if !found {
+        println!("release-discover: {id} has no manifest, so nothing was projected");
     }
 }
 

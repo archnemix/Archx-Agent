@@ -208,6 +208,15 @@ pub enum Message {
     ModelsFetched(Provider, u64, Result<Vec<CatalogModel>, String>),
     FetchModelMeta,
     ModelMetaFetched(Result<usize, String>),
+    /// Compare the added models against the provider's live `/models` list and
+    /// cached models.dev metadata; data-dependent part done, nothing disabled yet.
+    SweepModels,
+    /// The live `/models` list has arrived, or `Err` when the provider could
+    /// not be asked — in which case only models.dev is used.
+    SweepChecked(Provider, u64, Result<Vec<String>, String>),
+    SweepApply,
+    SweepUndo,
+    SweepDismiss,
     SearchModels(String),
     ToggleAutoDisable,
     // Runtime-memory matrix and display scale (Settings → Runtime / Storage).

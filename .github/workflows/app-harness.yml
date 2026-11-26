@@ -64,21 +64,30 @@ jobs:
           LOG="apps/$APP/docs/Test_Results/Unreleased/non_visual/app-harness.log"
           # Rendering needs the launcher, and the launcher only builds a release.
           # So the harness renders only when the app is in the release AND ready.
+          # The projection is an app id (`ARCHX_SNAPSHOT_APPS=<id>`), which is
+          # what `src/main.rs::projection()` reads — not JSON. It can only mark an
+          # app that already has a manifest and a release line, so a checked-in
+          # app is never published by this job.
           if grep -q "\"apps/$APP\"" Cargo.toml && grep -q "register(\"$APP\")" src/main.rs; then
             cargo build --release -p archx-ai-lab >> "$LOG" 2>&1
-            # `ARCHX_SNAPSHOT_APPS=<projection json>` is the harness projection: it
-            # tells the launcher to show exactly the app under test, even when the
-            # real release list is empty, so a held app can be seen and judged.
-            PROJECTION=".harness/$APP.json"
-            mkdir -p .harness
-            printf '[{"id":"%s","built":true,"ready":true}]' "$APP" > "$PROJECTION"
-            xvfb-run -a env ARCHX_SNAPSHOT_APPS="$PROJECTION" \
-              ARCHX_SNAPSHOT="apps/$APP/docs/Test_Results/Unreleased/visual/app-harness.png" \
+            PNG="apps/$APP/docs/Test_Results/Unreleased/visual/app-harness.png"
+            rm -f "$PNG"
+            xvfb-run -a env ARCHX_SNAPSHOT_APPS="$APP" ARCHX_SNAPSHOT="$PNG" \
               ./target/release/archx-ai-lab >> "$LOG" 2>&1
-            test -s "apps/$APP/docs/Test_Results/Unreleased/visual/app-harness.png"
+            # A screenshot alone proves nothing: the launcher writes one for
+            # whatever it shows. Fail unless the app under test actually made it
+            # into the image's build, which is what the projection is for.
+            if [ ! -s "$PNG" ]; then
+              echo "FAIL: the launcher produced no screenshot for $APP" | tee -a "$LOG"
+              exit 1
+            fi
+            if ! grep -q "release-discover: $APP built" "$LOG"; then
+              echo "FAIL: $APP was not in the launcher's projection; the screenshot does not show it." | tee -a "$LOG"
+              exit 1
+            fi
             echo "PASS: $APP renders inside the harness launcher" | tee -a "$LOG"
           else
-            echo "SKIP: $APP is not in this release, so the launcher does not host it yet. Its own build above is the evidence." | tee -a "$LOG"
+            echo "SKIP: $APP is not in this release (no workspace member or no register line), so the launcher cannot host it. Its own build above is the evidence." | tee -a "$LOG"
           fi
       - name: Record the result in the repository
         shell: bash
@@ -87,8 +96,11 @@ jobs:
           git config user.email "ci@archnemic.local"
           git add apps/*/docs/Test_Results 2>/dev/null || true
           git diff --cached --quiet || git commit -m "Record app harness result for ${{ inputs.app || 'archx-agent' }}"
-          git pull --rebase origin arena/53d9bc26-archx-agent || true
-          git push origin HEAD:arena/53d9bc26-archx-agent || true
+          # Results are recorded on the branch the run came from — which for an
+          # app under development is that app's own branch, never the main line.
+          BRANCH="${GITHUB_REF_NAME}"
+          git pull --rebase origin "$BRANCH" || true
+          git push origin "HEAD:$BRANCH" || true
 
   windows:
     if: ${{ inputs.windows == true }}

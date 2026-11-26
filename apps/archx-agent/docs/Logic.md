@@ -54,6 +54,21 @@ Product-level behaviors under discussion (not implemented flows): chat and mode 
 
 Settings → Models → `Fetch models` emits `Message::FetchModels` (`src/app.rs`). With no snapshot and no other catalog fetch, it picks the provider; OpenRouter needs no key, while xAI/Gemini read the first OS-vault key in a blocking task (`src/credentials.rs`). `src/model_catalog.rs::fetch` sends a fixed-origin read-only HTTPS GET, no redirects/proxies, bounded response and pages; it parses only model IDs, names, free price/routing and supported reasoning metadata. Errors return a redacted status and do not replace the previous catalog. `ModelsFetched` checks provider and nonce before replacing session-only results. Search is local in `src/settings.rs`; clicking one result emits `AddCatalogModel` and adds only that model if not duplicate/over limit. Only a separately selected chat Send or small generation Test reaches `src/provider_api.rs`. Leaving/changing providers invalidates in-flight updates; no background catalog fetch or automatic generation occurs.
 
+### Sweep models that no longer exist
+
+Settings → Models → **Sweep added models** emits `Message::SweepModels`. It is the only place that removes models from the working list, and it never deletes anything.
+
+1. **Two sources, read-only.** The provider's live `/models` list is fetched with the same `model_catalog::fetch_via` path as `Fetch models` (fixed origin, no redirects, bounded, same key rule: OpenRouter and local Ollama need none). The cached `models.dev` registry supplies `status` and `type`. Neither request sends a generation prompt.
+2. **One pure decision.** `archx_shared::model_meta::sweep` returns a verdict per added id:
+   * `GoneFromProvider` — the live list answered and does not contain it;
+   * `Deprecated` — the live list has it, but models.dev says `status = "deprecated"`;
+   * `Unknown` — neither source mentions it. **Reported, never disabled.** Silence is not proof; a private or just-released id would otherwise be swept by mistake.
+3. **A failed fetch proves nothing.** If `/models` errors, the sweep runs on models.dev alone and the status line says so. `Err` is never read as an empty list.
+4. **Nothing changes until you press Disable.** The verdict is displayed with its reason first. On `SweepApply` each gone model gets a health-slot disable carrying the reason ("no longer offered by the provider"), a currently chosen disabled model is deselected, and the ids are kept in `settings.sweep_undo`. Rows stay in the list, disabled, so they can be re-checked later.
+5. **Undo is exact.** `SweepUndo` re-enables exactly the ids that sweep disabled — not every disabled model, which would also re-enable models the user disabled by hand.
+6. **The why survives a restart.** The reason lives in the health slot, which is persisted per provider, so a row still explains itself in a later session; the Undo list is in-session only and is documented as such.
+7. **Schema honesty.** models.dev has no `deprecated` boolean. Retirement is `status`, and `type` (`chat`, `embedding`, …) is kept so a chat list can be filtered. A stale `deprecated` boolean in a cached file is ignored, and there is a test for exactly that.
+
 ### Chat setup, Enter and response presentation
 
 Chat empty-state setup button → `OpenModelSettings` → Settings combined provider/model page → `RefreshKeys`; keys remain in the OS vault. Chat provider tab → `SelectProvider` clears stale key display/search and preserves each provider's in-memory model list; Chat model button → `ChooseModel` selects only a previously added ID. No network request is triggered by these selections. Native editor action → `EditEditor` updates only the selected draft (4,000-character limit); focused Enter emits `SendChat` if Chat is ready, Shift+Enter inserts a newline; Send button remains available. `send_chat` retrieves a vault key and sends only after explicit submission. Streaming default: `Task::sip` emits bounded `ChatProgress` snapshots then `ChatResult`; whole-response mode uses `Task::perform`. Assistant Markdown and returned reasoning are stored in session state; reasoning toggle changes only display. On failure, partial state is discarded and the user prompt restored for deliberate retry. Clicking Markdown links does nothing, and images are inert text labels.

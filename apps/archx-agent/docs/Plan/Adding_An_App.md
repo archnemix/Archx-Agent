@@ -194,6 +194,17 @@ You are building ONE app inside the Archx AI Lab repository: <id> (working title
 "<name>"). Work only inside apps/<id>/. Do not edit the launcher: src/*.rs,
 Cargo.toml at the repository root, or apps/archx-agent/**.
 
+You work on YOUR OWN BRANCH, never on the main line. Check out a branch from the
+base code you were given and keep all of your work there:
+
+    git checkout -b app/<id>-<your-name> origin/<the-branch-you-were-given>
+
+Push only to that branch (`git push -u origin app/<id>-<your-name>`). Never push
+to the main branch, never force-push, never merge the main line into yours. When
+your app is finished, green and you have reported it, you are done: the launcher
+owner imports your branch after the owner of the product has confirmed the app
+works. Do not open a pull request into the main line yourself.
+
 Read these two files first, in this order:
   1. apps/archx-agent/docs/Plan/Adding_An_App.md  (the contract you must satisfy)
   2. apps/archx-agent/docs/Thinking.md           (why the shared layers exist)
@@ -220,9 +231,13 @@ How you know you are done:
   1. `cargo test -p <id>` passes (or the "App harness" workflow is green). Rust
      may not be installed where you work, so push and read the CI result; never
      claim a test you did not see pass.
-  2. Run the "App harness" workflow with app = <id> to see it render.
+  2. `git push -u origin app/<id>-<your-name>` from your branch, then run
+     "App harness" with app = <id> on that branch. It writes the log back to
+     your branch. A `SKIP` render line for a brand-new app is expected: the
+     launcher can only draw a crate it already links, and only the launcher
+     owner adds that.
   3. Only then: set `ready = true` and `status = "live"` in app.toml, and tell
-     the launcher owner to add `.register("<id>")` to `src/main.rs::release()`.
+     the launcher owner to import your branch and host it (§7 steps 5-7).
 
   ready = true alone does NOT publish the app. Publishing is the launcher owner's
   one-line release switch; until it is added your app is HELD, which is correct
@@ -243,6 +258,106 @@ streams from colliding:
 * one folder per app, one app per branch;
 * the only shared files are the root `Cargo.toml` members list (add one line,
   never reorder) and this document (ask before editing it).
+
+### Starting a branch, and how it comes back here
+
+This is the whole workflow, in the order it happens.
+
+**1. You hand over the base.** Give the other AI the repository URL and the exact
+branch to start from (today: `arena/53d9bc26-archx-agent`, or a tag/commit you
+name). One line is enough, and it is what belongs in the hand-off: *"clone this
+repo, branch from `<branch>`, work only in `apps/<id>/`, push only your branch."*
+Do not give out a copy of your working tree as a zip: a branch is what makes the
+import a reviewable diff instead of a folder somebody has to trust.
+
+**2. It branches, and stays on that branch.**
+
+```text
+git clone https://github.com/archnemix/Archx-Agent && cd Archx-Agent
+git checkout -b app/<id>-<your-name> origin/arena/53d9bc26-archx-agent
+# ... build, commit, push ...
+git push -u origin app/<id>-<your-name>
+```
+
+The branch name is `app/<id>-<who>`. One app per branch; a branch with two apps
+cannot be imported in one piece.
+
+**3. It proves the app there.** `cargo test -p <id>` locally if Rust is
+available; otherwise push and run `Actions → App harness → app: <id>` on its own
+branch. That job builds and tests only that crate and writes the log back onto
+its own branch. A green run on its own branch is the only evidence that counts —
+a screenshot from somebody's laptop is not.
+
+The job also tries to render the app inside the launcher, and for a brand-new app
+it logs `SKIP: ... not in this release`. That is correct, not a failure: the
+launcher hosts apps **in-process**, so it can only draw an app whose crate it
+already links. Until the launcher owner adds that link (step 6), the app's own
+crate and its tests are the evidence. An app that wants a picture before then
+should ship its own snapshot runner inside `apps/<id>/`.
+
+**4. It stops and reports.** Branch name, CI run id, the files it touched, and any
+`Launcher_Request.md` it wrote. It does not merge, and it does not add its own
+`register` line.
+
+**5. You look at it, and you confirm it works.**
+
+```text
+# on your machine, without touching the main line:
+git fetch origin app/<id>-<your-name>
+git diff --stat origin/arena/53d9bc26-archx-agent...origin/app/<id>-<your-name>
+```
+
+Three things to read in that diff before you run anything:
+
+* every changed path is under `apps/<id>/` — plus **at most one line** in the root
+  `Cargo.toml` members list. Anything else is a launcher edit by an app author
+  and goes back with the reason;
+* no secret, token, key or `.env` in the patch (`git diff | grep -iE 'sk-|api[_-]?key|token'`
+  is a fast first pass);
+* `app.toml` has `ready = true`, `status = "live"`, and a `view` that exists.
+
+Then build and test it out of tree, so your working copy stays clean:
+
+```text
+git worktree add /tmp/<id> origin/app/<id>-<your-name>
+cd /tmp/<id> && cargo test -p <id> && cargo build -p <id>
+```
+
+**6. You import it.** Merging is the import, and it happens only after step 5.
+Import is *not* publishing: after this merge the app compiles, but it is `Held`,
+so it has no tile and appears in Lab settings as held out of this build.
+
+```text
+git checkout arena/53d9bc26-archx-agent && git pull --rebase
+git merge --no-ff origin/app/<id>-<your-name> -m "Import app/<id>"
+```
+
+**7. You add hosting, then check the design, then publish.** This is the part only
+you can do, because it is the part that touches the launcher:
+
+1. link the crate: add `archx-<id> = { path = "apps/<id>" }` (or the crate's real
+   name) to the root `Cargo.toml` `[dependencies]`;
+2. add its one arm in `src/navigation.rs` (the `hosted` match) and its `Page`
+   variant — that is what makes the rail entry and tile open something;
+3. add `.register("<id>")` to `src/main.rs::release()` and `COMPILED_APPS` in
+   `shared/src/apps.rs`, keeping the contract test green;
+4. run the full `GUI review` and look at the rendered screenshot: is the app's
+   surface inside the Lab's own padding, type scale, borders and colours?
+
+Only when 1–4 are all true is the app published. If the design does not fit, the
+fix is a shared token or a manifest field, never a launcher branch on the app's
+name (§9.3). If the app is not ready to be seen after all, delete the `register`
+line: it goes back to `Held` and Lab settings says so — nothing is silently
+dropped.
+
+If two approved branches both add a line to the root `Cargo.toml`, the merge is a
+one-line conflict in that list: keep both lines, ordered as the file already is.
+That conflict is the whole reason each app owns a folder and nothing else.
+
+**What "import" is not.** It is not a copy of files off somebody's disk, and it is
+not a cherry-pick of "just the app folder" from a branch that also changed the
+launcher. If a branch mixes launcher edits into app work, send it back: a clean
+branch is the price of a fast import.
 
 ## 8. Releasing an app, and holding one back
 

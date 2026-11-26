@@ -97,6 +97,14 @@ pub struct SettingsState {
     pub meta: Option<archx_shared::model_meta::Registry>,
     /// Model health (enabled/disabled per id), mirrored for rendering only.
     pub model_health: ModelHealthSet,
+    /// Result of the last "sweep models that no longer exist" run, shown until
+    /// the next one. Only evidence-backed verdicts appear in `gone`.
+    pub sweep: Option<archx_shared::model_meta::Sweep>,
+    /// Ids the last sweep disabled, kept so Undo can restore exactly those.
+    pub sweep_undo: Vec<String>,
+    /// Guards a stale sweep result, like `catalog_nonce`.
+    pub sweep_nonce: u64,
+    pub sweep_busy: bool,
 }
 impl Default for SettingsState {
     fn default() -> Self {
@@ -109,7 +117,8 @@ impl Default for SettingsState {
             chosen: [None; Provider::COUNT], status: String::new(), test_busy: false, test_evidence: None, stream_chat: true, key_busy: false, custom: Profile::default(), custom_curl: SecretText::default(), custom_approved: false, expected_word: "OK".into(),
             bulk_selected: HashSet::new(), model_page: 0, model_page_size: 25, provider_picker: false,
             endpoint_draft: None, key_health: KeyHealthSet::new(), key_auto_rotate: true,
-            model_health: ModelHealthSet::new(), meta: None }
+            model_health: ModelHealthSet::new(), meta: None,
+            sweep: None, sweep_undo: Vec::new(), sweep_nonce: 0, sweep_busy: false }
     }
 }
 impl SettingsState {
@@ -437,6 +446,62 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
     ].spacing(14).width(Fill).into()
 }
 
+/// "Sweep models that no longer exist": compare the added ids with the
+/// provider's live list and models.dev, show the verdict, and only then offer
+/// Disable. Nothing is deleted and every disabled row keeps its reason.
+fn sweep_panel(state: &SettingsState) -> Element<'static, Message> {
+    let verdicts = state.sweep.as_ref().map(|sweep| sweep.gone.len()).unwrap_or(0);
+    let reported = state.sweep.is_some();
+    let unknown = state.sweep.as_ref().map(|sweep| sweep.unknown.clone()).unwrap_or_default();
+    let undo = state.sweep_undo.clone();
+    let mut body = column![].spacing(6);
+    if let Some(sweep) = &state.sweep {
+        if sweep.gone.is_empty() {
+            body = body.push(text("Every added model is still listed. Nothing to disable.").size(11.5).color(style::GREY));
+        }
+        for verdict in sweep.gone.iter().take(40) {
+            body = body.push(row![
+                text("·").size(11.5).color(style::DIM),
+                text(verdict.model.clone()).size(11.5).font(style::LABEL).color(style::WHITE).width(Fill),
+                text(verdict.reason.label()).size(10.5).color(style::WARN)
+            ].spacing(6).align_y(Center));
+        }
+        if unknown.is_empty() {
+            body = body.push(text("Displayed only: nothing is disabled until you press Disable.")
+                .size(10.5).color(style::DIM));
+        } else {
+            body = body.push(text(format!("{} model(s) neither source knows; left enabled: {}",
+                unknown.len(), unknown.iter().take(6).cloned().collect::<Vec<_>>().join(", ")))
+                .size(10.5).color(style::DIM));
+        }
+    }
+    let label = if state.sweep_busy { "Checking…".to_owned() }
+        else if verdicts > 0 { format!("Disable {verdicts}") } else { "Disable".to_owned() };
+    let actions = row![
+        button(text("Sweep added models").size(10.5))
+            .on_press_maybe((!state.sweep_busy && state.provider != Provider::Custom
+                && !state.models[state.index()].is_empty()).then_some(Message::SweepModels))
+            .style(style::control_button),
+        button(text(label).size(10.5))
+            .on_press_maybe((!state.sweep_busy && verdicts > 0).then_some(Message::SweepApply))
+            .style(style::tiny_button),
+        button(text(format!("Undo{}", if undo.is_empty() { String::new() } else { format!(" {}", undo.len()) })).size(10.5))
+            .on_press_maybe((!undo.is_empty()).then_some(Message::SweepUndo)).style(style::tiny_button),
+        button(text("Dismiss").size(10.5)).on_press_maybe(reported.then_some(Message::SweepDismiss))
+            .style(style::tiny_button)
+    ].spacing(6).align_y(Center);
+    surface(column![
+        eyebrow("MODELS THAT NO LONGER EXIST  /  EVIDENCE, THEN ONE CLICK"),
+        space().height(8),
+        text("Compares the ids you added with the provider's live /models list and cached models.dev metadata. A model is only reported gone when one of them positively says so, and nothing is ever deleted.")
+            .size(11).color(style::GREY),
+        space().height(8),
+        Element::from(actions),
+        space().height(6),
+        Element::from(body)
+    ].width(Fill)).into()
+}
+
 fn models(state: &SettingsState) -> Element<'static, Message> {
     let index = state.index();
     let query = state.search.trim().to_lowercase();
@@ -535,6 +600,7 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
             space().height(6),
             Element::from(pager)
         ].width(Fill)),
+        sweep_panel(state),
         surface(column![
             eyebrow("AUTOMATIC HEALTH"),
             space().height(10),

@@ -8,6 +8,19 @@ Paste everything inside the box into a fresh chat. Replace `<id>`, `<name>` and
 You are building ONE app inside the Archx AI Lab repository at
 github.com/archnemix/Archx-Agent: <id> (working title "<name>"). <what the app does>
 
+YOUR BRANCH
+  Work on your own branch, never on the main line. Start from the base you were
+  given and stay there:
+
+      git clone https://github.com/archnemix/Archx-Agent && cd Archx-Agent
+      git checkout -b app/<id>-<your-name> origin/<base-branch-the-user-gave-you>
+
+  Push only that branch: git push -u origin app/<id>-<your-name>.
+  Never push to the main branch, never force-push, never merge the main line into
+  yours. Do not open a pull request into the main line: the user confirms your
+  app works, and only then does the launcher owner import your branch. One app
+  per branch - two apps in one branch cannot be imported in one piece.
+
 SCOPE
   Work only inside apps/<id>/. You may add exactly one line outside it: the
   workspace member entry in the root Cargo.toml. Do not edit src/*.rs (the
@@ -48,11 +61,15 @@ BUILD RULES
     storage::set_thread_directory (thread-local). Do not set ARCHX_CONFIG_DIR.
 
 HOW YOU KNOW YOU ARE DONE
-  1. Push your branch and read the CI result. Run "App harness" with app = <id>:
-     it builds and tests your app on its own, without touching the release. Rust
-     may not be installed where you work; never claim a test you did not see pass.
-  2. The harness renders it, it opens, and it returns to Discover with its Back
-     button.
+  1. Push your branch and read the CI result. Run "App harness" (app = <id>) on
+     your branch: it builds and tests your app on its own, without touching the
+     release, and writes the log back to your branch. Rust may not be installed
+     where you work; never claim a test you did not see pass.
+  2. If that job logs "SKIP: ... not in this release", that is expected for a
+     brand-new app: the launcher hosts apps in-process, so it can only draw a
+     crate it already links, and only the launcher owner adds that link. Your
+     crate building and its tests passing are the evidence until then. If you
+     want a picture, ship your own snapshot runner inside apps/<id>/.
   3. Only then, in app.toml: ready = true and status = "live".
 
   ready = true does NOT publish the app by itself. Publishing is the launcher
@@ -66,10 +83,12 @@ IF YOU NEED THE LAUNCHER CHANGED
   owner applies it once, in the shared launcher, never in a forked one.
 
 REPORT BACK WITH
+  * your branch name and the CI run URL that passed;
   * the files you created;
-  * the CI run URL that passed;
   * anything you had to change outside apps/<id>/ (there should be exactly one
-    line, and if there is more, say why).
+    line, and if there is more, say why);
+  * any Launcher_Request.md you wrote.
+  Then stop. Do not merge, and do not add the release line.
 ```
 
 ## Working in parallel with another app
@@ -83,3 +102,25 @@ Everything above still holds. Two extra rules keep the work streams apart:
 Because `ready = false` is the default for a new folder, a half-built app is
 invisible to the launcher and to everybody else's tests. The first moment the
 launcher changes is the moment an app is finished — which is the point.
+
+## What the user does with that branch
+
+The user stays the one who decides. The sequence is the same every time, and it is
+written out in full in `Adding_An_App.md` §7 ("Starting a branch, and how it comes
+back here"). In short:
+
+1. **The other AI branches and pushes only its branch.** Nothing lands anywhere
+   else, so the launcher cannot break while it works.
+2. **The user checks the diff** — every path under `apps/<id>/`, plus at most one
+   line in the root `Cargo.toml` members list.
+3. **The user confirms the app works.** `git worktree add /tmp/<id>` on that
+   branch, then `cargo test -p <id>`.
+4. **The import is a merge**, `git merge --no-ff origin/app/<id>-<your-name>`.
+   Import is not publishing: the app arrives `Held`, with no tile.
+5. **The launcher owner adds hosting and the release line**, checks the design
+   against the Lab's scheme, and runs the full `GUI review`. That is the moment
+   the app is published — and deleting one `register` line holds it back again.
+
+Nothing in this flow lets an app author edit the real launcher; they only ever
+hold a copy for their own button, and the real one is added here, after the brand
+and design check.

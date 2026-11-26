@@ -3,7 +3,8 @@
 //! Two public sources are read, both optional and both cached on disk:
 //!   * `https://models.dev/api.json` — an actively maintained, community-run
 //!     machine-readable catalog of model metadata (input/output modality,
-//!     context window, cost per million tokens, deprecation flag).
+//!     context window, cost per million tokens, `type` and `status`; note that
+//!     retirement is `status = "deprecated"`, there is no `deprecated` boolean).
 //!   * the free-tier list in `github.com/mnfst/awesome-free-llm-apis`, stored as a
 //!     local curated registry (`assets/model_meta/free_tiers.json`) because that
 //!     repository is a Markdown document, not an API.
@@ -56,6 +57,12 @@ pub struct Meta {
     pub cost_out: Option<f64>,
     pub free_tier: Option<String>,
     pub deprecation: Option<String>,
+    /// models.dev `status`: `alpha`, `beta` or `deprecated`. Kept apart from
+    /// `deprecation`, which is the human-readable label shown on the row.
+    pub status: Option<String>,
+    /// models.dev `type` (`chat`, `embedding`, `image`, …). `None` means the
+    /// catalog did not say, and models.dev treats a missing type as `chat`.
+    pub kind: Option<String>,
     pub source: Option<Source>,
 }
 
@@ -63,6 +70,7 @@ impl Meta {
     pub fn is_empty(&self) -> bool {
         self.input_modalities.is_empty() && self.output_modalities.is_empty() && self.context.is_none()
             && self.cost_in.is_none() && self.free_tier.is_none() && self.deprecation.is_none()
+            && self.status.is_none() && self.kind.is_none()
     }
 
     pub fn modality_label(&self) -> String {
@@ -109,6 +117,8 @@ impl Meta {
         self.cost_out = self.cost_out.or(other.cost_out);
         self.free_tier = self.free_tier.take().or(other.free_tier);
         self.deprecation = self.deprecation.take().or(other.deprecation);
+        self.status = self.status.take().or(other.status);
+        self.kind = self.kind.take().or(other.kind);
         self.source = self.source.or(other.source);
     }
 }
@@ -165,8 +175,16 @@ pub fn parse_models_dev(body: &Value) -> Registry {
                 cost_in: number(model.pointer("/cost/input")),
                 cost_out: number(model.pointer("/cost/output")),
                 free_tier: None,
-                deprecation: model.get("deprecated").and_then(Value::as_bool).filter(|flag| *flag)
-                    .map(|_| "marked deprecated".to_owned()),
+                // models.dev has no `deprecated` boolean: retirement is the
+                // `status` field, whose only negative value is "deprecated".
+                deprecation: match model.get("status").and_then(Value::as_str) {
+                    Some("deprecated") => Some("marked deprecated".to_owned()),
+                    Some("alpha") => Some("alpha".to_owned()),
+                    Some("beta") => Some("beta".to_owned()),
+                    _ => None,
+                },
+                status: model.get("status").and_then(Value::as_str).map(str::to_ascii_lowercase),
+                kind: model.get("type").and_then(Value::as_str).map(str::to_ascii_lowercase),
                 source: Some(Source::ModelsDev),
             };
             lookup.insert(model_id.to_ascii_lowercase(), meta);
@@ -241,6 +259,99 @@ pub async fn fetch_models_dev() -> Result<Registry, String> {
     Ok(registry)
 }
 
+/// Why a model in the user's list is considered gone.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SweepReason {
+    /// The provider's live `/models` answered and does not list this id.
+    GoneFromProvider,
+    /// The provider's live `/models` answered, lists it, but models.dev marks
+    /// it `status = "deprecated"`.
+    Deprecated,
+    /// Neither source knows it. Never acted on by the sweep: silence is not
+    /// proof, and a private or freshly released id would be swept by mistake.
+    Unknown,
+}
+
+impl SweepReason {
+    pub fn label(&self) -> &'static str {
+        match self {
+            Self::GoneFromProvider => "no longer offered by the provider",
+            Self::Deprecated => "marked deprecated by models.dev",
+            Self::Unknown => "not in either source",
+        }
+    }
+    /// Only positive evidence retires a row.
+    pub fn is_evidence(&self) -> bool { !matches!(self, Self::Unknown) }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SweepVerdict {
+    pub model: String,
+    pub reason: SweepReason,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Sweep {
+    /// Models with positive evidence that they no longer exist.
+    pub gone: Vec<SweepVerdict>,
+    /// Models no live source could vouch for; reported, never disabled.
+    pub unknown: Vec<String>,
+    /// True when the provider list was actually consulted.
+    pub provider_checked: bool,
+}
+
+impl Sweep {
+    pub fn is_empty(&self) -> bool { self.gone.is_empty() && self.unknown.is_empty() }
+    pub fn summary(&self) -> String {
+        if self.is_empty() { return "Nothing to sweep: every added model is still listed.".to_owned(); }
+        let mut parts = Vec::new();
+        if !self.gone.is_empty() { parts.push(format!("{} gone", self.gone.len())); }
+        if !self.unknown.is_empty() { parts.push(format!("{} unverified", self.unknown.len())); }
+        let scope = if self.provider_checked { "provider list + models.dev" } else { "models.dev" };
+        format!("Sweep ({scope}): {}", parts.join(", "))
+    }
+    /// The model ids that would be disabled, in list order.
+    pub fn ids(&self) -> Vec<String> { self.gone.iter().map(|verdict| verdict.model.clone()).collect() }
+}
+
+/// Compare the models the user added against the live catalog.
+///
+/// * `kind` — the provider the ids belong to, so models.dev is read under the
+///   right provider key.
+/// * `added` — ids as the user stored them (exact, no prefix rewriting).
+/// * `live` — `Some(list)` when the provider's live `/models` answered.
+///   `None` means it could not be consulted, so absence from it proves nothing.
+/// * `meta` — models.dev registry, or `None` when it is not cached yet.
+///
+/// A model is reported gone only on positive evidence: a successful provider
+/// list that omits it, or a models.dev `status` of `deprecated`. Everything
+/// else that neither source mentions is listed as unverified.
+pub fn sweep(kind: Provider, added: &[String], live: Option<&[String]>, meta: Option<&Registry>) -> Sweep {
+    let mut sweep = Sweep { provider_checked: live.is_some(), ..Sweep::default() };
+    let live: Option<std::collections::HashSet<String>> = live
+        .map(|ids| ids.iter().map(|id| id.to_ascii_lowercase()).collect());
+    for model in added {
+        let key = model.to_ascii_lowercase();
+        // OpenRouter-style ids may be stored with a vendor prefix while the
+        // provider echoes the bare id; try the tail as well.
+        let tail = key.rsplit('/').next().unwrap_or(&key).to_owned();
+        let in_provider = live.as_ref().map(|set| set.contains(&key) || set.contains(&tail));
+        let found = meta.map(|registry| registry.lookup(kind, model)).filter(|meta| !meta.is_empty());
+        let deprecated = found.as_ref().and_then(|meta| meta.status.as_deref()) == Some("deprecated");
+        let reason = match (in_provider, deprecated) {
+            (Some(false), _) => SweepReason::GoneFromProvider,
+            (_, true) => SweepReason::Deprecated,
+            (Some(true), false) => continue,
+            (None, false) => SweepReason::Unknown,
+        };
+        match reason {
+            SweepReason::Unknown => sweep.unknown.push(model.clone()),
+            reason => sweep.gone.push(SweepVerdict { model: model.clone(), reason }),
+        }
+    }
+    sweep
+}
+
 /// Cached document: `model-meta.json` beside the other data files.
 pub fn cache_path() -> std::path::PathBuf { crate::storage::root().join("model-meta.json") }
 
@@ -253,6 +364,7 @@ pub fn save_cache(registry: &Registry) -> Result<(), std::io::Error> {
                 "input": meta.input_modalities, "output": meta.output_modalities,
                 "context": meta.context, "output_limit": meta.output_limit,
                 "cost_in": meta.cost_in, "cost_out": meta.cost_out, "deprecation": meta.deprecation,
+                "status": meta.status, "kind": meta.kind,
             }));
         }
         by_provider.insert(provider.clone(), Value::Object(entry));
@@ -281,6 +393,8 @@ pub fn load_cache() -> Option<(Registry, u64)> {
                 cost_out: number(meta.get("cost_out")),
                 free_tier: None,
                 deprecation: meta.get("deprecation").and_then(Value::as_str).map(str::to_owned),
+                status: meta.get("status").and_then(Value::as_str).map(str::to_owned),
+                kind: meta.get("kind").and_then(Value::as_str).map(str::to_owned),
                 source: Some(Source::ModelsDev),
             });
         }
@@ -323,15 +437,107 @@ mod tests {
     }
 
     #[test]
-    fn zero_price_reads_free_and_deprecation_is_labelled() {
+    fn zero_price_reads_free_and_status_is_labelled() {
+        // Shape taken from the live models.dev schema: retirement is `status`,
+        // there is no `deprecated` boolean.
         let body = json!({"xai": {"models": {"grok-fast": {
+            "name": "Grok Fast", "type": "chat", "status": "deprecated",
             "modalities": {"input": ["text"], "output": ["text"]},
-            "cost": {"input": 0.0, "output": 0.0}, "deprecated": true
+            "limit": {"context": 131072, "input": 131072, "output": 8192},
+            "cost": {"input": 0.0, "output": 0.0},
+            "release_date": "2025-02-01", "last_updated": "2025-09-01"
         }}}});
         let meta = parse_models_dev(&body).lookup(Provider::Grok, "grok-fast");
         assert_eq!(meta.price_label(), "free");
+        assert_eq!(meta.status.as_deref(), Some("deprecated"));
+        assert_eq!(meta.kind.as_deref(), Some("chat"));
         assert_eq!(meta.deprecation.as_deref(), Some("marked deprecated"));
         assert!(meta.line().contains("marked deprecated"));
+        // A boolean `deprecated` is not part of the schema and must be ignored.
+        let stale = json!({"xai": {"models": {"grok-old": {"deprecated": true}}}});
+        assert_eq!(parse_models_dev(&stale).lookup(Provider::Grok, "grok-old").status, None);
+    }
+
+    fn strings(ids: &[&str]) -> Vec<String> { ids.iter().map(|id| (*id).to_owned()).collect() }
+
+    fn registry_with(entries: &[(&str, &str, Option<&str>)]) -> Registry {
+        let mut models = serde_json::Map::new();
+        for (id, kind, status) in entries {
+            let mut entry = serde_json::json!({"name": id, "type": kind});
+            if let Some(status) = status { entry["status"] = json!(status); }
+            models.insert((*id).to_owned(), entry);
+        }
+        parse_models_dev(&json!({"openrouter": {"models": models}}))
+    }
+
+    #[test]
+    fn sweep_only_acts_on_positive_evidence() {
+        // `brand-new-private-model` is listed by the provider but unknown to
+        // models.dev; it is not in `added`, so it must not disturb anything.
+        let added = strings(&["live-model", "retired-model", "deprecated-model"]);
+        let live = strings(&["live-model", "deprecated-model", "brand-new-private-model"]);
+        let meta = registry_with(&[
+            ("live-model", "chat", None),
+            ("deprecated-model", "chat", Some("deprecated")),
+        ]);
+        let sweep = sweep(Provider::OpenRouter, &added, Some(&live), Some(&meta));
+        assert!(sweep.provider_checked);
+        // Absent from a successful provider list: gone.
+        assert_eq!(sweep.gone[0], SweepVerdict {
+            model: "retired-model".to_owned(), reason: SweepReason::GoneFromProvider,
+        });
+        // Present but deprecated: gone for a different, recorded reason.
+        assert_eq!(sweep.gone[1].reason, SweepReason::Deprecated);
+        assert_eq!(sweep.gone.len(), 2);
+        // A model the live list still carries is never touched, and one absent
+        // from a successful list is evidence, not an unknown.
+        assert!(sweep.unknown.is_empty(), "{:?}", sweep.unknown);
+        assert_eq!(sweep.ids(), strings(&["retired-model", "deprecated-model"]));
+        assert!(sweep.summary().contains("2 gone"));
+        assert!(!sweep.summary().contains("unverified"));
+    }
+
+    #[test]
+    fn sweep_does_not_guess_when_the_provider_did_not_answer() {
+        // A failed /models fetch must not retire anything, even a deprecation.
+        let added = strings(&["only-in-dev", "deprecated-model"]);
+        let meta = registry_with(&[("deprecated-model", "chat", Some("deprecated"))]);
+        let sweep = sweep(Provider::OpenRouter, &added, None, Some(&meta));
+        assert!(!sweep.provider_checked);
+        assert_eq!(sweep.ids(), strings(&["deprecated-model"]));
+        assert_eq!(sweep.unknown, strings(&["only-in-dev"]));
+        // With no metadata at all and no provider list, nothing is claimed.
+        let blind = sweep(Provider::OpenRouter, &added, None, None);
+        assert!(blind.gone.is_empty());
+        assert_eq!(blind.unknown.len(), 2);
+        assert!(blind.summary().starts_with("Sweep (models.dev)"));
+        assert!(blind.summary().contains("2 unverified"));
+    }
+
+    #[test]
+    fn a_model_the_provider_dropped_is_reported_as_dropped_once() {
+        // Both sources have something to say; the row must get one verdict,
+        // and the stronger evidence is "the provider no longer lists it".
+        let added = strings(&["retired-model"]);
+        let live = strings(&["live-model"]);
+        let meta = registry_with(&[("retired-model", "chat", Some("deprecated"))]);
+        let sweep = sweep(Provider::OpenRouter, &added, Some(&live), Some(&meta));
+        assert_eq!(sweep.gone.len(), 1, "one row, one verdict: {:?}", sweep.gone);
+        assert_eq!(sweep.gone[0].reason, SweepReason::GoneFromProvider);
+        assert_eq!(sweep.gone[0].reason.label(), "no longer offered by the provider");
+    }
+
+    #[test]
+    fn sweep_reads_a_vendor_prefixed_id_and_keeps_listed_models() {
+        let added = strings(&["anthropic/claude-sonnet-4", "openai/gpt-4o"]);
+        let live = strings(&["claude-sonnet-4", "gpt-4o"]);
+        let body = json!({"openrouter": {"models": {
+            "anthropic/claude-sonnet-4": {"type": "chat", "modalities": {"input": ["text"], "output": ["text"]}},
+            "openai/gpt-4o": {"type": "chat"}
+        }}});
+        let meta = parse_models_dev(&body);
+        let sweep = sweep(Provider::OpenRouter, &added, Some(&live), Some(&meta));
+        assert!(sweep.is_empty(), "listed models must survive the sweep: {:?}", sweep);
     }
 
     #[test]
@@ -352,8 +558,8 @@ mod tests {
         let meta = Meta {
             input_modalities: vec!["text".into()], output_modalities: vec!["text".into()],
             context: Some(128_000), cost_in: Some(1.0), cost_out: Some(2.0),
-            free_tier: Some("100k tokens/day".into()), deprecation: None, source: Some(Source::ModelsDev),
-            output_limit: None,
+            free_tier: Some("100k tokens/day".into()), deprecation: None, status: None, kind: None,
+            source: Some(Source::ModelsDev), output_limit: None,
         };
         let line = meta.line();
         assert!(line.starts_with("text → text  ·  128k context  ·  $1.00 / $2.00 per 1M"));

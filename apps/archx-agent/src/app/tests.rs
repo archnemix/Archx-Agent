@@ -192,6 +192,53 @@ fn a_retired_model_is_disabled_and_cannot_stay_selected() {
 }
 
 #[test]
+fn the_sweep_disables_only_models_a_source_calls_gone_and_undoes_cleanly() {
+    let _dir = ConfigDir::new("sweep");
+    let mut app = configured();
+    app.settings.models[Provider::OpenRouter.index()].push("vendor/retired".into());
+    app.model_health.sync(&app.settings.models[Provider::OpenRouter.index()]);
+    app.settings.chosen[Provider::OpenRouter.index()] = Some(2);
+    // The provider still lists `vendor/retired`; models.dev says it is retired.
+    app.settings.meta = Some(archx_shared::model_meta::parse_models_dev(&serde_json::json!({
+        "openrouter": {"models": {"vendor/retired": {"type": "chat", "status": "deprecated"}}}
+    })));
+    let live = vec!["vendor/one".to_owned(), "vendor/two".to_owned(), "vendor/retired".to_owned()];
+    let _ = app.update(Message::SweepChecked(Provider::OpenRouter, app.settings.sweep_nonce, Ok(live)));
+    let sweep = app.settings.sweep.clone().expect("a verdict is shown, nothing changed yet");
+    assert_eq!(sweep.ids(), vec!["vendor/retired".to_owned()]);
+    assert!(app.model_health.is_enabled("vendor/retired"), "checking alone disables nothing");
+
+    let _ = app.update(Message::SweepApply);
+    assert!(!app.model_health.is_enabled("vendor/retired"));
+    assert!(app.model_health.is_enabled("vendor/one"));
+    assert_eq!(app.settings.chosen[Provider::OpenRouter.index()], None, "a disabled model cannot stay chosen");
+    let reason = app.model_health.slot("vendor/retired").map(|slot| slot.reason.clone()).unwrap_or_default();
+    assert_eq!(reason, "marked deprecated by models.dev", "the row keeps why it went");
+    assert_eq!(app.settings.sweep_undo, vec!["vendor/retired".to_owned()]);
+
+    let _ = app.update(Message::SweepUndo);
+    assert!(app.model_health.is_enabled("vendor/retired"), "undo re-enables exactly what the sweep disabled");
+    assert!(app.settings.sweep_undo.is_empty());
+}
+
+#[test]
+fn a_failed_provider_list_never_retires_a_model() {
+    let mut app = configured();
+    app.model_health.sync(&app.settings.models[Provider::OpenRouter.index()]);
+    app.settings.meta = None;
+    // The live fetch failed: absence from it must not be read as removal.
+    let _ = app.update(Message::SweepChecked(Provider::OpenRouter, app.settings.sweep_nonce,
+        Err("OpenRouter did not respond.".into())));
+    let sweep = app.settings.sweep.clone().expect("the failure is reported");
+    assert!(!sweep.provider_checked);
+    assert!(sweep.gone.is_empty());
+    assert_eq!(sweep.unknown.len(), 2);
+    let _ = app.update(Message::SweepApply);
+    assert!(app.model_health.is_enabled("vendor/one"));
+    assert!(app.model_health.is_enabled("vendor/two"));
+}
+
+#[test]
 fn bulk_actions_only_touch_ticked_models_in_list_order() {
     let mut app = configured();
     app.settings.models[Provider::OpenRouter.index()].push("vendor/three".into());
