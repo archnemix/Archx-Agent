@@ -167,6 +167,10 @@ fn tile(app: &App, phase: u8, hovered: Option<&str>) -> Element<'static, Message
         text(app.category.clone()).size(style::TYPE_LABEL).font(style::LABEL).color(style::DIM),
         space().height(4),
         text(app.name.clone()).size(17).font(style::DISPLAY).color(style::WHITE),
+        // The summary is what tells a user what the app does; a tile that only
+        // prints its own name and status says nothing.
+        space().height(6),
+        text(fit_words(&app.summary, 130)).size(12).color(style::GREY),
         space().height(4),
         text(app.status_label()).size(style::TYPE_LABEL).color(if accent { style::WHITE } else { style::GREY })
     ].width(FillPortion(1));
@@ -177,6 +181,20 @@ fn tile(app: &App, phase: u8, hovered: Option<&str>) -> Element<'static, Message
         .into()
 }
 
+/// Shortens `text` to at most `limit` characters without cutting a word in half.
+fn fit_words(text: &str, limit: usize) -> String {
+    if text.chars().count() <= limit { return text.to_owned(); }
+    let mut out = String::new();
+    for word in text.split_whitespace() {
+        let extra = word.chars().count() + usize::from(!out.is_empty());
+        if out.chars().count() + extra > limit.saturating_sub(1) { break; }
+        if !out.is_empty() { out.push(' '); }
+        out.push_str(word);
+    }
+    out.push('…');
+    out
+}
+
 fn discover(state: &Launcher) -> Element<'static, Message> {
     let scale = state.display.launcher.factor();
     let featured = state.apps.iter().find(|app| app.is_live());
@@ -185,7 +203,7 @@ fn discover(state: &Launcher) -> Element<'static, Message> {
             let id = app.id.clone();
             container(row![
                 column![
-                    text("FEATURED APP     /     01").size(11).color(style::GREY),
+                    text(format!("FEATURED APP     /     {:02}", state.apps.len().max(1))).size(11).color(style::GREY),
                     space().height(18),
                     text(app.name.clone()).size(34).color(style::WHITE),
                     space().height(8),
@@ -201,7 +219,9 @@ fn discover(state: &Launcher) -> Element<'static, Message> {
                     text("ARCHX").size(32).color(style::GREY),
                     text("AGENT").size(52).color(style::WHITE),
                     space().height(Fill),
-                    text(app.summary.chars().take(90).collect::<String>()).size(11).color(style::DIM)
+                    // Trimmed at a word boundary: a hard character cut ended the
+                    // front page on a half-word like "never ac".
+                    text(fit_words(&app.summary, 90)).size(11).color(style::DIM)
                 ].width(Fill).padding([23, 30]))
                     .width(FillPortion(1)).height(248).style(|theme| style::agent_surface(theme, false))
             ].height(248).align_y(Center)).width(Fill).style(style::surface).into()
