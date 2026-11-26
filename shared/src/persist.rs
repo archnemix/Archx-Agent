@@ -303,7 +303,7 @@ mod tests {
     fn a_configured_provider_survives_a_save_and_reload() {
         let dir = std::env::temp_dir().join(format!("archx-persist-round-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
-        unsafe { std::env::set_var("ARCHX_CONFIG_DIR", &dir) };
+        crate::storage::set_thread_directory(Some(dir.clone()));
         let mut settings = PersistedSettings::default();
         settings.provider = Provider::Groq;
         settings.models[Provider::Groq.index()] = vec!["llama-3.1-8b".into(), "qwen-2.5".into()];
@@ -319,7 +319,7 @@ mod tests {
         assert_eq!(loaded.chosen[Provider::Groq.index()], Some(1));
         assert_eq!(loaded.display.chat.percent(), 120);
         assert!(loaded.keys.slot(1).is_some_and(|slot| slot.cooldown_until > 0));
-        unsafe { std::env::remove_var("ARCHX_CONFIG_DIR") };
+        crate::storage::set_thread_directory(None);
         let _ = std::fs::remove_dir_all(dir);
     }
 
@@ -327,14 +327,14 @@ mod tests {
     fn save_and_load_use_the_config_directory() {
         let dir = std::env::temp_dir().join(format!("archx-persist-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
-        unsafe { std::env::set_var("ARCHX_CONFIG_DIR", &dir) };
+        crate::storage::set_thread_directory(Some(dir.clone()));
         let mut settings = PersistedSettings::default();
         settings.display.chat = TextScale::from_percent(115);
         settings.save().expect("save");
         assert_eq!(PersistedSettings::load().map(|loaded| loaded.display.chat.percent()), Some(115));
         assert!(storage::wipe(Area::Settings));
         assert_eq!(PersistedSettings::load(), None);
-        unsafe { std::env::remove_var("ARCHX_CONFIG_DIR") };
+        crate::storage::set_thread_directory(None);
         let _ = std::fs::remove_dir_all(dir);
     }
 }

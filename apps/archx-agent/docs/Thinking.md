@@ -75,6 +75,20 @@
 - First redesigned CI run passed both focused tests and release/snapshot checks on all three OSes; the Windows PE subsystem is 2 (GUI, no console), but screenshots revealed two layout problems before handoff: app names were below the initial Windows/Linux viewport, and the Agent artwork was cropped on the smaller macOS runner display. Linux also wrapped the inert Library label awkwardly.
 - Reduced unused vertical space and app-cover height so names can appear above the fold at 1280 × 800, changed the Agent artwork to `Contain` to preserve its silhouette, and simplified sidebar labels without OS-dependent glyphs. A new three-OS build/screenshot review is required before claiming the layout fixes.
 
+## Storage tests get their own directory (2026-11-23)
+
+Three CI runs in a row failed a *different* storage test each time: the empty-chat
+rule, then the per-area text size, then the empty-chat rule again. Each one passed
+alone. The cause was not flaky code but a shared process-wide environment
+variable: `ARCHX_CONFIG_DIR` was set and cleared by whichever test happened to run,
+and a test that saved or wiped in between wrote into — or deleted — another test's
+files.
+
+The fix is structural rather than a retry: `storage::set_thread_directory` and
+`apps::set_thread_directory` keep the override in a thread-local, so a test can
+only ever reach its own directory, and tests no longer need a mutex to avoid each
+other. `ARCHX_CONFIG_DIR` still works for portable runs and CI screenshots.
+
 ## Two switches per app: ready, then status (2026-11-23)
 
 The user asked for one thing that a single `status` field could not express: the

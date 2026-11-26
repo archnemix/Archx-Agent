@@ -3,31 +3,34 @@
 use super::*;
 use archx_shared::health::KeyHealthSet;
 
-/// `ARCHX_CONFIG_DIR` is process-wide, so **every test that writes or wipes
-/// storage must hold one of these** — not only the tests that set it. A test
-/// that skipped the guard used to inherit whichever directory a neighbour had
-/// just pointed at, and its wipe deleted the neighbour's file mid-test. Holding
-/// one guard for the whole test is what makes the two mutually exclusive.
-static CONFIG_DIR_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-
+/// A per-test storage directory.
+///
+/// It is **thread-local** (see `archx_shared::storage::set_thread_directory`),
+/// so parallel tests cannot delete each other's files. The old version pointed
+/// the process-wide `ARCHX_CONFIG_DIR` at a shared path and serialised tests
+/// with a mutex; a single test that forgot the guard then wrote into, or wiped,
+/// whatever directory a neighbour had just set. That is why the empty-chat and
+/// text-size tests failed one at a time and never together.
 struct ConfigDir {
-    _guard: std::sync::MutexGuard<'static, ()>,
     path: std::path::PathBuf,
+    previous: Option<std::path::PathBuf>,
 }
 
 impl ConfigDir {
     fn new(tag: &str) -> Self {
-        let guard = CONFIG_DIR_LOCK.lock().unwrap_or_else(|error| error.into_inner());
-        let path = std::env::temp_dir().join(format!("archx-{tag}-{}", std::process::id()));
+        static NEXT: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+        let unique = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let path = std::env::temp_dir()
+            .join(format!("archx-{tag}-{}-{unique}", std::process::id()));
         let _ = std::fs::remove_dir_all(&path);
-        unsafe { std::env::set_var("ARCHX_CONFIG_DIR", &path) };
-        Self { _guard: guard, path }
+        let previous = archx_shared::storage::set_thread_directory(Some(path.clone()));
+        Self { path, previous }
     }
 }
 
 impl Drop for ConfigDir {
     fn drop(&mut self) {
-        unsafe { std::env::remove_var("ARCHX_CONFIG_DIR") };
+        archx_shared::storage::set_thread_directory(self.previous.take());
         let _ = std::fs::remove_dir_all(&self.path);
     }
 }
@@ -37,6 +40,10 @@ fn app() -> App {
 }
 
 /// A configured, offline app: one provider, two models, no network.
+///
+/// Any test that saves or wipes storage starts with `ConfigDir::new(..)`, which
+/// gives the test its own thread-local directory. A test that forgets is now
+/// isolated rather than dangerous, because it can only reach its own thread.
 fn configured() -> App {
     let mut app = app();
     app.settings.provider = Provider::OpenRouter;

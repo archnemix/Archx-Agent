@@ -63,8 +63,33 @@ impl Area {
     }
 }
 
-/// `ARCHX_CONFIG_DIR` overrides the location for tests and portable runs.
+thread_local! {
+    /// A test-only override that belongs to one thread. `ARCHX_CONFIG_DIR` is
+    /// process-wide, so two tests running in parallel on it could delete each
+    /// other's files; this cannot be shared by accident.
+    static THREAD_DIR: std::cell::RefCell<Option<PathBuf>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Points storage at `path` for the current thread only, and returns the
+/// previous value so a test can restore it. Tests use this; the app never does.
+///
+/// It exists because `ARCHX_CONFIG_DIR` is process-wide: with tests running in
+/// parallel, one test's cleanup could delete another test's file mid-run, which
+/// produced failures that moved from run to run and looked like flaky code.
+pub fn set_thread_directory(path: Option<PathBuf>) -> Option<PathBuf> {
+    THREAD_DIR.with(|slot| slot.replace(path))
+}
+
+fn thread_directory() -> Option<PathBuf> {
+    THREAD_DIR.with(|slot| slot.borrow().clone())
+}
+
+/// `ARCHX_CONFIG_DIR` overrides the location for tests and portable runs. A
+/// thread-local override (see `set_thread_directory`) wins over it.
 pub fn root() -> PathBuf {
+    if let Some(path) = thread_directory() {
+        return path;
+    }
     if let Some(path) = std::env::var_os("ARCHX_CONFIG_DIR") {
         return PathBuf::from(path);
     }
@@ -251,7 +276,7 @@ mod tests {
     #[test]
     fn save_load_wipe_use_the_override_directory_and_are_atomic() {
         let dir = scratch("roundtrip");
-        unsafe { std::env::set_var("ARCHX_CONFIG_DIR", &dir) };
+        set_thread_directory(Some(dir.clone()));
         save(Area::Settings, json!({"display": {"chat_scale": 1.0}})).expect("save");
         let stored = load(Area::Settings).expect("file").expect("json");
         assert_eq!(body(&stored).and_then(|body| body.get("display")), Some(&json!({"chat_scale": 1.0})));
@@ -264,19 +289,19 @@ mod tests {
         assert!(wipe(Area::Settings));
         assert!(!Area::Settings.exists());
         assert_eq!(load(Area::Settings), None);
-        unsafe { std::env::remove_var("ARCHX_CONFIG_DIR") };
+        set_thread_directory(None);
         let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]
     fn corrupt_file_is_reported_instead_of_silently_reset() {
         let dir = scratch("corrupt");
-        unsafe { std::env::set_var("ARCHX_CONFIG_DIR", &dir) };
+        set_thread_directory(Some(dir.clone()));
         std::fs::create_dir_all(&dir).expect("dir");
         std::fs::write(Area::Chats.path(), b"{ this is not json").expect("write");
         assert_eq!(load(Area::Chats), Some(Err(())));
         assert!(wipe(Area::Chats));
-        unsafe { std::env::remove_var("ARCHX_CONFIG_DIR") };
+        set_thread_directory(None);
         let _ = std::fs::remove_dir_all(dir);
     }
 }

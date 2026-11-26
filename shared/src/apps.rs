@@ -233,8 +233,21 @@ pub const EMBEDDED: [(&str, &str); 2] = [
     ("training", include_str!("../../apps/training/app.toml")),
 ];
 
+thread_local! {
+    /// A test-only override belonging to one thread, for the same reason the
+    /// storage layer has one: `ARCHX_APPS_DIR` is shared by every test in the
+    /// process, and a parallel test would otherwise scan a stranger's tree.
+    static THREAD_DIR: std::cell::RefCell<Option<PathBuf>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Points app discovery at `path` for the current thread only.
+pub fn set_thread_directory(path: Option<PathBuf>) -> Option<PathBuf> {
+    THREAD_DIR.with(|slot| slot.replace(path))
+}
+
 /// Directory searched at runtime. `ARCHX_APPS_DIR` overrides it for tests.
 pub fn root() -> PathBuf {
+    if let Some(path) = THREAD_DIR.with(|slot| slot.borrow().clone()) { return path; }
     if let Some(path) = std::env::var_os("ARCHX_APPS_DIR") { return PathBuf::from(path); }
     // Compiled into `shared/`, so the app folders sit one level up. Walk up from
     // the build directory instead of trusting the process cwd, because a test
@@ -323,14 +336,6 @@ mod tests {
             .collect()
     }
 
-    /// `ARCHX_APPS_DIR` is process-wide and the real-tree tests read it through
-    /// `root()`, so every test that touches it holds this lock.
-    static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-
-    fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-        ENV_LOCK.lock().unwrap_or_else(|error| error.into_inner())
-    }
-
     /// Writes a throwaway `apps/` tree so readiness can be tested without
     /// touching the real folders.
     fn scratch_apps(folders: &[(&str, &str)]) -> PathBuf {
@@ -350,7 +355,6 @@ mod tests {
     /// actually on disk rather than a tidy one-line fixture.
     #[test]
     fn a_manifest_with_a_comment_header_and_blank_lines_still_parses() {
-        let _lock = env_lock();
         let raw = std::fs::read_to_string(root().join("archx-agent/app.toml")).expect("manifest on disk");
         assert!(raw.contains("\n\n"), "the real manifest has blank lines between comments and keys");
         let app = parse("archx-agent", &raw).expect("a commented manifest parses");
@@ -361,7 +365,6 @@ mod tests {
 
     #[test]
     fn every_shipped_manifest_parses_and_is_unique() {
-        let _lock = env_lock();
         let apps = discover();
         assert!(apps.len() >= 2, "expected the Agent and at least one reserved folder");
         let ids: std::collections::HashSet<_> = apps.iter().map(|app| app.id.as_str()).collect();
@@ -379,7 +382,6 @@ mod tests {
     /// so the app compiles from it and another AI can start from it.
     #[test]
     fn every_manifest_matches_the_files_on_disk() {
-        let _lock = env_lock();
         let mut problems = Vec::new();
         for app in discover() {
             let folder = root().join(&app.id);
@@ -397,7 +399,6 @@ mod tests {
 
     #[test]
     fn a_declared_crate_is_a_workspace_member() {
-        let _lock = env_lock();
         let members = workspace_members();
         for app in discover() {
             let Some(krate) = &app.krate else { continue };
@@ -409,7 +410,6 @@ mod tests {
 
     #[test]
     fn live_apps_declare_how_they_render() {
-        let _lock = env_lock();
         let apps = registered();
         let live: Vec<_> = apps.iter().filter(|app| app.is_live()).map(|app| app.name.as_str()).collect();
         assert_eq!(live, vec!["Archx Agent"]);
@@ -423,7 +423,6 @@ mod tests {
 
     #[test]
     fn a_reserved_folder_needs_no_code_yet() {
-        let _lock = env_lock();
         let training = find_any("training").expect("training space");
         assert!(!training.is_live());
         assert!(!training.has_code());
@@ -440,16 +439,15 @@ mod tests {
     fn an_unready_folder_is_invisible_to_the_launcher() {
         let not_ready = "id = \"two\"\nname = \"Two\"\nstatus = \"live\"\nready = false\ncrate = \"two\"\nentry = \"src/lib.rs\"\nview = \"home::view\"\n";
         let missing = "id = \"three\"\nname = \"Three\"\nstatus = \"live\"\ncrate = \"three\"\nentry = \"src/lib.rs\"\nview = \"home::view\"\n";
-        let _lock = env_lock();
         let dir = scratch_apps(&[("one", READY_MANIFEST), ("two", not_ready), ("three", missing)]);
-        unsafe { std::env::set_var("ARCHX_APPS_DIR", &dir) };
+        set_thread_directory(Some(dir.clone()));
         assert_eq!(discover().len(), 3, "the folders are still discoverable for diagnostics");
         let shown = registered();
         assert_eq!(shown.iter().map(|app| app.id.as_str()).collect::<Vec<_>>(), vec!["one"],
             "only the ready app gets a tile");
         // A missing `ready` line is not ready: silence must never register code.
         assert!(!find_any("three").expect("three").ready);
-        unsafe { std::env::remove_var("ARCHX_APPS_DIR") };
+        set_thread_directory(None);
         let _ = std::fs::remove_dir_all(dir);
     }
 
