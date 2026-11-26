@@ -356,7 +356,10 @@ mod tests {
     #[test]
     fn a_manifest_with_a_comment_header_and_blank_lines_still_parses() {
         let raw = std::fs::read_to_string(root().join("archx-agent/app.toml")).expect("manifest on disk");
-        assert!(raw.contains("\n\n"), "the real manifest has blank lines between comments and keys");
+        // Checked by line rather than by "\n\n": Windows checks the tree out with
+        // CRLF, and a literal newline comparison would only pass on Unix.
+        assert!(raw.lines().any(|line| line.trim().is_empty()),
+            "the real manifest has blank lines between its comment header and its keys");
         let app = parse("archx-agent", &raw).expect("a commented manifest parses");
         assert_eq!(app.name, "Archx Agent");
         assert!(app.ready, "`ready = true` must be read past the comment header");
