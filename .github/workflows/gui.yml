@@ -82,6 +82,8 @@ jobs:
           test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-settings.png
           xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SETTINGS=models ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-models.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
           test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-models.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=settings ARCHX_SNAPSHOT_SETTINGS=sweep-review ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-sweep.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-sweep.png
           xvfb-run -a env ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-collapsed.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
           test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-collapsed.png
           xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIDEBAR=collapsed ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-agent-collapsed.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1

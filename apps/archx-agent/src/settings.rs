@@ -591,6 +591,9 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
                 text(if disabled > 0 { format!("{disabled} disabled") } else { String::new() }).size(10.5).color(style::WARN)
             ].spacing(8).align_y(Center)
         ].width(Fill)),
+        // Above the list: it is an action on the whole list, and the list is
+        // tall enough to push its own footer off screen.
+        sweep_panel(state),
         surface(column![
             eyebrow("ADDED MODELS  /  SCROLLABLE, PAGED, BULK"),
             space().height(10),
@@ -600,7 +603,6 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
             space().height(6),
             Element::from(pager)
         ].width(Fill)),
-        sweep_panel(state),
         surface(column![
             eyebrow("AUTOMATIC HEALTH"),
             space().height(10),

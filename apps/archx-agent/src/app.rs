@@ -465,7 +465,7 @@ impl App {
     fn load_snapshot_section(&mut self) {
         let which = std::env::var("ARCHX_SNAPSHOT_SETTINGS").unwrap_or_default();
         self.settings.section = match which.as_str() {
-            "models" | "import-review" | "import-verified-review" => Section::Models,
+            "models" | "import-review" | "import-verified-review" | "sweep-review" => Section::Models,
             _ if self.memory_preview == MemoryMode::Custom => Section::Runtime,
             "runtime" => Section::Runtime,
             "storage" => Section::Storage,
@@ -478,6 +478,29 @@ impl App {
                 self.settings.custom.url = "https://example.invalid/v1/chat/completions".into();
                 self.settings.custom.headers = "Authorization: Bearer {{api_key}}".to_owned().into();
                 self.settings.status = "Synthetic fixture: no request was sent and no destination was approved.".into();
+            }
+            // Synthetic sweep fixture: one model the live list dropped, one
+            // models.dev marks retired, one nobody knows, one still listed.
+            // No request was sent; every string here is invented.
+            "sweep-review" => {
+                let index = self.settings.index();
+                self.settings.models[index] = vec![
+                    "demo/still-listed".into(), "demo/dropped".into(),
+                    "demo/retired".into(), "demo/unlisted-private".into(),
+                ];
+                self.settings.chosen[index] = Some(3);
+                self.model_health.sync(&self.settings.models[index]);
+                self.settings.meta = Some(archx_shared::model_meta::parse_models_dev(&serde_json::json!({
+                    "openrouter": {"models": {
+                        "demo/still-listed": {"type": "chat", "status": "beta"},
+                        "demo/retired": {"type": "chat", "status": "deprecated"}
+                    }}
+                })));
+                let live = vec!["demo/still-listed".to_owned(), "demo/retired".to_owned()];
+                self.settings.sweep = Some(archx_shared::model_meta::sweep(
+                    Provider::OpenRouter, &self.settings.models[index], Some(&live),
+                    self.settings.meta.as_ref()));
+                self.settings.status = "Synthetic sweep fixture: no request was sent.".into();
             }
             "import-review" | "import-verified-review" => {
                 let index = self.settings.index();
