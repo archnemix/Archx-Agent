@@ -128,6 +128,7 @@ fn rail(state: &Launcher) -> Element<'static, Message> {
 /// A discovered app's card. Art comes from the manifest's `art` field and the
 /// frame index from the Discover cycle (a scripted screenshot pins both).
 fn tile(app: &App, phase: u8, hovered: Option<&str>) -> Element<'static, Message> {
+    let lit = hovered == Some(app.id.as_str()) || hovered == Some(app.art.as_str());
     let accent = app.is_live();
     let artwork: Element<'static, Message> = if app.art == "agent" {
         container(column![
@@ -141,9 +142,9 @@ fn tile(app: &App, phase: u8, hovered: Option<&str>) -> Element<'static, Message
             ],
             space().height(8)
         ].width(Fill).height(Fill).padding(18))
-            .width(Fill).height(140).clip(true).style(style::agent_surface).into()
+            .width(Fill).height(140).clip(true)
+            .style(move |theme| style::agent_surface(theme, lit)).into()
     } else {
-        let lit = hovered == Some(app.id.as_str()) || hovered == Some(app.art.as_str());
         let words = app.stage_words();
         let current = words.get(usize::from(phase) % words.len().max(1)).cloned().unwrap_or_default();
         let panel = container(column![
@@ -202,7 +203,7 @@ fn discover(state: &Launcher) -> Element<'static, Message> {
                     space().height(Fill),
                     text(app.summary.chars().take(90).collect::<String>()).size(11).color(style::DIM)
                 ].width(Fill).padding([23, 30]))
-                    .width(FillPortion(1)).height(248).style(style::agent_surface)
+                    .width(FillPortion(1)).height(248).style(|theme| style::agent_surface(theme, false))
             ].height(248).align_y(Center)).width(Fill).style(style::surface).into()
         }
         None => space().height(0).into(),

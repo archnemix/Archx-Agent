@@ -48,7 +48,7 @@ pub fn hero(phase: u8) -> Element<'static, Message> {
     )
     .width(FillPortion(1))
     .height(248)
-    .style(style::agent_surface)
+    .style(|theme| style::agent_surface(theme, false))
     .into()
 }
 
@@ -76,7 +76,7 @@ pub fn tile(phase: u8) -> Element<'static, Message> {
     .width(Fill)
     .height(140)
     .clip(true)
-    .style(style::agent_surface)
+    .style(|theme| style::agent_surface(theme, false))
     .into()
 }
 

@@ -150,11 +150,13 @@ pub fn surface(_: &Theme) -> container::Style {
         })
 }
 
-pub fn agent_surface(_: &Theme) -> container::Style {
+/// The Agent's tall word-mark tile. `lit` is the tile under the pointer.
+pub fn agent_surface(_: &Theme, lit: bool) -> container::Style {
+    let top = if lit { Color::from_rgb8(33, 33, 36) } else { Color::from_rgb8(25, 25, 27) };
     container::Style::default()
         .background(
             gradient::Linear::new(Radians::PI)
-                .add_stop(0.0, Color::from_rgb8(25, 25, 27))
+                .add_stop(0.0, top)
                 .add_stop(1.0, Color::from_rgb8(11, 11, 12)),
         )
         .border(Border {
@@ -168,8 +170,10 @@ pub fn mode_marker(_: &Theme, active: bool) -> container::Style {
     container::Style::default().background(if active { WHITE } else { LINE })
 }
 
-pub fn workbench_surface(_: &Theme, tuning: bool) -> container::Style {
-    let start = if tuning { Color::from_rgb8(26, 26, 28) } else { Color::from_rgb8(24, 27, 29) };
+pub fn workbench_surface(_: &Theme, lit: bool) -> container::Style {
+    // `lit` is the tile under the pointer: one visible step lighter, so a hover
+    // actually reads as a hover (the Agent tile used to ignore it entirely).
+    let start = if lit { Color::from_rgb8(31, 34, 37) } else { Color::from_rgb8(24, 27, 29) };
     container::Style::default()
         .background(
             gradient::Linear::new(Radians::PI)
