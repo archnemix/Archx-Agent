@@ -46,17 +46,11 @@ jobs:
             echo "PASS: Linux Agent phase $phase differs from rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log
           done
           for phase in 1 2; do
-            xvfb-run -a env ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-training-hover-$phase.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-            test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-training-hover-$phase.png
+            xvfb-run -a env ARCHX_SNAPSHOT_HOVER=archx-agent ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-agent-hover-$phase.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+            test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-agent-hover-$phase.png
           done
-          for phase in 1 2; do
-            xvfb-run -a env ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-tuning-hover-$phase.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
-            test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-tuning-hover-$phase.png
-          done
-          for card in training tuning; do
-            if cmp -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux.png apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-$card-hover-1.png; then echo "FAIL: Linux $card hover matches rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log; exit 1; fi
-            echo "PASS: Linux $card hover phase differs from rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log
-          done
+          if cmp -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux.png apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-archx-agent-hover-1.png; then echo "FAIL: Linux tile hover matches rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log; exit 1; fi
+          echo "PASS: Linux tile hover differs from rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log
           xvfb-run -a env ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-about.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
           test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-about.png
           xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-agent.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
@@ -134,17 +128,11 @@ jobs:
             echo "PASS: Windows Agent phase $phase differs from rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log
           done
           for phase in 1 2; do
-            ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-training-hover-$phase.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-            test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-training-hover-$phase.png
+            ARCHX_SNAPSHOT_HOVER=archx-agent ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-agent-hover-$phase.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+            test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-agent-hover-$phase.png
           done
-          for phase in 1 2; do
-            ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-tuning-hover-$phase.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
-            test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-tuning-hover-$phase.png
-          done
-          for card in training tuning; do
-            if cmp -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows.png apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-$card-hover-1.png; then echo "FAIL: Windows $card hover matches rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log; exit 1; fi
-            echo "PASS: Windows $card hover phase differs from rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log
-          done
+          if cmp -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows.png apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-agent-hover-1.png; then echo "FAIL: Windows tile hover matches rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log; exit 1; fi
+          echo "PASS: Windows tile hover differs from rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log
           ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-about.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
           test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-about.png
           ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-agent.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
@@ -220,17 +208,11 @@ jobs:
             echo "PASS: macOS Agent phase $phase differs from rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log
           done
           for phase in 1 2; do
-            ARCHX_SNAPSHOT_HOVER=training ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-training-hover-$phase.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-            test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-training-hover-$phase.png
+            ARCHX_SNAPSHOT_HOVER=archx-agent ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-agent-hover-$phase.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+            test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-agent-hover-$phase.png
           done
-          for phase in 1 2; do
-            ARCHX_SNAPSHOT_HOVER=tuning ARCHX_SNAPSHOT_PHASE=$phase ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-tuning-hover-$phase.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
-            test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-tuning-hover-$phase.png
-          done
-          for card in training tuning; do
-            if cmp -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos.png apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-$card-hover-1.png; then echo "FAIL: macOS $card hover matches rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log; exit 1; fi
-            echo "PASS: macOS $card hover phase differs from rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log
-          done
+          if cmp -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos.png apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-agent-hover-1.png; then echo "FAIL: macOS tile hover matches rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log; exit 1; fi
+          echo "PASS: macOS tile hover differs from rest" >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log
           ARCHX_SNAPSHOT_PAGE=about ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-about.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
           test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-about.png
           ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-agent.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
