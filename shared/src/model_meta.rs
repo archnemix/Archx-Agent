@@ -480,32 +480,33 @@ mod tests {
             ("live-model", "chat", None),
             ("deprecated-model", "chat", Some("deprecated")),
         ]);
-        let sweep = sweep(Provider::OpenRouter, &added, Some(&live), Some(&meta));
-        assert!(sweep.provider_checked);
+        let verdict = sweep(Provider::OpenRouter, &added, Some(&live), Some(&meta));
+        assert!(verdict.provider_checked);
         // Absent from a successful provider list: gone.
-        assert_eq!(sweep.gone[0], SweepVerdict {
+        assert_eq!(verdict.gone[0], SweepVerdict {
             model: "retired-model".to_owned(), reason: SweepReason::GoneFromProvider,
         });
         // Present but deprecated: gone for a different, recorded reason.
-        assert_eq!(sweep.gone[1].reason, SweepReason::Deprecated);
-        assert_eq!(sweep.gone.len(), 2);
+        assert_eq!(verdict.gone[1].reason, SweepReason::Deprecated);
+        assert_eq!(verdict.gone.len(), 2);
         // A model the live list still carries is never touched, and one absent
         // from a successful list is evidence, not an unknown.
-        assert!(sweep.unknown.is_empty(), "{:?}", sweep.unknown);
-        assert_eq!(sweep.ids(), strings(&["retired-model", "deprecated-model"]));
-        assert!(sweep.summary().contains("2 gone"));
-        assert!(!sweep.summary().contains("unverified"));
+        assert!(verdict.unknown.is_empty(), "{:?}", verdict.unknown);
+        assert_eq!(verdict.ids(), strings(&["retired-model", "deprecated-model"]));
+        assert!(verdict.summary().contains("2 gone"));
+        assert!(!verdict.summary().contains("unverified"));
     }
 
     #[test]
     fn sweep_does_not_guess_when_the_provider_did_not_answer() {
-        // A failed /models fetch must not retire anything, even a deprecation.
+        // A failed /models fetch must not retire anything by absence, but a
+        // models.dev deprecation is still positive evidence on its own.
         let added = strings(&["only-in-dev", "deprecated-model"]);
         let meta = registry_with(&[("deprecated-model", "chat", Some("deprecated"))]);
-        let sweep = sweep(Provider::OpenRouter, &added, None, Some(&meta));
-        assert!(!sweep.provider_checked);
-        assert_eq!(sweep.ids(), strings(&["deprecated-model"]));
-        assert_eq!(sweep.unknown, strings(&["only-in-dev"]));
+        let partial = sweep(Provider::OpenRouter, &added, None, Some(&meta));
+        assert!(!partial.provider_checked);
+        assert_eq!(partial.ids(), strings(&["deprecated-model"]));
+        assert_eq!(partial.unknown, strings(&["only-in-dev"]));
         // With no metadata at all and no provider list, nothing is claimed.
         let blind = sweep(Provider::OpenRouter, &added, None, None);
         assert!(blind.gone.is_empty());
@@ -521,10 +522,10 @@ mod tests {
         let added = strings(&["retired-model"]);
         let live = strings(&["live-model"]);
         let meta = registry_with(&[("retired-model", "chat", Some("deprecated"))]);
-        let sweep = sweep(Provider::OpenRouter, &added, Some(&live), Some(&meta));
-        assert_eq!(sweep.gone.len(), 1, "one row, one verdict: {:?}", sweep.gone);
-        assert_eq!(sweep.gone[0].reason, SweepReason::GoneFromProvider);
-        assert_eq!(sweep.gone[0].reason.label(), "no longer offered by the provider");
+        let verdict = sweep(Provider::OpenRouter, &added, Some(&live), Some(&meta));
+        assert_eq!(verdict.gone.len(), 1, "one row, one verdict: {:?}", verdict.gone);
+        assert_eq!(verdict.gone[0].reason, SweepReason::GoneFromProvider);
+        assert_eq!(verdict.gone[0].reason.label(), "no longer offered by the provider");
     }
 
     #[test]
@@ -536,8 +537,8 @@ mod tests {
             "openai/gpt-4o": {"type": "chat"}
         }}});
         let meta = parse_models_dev(&body);
-        let sweep = sweep(Provider::OpenRouter, &added, Some(&live), Some(&meta));
-        assert!(sweep.is_empty(), "listed models must survive the sweep: {:?}", sweep);
+        let verdict = sweep(Provider::OpenRouter, &added, Some(&live), Some(&meta));
+        assert!(verdict.is_empty(), "listed models must survive the sweep: {:?}", verdict);
     }
 
     #[test]
