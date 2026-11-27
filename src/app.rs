@@ -200,6 +200,10 @@ impl App {
                 _ => Page::Home,
             }
         } else { Page::Home };
+        // Read before `agent` takes ownership of the document: the launcher's
+        // matrix is its own and is never the app's.
+        let launcher_budget = persisted.as_ref().map(|settings| settings.launcher_budget.clone())
+            .unwrap_or_default();
         let mut agent = AgentApp::new(persisted);
         // A screenshot run must never need the app's own launch path.
         if snapshot.is_some() { agent.prepare_snapshot(surface_id(page)); }
@@ -215,8 +219,7 @@ impl App {
             agent,
             agent_scope: Scope::Balanced,
             launcher_scope: Scope::Light,
-            launcher_budget: persisted.as_ref().map(|settings| settings.launcher_budget)
-                .unwrap_or_default(),
+            launcher_budget,
             notice: None,
             storage_path: storage::display_path(),
             memory_usage: Vec::new(),
