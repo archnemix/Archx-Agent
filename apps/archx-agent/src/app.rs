@@ -635,7 +635,7 @@ impl App {
     pub fn save_launcher(&mut self, display: DisplaySettings, launcher_budget: archx_shared::memory::Budget) -> Option<String> {
         self.display = display;
         let on_disk = archx_shared::persist::PersistedSettings::load();
-        let agent_budget = on_disk.as_ref().map(|settings| settings.budget).unwrap_or_default();
+        let agent_budget = on_disk.as_ref().map(|settings| settings.budget.clone()).unwrap_or_default();
         let mut document = self.settings_document();
         // `settings_document` reflects the Agent's in-memory state, which is the
         // authority for the Agent's own fields. The launcher's two fields are the

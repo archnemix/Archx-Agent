@@ -1013,6 +1013,9 @@ impl App {
             keys: self.keys.clone(),
             model_health: self.model_health.clone(),
             display: self.display,
+            // The app owns its own matrix; the launcher's is written only by
+            // `save_launcher`, which reads the on-disk document first.
+            budget: self.memory_budget.clone(),
             stream_chat: self.settings.stream_chat,
             dialog_timeout_secs: diagnostics::REQUEST_TIMEOUT_SECS as u16,
             import_page_size: 60,

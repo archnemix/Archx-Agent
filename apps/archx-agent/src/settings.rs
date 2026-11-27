@@ -4,7 +4,7 @@ use std::fmt;
 use std::time::Instant;
 
 use iced::widget::{button, column, container, row, scrollable, space, stack, text, text_input};
-use iced::{Center, Element, Fill, Start};
+use iced::{Center, Element, Fill};
 use zeroize::Zeroizing;
 
 use crate::app::{MemoryMode, MemoryScope, Message};
@@ -395,7 +395,7 @@ fn usage_panel(state: &SettingsState) -> Element<'static, Message> {
             .on_press_maybe((!state.usage_busy && state.provider.needs_key())
                 .then_some(Message::FetchKeyUsage))
             .style(style::tiny_button)
-    ].spacing(10).align_y(Start).into()
+    ].spacing(10).align_y(iced::alignment::Vertical::Top).into()
 }
 
 fn providers(state: &SettingsState) -> Element<'static, Message> {
@@ -735,7 +735,7 @@ fn saved_run_panel(state: &SettingsState) -> Element<'static, Message> {
             body
         ].spacing(2).width(Fill),
         controls
-    ].spacing(10).align_y(Start).into()
+    ].spacing(10).align_y(iced::alignment::Vertical::Top).into()
 }
 
 /// Runtime memory: one row per cache per stage, with measured sizes.
