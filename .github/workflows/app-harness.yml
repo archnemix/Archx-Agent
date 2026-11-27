@@ -8,9 +8,10 @@ on:
   workflow_dispatch:
     inputs:
       app:
-        description: 'App folder id under apps/ (e.g. archx-agent)'
+        description: 'App folder id under apps/ (e.g. training, archx-agent)'
         required: true
         default: 'archx-agent'
+        type: string
       windows:
         description: 'Also build and test on Windows'
         type: boolean
@@ -45,9 +46,9 @@ jobs:
       - name: Build and test the app in isolation
         shell: bash
         env:
-          # A dispatch run names the app. A push run does not, so the step falls
-          # back to the branch's own checked-out tree (`cwd`) instead of silently
-          # harness-raising the Agent while an author watches.
+          # A dispatch run names the app; a push run passes nothing and the step
+          # below works it out from the commit. There is deliberately no default:
+          # a wrong default would report PASS for code nobody wrote.
           APP: ${{ inputs.app }}
         run: |
           set -o pipefail
@@ -61,8 +62,11 @@ jobs:
               APP="$(git diff --name-only "$BASE" HEAD -- 'apps/' | cut -d/ -f2 | grep -v '^$' | sort -u | head -1)"
             fi
             if [ -z "$APP" ]; then
-              echo "No single app could be identified from this push. Re-run this"                    "workflow with the 'app' input set to the folder id." | tee -a apps/app-harness-built.log || true
-              APP="archx-agent"
+              # Never fall back to another app: a PASS here would describe code
+              # the author did not write. Say so, and name the fix.
+              echo "SKIP: could not tell which app this push changed."
+              echo "Re-run this workflow from the Actions tab with 'app' set to your folder id." | tee -a app-harness.log
+              exit 0
             fi
           fi
           LOG="apps/$APP/docs/Test_Results/Unreleased/non_visual/app-harness.log"
@@ -94,9 +98,9 @@ jobs:
       - name: Render the held app, if the harness can host it
         shell: bash
         env:
-          # A dispatch run names the app. A push run does not, so the step falls
-          # back to the branch's own checked-out tree (`cwd`) instead of silently
-          # harness-raising the Agent while an author watches.
+          # A dispatch run names the app; a push run passes nothing and the step
+          # below works it out from the commit. There is deliberately no default:
+          # a wrong default would report PASS for code nobody wrote.
           APP: ${{ inputs.app }}
         run: |
           if [ -z "$APP" ]; then
@@ -165,16 +169,19 @@ jobs:
       - name: Build and test the app in isolation
         shell: bash
         env:
-          # A dispatch run names the app. A push run does not, so the step falls
-          # back to the branch's own checked-out tree (`cwd`) instead of silently
-          # harness-raising the Agent while an author watches.
+          # A dispatch run names the app; a push run passes nothing and the step
+          # below works it out from the commit. There is deliberately no default:
+          # a wrong default would report PASS for code nobody wrote.
           APP: ${{ inputs.app }}
         run: |
           if [ -z "$APP" ]; then
             if BASE="$(git rev-parse --verify -q HEAD^)"; then
               APP="$(git diff --name-only "$BASE" HEAD -- 'apps/' | cut -d/ -f2 | grep -v '^$' | sort -u | head -1)"
             fi
-            [ -z "$APP" ] && APP="archx-agent"
+            if [ -z "$APP" ]; then
+              echo "SKIP: could not tell which app this push changed; re-run with 'app' set." | tee -a app-harness-windows.log
+              exit 0
+            fi
           fi
           LOG="apps/$APP/docs/Test_Results/Unreleased/non_visual/app-harness-windows.log"
           mkdir -p "apps/$APP/docs/Test_Results/Unreleased/non_visual"
