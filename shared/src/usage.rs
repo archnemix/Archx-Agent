@@ -106,16 +106,24 @@ impl KeyUsage {
     }
 
     /// What a balance-style headline should say, or why it says nothing.
+    ///
+    /// Order matters. A credit cap is the most specific claim a provider makes
+    /// about a key, so it wins. A free-tier account's daily allowance is next,
+    /// because a free account usually reports `usage: 0` and "spent $0.00"
+    /// would hide the quota that actually limits it.
     pub fn headline(&self) -> String {
         if let Some(limit) = self.limit {
             let left = self.remaining.unwrap_or_else(|| (limit - self.usage.unwrap_or(0.0)).max(0.0));
             return format!("${left:.2} left of this key's ${limit:.2} cap");
         }
+        if let (Some(used), Some(limit)) = (self.free_requests_used, self.free_requests_limit) {
+            return format!("{} of {limit} free-model requests used today", used);
+        }
         if let Some(used) = self.usage {
             return format!("${used:.2} spent on this key · no per-key cap set");
         }
-        if let (Some(used), Some(limit)) = (self.free_requests_used, self.free_requests_limit) {
-            return format!("{} of {limit} free-model requests used today", used);
+        if let Some(true) = self.free_tier {
+            return "A free-tier account; the provider did not report a remaining count.".to_owned();
         }
         "The provider returned no usage figures for this key.".to_owned()
     }
@@ -216,6 +224,18 @@ mod tests {
         assert_eq!(usage.free_requests_limit, Some(50));
         assert!(usage.headline().contains("12 of 50 free-model requests"));
         assert!(usage.line().contains("12 / 50 free requests today"));
+    }
+
+    #[test]
+    fn a_cap_beats_a_free_allowance_which_beats_plain_spend() {
+        let capped = parse_openrouter_key(&json!({"data": {"limit": 5.0, "limit_remaining": 2.0,
+            "usage": 3.0, "free_model_daily_requests": {"used": 1, "limit": 50}}}));
+        assert!(capped.headline().starts_with("$2.00 left of this key's $5.00 cap"));
+        let free_only = parse_openrouter_key(&json!({"data": {"usage": 0.0, "is_free_tier": true,
+            "free_model_daily_requests": {"used": 7, "limit": 50}}}));
+        assert_eq!(free_only.headline(), "7 of 50 free-model requests used today");
+        let tier_only = parse_openrouter_key(&json!({"data": {"is_free_tier": true}}));
+        assert!(tier_only.headline().contains("did not report a remaining count"));
     }
 
     #[test]
