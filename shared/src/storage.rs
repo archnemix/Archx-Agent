@@ -205,6 +205,62 @@ pub fn wipe(area: Area) -> bool {
     }
 }
 
+/// App-scoped persistence, for an app that is not `Archx Agent`.
+///
+/// The four `Area` files at the root belong to one app; a second app writing
+/// them would overwrite the Agent's settings. Instead each app gets its own
+/// folder, `root()/apps/<app-id>/<area>.json`, with exactly the same rules: the
+/// credential-shaped-field check, the versioned envelope, an atomic replace, and
+/// the thread-local directory used by tests.
+///
+/// Both names are slugs (`lowercase`, digits, `-`) so neither can walk out of
+/// the folder with `..` or an absolute path.
+fn slug(name: &str) -> bool {
+    !name.is_empty() && name.len() <= 64
+        && name.bytes().all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+}
+
+/// Folder that belongs to one app: `root()/apps/<app-id>`.
+pub fn app_dir(app_id: &str) -> Option<PathBuf> {
+    slug(app_id).then(|| root().join("apps").join(app_id))
+}
+
+/// Path of one app's area file, or `None` for a name that is not a slug.
+pub fn app_path(app_id: &str, area: &str) -> Option<PathBuf> {
+    if !slug(area) { return None; }
+    app_dir(app_id).map(|dir| dir.join(format!("{area}.json")))
+}
+
+/// Writes one area of one app, with the same checks as `save`.
+pub fn save_app(app_id: &str, area: &str, document: Value) -> Result<(), SaveError> {
+    if let Some(field) = credential_field(&document) {
+        return Err(SaveError::Credential(field));
+    }
+    let Some(path) = app_path(app_id, area) else { return Err(SaveError::Io) };
+    let envelope = envelope(&format!("{app_id}/{area}"), document);
+    let bytes = serde_json::to_vec_pretty(&envelope).map_err(|_| SaveError::Io)?;
+    write_atomic(&path, &bytes).map_err(|_| SaveError::Io)
+}
+
+/// Reads one app's area body; `None` when the file is missing, corrupt, or was
+/// not written by this version.
+pub fn load_app_body(app_id: &str, area: &str) -> Option<Value> {
+    let path = app_path(app_id, area)?;
+    let bytes = std::fs::read(path).ok()?;
+    let document: Value = serde_json::from_slice(&bytes).ok()?;
+    body(&document).cloned()
+}
+
+/// Deletes one app's area (and any leftover temporary file).
+pub fn wipe_app(app_id: &str, area: &str) -> bool {
+    let Some(path) = app_path(app_id, area) else { return false };
+    let _ = std::fs::remove_file(path.with_extension("json.tmp"));
+    match std::fs::remove_file(&path) {
+        Ok(()) => true,
+        Err(error) => error.kind() == std::io::ErrorKind::NotFound,
+    }
+}
+
 /// Deletes every area. Returns the labels actually present beforehand.
 pub fn wipe_all() -> BTreeSet<&'static str> {
     let mut removed = BTreeSet::new();
@@ -252,6 +308,39 @@ mod tests {
         let path = std::env::temp_dir().join(format!("archx-storage-test-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&path);
         path
+    }
+
+    #[test]
+    fn two_apps_never_share_a_document() {
+        let dir = scratch("app-scope");
+        set_thread_directory(Some(dir.clone()));
+        // The Agent's own file and a second app's file must not collide.
+        save_app("training", "settings", json!({"config": "a"})).expect("writes");
+        save_app("monitor", "settings", json!({"config": "b"})).expect("writes");
+        save(Area::Settings, json!({"provider": "OpenRouter"})).expect("writes");
+        assert_eq!(load_app_body("training", "settings"), Some(json!({"config": "a"})));
+        assert_eq!(load_app_body("monitor", "settings"), Some(json!({"config": "b"})));
+        assert_eq!(load_body(Area::Settings), Some(json!({"provider": "OpenRouter"})));
+        assert!(app_path("training", "settings").expect("path").starts_with(dir.join("apps").join("training")));
+        // The same credential rule applies to an app document.
+        assert!(matches!(save_app("training", "settings", json!({"token": "sk-x"})),
+            Err(SaveError::Credential(_))));
+        // Wiping one app leaves the other alone.
+        assert!(wipe_app("training", "settings"));
+        assert_eq!(load_app_body("training", "settings"), None);
+        assert!(load_app_body("monitor", "settings").is_some());
+        set_thread_directory(None);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn an_app_name_cannot_escape_its_folder() {
+        assert!(app_path("..", "settings").is_none());
+        assert!(app_path("../../etc", "settings").is_none());
+        assert!(app_path("/absolute", "settings").is_none());
+        assert!(app_path("Training", "settings").is_none(), "ids are lowercase");
+        assert!(app_path("training", "../settings").is_none());
+        assert!(app_path("training", "settings").is_some());
     }
 
     #[test]

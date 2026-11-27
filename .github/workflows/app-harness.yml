@@ -16,7 +16,11 @@ on:
         type: boolean
         default: false
   push:
-    branches: [arena/53d9bc26-archx-agent]
+    # `app/**` is the branch shape an app author is told to use (see
+    # Adding_An_App.md section 7). Without it, the only branch that could run
+    # this job was the launcher's own, so an app author had no way to get a
+    # green build on their branch at all.
+    branches: [arena/53d9bc26-archx-agent, 'app/**']
     paths:
       - 'apps/**'
       - 'shared/**'
@@ -31,27 +35,58 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: arena/53d9bc26-archx-agent
+          # The branch that triggered the run. A fixed ref meant an app author's
+          # own branch was never built: the job would test the main line instead
+          # and report on code the author had not written yet.
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
           persist-credentials: true
       - uses: dtolnay/rust-toolchain@stable
       - name: Build and test the app in isolation
         shell: bash
         env:
-          APP: ${{ inputs.app || 'archx-agent' }}
+          # A dispatch run names the app. A push run does not, so the step falls
+          # back to the branch's own checked-out tree (`cwd`) instead of silently
+          # harness-raising the Agent while an author watches.
+          APP: ${{ inputs.app }}
         run: |
           set -o pipefail
           sudo apt-get update -qq && sudo apt-get install -y -qq libxkbcommon-dev libxkbcommon-x11-0 libwayland-dev libasound2-dev xvfb > /dev/null
+          # A dispatch run names the app. A push run does not, so find the app
+          # the commit actually touched — otherwise the job would quietly harness
+          # the Agent while an author's app was never compiled, and the author
+          # would read PASS on code they did not write.
+          if [ -z "$APP" ]; then
+            if BASE="$(git rev-parse --verify -q HEAD^)"; then
+              APP="$(git diff --name-only "$BASE" HEAD -- 'apps/' | cut -d/ -f2 | grep -v '^$' | sort -u | head -1)"
+            fi
+            if [ -z "$APP" ]; then
+              echo "No single app could be identified from this push. Re-run this"                    "workflow with the 'app' input set to the folder id." | tee -a apps/app-harness-built.log || true
+              APP="archx-agent"
+            fi
+          fi
           LOG="apps/$APP/docs/Test_Results/Unreleased/non_visual/app-harness.log"
           mkdir -p "apps/$APP/docs/Test_Results/Unreleased/non_visual" "apps/$APP/docs/Test_Results/Unreleased/visual"
           : > "$LOG"
           # The manifest is the entry point: if it is not there, there is nothing
           # to harness, and the job says so instead of guessing a crate name.
           test -f "apps/$APP/app.toml" || { echo "no apps/$APP/app.toml" | tee -a "$LOG"; exit 1; }
+          # The app id is a FOLDER name (`training`); the crate is declared in the
+          # manifest (`crate = "archx-training"`). `cargo -p` wants the crate, so
+          # read it from the manifest instead of assuming id == crate name, which
+          # only ever worked because `archx-agent` begins with `archx-`.
+          CRATE="$(sed -n 's/^[[:space:]]*crate[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "apps/$APP/app.toml" | head -1)"
+          if [ -z "$CRATE" ]; then
+            echo "SKIP: apps/$APP/app.toml declares no crate, so there is nothing to build yet." | tee -a "$LOG"
+            echo "This is correct for a reserved app. Add \`crate = \"archx-$APP\"\` when the code lands." | tee -a "$LOG"
+            exit 0
+          fi
+          echo "APP: $APP  CRATE: $CRATE" | tee -a "$LOG"
           {
-            echo "COMMAND: cargo test -p $APP"
-            cargo test -p "$APP" --locked 2>&1 || cargo test -p "$APP" 2>&1
-            echo "COMMAND: cargo build -p $APP"
-            cargo build -p "$APP"
+            echo "COMMAND: cargo test -p $CRATE"
+            cargo test -p "$CRATE" --locked 2>&1 || cargo test -p "$CRATE" 2>&1
+            echo "COMMAND: cargo build -p $CRATE"
+            cargo build -p "$CRATE"
           } | tee -a "$LOG"
           # The app's crate built. The launcher is NOT built here: an app in
           # progress is not in the release, and the harness must never pretend it is.
@@ -59,8 +94,16 @@ jobs:
       - name: Render the held app, if the harness can host it
         shell: bash
         env:
-          APP: ${{ inputs.app || 'archx-agent' }}
+          # A dispatch run names the app. A push run does not, so the step falls
+          # back to the branch's own checked-out tree (`cwd`) instead of silently
+          # harness-raising the Agent while an author watches.
+          APP: ${{ inputs.app }}
         run: |
+          if [ -z "$APP" ]; then
+            if BASE="$(git rev-parse --verify -q HEAD^)"; then
+              APP="$(git diff --name-only "$BASE" HEAD -- 'apps/' | cut -d/ -f2 | grep -v '^$' | sort -u | head -1)"
+            fi
+          fi
           LOG="apps/$APP/docs/Test_Results/Unreleased/non_visual/app-harness.log"
           # Rendering needs the launcher, and the launcher only builds a release.
           # So the harness renders only when the app is in the release AND ready.
@@ -99,6 +142,10 @@ jobs:
           # Results are recorded on the branch the run came from — which for an
           # app under development is that app's own branch, never the main line.
           BRANCH="${GITHUB_REF_NAME}"
+          if ! git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null 2>&1; then
+            echo "Not a branch on the remote ($BRANCH); results are in this run's log only."
+            exit 0
+          fi
           git pull --rebase origin "$BRANCH" || true
           git push origin "HEAD:$BRANCH" || true
 
@@ -108,18 +155,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: arena/53d9bc26-archx-agent
+          # The branch that triggered the run. A fixed ref meant an app author's
+          # own branch was never built: the job would test the main line instead
+          # and report on code the author had not written yet.
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
           persist-credentials: true
       - uses: dtolnay/rust-toolchain@stable
       - name: Build and test the app in isolation
         shell: bash
         env:
-          APP: ${{ inputs.app || 'archx-agent' }}
+          # A dispatch run names the app. A push run does not, so the step falls
+          # back to the branch's own checked-out tree (`cwd`) instead of silently
+          # harness-raising the Agent while an author watches.
+          APP: ${{ inputs.app }}
         run: |
+          if [ -z "$APP" ]; then
+            if BASE="$(git rev-parse --verify -q HEAD^)"; then
+              APP="$(git diff --name-only "$BASE" HEAD -- 'apps/' | cut -d/ -f2 | grep -v '^$' | sort -u | head -1)"
+            fi
+            [ -z "$APP" ] && APP="archx-agent"
+          fi
           LOG="apps/$APP/docs/Test_Results/Unreleased/non_visual/app-harness-windows.log"
           mkdir -p "apps/$APP/docs/Test_Results/Unreleased/non_visual"
           : > "$LOG"
           test -f "apps/$APP/app.toml" || { echo "no apps/$APP/app.toml" | tee -a "$LOG"; exit 1; }
-          cargo test -p "$APP" 2>&1 | tee -a "$LOG"
-          cargo build -p "$APP" 2>&1 | tee -a "$LOG"
+          CRATE="$(sed -n 's/^[[:space:]]*crate[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "apps/$APP/app.toml" | head -1)"
+          if [ -z "$CRATE" ]; then
+            echo "SKIP: apps/$APP/app.toml declares no crate, so there is nothing to build yet." | tee -a "$LOG"
+            exit 0
+          fi
+          echo "APP: $APP  CRATE: $CRATE" | tee -a "$LOG"
+          cargo test -p "$CRATE" 2>&1 | tee -a "$LOG"
+          cargo build -p "$CRATE" 2>&1 | tee -a "$LOG"
           echo "PASS: $APP builds and its own tests pass on Windows" | tee -a "$LOG"

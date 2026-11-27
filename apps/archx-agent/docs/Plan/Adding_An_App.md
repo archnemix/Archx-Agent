@@ -359,6 +359,84 @@ not a cherry-pick of "just the app folder" from a branch that also changed the
 launcher. If a branch mixes launcher edits into app work, send it back: a clean
 branch is the price of a fast import.
 
+## 7b. The host contract: what the launcher actually calls
+
+This is the part you cannot infer from `view = "home::view"`. The launcher hosts
+an app **in-process**, the way it hosts the Agent, so it needs a few more hooks
+before it can open your app. Write your crate against this list; if you match it,
+step 7 of the import is a wiring change and nothing else.
+
+```rust
+// In apps/<id>/src/home.rs — the only function the manifest names.
+pub fn view(app: &App) -> Element<'_, Message>;
+
+// In apps/<id>/src/app.rs
+pub struct App { … }
+impl App {
+    /// The launcher loads the persisted document and hands it over. `None` on a
+    /// first run or in a snapshot run. A second app loads its own document with
+    /// `storage::load_app_body("<id>", "<area>")` instead.
+    pub fn new(persisted: Option<PersistedSettings>) -> Self;
+
+    pub fn update(&mut self, message: Message) -> Task<Message>;
+
+    /// Pages are the app's own enum. The launcher names a surface with a short
+    /// string ("home", "settings", "debug") and the app maps it.
+    pub fn enter_surface(&mut self, surface: &str);
+
+    /// Called when the user leaves for the launcher: abort in-flight work and
+    /// settle state, so nothing keeps running behind another page.
+    pub fn leave_app(&mut self) -> Task<Message>;
+
+    /// Set when your app wants the launcher to go back to Discover on its own
+    /// (the "Back to launcher" button). The launcher reads it after every update.
+    pub left_for_launcher: bool;
+
+    /// Screenshot runs only: pin one surface and skip anything restored from
+    /// disk, so a review image never depends on the author's machine.
+    pub fn prepare_snapshot(&mut self, surface: &str);
+}
+```
+
+**What the launcher gives you, and what it does not:**
+
+* **Text scale** — it holds `DisplaySettings` (per-area `TextScale`) and writes it
+  to `settings.json`. It can hand the whole struct to your app at start-up; it
+  does **not** yet push live changes into a second app. Use
+  `archx_shared::persist::TextScale` for your own type sizes so a scale change
+  lands the day that wiring does.
+* **Memory scope** — this is `Launcher::Scope` in `src/app.rs` and it is
+  **the launcher's own type**, not a shared one (the Agent keeps a private copy).
+  A second app should treat scope as advisory and keep its own resident-data
+  policy; asking for it to be promoted to `archx_shared` is a legitimate
+  `Launcher_Request.md`.
+* **Vault keys** — use `archx_shared::credentials::Vault` directly. One vault for
+  the whole Lab: a key saved by the Agent is the same key your app reads. Never
+  invent a second vault and never pass key text between apps.
+* **Timers** — iced returns `Subscription` from the *application*, not from the
+  page, so the launcher owns subscriptions. An app that needs a repeating clock
+  (a live loss curve, say) must drive it from a `Message` the launcher ticks, or
+  ask for one. Today the launcher only ticks for page transitions and snapshots.
+
+**Persistence is per app, and there are two ways to get it wrong:**
+
+```rust
+// Wrong: overwrites Archx Agent's own files (settings.json, chats.json, …).
+storage::save(storage::Area::Settings, document)?;
+
+// Right: root()/apps/<id>/<area>.json, same checks, same envelope.
+storage::save_app("<id>", "settings", document)?;
+let document = storage::load_app_body("<id>", "settings");
+storage::wipe_app("<id>", "settings");
+```
+
+Both names are slugs (lowercase, digits, `-`); `app_path` returns `None` for
+anything else, so an id can never walk out of its folder.
+
+**Naming.** The folder is the app id (`apps/training/`); the crate is `crate =
+"archx-training"` in the manifest. They are different strings on purpose, and the
+`App harness` reads `crate` from your manifest — it does not assume the two match.
+
 ## 8. Releasing an app, and holding one back
 
 `ready` decides what the *launcher* sees at runtime. Publishing is a separate,

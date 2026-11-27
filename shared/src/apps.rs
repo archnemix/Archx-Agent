@@ -518,16 +518,37 @@ mod tests {
         assert!(agent.has_code());
     }
 
+    /// A reserved folder is a valid app: a manifest, docs, and no code.
+    ///
+    /// This used to be written against `training` itself, which meant that the
+    /// day the second app's code landed in that folder, the launcher owner's
+    /// test-suite broke on a file the app author had every right to change. The
+    /// rule belongs to the *shape*, so it is tested on a scratch folder, and the
+    /// live manifest is only checked for being self-consistent.
     #[test]
     fn a_reserved_folder_needs_no_code_yet() {
-        let training = find_any("training").expect("training space");
-        assert!(!training.is_live());
-        assert!(!training.has_code());
-        assert!(training.contract_problems().is_empty(),
-            "a code-less app is valid: {:?}", training.contract_problems());
-        assert!(training.docs.is_some(), "the second app keeps its own docs");
-        assert!(training.summary.to_lowercase().contains("train"));
-        assert!(!training.modes.is_empty());
+        let dir = scratch_apps(&[
+            ("blank", "id = \"blank\"\nname = \"Blank\"\nstatus = \"building\"\nready = false\n"),
+            ("coded", READY_MANIFEST),
+        ]);
+        set_thread_directory(Some(dir.clone()));
+        let blank = find_any("blank").expect("blank space");
+        assert!(!blank.is_live(), "a reserved folder is not open");
+        assert!(!blank.has_code(), "it has no crate yet");
+        assert!(blank.contract_problems().is_empty(),
+            "a code-less app is valid: {:?}", blank.contract_problems());
+        // A reserved folder needs no files at all, so there is nothing to verify.
+        assert!(blank.verify_files(Path::new("/nonexistent")).is_empty(),
+            "a code-less app declares no entry, no docs and no Cargo.toml");
+        // Whenever `apps/training/` is still reserved it must stay code-less and
+        // valid; when its code lands this assertion simply stops applying.
+        if let Some(training) = find_any("training") {
+            assert!(training.contract_problems().is_empty(), "{:?}", training.contract_problems());
+            assert!(training.docs.is_some(), "the second app keeps its own docs");
+            if !training.is_live() { assert!(!training.has_code()); }
+        }
+        set_thread_directory(None);
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     /// The rule the user asked for: an app that is not ready is not registered,
