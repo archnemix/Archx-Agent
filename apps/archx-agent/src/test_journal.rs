@@ -161,7 +161,7 @@ pub fn record(entry: Entry) {
 /// Closes the run and returns it. Also fills in rows the run never reached, so
 /// a cancelled run cannot look like a run that tested everything.
 pub fn finish(finished_at: u64) -> Run {
-    let mut guard = slot().lock().unwrap_or_else(|poison| poison.into_inner());
+    let guard = slot().lock().unwrap_or_else(|poison| poison.into_inner());
     let mut run = guard.clone().unwrap_or_default();
     run.finished_at = Some(finished_at);
     run

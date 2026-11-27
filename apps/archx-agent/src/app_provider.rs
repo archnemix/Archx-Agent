@@ -1014,8 +1014,12 @@ impl App {
             model_health: self.model_health.clone(),
             display: self.display,
             // The app owns its own matrix; the launcher's is written only by
-            // `save_launcher`, which reads the on-disk document first.
+            // `save_launcher`, which reads the on-disk document first and then
+            // overwrites this field. Filling it here with the app's matrix would
+            // be a lie the next full save would persist, so it comes from disk.
             budget: self.memory_budget.clone(),
+            launcher_budget: archx_shared::persist::PersistedSettings::load()
+                .map(|settings| settings.launcher_budget).unwrap_or_default(),
             stream_chat: self.settings.stream_chat,
             dialog_timeout_secs: diagnostics::REQUEST_TIMEOUT_SECS as u16,
             import_page_size: 60,
