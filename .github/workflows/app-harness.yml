@@ -53,21 +53,32 @@ jobs:
         run: |
           set -o pipefail
           sudo apt-get update -qq && sudo apt-get install -y -qq libxkbcommon-dev libxkbcommon-x11-0 libwayland-dev libasound2-dev xvfb > /dev/null
-          # A dispatch run names the app. A push run does not, so find the app
-          # the commit actually touched — otherwise the job would quietly harness
-          # the Agent while an author's app was never compiled, and the author
-          # would read PASS on code they did not write.
+          # Which app? Three signals, in order, and never a guess:
+          #   1. a dispatch run says so;
+          #   2. branch `app/<id>-<who>` names it (the shape the hand-off asks for);
+          #   3. otherwise diff against the launcher branch and take the one app
+          #      folder that changed. Arena fixes the session branch name
+          #      (`arena/<uuid>-archx-agent`), so an author there cannot use
+          #      `app/...`; this is the case that keeps their run meaningful.
+          # If none of them identifies exactly one app, the job stops with SKIP.
+          LAUNCHER_REF="origin/arena/53d9bc26-archx-agent"
           if [ -z "$APP" ]; then
-            if BASE="$(git rev-parse --verify -q HEAD^)"; then
-              APP="$(git diff --name-only "$BASE" HEAD -- 'apps/' | cut -d/ -f2 | grep -v '^$' | sort -u | head -1)"
+            case "$GITHUB_REF_NAME" in
+              app/*-*) APP="${GITHUB_REF_NAME#app/}"; APP="${APP%-*}" ;;
+            esac
+          fi
+          if [ -z "$APP" ]; then
+            git fetch --quiet origin "+refs/heads/arena/53d9bc26-archx-agent:refs/remotes/$LAUNCHER_REF" 2>/dev/null || true
+            if BASE="$(git merge-base "$LAUNCHER_REF" HEAD 2>/dev/null)"; then
+              CHANGED="$(git diff --name-only "$BASE" HEAD -- 'apps/' | cut -d/ -f2 | grep -v '^$' | sort -u)"
+              COUNT="$(printf '%s\n' "$CHANGED" | grep -c . || true)"
+              if [ "$COUNT" = "1" ]; then APP="$CHANGED"; fi
             fi
-            if [ -z "$APP" ]; then
-              # Never fall back to another app: a PASS here would describe code
-              # the author did not write. Say so, and name the fix.
-              echo "SKIP: could not tell which app this push changed."
-              echo "Re-run this workflow from the Actions tab with 'app' set to your folder id." | tee -a app-harness.log
-              exit 0
-            fi
+          fi
+          if [ -z "$APP" ]; then
+            echo "SKIP: this push does not identify exactly one app folder."
+            echo "Push to app/<id>-<name>, or dispatch this workflow with 'app' set." | tee -a app-harness.log
+            exit 0
           fi
           LOG="apps/$APP/docs/Test_Results/Unreleased/non_visual/app-harness.log"
           mkdir -p "apps/$APP/docs/Test_Results/Unreleased/non_visual" "apps/$APP/docs/Test_Results/Unreleased/visual"
@@ -103,11 +114,34 @@ jobs:
           # a wrong default would report PASS for code nobody wrote.
           APP: ${{ inputs.app }}
         run: |
+          # Which app? Three signals, in order, and never a guess:
+          #   1. a dispatch run says so;
+          #   2. branch `app/<id>-<who>` names it (the shape the hand-off asks for);
+          #   3. otherwise diff against the launcher branch and take the one app
+          #      folder that changed. Arena fixes the session branch name
+          #      (`arena/<uuid>-archx-agent`), so an author there cannot use
+          #      `app/...`; this is the case that keeps their run meaningful.
+          # If none of them identifies exactly one app, the job stops with SKIP.
+          LAUNCHER_REF="origin/arena/53d9bc26-archx-agent"
           if [ -z "$APP" ]; then
-            if BASE="$(git rev-parse --verify -q HEAD^)"; then
-              APP="$(git diff --name-only "$BASE" HEAD -- 'apps/' | cut -d/ -f2 | grep -v '^$' | sort -u | head -1)"
+            case "$GITHUB_REF_NAME" in
+              app/*-*) APP="${GITHUB_REF_NAME#app/}"; APP="${APP%-*}" ;;
+            esac
+          fi
+          if [ -z "$APP" ]; then
+            git fetch --quiet origin "+refs/heads/arena/53d9bc26-archx-agent:refs/remotes/$LAUNCHER_REF" 2>/dev/null || true
+            if BASE="$(git merge-base "$LAUNCHER_REF" HEAD 2>/dev/null)"; then
+              CHANGED="$(git diff --name-only "$BASE" HEAD -- 'apps/' | cut -d/ -f2 | grep -v '^$' | sort -u)"
+              COUNT="$(printf '%s\n' "$CHANGED" | grep -c . || true)"
+              if [ "$COUNT" = "1" ]; then APP="$CHANGED"; fi
             fi
           fi
+          if [ -z "$APP" ]; then
+            echo "SKIP: this push does not identify exactly one app folder."
+            echo "Push to app/<id>-<name>, or dispatch this workflow with 'app' set." | tee -a app-harness.log
+            exit 0
+          fi
+          [ -z "$APP" ] && exit 0
           LOG="apps/$APP/docs/Test_Results/Unreleased/non_visual/app-harness.log"
           # Rendering needs the launcher, and the launcher only builds a release.
           # So the harness renders only when the app is in the release AND ready.
@@ -174,14 +208,32 @@ jobs:
           # a wrong default would report PASS for code nobody wrote.
           APP: ${{ inputs.app }}
         run: |
+          # Which app? Three signals, in order, and never a guess:
+          #   1. a dispatch run says so;
+          #   2. branch `app/<id>-<who>` names it (the shape the hand-off asks for);
+          #   3. otherwise diff against the launcher branch and take the one app
+          #      folder that changed. Arena fixes the session branch name
+          #      (`arena/<uuid>-archx-agent`), so an author there cannot use
+          #      `app/...`; this is the case that keeps their run meaningful.
+          # If none of them identifies exactly one app, the job stops with SKIP.
+          LAUNCHER_REF="origin/arena/53d9bc26-archx-agent"
           if [ -z "$APP" ]; then
-            if BASE="$(git rev-parse --verify -q HEAD^)"; then
-              APP="$(git diff --name-only "$BASE" HEAD -- 'apps/' | cut -d/ -f2 | grep -v '^$' | sort -u | head -1)"
+            case "$GITHUB_REF_NAME" in
+              app/*-*) APP="${GITHUB_REF_NAME#app/}"; APP="${APP%-*}" ;;
+            esac
+          fi
+          if [ -z "$APP" ]; then
+            git fetch --quiet origin "+refs/heads/arena/53d9bc26-archx-agent:refs/remotes/$LAUNCHER_REF" 2>/dev/null || true
+            if BASE="$(git merge-base "$LAUNCHER_REF" HEAD 2>/dev/null)"; then
+              CHANGED="$(git diff --name-only "$BASE" HEAD -- 'apps/' | cut -d/ -f2 | grep -v '^$' | sort -u)"
+              COUNT="$(printf '%s\n' "$CHANGED" | grep -c . || true)"
+              if [ "$COUNT" = "1" ]; then APP="$CHANGED"; fi
             fi
-            if [ -z "$APP" ]; then
-              echo "SKIP: could not tell which app this push changed; re-run with 'app' set." | tee -a app-harness-windows.log
-              exit 0
-            fi
+          fi
+          if [ -z "$APP" ]; then
+            echo "SKIP: this push does not identify exactly one app folder."
+            echo "Push to app/<id>-<name>, or dispatch this workflow with 'app' set." | tee -a app-harness.log
+            exit 0
           fi
           LOG="apps/$APP/docs/Test_Results/Unreleased/non_visual/app-harness-windows.log"
           mkdir -p "apps/$APP/docs/Test_Results/Unreleased/non_visual"
