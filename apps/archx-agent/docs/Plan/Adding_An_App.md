@@ -194,16 +194,17 @@ You are building ONE app inside the Archx AI Lab repository: <id> (working title
 "<name>"). Work only inside apps/<id>/. Do not edit the launcher: src/*.rs,
 Cargo.toml at the repository root, or apps/archx-agent/**.
 
-You work on YOUR OWN BRANCH, never on the main line. Check out a branch from the
-base code you were given and keep all of your work there:
+You work on ONE branch of your own, never on the main line. If your tool fixes
+the branch name for you (Arena does: `arena/<uuid>-archx-agent`), that branch is
+your workspace — keep it, do not rename it, do not create a second one. Otherwise:
 
     git checkout -b app/<id>-<your-name> origin/<the-branch-you-were-given>
 
-Push only to that branch (`git push -u origin app/<id>-<your-name>`). Never push
-to the main branch, never force-push, never merge the main line into yours. When
-your app is finished, green and you have reported it, you are done: the launcher
-owner imports your branch after the owner of the product has confirmed the app
-works. Do not open a pull request into the main line yourself.
+Push only to your own branch. Never push to the main branch or to anyone else's
+branch, never force-push, never merge the main line into yours. When your app is
+finished, green and you have reported it, you are done: the launcher owner
+imports your branch after the owner of the product has confirmed the app works.
+Do not open a pull request into the main line yourself.
 
 Read these two files first, in this order:
   1. apps/archx-agent/docs/Plan/Adding_An_App.md  (the contract you must satisfy)
@@ -270,17 +271,24 @@ repo, branch from `<branch>`, work only in `apps/<id>/`, push only your branch."
 Do not give out a copy of your working tree as a zip: a branch is what makes the
 import a reviewable diff instead of a folder somebody has to trust.
 
-**2. It branches, and stays on that branch.**
+**2. It works on one branch of its own, and stays there.**
+
+If the AI can choose its branch name, use the shape `app/<id>-<who>`:
 
 ```text
 git clone https://github.com/archnemix/Archx-Agent && cd Archx-Agent
 git checkout -b app/<id>-<your-name> origin/arena/53d9bc26-archx-agent
-# ... build, commit, push ...
 git push -u origin app/<id>-<your-name>
 ```
 
-The branch name is `app/<id>-<who>`. One app per branch; a branch with two apps
-cannot be imported in one piece.
+If it runs inside Arena, the session branch is **fixed** (`arena/<uuid>-archx-agent`)
+and cannot be renamed. That is fine and fully supported — the workflow accepts
+`arena/*`, and the harness works out which app is under test from the branch name
+or from the one app folder that differs from the launcher branch. Do not ask the
+AI to rename it or to create a second branch; one branch, wherever it lives.
+
+Either way: one app per branch. A branch with two apps cannot be imported in one
+piece, and the harness will refuse to guess which one you meant.
 
 **3. It proves the app there.** `cargo test -p <id>` locally if Rust is
 available; otherwise push and run `Actions → App harness → app: <id>` on its own
@@ -303,8 +311,8 @@ should ship its own snapshot runner inside `apps/<id>/`.
 
 ```text
 # on your machine, without touching the main line:
-git fetch origin app/<id>-<your-name>
-git diff --stat origin/arena/53d9bc26-archx-agent...origin/app/<id>-<your-name>
+git fetch origin <their-branch>          # app/<id>-<who> or arena/<uuid>-archx-agent
+git diff --stat origin/arena/53d9bc26-archx-agent...origin/<their-branch>
 ```
 
 Three things to read in that diff before you run anything:
@@ -319,9 +327,12 @@ Three things to read in that diff before you run anything:
 Then build and test it out of tree, so your working copy stays clean:
 
 ```text
-git worktree add /tmp/<id> origin/app/<id>-<your-name>
-cd /tmp/<id> && cargo test -p <id> && cargo build -p <id>
+git worktree add /tmp/<id> origin/<their-branch>
+cd /tmp/<id> && cargo test -p archx-<id> && cargo build -p archx-<id>
 ```
+
+`<id>` is the folder (`training`); `archx-<id>` is the crate the manifest
+declares. They differ on purpose — read `crate` from `apps/<id>/app.toml`.
 
 **6. You import it.** Merging is the import, and it happens only after step 5.
 Import is *not* publishing: after this merge the app compiles, but it is `Held`,
@@ -329,7 +340,7 @@ so it has no tile and appears in Lab settings as held out of this build.
 
 ```text
 git checkout arena/53d9bc26-archx-agent && git pull --rebase
-git merge --no-ff origin/app/<id>-<your-name> -m "Import app/<id>"
+git merge --no-ff origin/<their-branch> -m "Import app/<id>"
 ```
 
 **7. You add hosting, then check the design, then publish.** This is the part only

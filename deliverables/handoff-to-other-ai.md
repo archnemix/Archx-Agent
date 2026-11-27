@@ -9,13 +9,15 @@ You are building ONE app inside the Archx AI Lab repository at
 github.com/archnemix/Archx-Agent: <id> (working title "<name>"). <what the app does>
 
 YOUR BRANCH
-  Work on your own branch, never on the main line. Start from the base you were
-  given and stay there:
+  Work on ONE branch of your own, never on the main line. If your tool fixes the
+  branch name (Arena does: arena/<uuid>-archx-agent), that branch IS your
+  workspace — keep it, do not rename it, do not make a second one. Otherwise:
 
       git clone https://github.com/archnemix/Archx-Agent && cd Archx-Agent
       git checkout -b app/<id>-<your-name> origin/<base-branch-the-user-gave-you>
+      git push -u origin app/<id>-<your-name>
 
-  Push only that branch: git push -u origin app/<id>-<your-name>.
+  Push only your own branch.
   Never push to the main branch, never force-push, never merge the main line into
   yours. Do not open a pull request into the main line: the user confirms your
   app works, and only then does the launcher owner import your branch. One app

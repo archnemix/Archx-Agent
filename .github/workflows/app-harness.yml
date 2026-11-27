@@ -17,11 +17,11 @@ on:
         type: boolean
         default: false
   push:
-    # `app/**` is the branch shape an app author is told to use (see
-    # Adding_An_App.md section 7). Without it, the only branch that could run
-    # this job was the launcher's own, so an app author had no way to get a
-    # green build on their branch at all.
-    branches: [arena/53d9bc26-archx-agent, 'app/**']
+    # `app/**` is the branch shape the hand-off asks for. `arena/*` is what an
+    # Arena session branch is actually called (`arena/<uuid>-archx-agent`), and
+    # the author cannot rename it — without this pattern their push triggered
+    # nothing at all, so there was no way to get a green build on their branch.
+    branches: [arena/53d9bc26-archx-agent, 'app/**', 'arena/*']
     paths:
       - 'apps/**'
       - 'shared/**'
