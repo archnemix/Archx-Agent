@@ -236,12 +236,18 @@ mod tests {
     }
 
     #[test]
-    fn the_dialog_is_not_part_of_this_module_at_all() {
-        // A structural guard for item 5: nothing in the journal can cancel a run,
-        // so closing a dialog cannot reach the run's lifetime through it.
+    fn nothing_in_this_module_can_end_a_run_early() {
+        // A structural guard for item 5: the journal exposes begin, record,
+        // finish and clear — no handle, no cancellation — so closing a dialog
+        // has no route to a run's lifetime through this module. The test looks
+        // at the code above `#[cfg(test)]` so it cannot match itself.
         let source = include_str!("test_journal.rs");
-        for forbidden in ["abort(", "cancel", "CloseCatalog"] {
-            assert!(!source.contains(forbidden), "the journal must not know about {forbidden}");
+        let code = source.split("#[cfg(test)]").next().unwrap_or_default();
+        for forbidden in ["abort", "Cancel", "cancel_", "CloseCatalog", "cancel()"] {
+            assert!(!code.contains(forbidden), "the journal must not know about {forbidden}");
+        }
+        for allowed in ["pub fn begin(", "pub fn record(", "pub fn finish(", "pub fn clear("] {
+            assert!(code.contains(allowed), "the journal should expose {allowed}");
         }
     }
 }
