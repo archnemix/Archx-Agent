@@ -80,6 +80,8 @@ pub enum Message {
     LauncherScope(Scope),
     /// Launcher memory scope for the Agent app, handed to it as a message.
     AgentScope(Scope),
+    /// Flip one cell of the launcher's own stage matrix.
+    LauncherBudget(archx_shared::memory::Stage, archx_shared::memory::Item),
     Wipe(Area),
     WipeAll,
     StorageReport(String),
@@ -153,6 +155,10 @@ pub struct App {
     pub agent: AgentApp,
     pub agent_scope: Scope,
     pub launcher_scope: Scope,
+    /// The launcher's OWN per-stage keep/drop matrix. Separate from the Agent's
+    /// (which lives in the app): this page configures launcher state only, and
+    /// the app's Runtime page configures the app's. Neither writes the other.
+    pub launcher_budget: archx_shared::memory::Budget,
     pub notice: Option<String>,
     pub storage_path: String,
     pub memory_usage: Vec<archx_shared::memory::Usage>,
@@ -209,6 +215,8 @@ impl App {
             agent,
             agent_scope: Scope::Balanced,
             launcher_scope: Scope::Light,
+            launcher_budget: persisted.as_ref().map(|settings| settings.launcher_budget)
+                .unwrap_or_default(),
             notice: None,
             storage_path: storage::display_path(),
             memory_usage: Vec::new(),
@@ -309,6 +317,13 @@ impl App {
                 self.notice = Some(format!("Launcher memory scope: {}. Launcher data is a few KB; this never caps another process."
                     , scope.label()));
             }
+            Message::LauncherBudget(stage, item) => {
+                self.launcher_budget.toggle(stage, item);
+                let kept = self.launcher_budget.keeps(stage, item);
+                self.notice = Some(format!("Launcher · {} at {}: {}. Launcher data is a few KB; this records the decision and never caps another process.",
+                    item.label(), stage.label(), if kept { "kept" } else { "released" }));
+                self.save();
+            }
             Message::AgentScope(scope) => {
                 self.agent_scope = scope;
                 return Task::batch([self.update(Message::Agent(AgentMessage::MemoryPreview(scope.memory_mode())))]);
@@ -383,8 +398,11 @@ impl App {
         self.save();
     }
 
+    /// Persists the launcher's own two fields (per-area text scale and its stage
+    /// matrix) through the one writer that owns `settings.json`. The Agent keeps
+    /// writing its own page; both read the same file, so neither loses the other.
     fn save(&mut self) {
-        if let Some(error) = self.agent.save_display(self.display) {
+        if let Some(error) = self.agent.save_launcher(self.display, self.launcher_budget.clone()) {
             self.notice = Some(error);
         }
     }

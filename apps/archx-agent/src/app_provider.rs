@@ -23,6 +23,7 @@ use archx_shared::persist::PersistedSettings;
 use archx_shared::provider_api::{self, CallError, Failure, Turn};
 use crate::settings::{SecretText, Section};
 use archx_shared::storage;
+use crate::test_journal;
 use archx_shared::transcripts::StoredChat;
 
 impl App {
@@ -123,6 +124,35 @@ impl App {
                     }
                     Err(error) => self.settings.status = error.message().into(),
                 }
+            }
+            Message::FetchKeyUsage => {
+                let provider = self.settings.provider;
+                let nonce = self.settings.usage_nonce.wrapping_add(1);
+                self.settings.usage_nonce = nonce;
+                self.settings.usage_busy = true;
+                self.settings.usage = None;
+                if !provider.needs_key() {
+                    self.settings.usage_busy = false;
+                    self.settings.usage = Some(Ok(None));
+                    return Task::none();
+                }
+                let ids = self.settings.key_ids.clone();
+                return Task::perform(async move {
+                    // Use the first key that is not resting; a resting key is
+                    // still readable, so fall back to key 1 and let the provider
+                    // decide rather than refusing to ask.
+                    let id = ids.first().copied().unwrap_or(1);
+                    let secret = tokio::task::spawn_blocking(move || Vault::os().with_key(provider, id, |key| SecretText::new(key.to_owned())))
+                        .await.unwrap_or(Err(VaultError::Unavailable));
+                    match secret {
+                        Ok(secret) => archx_shared::usage::fetch_key_usage(provider, secret.0).await.map(Some),
+                        Err(error) => Err(error.message().to_owned()),
+                    }
+                }, move |result| Message::KeyUsageRead(nonce, result));
+            }
+            Message::KeyUsageRead(nonce, result) if self.settings.usage_nonce == nonce => {
+                self.settings.usage_busy = false;
+                self.settings.usage = Some(result);
             }
             Message::RevealKey(id) => {
                 let provider = self.settings.provider;
@@ -333,12 +363,16 @@ impl App {
                 self.settings.catalog_page = 0;
             }
             Message::CloseCatalogModal => {
+                // Item 5: closing the dialog is a view action, never a cancel.
+                // A run in flight keeps going, keeps saving each result, and
+                // keeps reporting in Settings. Only "Stop testing" cancels, and
+                // only a new run overwrites what is stored.
                 self.settings.discard_catalog_staging();
                 self.settings.catalog_modal = false;
                 self.settings.probe_pending = false;
-                // A probe continues while the dialog stays open; closing it stops
-                // the request but keeps finished results (item 5).
-                if self.settings.probe_busy { return self.update(Message::CancelCatalogProbe); }
+                if self.settings.probe_busy {
+                    self.settings.status = "Dialog closed. Testing continues in the background; results are saved as they arrive.".into();
+                }
             }
             Message::CatalogNext if self.settings.catalog_modal => {
                 self.settings.catalog_page = self.settings.catalog_page.saturating_add(1);
@@ -446,16 +480,35 @@ impl App {
                     Err(error) => (false, error),
                 };
                 if !ok { self.probe_failure_seen(&id, &output); }
-                self.settings.probe_results.push((id, ok, output));
+                // A row that never reached the provider (no usable key, an
+                // unapproved endpoint) is filed as "never sent". Only a real
+                // answer, success or `HTTP nnn`, is filed as the provider's.
+                let source = if ok || output.starts_with("HTTP") {
+                    test_journal::Source::Provider
+                } else {
+                    test_journal::Source::NotSent
+                };
+                self.settings.probe_results.push((id.clone(), ok, output.clone()));
+                test_journal::record(test_journal::Entry {
+                    id, ok, output, source, at: storage::now_secs(),
+                    request_timeout_secs: diagnostics::REQUEST_TIMEOUT_SECS,
+                });
                 self.store_probe_result();
             }
             Message::CatalogProbeDone(provider, nonce, result) if self.settings.provider == provider && self.settings.probe_nonce == nonce => {
                 self.settings.probe_busy = false;
                 self.probe_handle = None;
-                self.settings.status = match result {
-                    Ok(()) => "Testing finished. Results are saved until you re-run them.".into(),
+                let run = test_journal::finish(storage::now_secs());
+                let summary = match result {
+                    Ok(()) if run.not_sent() > 0 => format!(
+                        "Testing finished: {} answered, {} never left this machine. Results are saved with their cause until you re-run them.",
+                        run.answered(), run.not_sent()),
+                    Ok(()) => "Testing finished. Results are saved until you re-run them.".to_owned(),
                     Err(error) => error,
                 };
+                self.settings.status = summary.clone();
+                self.notice = Some(summary);
+                self.settings.saved_run = Some(run);
                 self.persist_tests();
             }
             Message::ToggleRuntime(stage, item) => {
@@ -799,6 +852,7 @@ impl App {
                     }
                     storage::Area::ModelTests => {
                         storage::wipe(area);
+                        test_journal::clear();
                         self.settings.probe_results.clear();
                         self.settings.test_evidence = None;
                         self.settings.status = "Model test results wiped.".into();
@@ -920,6 +974,8 @@ impl App {
             self.settings.status = "Custom IDs use the single-model test after endpoint approval.".into();
             return Task::none();
         }
+        test_journal::begin(storage::now_secs(), provider.name(), &ids);
+        self.settings.saved_run = None;
         self.settings.probe_busy = true;
         self.settings.probe_nonce = self.settings.probe_nonce.wrapping_add(1);
         let nonce = self.settings.probe_nonce;
@@ -1010,6 +1066,8 @@ impl App {
                 "id": id, "ok": ok, "output": output, "at": storage::now_secs(),
             })).collect::<Vec<_>>(),
             "evidence": self.settings.test_evidence,
+            // The debugging record: run id, per-row provenance and our timeout.
+            "run": test_journal::current().map(|run| test_journal::embed(&run)),
         });
         if let Err(error) = storage::save(storage::Area::ModelTests, document) {
             self.notice = Some(error.message());
@@ -1019,6 +1077,9 @@ impl App {
     /// Reloads probe results saved by a previous run.
     pub(super) fn load_probe_results(&mut self) {
         let Some(body) = storage::load_body(storage::Area::ModelTests) else { return; };
+        // The debugging record is provider-independent: a run against another
+        // provider is still history worth reading, so it loads before the guard.
+        self.settings.saved_run = test_journal::from_document(&body);
         if body.get("provider").and_then(serde_json::Value::as_str) != Some(self.settings.provider.name()) { return; }
         if let Some(word) = body.get("expected_word").and_then(serde_json::Value::as_str) {
             if !word.is_empty() { self.settings.expected_word = word.chars().take(32).collect(); }

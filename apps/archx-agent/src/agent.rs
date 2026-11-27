@@ -71,11 +71,31 @@ impl<'a> markdown::Viewer<'a, Message> for ChatViewer {
     }
 }
 
-/// Rough rendered height of a collapsed reasoning body, used to size its
-/// scroller so short traces do not leave an empty 300 px box (the reference's
+/// Rough rendered height of a reasoning body, used to size its scroller so a
+/// short trace does not leave an empty 300 px box (the reference's
 /// `.thinking-body` grows to `max-height: 300px` and then scrolls).
-fn reasoning_size(content: &markdown::Content) -> u16 {
-    28 + (content.items().len() as u16).saturating_mul(18)
+fn reasoning_size(text: &str) -> u16 {
+    let lines = text.lines().count().max(1) as u16;
+    28 + lines.saturating_mul(18)
+}
+
+/// Returned reasoning is shown as preformatted text, not Markdown.
+///
+/// This is a deliberate fidelity decision, taken from the reference's CSS and
+/// JS rather than from taste: `.thinking-body` sets `white-space: pre-wrap`
+/// and `blocks.js` writes `body.textContent = msg.reasoning`, i.e. a text node,
+/// never parsed HTML. Rendering a model's reasoning as Markdown would invent
+/// headings and links the reference does not show, and can silently reflow or
+/// drop the indentation model reasoning depends on.
+fn reasoning_body(trace: &str, scale: f32) -> Element<'static, Message> {
+    // `white-space: pre-wrap`: Iced has no pre-wrap, so the text is shown as it
+    // was returned, wrapped by the layout rather than reflowed by a parser.
+    text(trace.to_owned())
+        .size(13.0 * scale)
+        .font(style::LABEL)
+        .color(style::GREY)
+        .width(Fill)
+        .into()
 }
 
 fn endpoint_label(provider: &str, model: Option<&str>) -> String {
@@ -317,7 +337,7 @@ pub fn view<'a>(app: &'a crate::app::App) -> Element<'a, Message> {
                         .padding([8, 12]).style(style::ghost_button)].spacing(0);
                     if *expanded {
                         thinking = thinking.push(container(scrollable(
-                            container(chat_md_scaled(reasoning.items(), 13.0)).padding([8, 12]))
+                            container(reasoning_body(reasoning, scale)).padding([8, 12]))
                             .height((reasoning_size(reasoning) as f32).min(300.0))
                             .style(style::quiet_scroll)).width(Fill)
                             .style(style::chat_thinking_body));
@@ -346,7 +366,7 @@ pub fn view<'a>(app: &'a crate::app::App) -> Element<'a, Message> {
                     .padding([8, 12]).style(style::ghost_button)].spacing(0);
                 if open {
                     disclosure = disclosure.push(container(scrollable(
-                        container(chat_md_scaled(reasoning.items(), 13.0)).padding([8, 12]))
+                        container(reasoning_body(reasoning, scale)).padding([8, 12]))
                         .height((reasoning_size(reasoning) as f32).min(300.0))
                         .style(style::quiet_scroll)).width(Fill).style(style::chat_thinking_body));
                 }

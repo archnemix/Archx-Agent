@@ -4,7 +4,7 @@ use std::fmt;
 use std::time::Instant;
 
 use iced::widget::{button, column, container, row, scrollable, space, stack, text, text_input};
-use iced::{Center, Element, Fill};
+use iced::{Center, Element, Fill, Start};
 use zeroize::Zeroizing;
 
 use crate::app::{MemoryMode, MemoryScope, Message};
@@ -42,7 +42,7 @@ impl Section {
             Self::Models => "Models",
             Self::Runtime => "Runtime memory",
             Self::Storage => "Storage & display",
-            Self::Lab => "Lab preview",
+            Self::Lab => "Agent memory",
         }
     }
 }
@@ -67,6 +67,8 @@ pub struct SettingsState {
     pub probe_busy: bool,
     pub probe_nonce: u64,
     pub probe_results: Vec<(String, bool, String)>,
+    /// The last saved run, read back from disk: run id, counts and provenance.
+    pub saved_run: Option<crate::test_journal::Run>,
     pub catalog_busy: bool,
     pub catalog_nonce: u64,
     pub models: [Vec<String>; Provider::COUNT],
@@ -105,6 +107,11 @@ pub struct SettingsState {
     /// Guards a stale sweep result, like `catalog_nonce`.
     pub sweep_nonce: u64,
     pub sweep_busy: bool,
+    /// Result of the last key-usage read: `Ok(Some)` figures, `Ok(None)` "the
+    /// provider does not publish one", `Err` the reason nothing was shown.
+    pub usage: Option<Result<Option<archx_shared::usage::KeyUsage>, String>>,
+    pub usage_busy: bool,
+    pub usage_nonce: u64,
 }
 impl Default for SettingsState {
     fn default() -> Self {
@@ -113,12 +120,13 @@ impl Default for SettingsState {
             reveal_nonce: 0, model_entry: String::new(), catalog: std::array::from_fn(|_| Vec::new()),
             catalog_manual: std::array::from_fn(|_| Vec::new()),
             search: String::new(), catalog_modal: false, catalog_only_verified: false, catalog_page: 0, catalog_selected: std::array::from_fn(|_| Vec::new()),
-            probe_pending: false, probe_busy: false, probe_nonce: 0, probe_results: Vec::new(), catalog_busy: false, catalog_nonce: 0, models: std::array::from_fn(|_| Vec::new()),
+            probe_pending: false, probe_busy: false, probe_nonce: 0, probe_results: Vec::new(), saved_run: None, catalog_busy: false, catalog_nonce: 0, models: std::array::from_fn(|_| Vec::new()),
             chosen: [None; Provider::COUNT], status: String::new(), test_busy: false, test_evidence: None, stream_chat: true, key_busy: false, custom: Profile::default(), custom_curl: SecretText::default(), custom_approved: false, expected_word: "OK".into(),
             bulk_selected: HashSet::new(), model_page: 0, model_page_size: 25, provider_picker: false,
             endpoint_draft: None, key_health: KeyHealthSet::new(), key_auto_rotate: true,
             model_health: ModelHealthSet::new(), meta: None,
-            sweep: None, sweep_undo: Vec::new(), sweep_nonce: 0, sweep_busy: false }
+            sweep: None, sweep_undo: Vec::new(), sweep_nonce: 0, sweep_busy: false,
+            usage: None, usage_busy: false, usage_nonce: 0 }
     }
 }
 impl SettingsState {
@@ -207,7 +215,7 @@ pub fn view<'a>(state: &'a SettingsState, memory: MemoryMode, keep_agent: bool,
         Section::Models => ("Models", "The list scrolls and pages. Tick several models to test, enable, disable or remove them together."),
         Section::Runtime => ("Runtime memory", "Choose what the Agent keeps in RAM at each stage. Sizes are measured, never estimated."),
         Section::Storage => ("Storage & display", "Where your data lives, how big the text is in each area, and how to wipe it."),
-        Section::Lab => ("Agent & Lab", "How much the Agent keeps resident, who owns it, and where the other apps' settings will live."),
+        Section::Lab => ("Agent memory", "What the Agent itself keeps resident, at which stage. The Launcher owns its own matrix in Lab settings; this page never edits it."),
     };
     let status_notice: Element<'static, Message> = if state.status.is_empty() { space().height(0).into() }
     else { column![
@@ -358,6 +366,38 @@ fn endpoint_rows(state: &SettingsState) -> Element<'static, Message> {
     ].width(Fill).into()
 }
 
+/// What this provider will say about a key's remaining usage — and, where it
+/// will say nothing, that fact stated plainly instead of a made-up zero.
+fn usage_panel(state: &SettingsState) -> Element<'static, Message> {
+    use archx_shared::usage::UsageSource;
+    let source = UsageSource::for_provider(state.provider);
+    let mut body = column![].spacing(6);
+    body = body.push(text(source.explanation()).size(10.5).color(style::DIM));
+    match &state.usage {
+        Some(Ok(Some(usage))) => {
+            body = body.push(text(usage.headline()).size(12.5).color(style::WHITE));
+            let line = usage.line();
+            if !line.is_empty() {
+                body = body.push(text(line).size(10.5).color(style::GREY));
+            }
+        }
+        Some(Ok(None)) => body = body.push(text("No figures published for this provider.").size(11).color(style::GREY)),
+        Some(Err(reason)) => body = body.push(text(reason.clone()).size(11).color(style::WARN)),
+        None => {}
+    }
+    row![
+        column![
+            text("KEY USAGE  /  WHAT THE PROVIDER PUBLISHES").size(11).color(style::WHITE),
+            space().height(6),
+            Element::from(body)
+        ].spacing(2).width(Fill),
+        button(text(if state.usage_busy { "Reading…".to_owned() } else { "Check usage".to_owned() }).size(10.5))
+            .on_press_maybe((!state.usage_busy && state.provider.needs_key())
+                .then_some(Message::FetchKeyUsage))
+            .style(style::tiny_button)
+    ].spacing(10).align_y(Start).into()
+}
+
 fn providers(state: &SettingsState) -> Element<'static, Message> {
     let mut keys = column![eyebrow("SAVED KEY SLOTS  /  ONE IS USED PER REQUEST")].spacing(8);
     if state.key_ids.is_empty() {
@@ -412,6 +452,7 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
         ].spacing(2)
 
     ].spacing(10).align_y(Center).into();
+    let usage_panel = usage_panel(state);
     let credential_control: Element<'static, Message> = if state.provider.needs_key() {
         column![text_input::<Message, iced::Theme, iced::Renderer>("Paste an API key", state.key_entry.0.as_str()).secure(true)
             .on_input(|value| Message::EditKey(SecretText::new(value)))
@@ -436,7 +477,9 @@ fn providers(state: &SettingsState) -> Element<'static, Message> {
             text(if state.provider.needs_key() {
                 format!("Requests use the Agent's own {} s limit per request. Keys are never written to disk, logs or the Debug page.", archx_shared::diagnostics::REQUEST_TIMEOUT_SECS)
             } else {
-                "Loopback only: 127.0.0.1, no key, no remote URL.".to_owned() }).size(11.5).color(style::GREY)
+                "Loopback only: 127.0.0.1, no key, no remote URL.".to_owned() }).size(11.5).color(style::GREY),
+            space().height(14),
+            usage_panel
         ].width(Fill)),
         surface(endpoint_rows(state)),
         surface(column![eyebrow("KEY HEALTH"), space().height(10), rotation, space().height(12), keys,
@@ -644,9 +687,55 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
             space().height(6),
             text(state.test_evidence.clone().unwrap_or_default()).size(10.5).color(style::GREY),
             space().height(6),
-            text("Tests are explicit and may be billable. Results are saved until you re-run or wipe them.").size(10.5).color(style::DIM)
+            text("Tests are explicit and may be billable. Results are saved until you re-run or wipe them.").size(10.5).color(style::DIM),
+            space().height(8),
+            saved_run_panel(state)
         ].width(Fill))
     ].spacing(14).width(Fill).into()
+}
+
+/// The last saved test run, and the wipe that removes it.
+///
+/// This is the visible half of item 5: the results of a run survive a closed
+/// dialog, a restart and a crash, they are labelled with where each answer came
+/// from, and only a re-run or this button replaces them.
+fn saved_run_panel(state: &SettingsState) -> Element<'static, Message> {
+    let body: Element<'static, Message> = match &state.saved_run {
+        // Progress is shown here as well as in the dialog, because the run no
+        // longer depends on the dialog being open (item 5).
+        _ if state.probe_busy => text(format!(
+            "Testing now · {} returned so far · each result is saved as it arrives",
+            state.probe_results.len())).size(11.5).color(style::WARN).into(),
+        Some(run) if !run.entries.is_empty() => column![
+            text(run.summary()).size(11.5).color(style::WHITE),
+            text(format!("Run {} · {} · each row keeps its cause and the {} s request limit it ran under",
+                run.run_id, run.provider, archx_shared::diagnostics::REQUEST_TIMEOUT_SECS))
+                .size(10.5).color(style::DIM),
+        ].spacing(3).into(),
+        _ => text("No saved run yet. Starting a test writes each result as it arrives, so closing the dialog cannot lose it.")
+            .size(10.5).color(style::DIM).into(),
+    };
+    // Closing the dialog is allowed to be harmless only if stopping is still
+    // possible from here, so this row owns both controls.
+    let controls: Element<'static, Message> = if state.probe_busy {
+        row![
+            button(text("Stop testing").size(10.5)).on_press(Message::CancelCatalogProbe).style(style::tiny_button),
+            text("stops the remaining requests; rows already received stay saved").size(10).color(style::DIM)
+        ].spacing(8).align_y(Center).into()
+    } else {
+        button(text("Wipe results").size(10.5))
+            .on_press_maybe(state.saved_run.is_some()
+                .then_some(Message::WipeArea(archx_shared::storage::Area::ModelTests)))
+            .style(style::tiny_button).into()
+    };
+    row![
+        column![
+            text("SAVED TEST RESULTS  /  OVERWRITTEN ONLY BY A RE-RUN").size(11).color(style::WHITE),
+            space().height(6),
+            body
+        ].spacing(2).width(Fill),
+        controls
+    ].spacing(10).align_y(Start).into()
 }
 
 /// Runtime memory: one row per cache per stage, with measured sizes.

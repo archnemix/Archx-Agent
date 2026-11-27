@@ -241,7 +241,7 @@ instructions another AI needs live in `Plan/Adding_An_App.md` §7.
 - Rail correction: Fluent 2 recommends a predictable toggle with an explicit expand/collapse label; the previous top-right `Hide <` cramped the logo and the compact top-left `Open >` displaced it. Moved one understated action to each rail's bottom edge, preserving brand and silver selected navigation. Native expanded and compact captures are required for visual inspection before claiming fit. This is a UI-only slice; no API calls or user data storage were introduced.
 
 - Following the revised priority, added a session-only Chat send path and a small explicit generation test for OpenRouter, xAI and Gemini, using manually entered provider model IDs and fixed HTTPS hosts. No tools, database, memory, uploads or automatic network requests. `reqwest` has TLS, no redirects, no proxy, timeout and response size limit; only static error strings/status codes can reach UI. Single selected provider/model drives requests; key IDs are selected round-robin from the OS vault for each explicit call. This API path cannot be exercised against real providers by CI or sandbox; a local user with a real key must validate it, and bills may occur. CI must first establish compilation and UI evidence; deficiencies from that review must be fixed before claiming functionality.
-- Settings split into Connections / Models / Lab preview. Key input is masked and cleared after save; OS store read is backgrounded; reveal is opt-in with a 15-second UI deadline plus delayed invalidation, and is disabled in screenshot mode. Iced event/rendering and HTTP header construction can still copy secrets. Model lists and Chat turns remain **process-memory only**, are not written to disk and disappear on exit; strict no-DB choice replaces prior roadmap persistence expectation for this slice. Provider catalog and usage checks are not implemented yet, and cannot be claimed from manual-ID tests.
+- Settings split into Providers / Models / Runtime memory / Storage & display / Agent memory. Key input is masked and cleared after save; OS store read is backgrounded; reveal is opt-in with a 15-second UI deadline plus delayed invalidation, and is disabled in screenshot mode. Iced event/rendering and HTTP header construction can still copy secrets. Model lists and Chat turns remain **process-memory only**, are not written to disk and disappear on exit; strict no-DB choice replaces prior roadmap persistence expectation for this slice. Provider catalog and usage checks are not implemented yet, and cannot be claimed from manual-ID tests.
 
 - First integration CI `43476402313` stopped in Linux unit-test compilation: a synthetic vault assertion compared `Option<&String>` to `Option<&str>`; no API or GUI stage ran. Corrected the test to map the zeroizing String to `&str`; rerun across all three OSes is required. No live credentials were involved.
 
@@ -254,7 +254,7 @@ instructions another AI needs live in `Plan/Adding_An_App.md` §7.
 - Final CI `43482937372` passed Linux/Windows/macOS with 22 unit tests each, release builds and native screenshots. I inspected Windows Agent/Connections/Models/compact Home and macOS Connections after the final UI revision: fields/buttons fit, disabled actions look disabled, footer toggle stays at lower edge in either width. This is **not** a physical-click, OS-vault or live-provider validation. Published an opt-in local trial guide with no request for user credentials in chat. Windows artifact remains unsigned.
 
 - Studied the user-supplied rail image and attached web markup/CSS **as text only**, not run in a browser or copied into the app. Its useful Settings hierarchy is a persistent section list beside one active panel; omitted unsupported pages such as Tools/Storage/Debug. Researched Iced SVG/tooltip 0.14 APIs and Lucide SVG icon license; bundled six pinned local glyphs plus full upstream license. Fluent 2 recommends recognisable nav icons, right-positioned hints and an explicit expand/collapse affordance, though its web Nav does not itself provide icon-only mode. Our compact rail is a purpose-built Iced layout rather than a narrow text sidebar.
-- Design plan: compact 92px rail uses 72×78 transparent brand mark, four centered 52×52 icon targets, silver-bordered active tile, primary routes at top, About/Settings below a divider, and same-size expand control at bottom. Hover hints show full route names on the right. Expanded 220px rail uses icons with labels, preserves muted Coming Later entries and groups utility actions at the bottom. Settings uses its own 190px in-page section nav for Connections/Models/Lab preview and a scrollable detail body. Only the view layout changes; no provider API/key-storage behavior is modified. Static screenshots still cannot prove keyboard focus or real tooltip interaction.
+- Design plan: compact 92px rail uses 72×78 transparent brand mark, four centered 52×52 icon targets, silver-bordered active tile, primary routes at top, About/Settings below a divider, and same-size expand control at bottom. Hover hints show full route names on the right. Expanded 220px rail uses icons with labels, preserves muted Coming Later entries and groups utility actions at the bottom. Settings uses its own 190px in-page section nav for Providers/Models/Runtime memory/Storage & display/Agent memory and a scrollable detail body. Only the view layout changes; no provider API/key-storage behavior is modified. Static screenshots still cannot prove keyboard focus or real tooltip interaction.
 
 - First icon-rail CI `43569676394` stopped in Linux compilation because Iced `Svg::width/height` require `Length` convertible from `u32`/`f32`, not `u16`; fixed `navigation::glyph` size parameter to `u32`. Windows/macOS did not run. Need fresh CI and screenshot inspection before presenting this visual revision.
 
@@ -266,7 +266,7 @@ Read-only fetch is deliberately separate from generation and manual entry. OpenR
 
 ## 2026-11-09 — Unified setup and native chat rendering
 
-The key badge was not wired, and key presence alone did not mean a model was selected. Make setup a real navigation action; show provider/model selection in Chat without moving or revealing keys. Merge provider and model configuration into one scrollable Settings page, retain Lab preview separately. Native Iced markdown parses bounded assistant text; link clicks are ignored, image sources are not fetched, raw browser reference scripts never run. Render a collapsible reasoning region only when a response contains an explicit reasoning text field or Gemini thought part; metadata does not fabricate reasoning. Streaming is an explicit user-toggle, on by default; partial messages are visible only while a request is active, and a failed stream restores the unsent draft rather than silently resending. The returned text and process memory can contain private content; this is not a claim of perfect erasure.
+The key badge was not wired, and key presence alone did not mean a model was selected. Make setup a real navigation action; show provider/model selection in Chat without moving or revealing keys. Merge provider and model configuration into one scrollable Settings page, retain the Agent-memory page separately. Native Iced markdown parses bounded assistant text; link clicks are ignored, image sources are not fetched, raw browser reference scripts never run. Render a collapsible reasoning region only when a response contains an explicit reasoning text field or Gemini thought part; metadata does not fabricate reasoning. Streaming is an explicit user-toggle, on by default; partial messages are visible only while a request is active, and a failed stream restores the unsent draft rather than silently resending. The returned text and process memory can contain private content; this is not a claim of perfect erasure.
 
 ## 2026-11-23 — Stage 2: the ten reported issues
 
@@ -360,7 +360,7 @@ replaced atomically (`write temp → rename`) inside `storage::root()`:
 | --- | --- | --- |
 | `settings.json` | provider, models, chosen model, streaming, custom URL, per-area text scale, chat measure | yes |
 | `chats.json` | turns, reasoning, mode, model per chat | yes, empty chats dropped |
-| `model-tests.json` | last test result **per provider and model** | yes, replaced per run |
+| `model-tests.json` | the last run: run id, per-row cause, our timeout at the time | only by a re-run or an explicit wipe |
 | `debug.json` | last 200 request records (metadata only) | yes |
 | `key-health.json` | which key rests until when | yes |
 | `model-meta.json` | models.dev cache + fetch time | yes |
@@ -395,8 +395,20 @@ stylesheet, not from taste:
 | Divider | `border-top: 1px dashed` | none | 1 px hairline on the body's top edge |
 
 The measured cap is the honest part: `reasoning_size` sizes the scroller from the
-parsed block count so a two-line trace does not leave an empty 300 px box, and
-anything longer stops at 300 px and scrolls.
+line count of the returned text so a two-line trace does not leave an empty
+300 px box, and anything longer stops at 300 px and scrolls.
+
+Reasoning is rendered as **preformatted text, not Markdown**, which is taken
+from the reference rather than from taste: `.thinking-body` sets
+`white-space: pre-wrap` and `blocks.js` assigns `body.textContent = msg.reasoning`
+— a text node, never parsed HTML. Parsing it would invent headings and links the
+reference does not show and could reflow the indentation models think in. The
+open-state rules also come from `ensureThinking`: open while streaming unless the
+user toggled the panel, collapsed on completion unless the user toggled it. The
+one deliberate difference is an explicit "open by default" preference, honoured
+only for a panel the user has not touched.
+
+`docs/Testing_Results_Persistence.md` §4 records the full CSS/JS comparison.
 
 ### 9. Debug page
 
@@ -405,7 +417,7 @@ streamed flag, request bytes, status, duration, content/reasoning chars, respons
 bytes, outcome, and — on failure — the `Diagnosis`. The page shows stage
 (`request / transport / http / parse / bounds`), owner (`agent / provider / key /
 model`), the suggested rest, and the provider's own words. The footer states that
-timeouts are **our** limit (30 s request, 20 s catalog) and may already be billed.
+timeouts are **our** limit (45 s request, 25 s catalog) and may already be billed.
 Nothing from the prompt, the reply or the key is stored.
 
 ### 10. Text size per area, and docs ownership

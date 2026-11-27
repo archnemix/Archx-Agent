@@ -9,7 +9,7 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 use iced::widget::{button, column, container, image, mouse_area, row, scrollable, space, svg, text, tooltip};
-use iced::{Center, ContentFit, Element, Fill, FillPortion};
+use iced::{Center, ContentFit, Element, Fill, FillPortion, Length};
 
 use crate::app::{App as Launcher, Area, Message, Page, Scope};
 use archx_shared::apps::App;
@@ -365,6 +365,15 @@ fn lab_settings(state: &Launcher) -> Element<'static, Message> {
         ].width(Fill)).padding(20).width(Fill).style(style::card),
         space().height(14),
         container(column![
+            text("LAUNCHER RAM  /  PER STAGE").size(11).color(style::WHITE),
+            space().height(8),
+            text("What the launcher itself keeps at each stage. This is launcher state only — a few KB — so it records your decision and never caps another process. Each app configures its own matrix inside that app's Runtime page.")
+                .size(11).color(style::GREY),
+            space().height(12),
+            launcher_budget_table(&state.launcher_budget)
+        ].width(Fill)).padding(20).width(Fill).style(style::card),
+        space().height(14),
+        container(column![
             text("APPS  /  DISCOVERED").size(11).color(style::WHITE),
             space().height(8),
             column(apps.into_iter().map(|line| text(line).size(11.5).color(style::GREY).into()).collect::<Vec<Element<'static, Message>>>()).spacing(4),
@@ -389,6 +398,39 @@ fn lab_settings(state: &Launcher) -> Element<'static, Message> {
             text("Vault keys are never deleted by a wipe; remove them in the Agent's Providers page.").size(10.5).color(style::DIM)
         ].width(Fill)).padding(20).width(Fill).style(style::card)
     ].padding(36).width(Fill).into()
+}
+
+/// The launcher's per-stage matrix: one row per launcher cache, one column per
+/// stage, a single small toggle per cell. Deliberately plain — it answers
+/// "what stays resident when" and nothing else.
+fn launcher_budget_table(budget: &archx_shared::memory::Budget) -> Element<'static, Message> {
+    use archx_shared::memory::{Item, Stage};
+    let mut head = row![text("").width(190)].spacing(6);
+    for stage in Stage::ALL {
+        head = head.push(text(stage.label()).size(10.5).color(style::DIM).width(Length::Fixed(104.0)));
+    }
+    let mut grid = column![head].spacing(6);
+    for item in Item::ALL {
+        let mut line = row![
+            column![
+                text(item.label()).size(11.5).color(style::WHITE),
+                text(item.detail()).size(10).color(style::DIM).width(Length::Fixed(190.0))
+            ].spacing(2).width(190)
+        ].spacing(6).align_y(Center);
+        for stage in Stage::ALL {
+            let kept = budget.keeps(stage, item);
+            line = line.push(button(
+                    container(text(if kept { "keep" } else { "drop" }).size(10.5)
+                        .color(if kept { style::WHITE } else { style::DIM }))
+                        .padding([4, 10])
+                )
+                .on_press(Message::LauncherBudget(stage, item))
+                .style(move |theme, status| style::side_nav(kept, theme, status))
+                .width(Length::Fixed(104.0)));
+        }
+        grid = grid.push(line);
+    }
+    grid.into()
 }
 
 pub fn view(state: &Launcher) -> Element<'_, Message> {

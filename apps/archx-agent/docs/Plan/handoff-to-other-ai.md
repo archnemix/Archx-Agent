@@ -1,4 +1,4 @@
-<!-- Purpose: The paste-ready hand-off for a second AI building one of the other apps. Canonical copy lives in apps/archx-agent/docs/Plan/Adding_An_App.md §7. -->
+<!-- Purpose: The paste-ready hand-off for a second AI building one of the other apps. Lives beside the contract it references: Plan/Adding_An_App.md §7. Kept inside this app's docs on purpose, so the launcher owner's docs and each app author's docs never mix. -->
 # Hand-off: what to tell the other AI
 
 Paste everything inside the box into a fresh chat. Replace `<id>`, `<name>` and

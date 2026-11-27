@@ -15,6 +15,9 @@ pub mod custom_endpoint;
 pub mod debug_page;
 pub mod home;
 pub mod settings;
+/// Every catalog test run, saved with its provenance so a failure can be read
+/// back later and "never sent" is never shown as a provider error.
+pub mod test_journal;
 
 /// Version stamp shown in the Agent rail.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

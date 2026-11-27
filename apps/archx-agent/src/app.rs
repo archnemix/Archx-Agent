@@ -53,8 +53,11 @@ pub struct ChatDraft {
     pub mode: u8,
     pub text: String,
     pub editor: text_editor::Content,
-    pub formatted: Vec<(usize, markdown::Content, Option<markdown::Content>, bool)>,
-    pub partial: Option<(markdown::Content, Option<markdown::Content>)>,
+    /// Rendered turns: slot, parsed body, **raw** reasoning (plain text, as the
+    /// reference renders it) and whether its panel starts open.
+    pub formatted: Vec<(usize, markdown::Content, Option<String>, bool)>,
+    /// Streaming snapshot: parsed body and the raw reasoning text so far.
+    pub partial: Option<(markdown::Content, Option<String>)>,
     pub partial_raw: Option<Reply>,
     pub partial_reasoning_open: bool,
     pub partial_reasoning_touched: bool,
@@ -184,6 +187,9 @@ pub enum Message {
     RevealExpired(u64),
     ToggleAutoRotate,
     RetryKeyNow(u64),
+    /// Read what the provider publishes about a key's remaining usage.
+    FetchKeyUsage,
+    KeyUsageRead(u64, Result<Option<archx_shared::usage::KeyUsage>, String>),
     // Endpoints.
     EditEndpoint(endpoints::Kind, String),
     SaveEndpoint(endpoints::Kind),
@@ -388,7 +394,7 @@ impl App {
                 draft.formatted = draft.turns.iter().enumerate().filter_map(|(slot, turn)| {
                     if turn.role == "assistant" {
                         Some((slot, markdown::Content::parse(&turn.content),
-                            draft.reasoning.get(slot).cloned().flatten().map(|text| markdown::Content::parse(&text)),
+                            draft.reasoning.get(slot).cloned().flatten(),
                             false))
                     } else { None }
                 }).collect();
@@ -563,7 +569,7 @@ impl App {
                         Some("The user asked for a JavaScript example and a comparison. Explain the open connection and keep the code and table focused on that question.".into())];
                     draft.formatted = vec![
                         (1, markdown::Content::parse(turns[1].1), None, false),
-                        (3, markdown::Content::parse(turns[3].1), draft.reasoning[3].as_ref().map(|text| markdown::Content::parse(text)), true),
+                        (3, markdown::Content::parse(turns[3].1), draft.reasoning[3].clone(), true),
                     ];
                 }
             }
@@ -579,8 +585,7 @@ impl App {
                 Turn { role: "assistant", content: content.into() },
             ];
             draft.reasoning = vec![None, reasoning.map(str::to_owned)];
-            let parsed = reasoning.map(markdown::Content::parse);
-            draft.formatted = vec![(1, markdown::Content::parse(content), parsed, open)];
+            draft.formatted = vec![(1, markdown::Content::parse(content), reasoning.map(str::to_owned), open)];
             draft.follow_tail = true;
         }
     }
@@ -618,6 +623,27 @@ impl App {
     pub fn save_display(&mut self, display: DisplaySettings) -> Option<String> {
         self.display = display;
         self.persist_settings().err().map(|error| error.message())
+    }
+
+    /// Writes the launcher's own document. The launcher holds the file, but only
+    /// this app knows how to write `settings.json`: the four `Area` files belong
+    /// to the Agent, and a second writer would race the first. So the launcher
+    /// hands over its state and the existing, tested writer does the work.
+    ///
+    /// Only the launcher's own fields move; the Agent's settings, health and
+    /// budgets are read from the file as they are and written back untouched.
+    pub fn save_launcher(&mut self, display: DisplaySettings, launcher_budget: archx_shared::memory::Budget) -> Option<String> {
+        self.display = display;
+        let on_disk = archx_shared::persist::PersistedSettings::load();
+        let agent_budget = on_disk.as_ref().map(|settings| settings.budget).unwrap_or_default();
+        let mut document = self.settings_document();
+        // `settings_document` reflects the Agent's in-memory state, which is the
+        // authority for the Agent's own fields. The launcher's two fields are the
+        // only things replaced here.
+        document.display = display;
+        document.launcher_budget = launcher_budget;
+        document.budget = agent_budget;
+        document.save().err().map(|error| error.message())
     }
 
     /// Screenshot runs set the page directly and skip the restored transcripts.
@@ -859,8 +885,7 @@ impl App {
             Message::CopyCode(code) if self.snapshot.is_none() => return iced::clipboard::write(code.0.to_string()),
             Message::ChatProgress(id, SecretReply(reply)) => {
                 if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id && draft.busy) {
-                    draft.partial = Some((markdown::Content::parse(&reply.content),
-                        reply.reasoning.as_ref().map(|text| markdown::Content::parse(text))));
+                    draft.partial = Some((markdown::Content::parse(&reply.content), reply.reasoning.clone()));
                     draft.partial_raw = Some(reply);
                     if self.selected_draft == id && draft.follow_tail {
                         return iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::START);
@@ -877,9 +902,17 @@ impl App {
                         Ok(SecretReply(reply)) => {
                             draft.partial_raw = None;
                             let slot = draft.turns.len();
-                            let open = draft.partial_reasoning_touched && draft.partial_reasoning_open;
+                            // Reference `ensureThinking`: a user-toggled panel keeps the
+                            // user's choice; an untouched one collapses on completion.
+                            // Ours also honours an explicit "open by default" preference,
+                            // which the reference has no equivalent for.
+                            let open = if draft.partial_reasoning_touched {
+                                draft.partial_reasoning_open
+                            } else {
+                                self.reasoning_open_default
+                            };
                             draft.formatted.push((slot, markdown::Content::parse(&reply.content),
-                                reply.reasoning.as_ref().map(|text| markdown::Content::parse(text)), open));
+                                reply.reasoning.clone(), open));
                             draft.reasoning.push(reply.reasoning.clone());
                             draft.turns.push(Turn { role: "assistant", content: reply.content });
                             draft.error = None;
@@ -891,8 +924,9 @@ impl App {
                                 let slot = draft.turns.len();
                                 let body = if partial.content.is_empty() { "Response interrupted before an answer.".to_owned() } else { partial.content };
                                 draft.formatted.push((slot, markdown::Content::parse(&body),
-                                    partial.reasoning.as_ref().map(|text| markdown::Content::parse(text)),
-                                    draft.partial_reasoning_touched && draft.partial_reasoning_open));
+                                    partial.reasoning.clone(),
+                                    if draft.partial_reasoning_touched { draft.partial_reasoning_open }
+                                    else { self.reasoning_open_default }));
                                 draft.reasoning.push(partial.reasoning.clone());
                                 draft.turns.push(Turn { role: "assistant", content: body });
                                 draft.incomplete_slots.push(slot);

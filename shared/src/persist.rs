@@ -101,6 +101,11 @@ pub struct PersistedSettings {
     pub keys: KeyHealthSet,
     pub model_health: ModelHealthSet,
     pub display: DisplaySettings,
+    /// The App's own per-stage RAM matrix (Settings → Runtime memory).
+    pub budget: crate::memory::Budget,
+    /// The Launcher's per-stage matrix. Separate on purpose: launcher settings
+    /// live here, app settings live in the app, and neither edits the other.
+    pub launcher_budget: crate::memory::Budget,
     pub stream_chat: bool,
     pub dialog_timeout_secs: u16,
     pub import_page_size: u16,
@@ -118,6 +123,8 @@ impl Default for PersistedSettings {
             keys: KeyHealthSet::new(),
             model_health: ModelHealthSet::new(),
             display: DisplaySettings::default(),
+            budget: crate::memory::Budget::default(),
+            launcher_budget: crate::memory::Budget::default(),
             stream_chat: true,
             dialog_timeout_secs: 45,
             import_page_size: 60,
@@ -152,6 +159,11 @@ impl PersistedSettings {
             "custom_url": self.custom_url.clone(),
             "endpoints": self.endpoints.to_json(),
             "display": self.display.to_json(),
+            "budget": self.budget.to_json(),
+            // Which stages the launcher keeps its own data for. The launcher's
+            // own state is a few KB, so this is a decision recorded honestly,
+            // not a cap; the UI says exactly that.
+            "launcher_budget": self.launcher_budget.to_json(),
             "stream_chat": self.stream_chat,
             "dialog_timeout_secs": self.dialog_timeout_secs,
             "import_page_size": self.import_page_size,
@@ -195,6 +207,8 @@ impl PersistedSettings {
         settings.custom_url = body.get("custom_url").and_then(Value::as_str).unwrap_or("").chars().take(2048).collect();
         settings.endpoints = Registry::from_json(body.get("endpoints").unwrap_or(&Value::Null));
         if let Some(display) = body.get("display") { settings.display = DisplaySettings::from_json(display); }
+        if let Some(budget) = body.get("budget") { settings.budget = crate::memory::Budget::from_json(budget); }
+        if let Some(budget) = body.get("launcher_budget") { settings.launcher_budget = crate::memory::Budget::from_json(budget); }
         settings.stream_chat = body.get("stream_chat").and_then(Value::as_bool).unwrap_or(true);
         settings.dialog_timeout_secs = body.get("dialog_timeout_secs").and_then(Value::as_u64)
             .map(|raw| raw.clamp(15, 180) as u16).unwrap_or(45);
@@ -256,6 +270,23 @@ mod tests {
         assert!(restored.endpoints.is_override(Provider::Gemini, crate::endpoints::Kind::Models));
         assert_eq!(restored.keys.slot(2).map(|slot| slot.cooldown_until), Some(400));
         assert!(!restored.model_health.is_enabled("gemini-2.5-pro"));
+    }
+
+    #[test]
+    fn the_two_memory_matrices_round_trip_separately() {
+        let mut settings = PersistedSettings::default();
+        // The app drops metadata while streaming; the launcher keeps its own
+        // launcher-stage list. Neither may overwrite the other.
+        settings.budget = crate::memory::Budget::default();
+        settings.budget.set(crate::memory::Stage::ChatActive, crate::memory::Item::ModelMeta, false);
+        settings.launcher_budget = crate::memory::Budget::default();
+        settings.launcher_budget.set(crate::memory::Stage::Launcher, crate::memory::Item::ModelMeta, true);
+        let restored = PersistedSettings::from_json(&settings.to_json()).expect("valid document");
+        assert!(!restored.budget.keeps(crate::memory::Stage::ChatActive, crate::memory::Item::ModelMeta));
+        assert!(restored.launcher_budget.keeps(crate::memory::Stage::Launcher, crate::memory::Item::ModelMeta));
+        // The app's matrix was not disturbed by the launcher's edit.
+        assert!(restored.budget.keeps(crate::memory::Stage::Launcher, crate::memory::Item::ChatBodies)
+            == settings.budget.keeps(crate::memory::Stage::Launcher, crate::memory::Item::ChatBodies));
     }
 
     #[test]
