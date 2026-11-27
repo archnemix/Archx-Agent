@@ -63,7 +63,7 @@ BUILD RULES
     storage::set_thread_directory (thread-local). Do not set ARCHX_CONFIG_DIR.
 
 HOW YOU KNOW YOU ARE DONE
-  1. Push your branch and read the CI result. Run "App harness" (app = <id>) on
+  1. Push your branch and read the CI result. Run "App harness" with app = <id> on
      your branch: it builds and tests your app on its own, without touching the
      release, and writes the log back to your branch. Rust may not be installed
      where you work; never claim a test you did not see pass.
