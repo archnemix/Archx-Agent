@@ -69,9 +69,12 @@ jobs:
           fi
           if [ -z "$APP" ]; then
             git fetch --quiet origin "+refs/heads/arena/53d9bc26-archx-agent:refs/remotes/$LAUNCHER_REF" 2>/dev/null || true
+            # `awk NF` rather than `grep`: a runner runs this under `bash -e`,
+            # and `grep -c`/`grep -v` exit 1 when nothing matched, which would
+            # kill the step on the branch where no app folder changed at all.
             if BASE="$(git merge-base "$LAUNCHER_REF" HEAD 2>/dev/null)"; then
-              CHANGED="$(git diff --name-only "$BASE" HEAD -- 'apps/' | cut -d/ -f2 | grep -v '^$' | sort -u)"
-              COUNT="$(printf '%s\n' "$CHANGED" | grep -c . || true)"
+              CHANGED="$(git diff --name-only "$BASE" HEAD -- 'apps/' | cut -d/ -f2 | awk 'NF' | sort -u)"
+              COUNT="$(printf '%s\n' "$CHANGED" | awk 'NF' | wc -l)"
               if [ "$COUNT" = "1" ]; then APP="$CHANGED"; fi
             fi
           fi
@@ -130,9 +133,12 @@ jobs:
           fi
           if [ -z "$APP" ]; then
             git fetch --quiet origin "+refs/heads/arena/53d9bc26-archx-agent:refs/remotes/$LAUNCHER_REF" 2>/dev/null || true
+            # `awk NF` rather than `grep`: a runner runs this under `bash -e`,
+            # and `grep -c`/`grep -v` exit 1 when nothing matched, which would
+            # kill the step on the branch where no app folder changed at all.
             if BASE="$(git merge-base "$LAUNCHER_REF" HEAD 2>/dev/null)"; then
-              CHANGED="$(git diff --name-only "$BASE" HEAD -- 'apps/' | cut -d/ -f2 | grep -v '^$' | sort -u)"
-              COUNT="$(printf '%s\n' "$CHANGED" | grep -c . || true)"
+              CHANGED="$(git diff --name-only "$BASE" HEAD -- 'apps/' | cut -d/ -f2 | awk 'NF' | sort -u)"
+              COUNT="$(printf '%s\n' "$CHANGED" | awk 'NF' | wc -l)"
               if [ "$COUNT" = "1" ]; then APP="$CHANGED"; fi
             fi
           fi
@@ -141,7 +147,7 @@ jobs:
             echo "Push to app/<id>-<name>, or dispatch this workflow with 'app' set." | tee -a app-harness.log
             exit 0
           fi
-          [ -z "$APP" ] && exit 0
+          if [ -z "$APP" ]; then exit 0; fi
           LOG="apps/$APP/docs/Test_Results/Unreleased/non_visual/app-harness.log"
           # Rendering needs the launcher, and the launcher only builds a release.
           # So the harness renders only when the app is in the release AND ready.
@@ -224,9 +230,12 @@ jobs:
           fi
           if [ -z "$APP" ]; then
             git fetch --quiet origin "+refs/heads/arena/53d9bc26-archx-agent:refs/remotes/$LAUNCHER_REF" 2>/dev/null || true
+            # `awk NF` rather than `grep`: a runner runs this under `bash -e`,
+            # and `grep -c`/`grep -v` exit 1 when nothing matched, which would
+            # kill the step on the branch where no app folder changed at all.
             if BASE="$(git merge-base "$LAUNCHER_REF" HEAD 2>/dev/null)"; then
-              CHANGED="$(git diff --name-only "$BASE" HEAD -- 'apps/' | cut -d/ -f2 | grep -v '^$' | sort -u)"
-              COUNT="$(printf '%s\n' "$CHANGED" | grep -c . || true)"
+              CHANGED="$(git diff --name-only "$BASE" HEAD -- 'apps/' | cut -d/ -f2 | awk 'NF' | sort -u)"
+              COUNT="$(printf '%s\n' "$CHANGED" | awk 'NF' | wc -l)"
               if [ "$COUNT" = "1" ]; then APP="$CHANGED"; fi
             fi
           fi
