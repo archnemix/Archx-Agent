@@ -7,9 +7,10 @@ mouse. Every row below names the exact control, the file it writes, and what a
 correct screen looks like — so a pass or a fail is a judgement you can make
 without reading Rust.
 
-Evidence for the build described here: CI runs `46117165826` (Linux 34+9+107
-tests, macOS, Windows) and the screenshots in
-[`visual/`](visual/README.md). The Windows binary is
+Evidence for the build described here: CI run `46121930192`, green on Linux,
+Windows and macOS, with **34 + 10 + 107** tests passing on each (the launcher's
+own suite grew to 10 when the “why it will not open” wording got a test per
+branch). Screenshots are in [`visual/`](visual/README.md). The Windows binary is
 [`deliverables/Unreleased/windows/archx-ai-lab.exe`](../../../../../deliverables/Unreleased/windows/archx-ai-lab.exe),
 **unsigned**.
 
@@ -258,8 +259,14 @@ then start the app.
   `IN PROGRESS` and does **not** launch — the old build used “is it live?” for
   “can I click it?”, so a preview app looked clickable and did nothing.
 
-*Proof in code:* `src/navigation.rs` `tile`; `src/app.rs` `launchable` uses
-`is_registered()`.
+Pressing a tile that will **not** open is itself honest: the notice names the real
+reason — *its folder and docs are in place; its code is not* for a reserved
+folder, *its code exists, but this build does not host it* for a held app, *it is
+registered, but not ready to open yet* otherwise.
+
+*Proof in code:* `src/navigation.rs` `tile`; `src/app.rs` `launchable` (uses
+`is_registered()`) and `App::unopenable_reason`
+(`an_app_that_will_not_open_says_the_true_reason`).
 
 ### 15. The featured card names the app instead of saying “AGENT”
 
