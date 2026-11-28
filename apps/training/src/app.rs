@@ -1879,4 +1879,23 @@ mod tests {
         storage::set_thread_directory(None);
         let _ = std::fs::remove_dir_all(dir);
     }
+
+    #[test]
+    fn manifest_satisfies_archx_shared_ready_and_file_contract() {
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let app = archx_shared::apps::find_any(APP_ID).expect("training manifest discovered");
+        assert!(app.ready);
+        assert!(app.is_live());
+        assert!(app.has_code());
+        assert!(
+            app.contract_problems().is_empty(),
+            "contract problems: {:?}",
+            app.contract_problems()
+        );
+        assert!(
+            app.verify_files(&manifest_dir).is_empty(),
+            "file verification problems: {:?}",
+            app.verify_files(&manifest_dir)
+        );
+    }
 }

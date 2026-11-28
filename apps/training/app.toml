@@ -1,14 +1,16 @@
 # Purpose: Model Training app manifest declaring the native Rust model-creation workspace for Archx AI Lab.
 #
-# While active vertical slices are under CI verification on this branch, `ready`
-# stays `false` so the launcher remains untouched until final import readiness.
+# Verified green by the App harness workflow (`cargo test -p archx-training` +
+# `cargo build -p archx-training`). `ready = true` marks the crate ready for the
+# launcher owner to import and register; without `.register("training")` in
+# `src/main.rs` it remains cleanly `Release::Held`.
 
 id = "training"
 name = "Model Training"
 category = "BUILD MODELS"
 summary = "Create and train new models from scratch in native Rust—from dataset and tokenizer to live telemetry and instant post-training chat."
-ready = false
-status = "building"
+ready = true
+status = "live"
 art = "workbench"
 modes = ["DATA", "TOKENIZER", "ARCHITECT", "TRAIN", "NEURAL", "PLAYGROUND"]
 crate = "archx-training"
