@@ -440,3 +440,35 @@ fn probe_events_persist_request_metadata_and_no_reply_body() {
     assert_eq!(persisted.entries().len(), 1);
     assert_eq!(persisted.entries()[0].request_bytes, 123);
 }
+
+/// Linux runner records the process RSS alongside the cache's own partial
+/// indicator. The allocator may retain released pages, so we do not equate a
+/// falling cache count with an immediate drop in operating-system RSS.
+#[cfg(target_os = "linux")]
+#[test]
+fn synthetic_cache_rss_review() {
+    fn rss_kib() -> u64 {
+        std::fs::read_to_string("/proc/self/status").unwrap().lines()
+            .find_map(|line| line.strip_prefix("VmRSS:")?.split_whitespace().next()?.parse().ok())
+            .expect("Linux VmRSS")
+    }
+    let _dir = ConfigDir::new("rss-review");
+    let mut app = configured();
+    let before = rss_kib();
+    let models: Vec<_> = (0..20_000).map(|i| CatalogModel {
+        id: format!("model-{i:05}"), name: "x".repeat(2048),
+        free: false, router: false, reasoning: false,
+    }).collect();
+    app.store.store_catalog(Provider::OpenRouter, models);
+    app.refresh_usage();
+    let loaded = rss_kib();
+    let usage = app.memory_usage.iter().find(|u| u.item == archx_shared::memory::Item::ModelCatalog).unwrap();
+    assert_eq!(usage.entries, 20_000);
+    assert!(usage.bytes > 40_000_000);
+    app.release(archx_shared::memory::Item::ModelCatalog);
+    let after = rss_kib();
+    let usage = app.memory_usage.iter().find(|u| u.item == archx_shared::memory::Item::ModelCatalog).unwrap();
+    assert_eq!((usage.entries, usage.bytes), (0, 0));
+    println!("MEMORY REVIEW: VmRSS before={before} KiB loaded={loaded} KiB after-release={after} KiB; RSS may stay high due to allocator retention");
+    assert!(loaded > before + 8_000, "synthetic data should cause observable RSS growth");
+}
