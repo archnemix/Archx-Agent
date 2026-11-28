@@ -1,0 +1,15 @@
+{
+  "_description": "Records verified external crate and API research used to implement apps/training without C/Python build dependencies.",
+  "candle_0_11_1": {
+    "url": "https://github.com/huggingface/candle",
+    "summary": "Verified candle-core 0.11.1 and candle-nn 0.11.1 in crates.io-index and upstream source: pure-Rust CPU backend via gemm/rayon, built-in safetensors 0.8 VarMap save/load, tokenizers 0.23.1 switched from C onig to pure-Rust fancy-regex, and CpuDevice::set_seed returns an error on CPU so deterministic initialization must populate VarMap from an explicit seeded PRNG."
+  },
+  "tokenizers_0_23_1": {
+    "url": "https://github.com/huggingface/tokenizers",
+    "summary": "Verified tokenizers 0.23.1 crates.io metadata: setting default-features = false with features = [\"fancy-regex\"] disables both C onig_sys and C++ esaxx-rs/cpp while keeping full pure-Rust Tokenizer JSON loading and encoding."
+  },
+  "iced_0_14_sipper_and_svg": {
+    "url": "https://github.com/archnemix/Archx-Agent",
+    "summary": "Verified workspace Iced 0.14.0 feature set (tokio, image, svg, markdown, sipper), Task::sip(...).abortable() streaming pattern in apps/archx-agent/src/app_provider.rs, and app-scoped storage API save_app/load_app_body/wipe_app in shared/src/storage.rs."
+  }
+}

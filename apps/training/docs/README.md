@@ -1,62 +1,20 @@
-# Model Training — docs
+<!-- Purpose: Index for the Model Training (`apps/training/`) documentation, architecture, decisions, and CI evidence. -->
+# Model Training — Documentation
 
-This folder belongs to the **Model Training** app (`apps/training/`). It is
-reserved and intentionally almost empty: the app's code and documentation are
-being written by the person who owns it, not by the Launcher.
+`apps/training/` (`crate = "archx-training"`) is the native-Rust model-creation workspace inside **Archx AI Lab**. It focuses exclusively on **creating and training brand-new models from scratch** inside the desktop application with zero external Python or C++ installation required, while sibling workspace `Model Surgery` handles modifying, merging, adapting, and quantizing existing pretrained checkpoints.
 
-**Before writing code, read
-[../../archx-agent/docs/Plan/Adding_An_App.md](../../archx-agent/docs/Plan/Adding_An_App.md)** —
-it is the complete, self-contained contract for an app in this Lab.
+## Documents in This Folder
 
-## What exists today
-
-- `../app.toml` — the manifest the Launcher reads. It is the only contract
-  between this app and the rest of the Lab:
-
-  ```toml
-  id = "training"
-  name = "Model Training"
-  category = "BUILD MODELS"
-  summary = "…"
-  status = "building"     # live | preview | building | planned
-  art = "workbench"       # agent | workbench
-  docs = "docs"
-  requires = ["archx-shared"]
-  ```
-
-  No `crate`, `entry` or `view` yet: that is a valid code-less manifest, and CI
-  asserts it stays valid (`a_reserved_folder_needs_no_code_yet`).
-
-  `status = "building"` keeps the tile on Discover but not openable. Changing it
-  to `live` is what makes the Launcher's "open" path available; no launcher code
-  has to change.
-
-## Where to put things
-
-| Kind of document | Path |
+| Document | Purpose |
 | --- | --- |
-| Architecture and module map | `docs/Architecture.md` |
-| Design decisions and rejected options | `docs/Decisions.md` |
-| Progress and validation evidence | `docs/Test_Results/Unreleased/` |
-| Per-area text scale, storage, wiping | follows the Archx Agent's `Storage & display` design — see `../../archx-agent/docs/Thinking.md` |
+| [Architecture.md](Architecture.md) | Composable 4-axis model taxonomy, module map, UI surfaces, optimizations, and Slice 1 (Text Autoregressive Transformer) specification |
+| [Decisions.md](Decisions.md) | Engineering decisions, verified Rust ML crate choices, deterministic seeding, and zero-overhead telemetry |
+| [Roadmap.md](Roadmap.md) | Ordered vertical-slice implementation plan starting with Text Generation · Autoregressive Transformer |
+| [Research.json](Research.json) | Authoritative crate and API research records |
+| [Test_Results/Unreleased/](Test_Results/Unreleased/README.md) | Automated GitHub Actions `App harness` build and test logs |
 
-## Rules that apply to every app in the Lab
+## Lab-Wide Contract Followed Here
 
-1. **Never edit the launcher** to add an app. Add a folder with `app.toml`; the
-   Launcher discovers it (`shared/src/apps.rs`).
-2. **Never fork the launcher.** The Lab is one application with several
-   workspaces.
-3. **Shared code comes from `archx-shared`** (`shared/src/`): storage locations,
-   the OS vault, transports, diagnostics, the debug journal and the design
-   tokens. Do not copy those files into an app.
-4. **Wiping is per area and always explicit.** An app may wipe only its own
-   areas, and must say what it left alone (vault keys are never deleted by a
-   wipe).
-5. **Evidence, not claims.** Build and test results are recorded under
-   `docs/Test_Results/Unreleased/` by CI, not asserted by hand.
-
-## Docs index for the whole Lab
-
-- `../../archx-agent/docs/README.md` — the Agent's documentation index.
-- `../../archx-agent/docs/Plan/Architecture.md` — the workspace crate layout.
-- `../../../README.md` — repository orientation.
+1. **Zero launcher edits:** All code and docs live under `apps/training/` (plus the single `"apps/training"` workspace member entry in root `Cargo.toml`).
+2. **Shared infrastructure from `archx-shared`:** Uses `archx_shared::style` tokens, `archx_shared::credentials::Vault` for optional dataset tokens, `archx_shared::persist::TextScale`, and app-scoped persistence via `archx_shared::storage::{save_app, load_app_body, wipe_app}("training", ...)`.
+3. **Host lifecycle (§7b):** Exports `home::view` and implements `App::{new, update, enter_surface, leave_app, prepare_snapshot}` plus `left_for_launcher`.
