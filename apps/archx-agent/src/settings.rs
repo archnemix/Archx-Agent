@@ -7,7 +7,7 @@ use iced::widget::{button, column, container, row, scrollable, space, stack, tex
 use iced::{Center, Element, Fill};
 use zeroize::Zeroizing;
 
-use crate::app::{MemoryMode, MemoryScope, Message};
+use crate::app::Message;
 use archx_shared::credentials::Provider;
 use crate::custom_endpoint::Profile;
 use archx_shared::health::{KeyHealthSet, ModelHealthSet};
@@ -31,18 +31,17 @@ impl fmt::Debug for SecretText {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Section { Providers, Models, Runtime, Storage, Lab }
+pub enum Section { Providers, Models, Runtime, Storage }
 
 impl Section {
-    pub const ALL: [Self; 5] = [Self::Providers, Self::Models, Self::Runtime, Self::Storage, Self::Lab];
+    pub const ALL: [Self; 4] = [Self::Providers, Self::Models, Self::Runtime, Self::Storage];
 
     pub fn label(self) -> &'static str {
         match self {
             Self::Providers => "Providers",
             Self::Models => "Models",
-            Self::Runtime => "Runtime memory",
+            Self::Runtime => "Memory",
             Self::Storage => "Storage & display",
-            Self::Lab => "Agent memory",
         }
     }
 }
@@ -207,15 +206,14 @@ pub fn probe_summary(ok: bool, output: &str) -> String {
     }
 }
 
-pub fn view<'a>(state: &'a SettingsState, memory: MemoryMode, keep_agent: bool,
+pub fn view<'a>(state: &'a SettingsState,
     display: &'a archx_shared::persist::DisplaySettings, storage_path: &'a str, usage: &'a [archx_shared::memory::Usage],
     budget: &'a archx_shared::memory::Budget) -> Element<'a, Message> {
     let (heading, description) = match state.section {
         Section::Providers => ("Providers", "Select a provider from the list, see and edit the exact URLs it calls, and manage its vault keys."),
         Section::Models => ("Models", "The list scrolls and pages. Tick several models to test, enable, disable or remove them together."),
-        Section::Runtime => ("Runtime memory", "Choose what the Agent keeps in RAM at each stage. Sizes are measured, never estimated."),
+        Section::Runtime => ("Memory", "Manage runtime caches. Chat context and model limits are not configurable here yet."),
         Section::Storage => ("Storage & display", "Where your data lives, how big the text is in each area, and how to wipe it."),
-        Section::Lab => ("Agent memory", "What the Agent itself keeps resident, at which stage. The Launcher owns its own matrix in Lab settings; this page never edits it."),
     };
     let status_notice: Element<'static, Message> = if state.status.is_empty() { space().height(0).into() }
     else { column![
@@ -244,7 +242,6 @@ pub fn view<'a>(state: &'a SettingsState, memory: MemoryMode, keep_agent: bool,
             Section::Models => models(state),
             Section::Runtime => runtime(state, usage, budget),
             Section::Storage => storage(state, display, storage_path),
-            Section::Lab => lab(memory, keep_agent),
         }
     ].width(Fill).padding(iced::Padding { top: 24.0, right: 28.0, bottom: 40.0, left: 28.0 });
     let base = column![
@@ -766,14 +763,16 @@ fn runtime<'a>(_state: &'a SettingsState, usage: &'a [archx_shared::memory::Usag
     let resident = archx_shared::memory::resident_total(usage);
     column![
         surface(column![
-            eyebrow("RESIDENT CACHES  /  MEASURED"),
+            text("Runtime memory").size(17).font(style::STRONG).color(style::WHITE),
+            space().height(8),
+            eyebrow("CACHE SIZE INDICATORS  /  PARTIAL ESTIMATES"),
             space().height(10),
-            text(format!("Loaded now: {}. Nothing here is estimated; each figure counts the bytes this process holds.",
+            text(format!("Approximate listed total: {}. These partial counts omit allocations and are not total RAM usage.",
                 archx_shared::memory::bytes_label(resident))).size(11.5).color(style::GREY),
             space().height(10),
             matrix,
             space().height(8),
-            text("Columns are stages: Launcher · Agent idle · Streaming · Settings · (drop = released on entry).")
+            text("From left to right: Launcher · Agent idle · Streaming · Settings. Keep retains the cache at that stage; drop requests its release on entry.")
                 .size(10.5).color(style::DIM)
         ].width(Fill)),
         surface(column![
@@ -1015,36 +1014,6 @@ mod catalog_tests {
         let long = "HTTP 500 · upstream returned a very long diagnostic body that should be cut";
         assert!(probe_summary(false, long).ends_with('…'));
     }
-}
-
-/// Launcher-facing memory scope, plus the Agent's own stage matrix pointer.
-/// The launcher shows the same scope for launcher-specific data.
-fn lab(memory: MemoryMode, keep_agent: bool) -> Element<'static, Message> {
-    let scope_button = |scope: MemoryScope, label: &'static str| -> Element<'static, Message> {
-        let active = memory == scope.mode() && (scope != MemoryScope::Heavy || memory == MemoryMode::Heavy);
-        button(text(label).size(12.5)).padding([8, 14])
-            .on_press(Message::LauncherScope(scope))
-            .style(move |theme, status| style::side_nav(active, theme, status)).into()
-    };
-    surface(column![
-        eyebrow("MEMORY SCOPE"),
-        space().height(12),
-        text("A scope is a starting point, not a RAM limit. Light keeps the least resident; Heavy keeps fetched catalogs and metadata warm. Custom, then Runtime memory, lets you choose per cache and per stage.")
-            .size(12).color(style::GREY),
-        space().height(14),
-        row![
-            scope_button(MemoryScope::Light, "Light"),
-            scope_button(MemoryScope::Balanced, "Balanced"),
-            scope_button(MemoryScope::Heavy, "Heavy"),
-            scope_button(MemoryScope::Custom, "Custom")
-        ].spacing(8),
-        space().height(14),
-        button(text(if keep_agent { "Agent / Keep ready" } else { "Agent / Load on open" }).size(12))
-            .on_press(Message::ToggleAgentPreview).style(style::control_button),
-        space().height(8),
-        text("Runtime memory (Settings → Runtime) shows what is actually held and lets you release it. Nothing here caps another process.")
-            .size(10.5).color(style::DIM)
-    ].width(Fill))
 }
 
 fn custom_controls(state: &SettingsState) -> Element<'static, Message> {

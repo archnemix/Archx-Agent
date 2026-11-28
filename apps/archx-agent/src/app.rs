@@ -492,7 +492,7 @@ impl App {
             _ if self.memory_preview == MemoryMode::Custom => Section::Runtime,
             "runtime" => Section::Runtime,
             "storage" => Section::Storage,
-            "lab" => Section::Lab,
+            "lab" => Section::Runtime,
             _ => Section::Providers,
         };
         match which.as_str() {

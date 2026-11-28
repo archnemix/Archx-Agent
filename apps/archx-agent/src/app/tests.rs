@@ -394,3 +394,12 @@ fn deleting_a_chat_leaves_a_usable_blank_one() {
     assert!(app.drafts[0].turns.is_empty());
     assert_ne!(app.drafts[0].id, id, "a fresh id, so a stale save cannot resurrect it");
 }
+
+#[test]
+fn memory_is_a_settings_category_without_an_agent_memory_entry() {
+    use crate::settings::Section;
+    let labels: Vec<_> = Section::ALL.iter().map(|section| section.label()).collect();
+    assert!(labels.contains(&"Memory"));
+    assert!(!labels.contains(&"Agent memory"));
+    assert!(!labels.contains(&"Runtime memory"));
+}

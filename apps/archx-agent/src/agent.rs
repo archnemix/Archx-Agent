@@ -510,7 +510,7 @@ fn chat_md_scaled<'a>(items: impl IntoIterator<Item = &'a markdown::Item>, body:
 pub fn settings_shell<'a>(app: &'a crate::app::App) -> Element<'a, Message> {
     let settings = &app.settings;
     let shell = row![rail(&app.drafts, app.selected_draft, settings, app.page, &app.display),
-        crate::settings::view(settings, app.memory_preview, app.keep_agent_preview, &app.display,
+        crate::settings::view(settings, &app.display,
             &app.storage_path, &app.memory_usage, &app.memory_budget)]
         .width(Fill).height(Fill);
     if settings.section == crate::settings::Section::Models && settings.catalog_modal {

@@ -73,11 +73,10 @@ impl App {
                     Err(error) => self.settings.status = error.message().into(),
                 }
             }
-            Message::EditKey(value) if self.settings.section != Section::Lab => {
+            Message::EditKey(value) => {
                 if value.0.len() <= 1024 { self.settings.key_entry = value; }
             }
-            Message::SaveKey if self.settings.section != Section::Lab
-                && !self.settings.key_entry.0.is_empty() && !self.settings.key_busy => {
+            Message::SaveKey if !self.settings.key_entry.0.is_empty() && !self.settings.key_busy => {
                 self.settings.key_busy = true;
                 self.settings.custom_approved = false;
                 let provider = self.settings.provider;
@@ -348,7 +347,7 @@ impl App {
                 self.bulk_clear();
                 self.persist_settings();
             }
-            Message::SearchModels(query) if query.chars().count() <= 100 && self.settings.section != Section::Lab => {
+            Message::SearchModels(query) if query.chars().count() <= 100 => {
                 self.settings.search = query;
                 self.settings.model_page = 0;
                 self.settings.catalog_page = 0;
@@ -542,7 +541,7 @@ impl App {
                 self.persist_tests();
             }
             Message::FetchModels if self.settings.provider != Provider::Custom
-                && self.settings.section != Section::Lab && !self.settings.catalog_busy && self.snapshot.is_none() => {
+                && !self.settings.catalog_busy && self.snapshot.is_none() => {
                 let provider = self.settings.provider;
                 self.settings.catalog_busy = true;
                 self.settings.catalog_nonce = self.settings.catalog_nonce.wrapping_add(1);
@@ -727,8 +726,9 @@ impl App {
                 self.keep_agent_preview = !self.keep_agent_preview;
             }
             Message::LauncherScope(scope) => {
+                self.scope = scope;
                 self.memory_preview = scope.mode();
-                self.settings.status = format!("Memory scope set to {}. Stages control what the Agent keeps resident.", scope_label(scope));
+                self.settings.status = format!("Memory scope preview: {}. Runtime memory controls the cache stages.", scope_label(scope));
             }
 
             // ---------- custom endpoint -------------------------------------------
