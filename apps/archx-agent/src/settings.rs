@@ -218,7 +218,7 @@ pub fn view<'a>(state: &'a SettingsState,
         Section::Providers => ("Providers", "Select a provider from the list, see and edit the exact URLs it calls, and manage its vault keys."),
         Section::Models => ("Models", "The list scrolls and pages. Tick several models to test, enable, disable or remove them together."),
         Section::FreeTiers => ("Free-tier models", "Community listing, not a guarantee of provider availability or current limits."),
-        Section::Runtime => ("Memory", "Manage runtime caches. Chat context and model limits are not configurable here yet."),
+        Section::Runtime => ("Memory", "Manage runtime caches. Per-model context limits and automatic summaries are not available yet; chat requests include only the latest 12 complete turns."),
         Section::Storage => ("Storage & display", "Where your data lives, how big the text is in each area, and how to wipe it."),
     };
     let status_notice: Element<'static, Message> = if state.status.is_empty() { space().height(0).into() }

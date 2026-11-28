@@ -16,3 +16,11 @@ Status: in progress. Items remain open until implemented and verified, including
 - [ ] Add per-model context settings with source-labelled known limits, optional user caps, and explicit handling of unknown or stale limits.
 - [ ] Add configurable request/token rate limits (RPM/TPM), respecting provider and account scope; never promise an exact count without the provider's tokenizer or usage report.
 - [ ] Design and implement safe context compaction: ask the user before requesting a summary, preserve recent messages in full, retain the original transcript, make summary failures visible, and account for summary request limits and cost.
+
+## Known limitations while this work is in progress
+
+- The current chat request builder silently limits context to the latest 12 completed turns. Per-model limits, approval for summary requests, and summary-based compaction are **not implemented**. Original transcripts remain stored; do not treat older turns as sent.
+- Runtime cache stage transitions are not applied automatically yet; the screen calls this out. Debug journal and key-health rows are deliberately non-interactive until they can be unloaded safely.
+- RSS review measures the process on Linux and checks a synthetic cache is emptied; allocator retention means process RSS may not fall immediately when a cache is dropped.
+- The community free-tier list is informational and may be stale. It does not enforce account RPM or TPM limits.
+- A green check on one commit or a previous Windows EXE does not validate later changes. Rebuild after all requested work is finished.
