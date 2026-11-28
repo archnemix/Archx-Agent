@@ -754,7 +754,7 @@ fn saved_run_panel(state: &SettingsState) -> Element<'static, Message> {
 }
 
 fn free_tiers(state: &SettingsState) -> Element<'static, Message> {
-    let mut list = column![].spacing(5).width(Fill);
+    let mut list: iced::widget::Column<'static, Message> = column![].spacing(5).width(Fill);
     for entry in &state.free_rows {
         list = list.push(container(column![
             text(format!("{} · {}", entry.provider, entry.model)).size(12).font(style::STRONG).color(style::WHITE),
