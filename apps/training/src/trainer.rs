@@ -84,7 +84,7 @@ pub fn execute_training_pipeline<F>(
     mut emit: F,
 ) -> Result<(), String>
 where
-    F: FnMut(TrainEvent),
+    F: FnMut(TrainEvent) + Send,
 {
     if dataset.train_docs.is_empty() {
         return Err("Dataset has no training documents.".to_owned());

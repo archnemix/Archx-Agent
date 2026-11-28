@@ -726,7 +726,7 @@ fn masked_cross_entropy(
     let eps = label_smoothing.clamp(0.0, 0.25);
     if eps > 1e-5 {
         let smooth_loss = log_probs.mean_all()?.neg()?;
-        (&(&nll * f64::from(1.0 - eps))? + &(&smooth_loss * f64::from(eps))?)
+        &(&nll * f64::from(1.0 - eps))? + &(&smooth_loss * f64::from(eps))?
     } else {
         Ok(nll)
     }
