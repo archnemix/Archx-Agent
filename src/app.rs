@@ -247,6 +247,23 @@ pub struct App {
     ticker: bool,
 }
 
+    /// Why pressing an app that will not open did nothing, said truthfully.
+    ///
+    /// There are three different reasons, and they used to share one sentence
+    /// that was wrong for two of them: a reserved folder has no code, a held app
+    /// has code this binary does not link, and a registered app can still be
+    /// unready. "Its code is not [in place]" told a held app's author their work
+    /// did not exist.
+    fn unopenable_reason(app: &apps::App) -> &'static str {
+        if !app.has_code() {
+            "its folder and docs are in place; its code is not"
+        } else if Hosted::find(&app.id).is_none() {
+            "its code exists, but this build does not host it"
+        } else {
+            "it is registered, but not ready to open yet"
+        }
+    }
+
 impl App {
     pub fn new() -> Self {
         let snapshot = std::env::var_os("ARCHX_SNAPSHOT").map(PathBuf::from);
@@ -309,23 +326,6 @@ impl App {
             snapshot_page: std::env::var("ARCHX_SNAPSHOT_CHAT").ok(),
             snapshot_app: None,
             ticker: false,
-        }
-    }
-
-    /// Why pressing an app that will not open did nothing, said truthfully.
-    ///
-    /// There are three different reasons, and they used to share one sentence
-    /// that was wrong for two of them: a reserved folder has no code, a held app
-    /// has code this binary does not link, and a registered app can still be
-    /// unready. "Its code is not [in place]" told a held app's author their work
-    /// did not exist.
-    fn unopenable_reason(app: &apps::App) -> &'static str {
-        if !app.has_code() {
-            "its folder and docs are in place; its code is not"
-        } else if Hosted::find(&app.id).is_none() {
-            "its code exists, but this build does not host it"
-        } else {
-            "it is registered, but not ready to open yet"
         }
     }
 
