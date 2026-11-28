@@ -312,6 +312,23 @@ impl App {
         }
     }
 
+    /// Why pressing an app that will not open did nothing, said truthfully.
+    ///
+    /// There are three different reasons, and they used to share one sentence
+    /// that was wrong for two of them: a reserved folder has no code, a held app
+    /// has code this binary does not link, and a registered app can still be
+    /// unready. "Its code is not [in place]" told a held app's author their work
+    /// did not exist.
+    fn unopenable_reason(app: &apps::App) -> &'static str {
+        if !app.has_code() {
+            "its folder and docs are in place; its code is not"
+        } else if Hosted::find(&app.id).is_none() {
+            "its code exists, but this build does not host it"
+        } else {
+            "it is registered, but not ready to open yet"
+        }
+    }
+
     /// The app record for an id, if it is registered and openable.
     ///
     /// `is_live` alone was the bug: an app can be registered in this release
@@ -348,8 +365,13 @@ impl App {
                         return self.go(Page::App { id: hosted.id, surface: hosted.surfaces[0] });
                     }
                 }
+                // Why it would not open is not one fact: a reserved folder has
+                // no code, a held app has code this binary does not link, and a
+                // preview app is registered but not ready. The wording lives in
+                // `unopenable_reason` so it can be tested rather than hoped at.
                 self.notice = self.apps.iter().find(|app| app.id == id)
-                    .map(|app| format!("{} is not available yet ({}). Its folder and docs are in place; its code is not.", app.name, app.status));
+                    .map(|app| format!("{} is not available yet ({}): {}.",
+                        app.name, app.status, unopenable_reason(app)));
             }
             Message::ToggleSidebar => self.sidebar_expanded = !self.sidebar_expanded,
             Message::BackToLauncher => return self.go(Page::Home),
@@ -581,6 +603,30 @@ mod hosting_tests {
             view: Some("home::view".to_owned()), docs: None,
             requires: Vec::new(), built, origin: apps::Origin::Disk,
         }
+    }
+
+    #[test]
+    fn an_app_that_will_not_open_says_the_true_reason() {
+        // A reserved folder: manifest only, no crate.
+        let mut reserved = manifest("building", false, false);
+        reserved.krate = None;
+        reserved.entry = None;
+        assert!(!reserved.has_code());
+        assert_eq!(unopenable_reason(&reserved), "its folder and docs are in place; its code is not");
+
+        // Code exists but this binary does not link it. The old wording claimed
+        // the code was missing, which is the lie this test exists to prevent.
+        let held = manifest("live", true, false);
+        assert!(held.has_code());
+        assert!(Hosted::find(&held.id).is_none());
+        assert_eq!(unopenable_reason(&held), "its code exists, but this build does not host it");
+
+        // Registered and hosted, but the manifest is not ready yet. Built from
+        // the real Agent row so the hosted branch is genuinely exercised.
+        let mut unready = manifest("preview", false, true);
+        unready.id = "archx-agent".to_owned();
+        assert!(Hosted::find(&unready.id).is_some());
+        assert_eq!(unopenable_reason(&unready), "it is registered, but not ready to open yet");
     }
 
     #[test]

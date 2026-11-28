@@ -81,9 +81,12 @@ screen in one frame.
 **Where:** Agent → **Settings** → **Models** and → **Providers**.
 
 - Press **Refresh metadata**, then look at an added row: a dim second line gives
-  modality, context window and price where known — e.g.
-  `text+image → text · 128k ctx · $5.00/$15.00 per 1M`. When no source knows a
-  field, the line simply omits it; nothing is shown as `0`.
+  modality, context window and price where a source knows them, labelled with the
+  source — e.g.
+  `text+image → text  ·  128k context  ·  $1.00 / $2.00 per 1M  ·  models.dev`,
+  or `…  ·  free tier: 100k tokens/day  ·  models.dev` when a free tier is known.
+  When no source knows a field the part is simply absent; no field is ever shown
+  as `0`, and an id no source lists gets no line at all rather than a guess.
 - The catalog rows carry a `free` tag for models a free-tier source lists.
 - **Remaining usage:** in *Providers*, the card **KEY USAGE / WHAT THE PROVIDER
   PUBLISHES** states, per provider, exactly what it will tell you. For OpenRouter
