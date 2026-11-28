@@ -74,7 +74,7 @@ fn rail(state: &Launcher) -> Element<'static, Message> {
             space().height(28),
             compact_action(Icon::Home, "Discover", Message::Navigate(Page::Home), page == Page::Home),
             space().height(12),
-            compact_action(Icon::Agent, "Archx Agent", Message::Navigate(Page::Agent), page.is_agent_surface()),
+            compact_action(Icon::Agent, "Archx Agent", Message::Navigate(Page::app("archx-agent")), page.is_agent_surface()),
             space().height(12),
             compact_action(Icon::Settings, "Lab settings", Message::Navigate(Page::LabSettings), page == Page::LabSettings),
             space().height(Fill),
@@ -94,19 +94,30 @@ fn rail(state: &Launcher) -> Element<'static, Message> {
     ];
     // One rail entry per discoverable app, from its manifest.
     for app in &state.apps {
-        // In-process hosting: the launcher links exactly the Agent crate today.
-        // A later app adds its crate to `src/` and one arm here; its tile, rail
-        // entry, modes and status already come from its manifest.
-        let hosted = app.id == "archx-agent";
-        let openable = app.is_live() && hosted;
-        let target = if hosted { Page::Agent } else { Page::Home };
-        let label: &'static str = if app.id == "archx-agent" { "Archx Agent" } else { "Workspace" };
+        // Hosting is asked of the launcher's own table, not of a hard-coded id:
+        // an app that is ready but not linked into this binary stays held, and
+        // held is shown, never silently dropped.
+        let hosted = crate::app::Hosted::find(&app.id);
+        let openable = app.is_registered() && hosted.is_some();
+        let label = app.name.clone();
+        let active = page.hosted_app().is_some_and(|(id, _)| id == app.id);
         if openable {
+            let Some(hosted) = hosted else { continue };
+            let id = hosted.id;
             content = content.push(expanded_action(Icon::Agent, label,
-                Message::Navigate(target), page.is_agent_surface()));
+                Message::Navigate(Page::App { id, surface: hosted.surfaces[0] }), active));
         } else {
-            content = content.push(container(text(format!("    {label}")).size(12.0 * scale).color(style::DIM))
-                .padding([10, 15]).width(Fill));
+            // Why it is not openable matters: a held app and an unbuilt one look
+            // identical on screen otherwise, and the owner needs to know which.
+            let reason = if !app.ready { "building" }
+                else if hosted.is_none() { "held · not in this build" }
+                else { app.status.as_str() };
+            content = content.push(container(
+                row![
+                    text(format!("    {}", app.name)).size(12.0 * scale).color(style::DIM).width(Fill),
+                    text(reason).size(10.0).color(style::DIM)
+                ].spacing(8)
+            ).padding([10, 15]).width(Fill));
         }
         content = content.push(space().height(6));
     }
@@ -197,7 +208,9 @@ fn fit_words(text: &str, limit: usize) -> String {
 
 fn discover(state: &Launcher) -> Element<'static, Message> {
     let scale = state.display.launcher.factor();
-    let featured = state.apps.iter().find(|app| app.is_live());
+    // The featured tile follows registration, not the "live" label, for the
+    // same reason `launchable` does.
+    let featured = state.apps.iter().find(|app| app.is_registered());
     let hero: Element<'static, Message> = match featured {
         Some(app) => {
             let id = app.id.clone();
@@ -209,15 +222,23 @@ fn discover(state: &Launcher) -> Element<'static, Message> {
                     space().height(8),
                     text(app.summary.clone()).size(14).color(style::GREY),
                     space().height(18),
-                    button(text("OPEN AGENT UI  →").size(11).color(style::WHITE))
+                    // The button names the app it opens. It used to say "OPEN
+                    // AGENT UI" for whatever app happened to be featured, which
+                    // would have been wrong the moment a second app went live.
+                    button(text(format!("OPEN {}  →", app.name.to_uppercase())).size(11).color(style::WHITE))
                         .padding([10, 14]).on_press(Message::LaunchApp(id))
                         .style(style::quiet_button)
                 ].spacing(0).width(FillPortion(1)).padding(iced::Padding::new(22.0).right(0).left(30)),
                 container(column![
-                    text("SIX MODES  /  ONE AGENT").size(11).color(style::GREY),
+                    text(if app.art == "agent" {
+                        "SIX MODES  /  ONE AGENT"
+                    } else {
+                        "ONE WORKBENCH  /  ITS OWN STAGES"
+                    }).size(11).color(style::GREY),
                     space().height(25),
                     text("ARCHX").size(32).color(style::GREY),
-                    text("AGENT").size(52).color(style::WHITE),
+                    // A non-Agent app must not wear the Agent's wordmark.
+                    text(if app.art == "agent" { "AGENT" } else { "LAB" }).size(52).color(style::WHITE),
                     space().height(Fill),
                     // Trimmed at a word boundary: a hard character cut ended the
                     // front page on a half-word like "never ac".
@@ -438,8 +459,25 @@ pub fn view(state: &Launcher) -> Element<'_, Message> {
         Page::Home => scrollable(discover(state)).width(Fill).height(Fill).style(style::quiet_scroll).into(),
         Page::About => scrollable(about(state)).width(Fill).height(Fill).style(style::quiet_scroll).into(),
         Page::LabSettings => scrollable(lab_settings(state)).width(Fill).height(Fill).style(style::quiet_scroll).into(),
-        Page::Agent | Page::AgentSettings | Page::AgentDebug => {
-            let content = state.agent.view().map(Message::Agent);
+        page if page.is_app_surface() => {
+            // Only the Agent has a crate in this binary today. A second app's
+            // page is reachable only once it is hosted, so this arm is the
+            // honest fallback rather than a second app's UI borrowed from the
+            // Agent: it says what is missing instead of showing the wrong tool.
+            let content: Element<'_, Message> = match page.hosted_app() {
+                Some(("archx-agent", _)) => state.agent.view().map(Message::Agent),
+                Some((id, _)) => {
+                    let name = state.apps.iter().find(|app| app.id == id)
+                        .map(|app| app.name.clone()).unwrap_or_else(|| id.to_owned());
+                    column![
+                        text(name).size(28).color(style::WHITE),
+                        space().height(10),
+                        text("This app is not linked into this build of the launcher yet. Its folder and manifest exist; the launcher owner adds its crate to the hosted table and the release list.")
+                            .size(13).color(style::GREY)
+                    ].spacing(0).padding(40).into()
+                }
+                None => text("No app here.").size(13).color(style::GREY).into(),
+            };
             // The arriving app surface fades/slides in; the launcher rail is not
             // in the Agent view (the Agent has its own).
             match state.transition {
@@ -457,7 +495,9 @@ pub fn view(state: &Launcher) -> Element<'_, Message> {
             }
         }
     };
-    let shell = if state.page.is_agent_surface() {
+    // An app surface draws its own navigation, so the launcher rail is not
+    // stacked beside it; the launcher shell draws the rail.
+    let shell = if state.page.is_app_surface() {
         body
     } else {
         row![rail(state), body].width(Fill).height(Fill).into()

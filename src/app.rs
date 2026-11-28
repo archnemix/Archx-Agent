@@ -26,39 +26,85 @@ use crate::transition::Transition;
 pub enum Page {
     Home,
     About,
-    Agent,
-    AgentSettings,
-    AgentDebug,
+    /// An app hosted in this process: its id plus which of its surfaces is open.
+    ///
+    /// This used to be one variant per Agent surface (`Agent`, `AgentSettings`,
+    /// `AgentDebug`), which meant a second app could not exist without editing
+    /// the launcher's own enum, its rail, its transition rules and its view. An
+    /// app page is data now: the app id comes from its manifest, and the surface
+    /// id is whatever that app calls it. Adding an app is one row in
+    /// [`HOSTED`], never a new variant.
+    App { id: &'static str, surface: &'static str },
     /// Launcher-owned settings (display scale, memory scope, storage, apps).
     LabSettings,
+}
+
+/// The apps this binary hosts, and the surfaces each one offers.
+///
+/// This is the build-time half of "may this app appear": a manifest can say
+/// `ready = true` and still be held out of the release, because hosting means
+/// linking the crate. `surface` names are the app's own; the launcher only
+/// passes them through to `enter_surface`.
+#[derive(Debug, Clone, Copy)]
+pub struct Hosted {
+    pub id: &'static str,
+    pub surfaces: &'static [&'static str],
+}
+
+pub const HOSTED: &[Hosted] = &[
+    Hosted { id: "archx-agent", surfaces: &["agent", "settings", "debug"] },
+];
+
+impl Hosted {
+    pub fn find(id: &str) -> Option<&'static Hosted> {
+        HOSTED.iter().find(|hosted| hosted.id == id)
+    }
+    /// Falls back to the first surface, which every app must have.
+    pub fn surface(self, wanted: &str) -> &'static str {
+        self.surfaces.iter().copied().find(|surface| *surface == wanted)
+            .unwrap_or_else(|| self.surfaces.first().copied().unwrap_or("agent"))
+    }
 }
 
 impl Page {
     /// The page a stored `last_page` id refers to.
     pub fn from_id(id: &str) -> Self {
         match id {
-            "agent" => Self::Agent,
-            "settings" => Self::AgentSettings,
-            "debug" => Self::AgentDebug,
             "lab-settings" => Self::LabSettings,
             "about" => Self::About,
-            _ => Self::Home,
+            "home" | "" => Self::Home,
+            // The Agent keeps its old bare ids readable, so a `last_page` saved
+            // before app pages became data still restores where it was.
+            "agent" | "settings" | "debug" => {
+                let surface = match id { "settings" => "settings", "debug" => "debug", _ => "agent" };
+                Self::App { id: "archx-agent", surface }
+            }
+            // `"<app>/<surface>"` for any hosted app.
+            other => match other.split_once('/') {
+                Some((app, surface)) => match Hosted::find(app) {
+                    Some(hosted) => Self::App { id: hosted.id, surface: hosted.surface(surface) },
+                    None => Self::Home,
+                },
+                None => Self::Home,
+            },
         }
     }
 
-    pub fn id(self) -> &'static str {
+    /// The Agent keeps its historical bare ids ("agent"/"settings"/"debug")
+    /// because a stored `last_page` and the screenshot environment both use
+    /// them; every other app is `"<id>/<surface>"`.
+    pub fn id(self) -> String {
         match self {
-            Self::Home => "home",
-            Self::About => "about",
-            Self::Agent => "agent",
-            Self::AgentSettings => "settings",
-            Self::AgentDebug => "debug",
-            Self::LabSettings => "lab-settings",
+            Self::Home => "home".to_owned(),
+            Self::About => "about".to_owned(),
+            Self::LabSettings => "lab-settings".to_owned(),
+            Self::App { id: "archx-agent", surface } => match surface {
+                "settings" => "settings".to_owned(),
+                "debug" => "debug".to_owned(),
+                _ => "agent".to_owned(),
+            },
+            Self::App { id, surface } => format!("{id}/{surface}"),
         }
-    }
-
-    pub fn is_agent_surface(self) -> bool {
-        matches!(self, Self::Agent | Self::AgentSettings | Self::AgentDebug)
     }
 }
 
@@ -137,10 +183,9 @@ impl Scope {
 
 /// The id the Agent understands for a launcher surface.
 pub fn surface_id(page: Page) -> &'static str {
-    match page {
-        Page::AgentSettings => "settings",
-        Page::AgentDebug => "debug",
-        _ => "agent",
+    match page.hosted_app() {
+        Some((_, surface)) => surface,
+        None => "agent",
     }
 }
 
@@ -192,9 +237,9 @@ impl App {
         let display = persisted.as_ref().map(|settings| settings.display).unwrap_or_default();
         let page = if snapshot.is_some() {
             match std::env::var("ARCHX_SNAPSHOT_PAGE").as_deref() {
-                Ok("agent") => Page::Agent,
-                Ok("settings") => Page::AgentSettings,
-                Ok("debug") => Page::AgentDebug,
+                Ok("agent") => Page::app("archx-agent"),
+                Ok("settings") => Page::App { id: "archx-agent", surface: "settings" },
+                Ok("debug") => Page::App { id: "archx-agent", surface: "debug" },
                 Ok("about") => Page::About,
                 Ok("lab-settings") => Page::LabSettings,
                 _ => Page::Home,
@@ -240,9 +285,14 @@ impl App {
         }
     }
 
-    /// The live app record for an id, if it is openable.
+    /// The app record for an id, if it is registered and openable.
+    ///
+    /// `is_live` alone was the bug: an app can be registered in this release
+    /// with `status = "preview"` (openable, labelled) while `preview != live`,
+    /// so its tile looked clickable and did nothing. Registration is the
+    /// question that decides "may it open at all"; the status only labels it.
     pub fn launchable(&self, id: &str) -> Option<&apps::App> {
-        self.apps.iter().find(|app| app.id == id && app.is_live())
+        self.apps.iter().find(|app| app.id == id && app.is_registered())
     }
 
     fn go(&mut self, page: Page) -> Task<Message> {
@@ -265,8 +315,11 @@ impl App {
             Message::Navigate(page) => return self.go(page),
             Message::LaunchApp(id) => {
                 if self.launchable(&id).is_some() {
-                    // The Agent's manifest id is the only in-process app today.
-                    if id == "archx-agent" { return self.go(Page::Agent); }
+                    // Hosting is a build-time fact: an app that is ready but not
+                    // compiled in stays held, and its tile is not openable.
+                    if let Some(hosted) = Hosted::find(&id) {
+                        return self.go(Page::App { id: hosted.id, surface: hosted.surfaces[0] });
+                    }
                 }
                 self.notice = self.apps.iter().find(|app| app.id == id)
                     .map(|app| format!("{} is not available yet ({}). Its folder and docs are in place; its code is not.", app.name, app.status));
@@ -356,9 +409,9 @@ impl App {
                 if matches!(agent_message, AgentMessage::Open(_)) {
                     if let AgentMessage::Open(page) = agent_message {
                         return self.go(match page {
-                            archx_agent::app::Page::Settings => Page::AgentSettings,
-                            archx_agent::app::Page::Debug => Page::AgentDebug,
-                            _ => Page::Agent,
+                            archx_agent::app::Page::Settings => Page::App { id: "archx-agent", surface: "settings" },
+                            archx_agent::app::Page::Debug => Page::App { id: "archx-agent", surface: "debug" },
+                            _ => Page::app("archx-agent"),
                         });
                     }
                 }
@@ -426,3 +479,90 @@ impl App {
 
 }
 
+/// The launcher's own guarantees about hosting a second app.
+///
+/// These are what let `apps/training` and `apps/surgery` exist without editing
+/// the launcher's page enum, rail or transition rules again.
+#[cfg(test)]
+mod hosting_tests {
+    use super::*;
+    use archx_shared::apps;
+
+    #[test]
+    fn a_hosted_app_page_is_data_not_an_enum_variant() {
+        // The Agent's historical ids still resolve, so a saved `last_page`
+        // restores exactly where it was before app pages became data.
+        assert_eq!(Page::from_id("agent"), Page::app("archx-agent"));
+        assert_eq!(Page::from_id("settings"), Page::App { id: "archx-agent", surface: "settings" });
+        assert_eq!(Page::from_id("debug"), Page::App { id: "archx-agent", surface: "debug" });
+        assert_eq!(Page::from_id("home"), Page::Home);
+        assert_eq!(Page::from_id("lab-settings"), Page::LabSettings);
+    }
+
+    #[test]
+    fn an_app_that_is_not_hosted_cannot_be_reached_by_a_page_id() {
+        // This is the release boundary. `training` has a folder and a manifest,
+        // but until its crate is in `HOSTED` a crafted page id must fall back to
+        // the launcher rather than render an app that is not in this binary.
+        assert!(Hosted::find("training").is_none());
+        assert_eq!(Page::from_id("training/design"), Page::Home);
+        assert_eq!(Page::from_id("something/there"), Page::Home);
+        assert_eq!(Page::from_id("trailing/"), Page::Home);
+    }
+
+    #[test]
+    fn a_surface_that_an_app_does_not_offer_falls_back_to_its_first() {
+        let agent = Hosted::find("archx-agent").expect("the Agent is hosted");
+        assert_eq!(agent.surface("debug"), "debug");
+        // An unknown surface must not become a blank app: it opens the app's
+        // first surface, which every app is required to have.
+        assert_eq!(agent.surface("nonsense"), "agent");
+        assert_eq!(agent.surfaces[0], "agent");
+    }
+
+    #[test]
+    fn every_hosted_app_declares_at_least_one_surface() {
+        for hosted in HOSTED {
+            assert!(!hosted.surfaces.is_empty(), "{} has no surface to open", hosted.id);
+            // A surface name is passed to the app's `enter_surface`, so it must
+            // be a bare identifier: no slashes, which would make a page id
+            // ambiguous when it is split back apart.
+            for surface in hosted.surfaces {
+                assert!(!surface.contains('/'), "{} surface {surface} contains a slash", hosted.id);
+                assert!(!surface.is_empty());
+            }
+        }
+    }
+
+    #[test]
+    fn a_page_id_round_trips_through_the_string_form() {
+        for page in [Page::Home, Page::About, Page::LabSettings, Page::app("archx-agent"),
+            Page::App { id: "archx-agent", surface: "settings" },
+            Page::App { id: "archx-agent", surface: "debug" }] {
+            assert_eq!(Page::from_id(&page.id()), page, "{:?}", page.id());
+        }
+    }
+
+    fn manifest(status: &str, ready: bool, built: bool) -> apps::App {
+        apps::App {
+            id: "x".to_owned(), name: "X".to_owned(), category: String::new(),
+            summary: String::new(), status: status.to_owned(), ready,
+            modes: Vec::new(), art: "workbench".to_owned(),
+            krate: Some("archx-x".to_owned()), entry: None, view: None, docs: None,
+            requires: Vec::new(), built, origin: apps::Origin::Disk,
+        }
+    }
+
+    #[test]
+    fn hosting_is_what_makes_an_app_openable_not_its_status_label() {
+        // `is_live` alone used to decide this, so a registered app whose status
+        // was "preview" looked clickable and did nothing.
+        let preview = manifest("preview", true, true);
+        assert!(!preview.is_live(), "the label is not live");
+        assert!(preview.is_registered(), "but it is registered, so it may open");
+        let held = manifest("live", true, false);
+        assert!(!held.is_registered(), "a live label cannot publish an unbuilt crate");
+        let unbuilt = manifest("building", false, false);
+        assert!(!unbuilt.is_registered(), "a folder still being built stays out");
+    }
+}

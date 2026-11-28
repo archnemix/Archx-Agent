@@ -45,7 +45,9 @@ pub struct Transition {
 impl Transition {
     /// Starts a transition, choosing the direction from the two pages.
     pub fn between(from: Page, to: Page) -> Self {
-        let app_pages = |page: Page| page.is_agent_surface();
+        // Any app surface, not just the Agent's: a second app enters and leaves
+        // by the same rule, otherwise its arrival would play the "within" slide.
+        let app_pages = |page: Page| page.is_app_surface();
         let direction = match (app_pages(from), app_pages(to)) {
             (false, true) => Direction::Enter,
             (true, false) => Direction::Leave,
@@ -94,9 +96,15 @@ mod tests {
 
     #[test]
     fn directions_follow_the_page_kind() {
-        assert_eq!(Transition::between(Page::Home, Page::Agent).direction, Direction::Enter);
-        assert_eq!(Transition::between(Page::Agent, Page::Home).direction, Direction::Leave);
-        assert_eq!(Transition::between(Page::Agent, Page::AgentSettings).direction, Direction::Within);
+        assert_eq!(Transition::between(Page::Home, Page::app("archx-agent")).direction, Direction::Enter);
+        assert_eq!(Transition::between(Page::app("archx-agent"), Page::Home).direction, Direction::Leave);
+        assert_eq!(Transition::between(Page::app("archx-agent"),
+            Page::App { id: "archx-agent", surface: "settings" }).direction, Direction::Within);
+        // A second app is a peer surface: entering it from the launcher enters,
+        // and moving from one app to another stays within app surfaces.
+        let training = Page::App { id: "training", surface: "design" };
+        assert_eq!(Transition::between(Page::Home, training).direction, Direction::Enter);
+        assert_eq!(Transition::between(Page::app("archx-agent"), training).direction, Direction::Within);
         assert_eq!(Transition::between(Page::Home, Page::About).direction, Direction::Within);
         assert!(Direction::Enter.slide() > Direction::Within.slide());
     }

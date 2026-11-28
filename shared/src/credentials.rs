@@ -94,11 +94,35 @@ pub(crate) trait CredentialStore {
     fn delete(&self, account: &str) -> Result<(), VaultError>;
 }
 
-pub struct OsStore;
+pub struct OsStore {
+    /// `None` is the model-provider service; `Some(app)` is that app's own
+    /// service, so app tokens and provider keys never share a namespace.
+    app: Option<&'static str>,
+}
+
+impl OsStore {
+    fn service(&self) -> String {
+        match self.app {
+            None => SERVICE.to_owned(),
+            Some(app) => format!("ai.archnemix.archxlab.app.{app}.v1"),
+        }
+    }
+
+    /// A store for one app's own tokens. The app id comes from the manifest at
+    /// the call site; it is not user input and is not a path.
+    pub fn scoped(app: &'static str) -> Self {
+        Self { app: Some(app) }
+    }
+}
+
+impl Default for OsStore {
+    fn default() -> Self { Self { app: None } }
+}
 
 impl CredentialStore for OsStore {
     fn get(&self, account: &str) -> Result<Option<Zeroizing<String>>, VaultError> {
-        let entry = keyring::Entry::new(SERVICE, account).map_err(|_| VaultError::Unavailable)?;
+        let service = self.service();
+        let entry = keyring::Entry::new(&service, account).map_err(|_| VaultError::Unavailable)?;
         match entry.get_password() {
             Ok(secret) => Ok(Some(Zeroizing::new(secret))),
             Err(keyring::Error::NoEntry) => Ok(None),
@@ -107,14 +131,16 @@ impl CredentialStore for OsStore {
     }
 
     fn set(&self, account: &str, secret: &str) -> Result<(), VaultError> {
-        keyring::Entry::new(SERVICE, account)
+        let service = self.service();
+        keyring::Entry::new(&service, account)
             .map_err(|_| VaultError::Unavailable)?
             .set_password(secret)
             .map_err(|_| VaultError::Unavailable)
     }
 
     fn delete(&self, account: &str) -> Result<(), VaultError> {
-        keyring::Entry::new(SERVICE, account)
+        let service = self.service();
+        keyring::Entry::new(&service, account)
             .map_err(|_| VaultError::Unavailable)?
             .delete_credential()
             .map_err(|_| VaultError::Unavailable)
@@ -127,7 +153,21 @@ pub struct Vault<S = OsStore> {
 
 impl Vault<OsStore> {
     pub fn os() -> Self {
-        Self { store: OsStore }
+        Self { store: OsStore::default() }
+    }
+
+    /// A vault for one app's own tokens, kept apart from the model providers'.
+    ///
+    /// Hugging Face and Kaggle tokens are not model providers: they authorize
+    /// downloads, they are not sent to a chat endpoint, and they must never be
+    /// rotated into a generation request by the key-health system. Giving them
+    /// their own os-keyring service keeps both promises structurally — the
+    /// provider vault cannot even enumerate them.
+    ///
+    /// `app` must be the app's own id from its manifest (`"training"`), so two
+    /// apps cannot read each other's tokens by accident.
+    pub fn app(app: &'static str) -> Self {
+        Self { store: OsStore::scoped(app) }
     }
 }
 
@@ -218,6 +258,19 @@ mod tests {
     use super::*;
     use std::cell::RefCell;
     use std::collections::HashMap;
+
+    #[test]
+    fn an_app_token_vault_is_a_different_service_from_the_provider_vault() {
+        // The promise this makes structural rather than a convention: a Hugging
+        // Face or Kaggle token saved by an app cannot be enumerated or rotated
+        // into a generation request by the provider key-health system, because
+        // it lives under a different os-keyring service.
+        assert_eq!(OsStore::default().service(), "ai.archnemix.archxlab.provider.v1");
+        assert_eq!(OsStore::scoped("training").service(), "ai.archnemix.archxlab.app.training.v1");
+        assert_ne!(OsStore::scoped("training").service(), OsStore::scoped("surgery").service(),
+            "two apps must not share a token namespace");
+        assert_ne!(OsStore::scoped("training").service(), OsStore::default().service());
+    }
 
     #[derive(Default)]
     struct FakeStore(RefCell<HashMap<String, String>>);
