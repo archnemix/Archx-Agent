@@ -673,8 +673,9 @@ fn stage_data_view(app: &App) -> Element<'_, Message> {
     if app.ui_complexity == UiComplexity::Simple {
         let mut simple_sources = row![].spacing(8);
         for (src, friendly_lbl) in [
-            (DatasetSource::BuiltinDialogues, "Sample Chat & Reasoning"),
-            (DatasetSource::BuiltinTinyStories, "Sample Short Stories"),
+            (DatasetSource::BuiltinTinyDialogues, "Sample Chat & Dialogues"),
+            (DatasetSource::BuiltinLogicQa, "Sample Reasoning & Q&A"),
+            (DatasetSource::BuiltinClassicVerse, "Sample Stories & Verse"),
             (DatasetSource::BuiltinRustCode, "Sample Code"),
             (DatasetSource::LocalPath, "My Own Text File / Folder"),
         ] {
@@ -707,7 +708,7 @@ fn stage_data_view(app: &App) -> Element<'_, Message> {
 
         let status_card: Element<'_, Message> = if let Some(ds) = &app.dataset {
             let first_sample = ds
-                .sample_docs
+                .train_docs
                 .first()
                 .map(|s| s.as_str())
                 .unwrap_or("Dataset ready.");
@@ -1379,10 +1380,10 @@ fn stage_architecture_view(app: &App) -> Element<'_, Message> {
     if level == UiComplexity::Simple {
         let mut friendly_presets = row![].spacing(8);
         for (p, friendly_lbl) in [
-            (Preset::Tiny, "Tiny · Instant (~15s)"),
-            (Preset::Small, "Small · Fast (~1m)"),
-            (Preset::Medium, "Medium · Capable"),
-            (Preset::Large, "Large · Deep"),
+            (Preset::Nano, "Nano · Instant (~15s)"),
+            (Preset::Micro, "Micro · Fast (~1m)"),
+            (Preset::Small, "Small · Capable"),
+            (Preset::Base, "Base · Deep"),
         ] {
             let active = app.cfg.preset == p;
             friendly_presets = friendly_presets.push(
