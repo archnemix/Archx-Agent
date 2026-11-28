@@ -155,10 +155,10 @@ fn rail(state: &Launcher) -> Element<'_, Message> {
 /// frame index from the Discover cycle (a scripted screenshot pins both).
 /// Borrows from the manifest: the card prints the app's own name, category and
 /// summary, so it cannot be `'static` without copying strings the state owns.
-fn tile(app: &App, phase: u8, hovered: Option<&str>) -> Element<'_, Message> {
+fn tile<'a>(app: &'a App, phase: u8, hovered: Option<&'a str>) -> Element<'a, Message> {
     let lit = hovered == Some(app.id.as_str()) || hovered == Some(app.art.as_str());
     let accent = app.is_live();
-    let artwork: Element<'_, Message> = if app.art == "agent" {
+    let artwork: Element<'a, Message> = if app.art == "agent" {
         container(column![
             text("ARCHX  /  SIX MODES").size(10).color(style::GREY),
             space().height(5),
