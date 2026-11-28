@@ -712,7 +712,10 @@ impl App {
             }
         }
         if self.page == Page::Settings { self.load_snapshot_section(); }
-        if matches!(self.snapshot_chat.as_deref(), Some("reasoning" | "model-menu" | "review" | "conversation-review")) {
+        // Every chat fixture has to be named here as well as in
+        // `load_snapshot_conversation`; forgetting one silently renders the
+        // empty state instead of the fixture.
+        if matches!(self.snapshot_chat.as_deref(), Some("reasoning" | "model-menu" | "review" | "conversation-review" | "cut-off")) {
             self.load_snapshot_conversation();
         }
     }
