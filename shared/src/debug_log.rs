@@ -21,6 +21,10 @@ pub const MAX_ENTRIES: usize = 200;
 pub enum Outcome {
     Pending,
     Ok,
+    /// Answered, but the answer stopped at the output ceiling this Agent sent.
+    /// Kept distinct from `Ok` on purpose: the request did succeed, and the
+    /// reply is still not a finished answer.
+    Capped,
     Failed,
 }
 
@@ -29,6 +33,7 @@ impl Outcome {
         match self {
             Self::Pending => "running",
             Self::Ok => "ok",
+            Self::Capped => "cut off",
             Self::Failed => "failed",
         }
     }
@@ -61,10 +66,18 @@ impl Entry {
         self.outcome == Outcome::Ok
     }
 
+    /// Answered, but not in full. Counted apart from a clean success so a page
+    /// cannot report "all requests succeeded" over a reply that was cut off.
+    pub fn is_capped(&self) -> bool {
+        self.outcome == Outcome::Capped
+    }
+
     pub fn summary(&self) -> String {
         match self.outcome {
             Outcome::Pending => format!("{} · {} · streaming…", self.provider, self.model),
             Outcome::Ok => format!("{} · {} · {} ms · {} chars", self.provider, self.model, self.duration_ms, self.chars),
+            Outcome::Capped => format!("{} · {} · {} ms · {} chars · stopped at our output limit",
+                self.provider, self.model, self.duration_ms, self.chars),
             Outcome::Failed => format!("{} · {} · {} · {} ms", self.provider, self.model,
                 self.status.map_or("no status".to_owned(), |status| format!("HTTP {status}")), self.duration_ms),
         }
@@ -103,7 +116,8 @@ impl Entry {
             key_id: value.get("key_id").and_then(Value::as_u64).unwrap_or(0),
             streamed: value.get("streamed").and_then(Value::as_bool).unwrap_or(false),
             outcome: match value.get("outcome").and_then(Value::as_str) {
-                Some("ok") => Outcome::Ok, Some("failed") => Outcome::Failed, _ => Outcome::Pending,
+                Some("ok") => Outcome::Ok, Some("cut off") => Outcome::Capped,
+                Some("failed") => Outcome::Failed, _ => Outcome::Pending,
             },
             started_ms: 0,
             duration_ms: value.get("duration_ms").and_then(Value::as_u64).unwrap_or(0) as u128,
@@ -200,12 +214,13 @@ impl Journal {
     pub fn finish_capped(&mut self, id: u64, duration_ms: u128, chars: usize, reasoning_chars: usize,
         response_bytes: usize, diagnosis: Diagnosis) {
         if let Some(entry) = self.entries.iter_mut().find(|entry| entry.id == id) {
-            entry.outcome = Outcome::Ok;
+            entry.outcome = Outcome::Capped;
             entry.duration_ms = duration_ms;
             entry.chars = chars;
             entry.reasoning_chars = reasoning_chars;
             entry.response_bytes = response_bytes;
-            entry.detail = "finish_reason = length (the output cap this Agent sent)".to_owned();
+            // Ours, not the provider's: the page labels this line by who said it.
+            entry.detail = "finish_reason = length".to_owned();
             entry.diagnosis = Some(diagnosis);
         }
     }

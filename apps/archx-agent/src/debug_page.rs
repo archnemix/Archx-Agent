@@ -18,6 +18,7 @@ use archx_shared::style;
 fn status_color(outcome: Outcome) -> iced::Color {
     match outcome {
         Outcome::Ok => style::OK,
+        Outcome::Capped => style::WARN,
         Outcome::Failed => style::FAILURE,
         Outcome::Pending => style::GREY,
     }
@@ -50,7 +51,10 @@ fn entry_row(entry: &Entry, selected: bool, id: u64) -> Element<'static, Message
             }
         }
         if !entry.detail.is_empty() {
-            details = details.push(text(format!("provider said: {}", entry.detail)).size(10.5).color(style::GREY));
+            // This line is either the provider's own words or our note about its
+            // finish reason, so it is labelled by who actually said it.
+            let label = if entry.is_capped() { "our reading" } else { "provider said" };
+            details = details.push(text(format!("{label}: {}", entry.detail)).size(10.5).color(style::GREY));
         }
     }
     button(column![

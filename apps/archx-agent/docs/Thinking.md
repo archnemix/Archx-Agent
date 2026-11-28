@@ -420,6 +420,27 @@ model`), the suggested rest, and the provider's own words. The footer states tha
 timeouts are **our** limit (45 s request, 25 s catalog) and may already be billed.
 Nothing from the prompt, the reply or the key is stored.
 
+A reply that stopped at the output ceiling is the one case where a `2xx` does not
+mean a finished answer, so it gets its own outcome, `cut off`, drawn in the warn
+colour and counted apart from `ok`. The entry keeps its diagnosis and the line
+`finish_reason = length`, labelled "our reading" rather than "provider said",
+because the cap is ours.
+
+#### Whose limit was it? The three that are ours
+
+| Limit | Value | Consequence if hit |
+| --- | --- | --- |
+| per request | 45 s (`REQUEST_TIMEOUT_SECS`) | the reply is lost; the provider may still bill it |
+| catalog read | 25 s (`CATALOG_TIMEOUT_SECS`) | the model list does not arrive |
+| output tokens | 4096 chat / 256 probe (`CHAT_OUTPUT_TOKENS`) | **the answer is cut off with a `200` and no error** |
+
+The third is the only one that arrives looking like success. The provider
+reports it as a finish reason — `length`, `max_tokens`, or `MAX_TOKENS` — and a
+build that does not read that field shows half an answer and no error at all,
+which is exactly the "message got cut off with no error" report. The reply text
+is kept, the turn is marked incomplete so it never silently enters later context,
+and the chat states the number that caused it.
+
 ### 10. Text size per area, and docs ownership
 
 `TextScale` holds one step per area: launcher, chat, settings. Launcher settings

@@ -142,3 +142,11 @@ The `real-smol` CI job loaded SmolLM2-135M-Instruct Q2_K in a llama.cpp loopback
   - **Lab preview (item 7):** the app's section is now "Agent memory"; the launcher keeps its own persisted memory matrix, separate from the app's, so a launcher setting can never cap another process.
   - **Docs (item 10):** the hand-off note moved into `apps/archx-agent/docs/Plan/`, beside the contract it references, so each app's documents stay in that app's folder.
 - **Roadmap effect:** none of this reopens a milestone; it closes reported defects against the existing scope.
+
+## 2026-11-23 — The red-line symptom, and what it actually was
+
+- **Request:** item 9 of the list — an error drawn as a red line in a screenshot, plus a report that a message was cut off with no error at all.
+- **Cause of the truncation, established from the code and the providers' documentation:** the Agent asks for at most 4096 output tokens (`CHAT_OUTPUT_TOKENS`). A model that reaches that ceiling is not an error to the provider: it answers `200` and states the reason only in the finish reason — `length` for OpenAI-compatible APIs, `stop_reason: max_tokens` for Anthropic, `finishReason: MAX_TOKENS` for Gemini. Nothing in the status code or the error channel says "cut off", and the old build never read that field, so the reply was accepted and shown as finished.
+- **Changed:** `Reply` now carries `cut_off`, filled from `provider_api::output_was_capped` in both the streaming and non-streaming paths and in the custom-endpoint reader. `diagnostics::output_capped` names the Agent as the owner, so no key is benched and no model is disabled for it. The chat keeps the text, marks the turn incomplete, and states the exact ceiling. The Debug journal shows the request as `cut off` rather than `ok`, with the diagnosis attached. Both markers survive a restart.
+- **Roadmap effect:** none. The ceiling itself is unchanged; only its honest reporting is new. A future setting for the ceiling would be a scope change, not a fix.
+- **Open:** the red-line screenshot has never been visible to the launcher owner in this session, so whether that particular line is this truncation, a provider refusal or something else is still unconfirmed. The truncation path is now correct either way.
