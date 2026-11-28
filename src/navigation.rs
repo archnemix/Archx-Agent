@@ -74,7 +74,10 @@ fn divider() -> Element<'static, Message> {
     container(space().height(1)).width(42).style(style::rail_divider).into()
 }
 
-fn rail(state: &Launcher) -> Element<'static, Message> {
+/// The rail borrows the launcher's state, so its elements borrow too: the app
+/// labels come from manifests now, which are owned by `state.apps`. Returning
+/// `Element<'static, _>` was only possible while every label was a literal.
+fn rail(state: &Launcher) -> Element<'_, Message> {
     let scale = state.display.launcher.factor();
     let page = state.page;
     if !state.sidebar_expanded {
@@ -471,12 +474,15 @@ pub fn view(state: &Launcher) -> Element<'_, Message> {
         Page::Home => scrollable(discover(state)).width(Fill).height(Fill).style(style::quiet_scroll).into(),
         Page::About => scrollable(about(state)).width(Fill).height(Fill).style(style::quiet_scroll).into(),
         Page::LabSettings => scrollable(lab_settings(state)).width(Fill).height(Fill).style(style::quiet_scroll).into(),
-        page if page.is_app_surface() => {
+        // An explicit app arm, not a guard: a guarded arm does not count towards
+        // exhaustiveness, so a later `Page` variant would compile into a panic
+        // instead of a compile error.
+        Page::App { .. } => {
             // Only the Agent has a crate in this binary today. A second app's
             // page is reachable only once it is hosted, so this arm is the
             // honest fallback rather than a second app's UI borrowed from the
             // Agent: it says what is missing instead of showing the wrong tool.
-            let content: Element<'_, Message> = match page.hosted_app() {
+            let content: Element<'_, Message> = match state.page.hosted_app() {
                 Some(("archx-agent", _)) => state.agent.view().map(Message::Agent),
                 Some((id, _)) => {
                     let name = state.apps.iter().find(|app| app.id == id)
