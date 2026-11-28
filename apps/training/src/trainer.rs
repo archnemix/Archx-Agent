@@ -587,4 +587,48 @@ mod tests {
         assert!(!reply.is_empty() || samp.max_new_tokens > 0);
         let _ = std::fs::remove_dir_all(dir);
     }
+
+    #[test]
+    fn moe_pipeline_with_muon_trains_and_records_expert_load() {
+        let mut cfg = RunConfig::default();
+        cfg.preset = Preset::Nano;
+        cfg.tokenizer.kind = TokenizerKind::CharLevel;
+        cfg.tokenizer.vocab_size = 96;
+        cfg.model = crate::config::TransformerConfig::from_preset(Preset::Nano, Routing::MoE);
+        cfg.model.n_layers = 2;
+        cfg.model.d_model = 32;
+        cfg.model.n_heads = 4;
+        cfg.model.n_kv_heads = 2;
+        cfg.model.d_ff = 64;
+        cfg.model.seq_len = 24;
+        cfg.model.moe.n_experts = 4;
+        cfg.model.moe.top_k = 2;
+        cfg.hyper.optimizer = crate::config::OptimizerKind::Muon;
+        cfg.hyper.batch_size = 2;
+        cfg.hyper.total_steps = 8;
+        cfg.hyper.warmup_steps = 2;
+        cfg.hyper.lr = 1e-2;
+        cfg.hyper.compute_threads = 2;
+
+        let ds = load_local_or_builtin(&cfg.dataset).expect("dataset");
+        let tk = LabTokenizer::train_or_load(&cfg.tokenizer, &ds.train_docs).expect("tokenizer");
+
+        let dir = std::env::temp_dir().join(format!("archx-moe-train-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let control = TrainControl::new(TelemetryMode::Every10, 0);
+
+        let mut saw_expert_load = false;
+        execute_training_pipeline(cfg, ds, tk, dir.clone(), control, |ev| {
+            if let TrainEvent::Step { neural: Some(snap), .. } = ev {
+                if snap.expert_load_pct.len() == 4 {
+                    saw_expert_load = true;
+                }
+            }
+        })
+        .expect("moe pipeline succeeds");
+
+        assert!(saw_expert_load, "expected MoE expert load telemetry");
+        assert!(dir.join("best/model.safetensors").is_file());
+        let _ = std::fs::remove_dir_all(dir);
+    }
 }

@@ -2486,3 +2486,37 @@ fn journal_surface(app: &App) -> Element<'_, Message> {
 
     scrollable(content).height(Fill).style(style::quiet_scroll).into()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn all_surfaces_and_pipeline_stages_render_without_panicking() {
+        let dir = std::env::temp_dir().join(format!("archx-views-test-{}", std::process::id()));
+        storage::set_thread_directory(Some(dir.clone()));
+
+        let mut app = App::new(None);
+        app.prepare_snapshot("home");
+
+        for stage in PipelineStage::ALL {
+            app.surface = Surface::Pipeline;
+            app.stage = stage;
+            let _ = crate::home::view(&app);
+        }
+
+        for surface in [
+            Surface::Pipeline,
+            Surface::NeuralLive,
+            Surface::Playground,
+            Surface::Settings,
+            Surface::Journal,
+        ] {
+            app.surface = surface;
+            let _ = crate::home::view(&app);
+        }
+
+        storage::set_thread_directory(None);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+}

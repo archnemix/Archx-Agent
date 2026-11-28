@@ -138,7 +138,6 @@ struct CausalSelfAttention {
     n_heads: usize,
     n_kv_heads: usize,
     head_dim: usize,
-    sliding_window: usize,
     rope: Option<RotaryCache>,
 }
 
@@ -176,7 +175,6 @@ impl CausalSelfAttention {
             n_heads: cfg.n_heads,
             n_kv_heads: cfg.n_kv_heads,
             head_dim,
-            sliding_window: cfg.sliding_window,
             rope,
         })
     }
@@ -346,7 +344,7 @@ impl SparseMoE {
         let (b, seq, d) = x.dims3()?;
         let n_tokens = b * seq;
         let n_experts = self.experts.len();
-        let x_flat = x.reshape((n_tokens, d))?;
+        let x_flat = x.contiguous()?.reshape((n_tokens, d))?;
 
         let mut router_logits = self.router.forward(&x_flat)?;
         if let Some(rng) = training_rng {
@@ -406,8 +404,11 @@ impl SparseMoE {
             let idx_t = Tensor::from_vec(indices.clone(), indices.len(), x.device())?;
             let sub_x = x_flat.index_select(&idx_t, 0)?;
             let sub_y = self.experts[exp_id].forward(&sub_x)?;
-            let sub_gate = gates.narrow(1, exp_id, 1)?.index_select(&idx_t, 0)?;
-            let weighted = sub_y.broadcast_mul(&sub_gate)?;
+            let sub_gate = gates
+                .narrow(1, exp_id, 1)?
+                .contiguous()?
+                .index_select(&idx_t, 0)?;
+            let weighted = sub_y.broadcast_mul(&sub_gate)?.contiguous()?;
             out_flat = out_flat.index_add(&idx_t, &weighted, 0)?;
         }
 

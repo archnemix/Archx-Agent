@@ -199,8 +199,11 @@ mod tests {
         let mut b = Rng::new(42);
         let mut c = Rng::new(43);
 
-        assert_eq!(a.normal_vec(16, 0.0, 0.02), b.normal_vec(16, 0.0, 0.02));
-        assert_ne!(a.normal_vec(16, 0.0, 0.02), c.normal_vec(16, 0.0, 0.02));
+        let seq_a = a.normal_vec(16, 0.0, 0.02);
+        let seq_b = b.normal_vec(16, 0.0, 0.02);
+        let seq_c = c.normal_vec(16, 0.0, 0.02);
+        assert_eq!(seq_a, seq_b);
+        assert_ne!(seq_a, seq_c);
 
         let mut s1: Vec<usize> = (0..12).collect();
         let mut s2: Vec<usize> = (0..12).collect();
