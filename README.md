@@ -10,7 +10,9 @@ folder whose code and docs are being written by its owner.
 The Windows GUI executable is unsigned and has no publisher verification; it does
 not open a console. **Live provider calls and interactive OS-vault journeys are
 not validated by CI.** [Download the unsigned Windows build](deliverables/Unreleased/windows/archx-ai-lab.exe),
-or read the [three-OS validation record](apps/archx-agent/docs/Test_Results/Unreleased/Gui_Validation.md).
+read the [three-OS validation record](apps/archx-agent/docs/Test_Results/Unreleased/Gui_Validation.md),
+or work through [What you can test](apps/archx-agent/docs/Test_Results/Unreleased/What_You_Can_Test.md)
+— twenty items, each with the button to press.
 
 ## Repository layout
 
@@ -28,10 +30,17 @@ internels/              internal helper material and the web reference
 
 An app is a folder with an `app.toml`. The launcher scans `apps/*/app.toml` at
 start-up (`shared/src/apps.rs`), renders one Discover tile per manifest, and opens
-only those whose `status = "live"`. The manifest declares the app's crate, entry
+only the apps it actually hosts. The manifest declares the app's crate, entry
 file, the `module::function` the launcher renders, and its docs folder — so the
 app compiles from the manifest and CI rejects a manifest that disagrees with the
 files on disk.
+
+Opening takes three one-line gates, because hosting is in-process: the crate is
+in the workspace, the app is registered in `src/main.rs` `release()`, and the
+launcher's `HOSTED` table in `src/app.rs` names it and its surfaces. Miss any one
+and the app is *held* — said out loud in the rail and on its tile
+(`held · not in this build`, `IN PROGRESS`), never silently dropped. A page id is
+`<app id>/<surface>`.
 
 **If you are an AI or a person starting an app, read
 [Adding_An_App.md](apps/archx-agent/docs/Plan/Adding_An_App.md).** It is

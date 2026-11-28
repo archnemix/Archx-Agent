@@ -23,3 +23,6 @@ orientation lives in the root `README.md`.
 - [Research.json](Research.json): source-backed research index.
 - [Security design](Security_Design.md) and [local provider trial](Provider_Trial.md): threat model, user-run test steps and unverified limits.
 - [Test_Results/](Test_Results/README.md): versioned test commands, inputs, and outputs.
+- [What_You_Can_Test](Test_Results/Unreleased/What_You_Can_Test.md): the click-by-click
+  sheet for the twenty reported items — where each control is, what it writes, and
+  what a correct screen looks like, so a pass or a fail needs no Rust.

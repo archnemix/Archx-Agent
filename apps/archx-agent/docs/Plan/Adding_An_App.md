@@ -180,7 +180,7 @@ apps/<id>/docs/Test_Results/           CI evidence
 
 The Agent's records are in `apps/archx-agent/docs/`; the reserved second app's
 space is `apps/training/docs/`. Read the Agent's
-[Thinking.md](../../archx-agent/docs/Thinking.md) for the reasoning behind the
+[Thinking.md](../Thinking.md) for the reasoning behind the
 shared layers (persistence, rotation, diagnostics) before duplicating any of it.
 
 ## 7. The hand-off: what to tell the other AI
@@ -455,17 +455,46 @@ deliberate act, because the launcher hosts apps **in-process**: an app can only
 run if its Rust crate is compiled into the launcher binary. So "publish" and
 "hold" are answered by the build, not by a file an app can edit.
 
-There are exactly two gates, and both are one line:
+There are exactly three gates, each one line:
 
 | Gate | Where | Publish | Hold |
 | --- | --- | --- | --- |
 | The crate is built | root `Cargo.toml` → `[workspace] members` | `"apps/<id>"` present | remove the line |
 | The app is in the release | `src/main.rs` → `release()` | `.register("<id>")` present | remove the line |
+| The launcher can host it | `src/app.rs` → `HOSTED` | one row: `Hosted { id, surfaces }` | remove the row |
+
+The first two answer *is it built and shipped*; the third answers *does the
+launcher know where to put it*. They are separate because hosting is in-process:
+`HOSTED` is the list of apps whose crates the launcher actually links, and each
+row also names the surfaces that app accepts, so a page id `<app>/<surface>` can
+be resolved without the launcher knowing any app's features.
+
+```rust
+// src/app.rs — the whole cost of hosting a second app in the launcher.
+pub const HOSTED: &[Hosted] = &[
+    Hosted { id: "archx-agent", surfaces: &["agent", "settings", "debug"] },
+    // Hosted { id: "training", surfaces: &["home"] },
+];
+```
+
+A page id is `<app id>/<surface>`; the Agent alone also accepts the legacy bare
+`agent` / `settings` / `debug`, because `last_page` was written before ids
+existed. `Page::from_id` returns `Page::Home` for any app not in `HOSTED`, so a
+stale `last_page` in `settings.json` can never render an app this binary does not
+contain. A surface the row does not list falls back to the row's first surface,
+which is why a row must never be empty.
+
+**Adding an app is therefore four lines in four files, and no launcher logic:**
+`apps/<id>/Cargo.toml` + the `members` line (one commit, or cargo fails to load
+the whole workspace), `.register("<id>")` in `release()`, and the `HOSTED` row.
 
 A folder that declares code but is not registered is **held**: `App::release()`
-returns `Release::Held`, `registered()` filters it out, and launcher settings list
-it as "held out of this build" so the hold is never silent. Nothing inside
-`apps/<id>/` can change this — that is the point.
+returns `Release::Held`, `registered()` filters it out, and the launcher says so
+in two places rather than one — the rail marks it `held · not in this build`, and
+its tile under *AI workspaces* reads `HELD · NOT IN THIS BUILD` instead of
+`OPEN`. A registered app whose manifest still says `status = "preview"` reads
+`IN PROGRESS` and does **not** launch; only a registered app that is also
+`ready` opens. Nothing inside `apps/<id>/` can change this — that is the point.
 
 ```rust
 // src/main.rs
