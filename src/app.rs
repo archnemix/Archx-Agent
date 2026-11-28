@@ -575,7 +575,10 @@ mod hosting_tests {
             id: "x".to_owned(), name: "X".to_owned(), category: String::new(),
             summary: String::new(), status: status.to_owned(), ready,
             modes: Vec::new(), art: "workbench".to_owned(),
-            krate: Some("archx-x".to_owned()), entry: None, view: None, docs: None,
+            // `has_code` requires both, so a fixture without `entry` would be
+            // judged "reserved" and the test would prove nothing.
+            krate: Some("archx-x".to_owned()), entry: Some("src/lib.rs".to_owned()),
+            view: Some("home::view".to_owned()), docs: None,
             requires: Vec::new(), built, origin: apps::Origin::Disk,
         }
     }
