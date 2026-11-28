@@ -47,6 +47,17 @@ pub enum MemoryMode {
     Custom,
 }
 
+/// The output ceiling this Agent requests for a chat reply.
+///
+/// It is a request parameter, not a provider limit, so the number belongs here
+/// rather than being repeated at every call site. When a reply stops at this
+/// ceiling the provider says so with a normal 200 and a `finish_reason` of
+/// `length`; that is now surfaced as an explicit truncation instead of a
+/// silent half-answer.
+pub const CHAT_OUTPUT_TOKENS: u32 = 4096;
+/// The small ceiling a catalog probe uses. A probe only needs a word back.
+pub const TEST_OUTPUT_TOKENS: u32 = 256;
+
 /// One open chat. Empty chats exist in memory but are never saved.
 pub struct ChatDraft {
     pub id: u32,
@@ -62,6 +73,10 @@ pub struct ChatDraft {
     pub partial_reasoning_open: bool,
     pub partial_reasoning_touched: bool,
     pub incomplete_slots: Vec<usize>,
+    /// Turns whose reply stopped at our output ceiling. Kept apart from
+    /// `incomplete_slots` because the cause differs: one was interrupted, this
+    /// one arrived whole and simply ran out of room.
+    pub cut_off_slots: Vec<usize>,
     pub request_handle: Option<iced::task::Handle>,
     pub turns: Vec<Turn>,
     /// Reasoning text for each turn, parallel to `turns` (empty when none).
@@ -82,7 +97,7 @@ impl ChatDraft {
             id, mode: 0, text: String::new(), editor: text_editor::Content::new(),
             formatted: Vec::new(), partial: None, partial_raw: None,
             partial_reasoning_open: true, partial_reasoning_touched: false,
-            incomplete_slots: Vec::new(), request_handle: None, turns: Vec::new(),
+            incomplete_slots: Vec::new(), cut_off_slots: Vec::new(), request_handle: None, turns: Vec::new(),
             reasoning: Vec::new(), model: None, busy: false, follow_tail: true,
             error: None, diagnosis: None, last_viewed: 0,
         }
@@ -113,6 +128,7 @@ impl ChatDraft {
                 .map(|(slot, turn)| (turn.role.to_owned(), turn.content.clone(), self.reasoning.get(slot).cloned().flatten()))
                 .collect(),
             incomplete: self.incomplete_slots.clone(),
+            cut_off: self.cut_off_slots.clone(),
         }
     }
 }
@@ -386,6 +402,7 @@ impl App {
                 draft.mode = chat.mode;
                 draft.model = chat.model.clone();
                 draft.incomplete_slots = chat.incomplete.clone();
+                draft.cut_off_slots = chat.cut_off.clone();
                 draft.reasoning = chat.turns.iter().map(|(_, _, reasoning)| reasoning.clone()).collect();
                 draft.turns = chat.turns.iter().map(|(role, content, _)| Turn {
                     role: if role == "user" { "user" } else { "assistant" },
@@ -549,6 +566,30 @@ impl App {
                     };
                     let reasoning = "The provider returned this synthetic reasoning content. It is collapsed unless the user opens it.";
                     self.set_fixture_chat(content, Some(reasoning), which == "review");
+                }
+            }
+            // A reply that stopped at the Agent's own output ceiling. This
+            // fixture exists so the marker is seen in a screenshot rather than
+            // only asserted in a test.
+            "cut-off" => {
+                self.settings.provider = Provider::OpenRouter;
+                self.settings.models[index] = vec!["demo/output-capped".into()];
+                self.settings.chosen[index] = Some(0);
+                self.model_health.sync(&self.settings.models[index]);
+                let id = self.selected_draft;
+                if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) {
+                    let body = "An event stream is opened once and the server keeps writing to it, so the browser sees each update as it happens instead of asking again. The trade-off is that the connection has to stay open";
+                    draft.turns = vec![
+                        Turn { role: "user", content: "Explain SSE streaming in detail".into() },
+                        Turn { role: "assistant", content: body.into() },
+                    ];
+                    draft.reasoning = vec![None, None];
+                    draft.formatted = vec![(1, markdown::Content::parse(body), None, false)];
+                    draft.cut_off_slots.push(1);
+                    draft.incomplete_slots.push(1);
+                    let diagnosis = archx_shared::diagnostics::output_capped(CHAT_OUTPUT_TOKENS);
+                    draft.error = Some(diagnosis.summary.clone());
+                    draft.diagnosis = Some(diagnosis);
                 }
             }
             "conversation-review" => {
@@ -915,8 +956,19 @@ impl App {
                                 reply.reasoning.clone(), open));
                             draft.reasoning.push(reply.reasoning.clone());
                             draft.turns.push(Turn { role: "assistant", content: reply.content });
-                            draft.error = None;
-                            draft.diagnosis = None;
+                            if reply.cut_off {
+                                // Item 9's "cut off with no error": the provider
+                                // answered 200 and stopped at OUR max_tokens, so
+                                // the reply arrives as a success. It is not one.
+                                let diagnosis = archx_shared::diagnostics::output_capped(CHAT_OUTPUT_TOKENS);
+                                draft.incomplete_slots.push(slot);
+                                draft.cut_off_slots.push(slot);
+                                draft.error = Some(diagnosis.summary.clone());
+                                draft.diagnosis = Some(diagnosis);
+                            } else {
+                                draft.error = None;
+                                draft.diagnosis = None;
+                            }
                         }
                         Err(failure) => {
                             if let Some(partial) = draft.partial_raw.take().filter(|reply|
@@ -1096,7 +1148,7 @@ impl App {
                 .take(12).map(|(_, turn)| turn.clone()).collect::<Vec<_>>()
                 .into_iter().rev().collect()
         };
-        let request_bytes = provider_api::request_size(provider, &model, &turns, if test { 256 } else { 4096 });
+        let request_bytes = provider_api::request_size(provider, &model, &turns, if test { TEST_OUTPUT_TOKENS } else { CHAT_OUTPUT_TOKENS });
         let journal_id = self.journal.begin(provider.name(), model.clone(), plan.first().copied().unwrap_or(0), streamed, request_bytes);
         self.save_journal();
 
@@ -1117,14 +1169,14 @@ impl App {
                 };
                 let result = if streamed {
                     if provider == Provider::Custom {
-                        custom_endpoint::send_stream(custom.clone(), model.clone(), key, turns.clone(), 4096, &mut progress).await
+                        custom_endpoint::send_stream(custom.clone(), model.clone(), key, turns.clone(), CHAT_OUTPUT_TOKENS, &mut progress).await
                     } else {
-                        provider_api::send_stream_via(provider, model.clone(), key, turns.clone(), &mut progress, 4096, &registry).await
+                        provider_api::send_stream_via(provider, model.clone(), key, turns.clone(), &mut progress, CHAT_OUTPUT_TOKENS, &registry).await
                     }
                 } else if provider == Provider::Custom {
-                    custom_endpoint::send(custom.clone(), model.clone(), key, turns.clone(), if test { 256 } else { 4096 }).await
+                    custom_endpoint::send(custom.clone(), model.clone(), key, turns.clone(), if test { TEST_OUTPUT_TOKENS } else { CHAT_OUTPUT_TOKENS }).await
                 } else {
-                    provider_api::send_via(provider, model.clone(), key, turns.clone(), if test { 256 } else { 4096 }, &registry).await
+                    provider_api::send_via(provider, model.clone(), key, turns.clone(), if test { TEST_OUTPUT_TOKENS } else { CHAT_OUTPUT_TOKENS }, &registry).await
                 };
                 match result {
                     Ok((reply, trace)) => {
@@ -1185,10 +1237,16 @@ impl App {
         let now = storage::now_secs();
         self.keys.record_success(outcome.key_id, now);
         self.model_health.record_success(&outcome.model, now);
-        self.journal.finish_ok(outcome.journal_id, outcome.trace.duration_ms,
-            outcome.reply.content.chars().count(),
-            outcome.reply.reasoning.as_ref().map_or(0, |text| text.chars().count()),
-            outcome.trace.response_bytes);
+        let chars = outcome.reply.content.chars().count();
+        let reasoning_chars = outcome.reply.reasoning.as_ref().map_or(0, |text| text.chars().count());
+        if outcome.reply.cut_off {
+            self.journal.finish_capped(outcome.journal_id, outcome.trace.duration_ms, chars,
+                reasoning_chars, outcome.trace.response_bytes,
+                diagnostics::output_capped(CHAT_OUTPUT_TOKENS));
+        } else {
+            self.journal.finish_ok(outcome.journal_id, outcome.trace.duration_ms, chars,
+                reasoning_chars, outcome.trace.response_bytes);
+        }
         self.save_journal();
         self.persist_settings();
     }

@@ -96,6 +96,8 @@ jobs:
           test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-custom.png
           xvfb-run -a env ARCHX_SNAPSHOT_PAGE=lab-settings ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-lab-settings.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
           test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-lab-settings.png
+          xvfb-run -a env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=cut-off ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-chat-cut-off.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux-chat-cut-off.png
       - name: Record results in repository
         if: always()
         continue-on-error: true # Concurrent evidence commits can conflict; never block OS build validation.
@@ -180,6 +182,8 @@ jobs:
           test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-custom.png
           ARCHX_SNAPSHOT_PAGE=lab-settings ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-lab-settings.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
           test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-lab-settings.png
+          ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=cut-off ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-chat-cut-off.png ./target/release/archx-ai-lab.exe >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/windows.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/windows-chat-cut-off.png
           cp target/release/archx-ai-lab.exe deliverables/Unreleased/windows/archx-ai-lab.exe
       - name: Record results and Windows build in repository
         if: always()
@@ -262,6 +266,8 @@ jobs:
           test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-custom.png
           env ARCHX_SNAPSHOT_PAGE=lab-settings ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-lab-settings.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
           test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-lab-settings.png
+          env ARCHX_SNAPSHOT_PAGE=agent ARCHX_SNAPSHOT_SIZE=wide ARCHX_SNAPSHOT_CHAT=cut-off ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-chat-cut-off.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/macos.log 2>&1
+          test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/macos-chat-cut-off.png
       - name: Record results in repository
         if: always()
         continue-on-error: true # Concurrent evidence commits can conflict; never block OS build validation.

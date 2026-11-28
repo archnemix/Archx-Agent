@@ -190,6 +190,26 @@ impl Journal {
         }
     }
 
+    /// Records a request that succeeded at the transport level but whose answer
+    /// stopped at the output ceiling this Agent sent.
+    ///
+    /// The entry stays `Ok`: nothing failed, the key is healthy and the model did
+    /// nothing wrong. It carries a diagnosis and the detail line anyway, because
+    /// "why does this reply end mid-sentence" is exactly the question the Debug
+    /// page exists to answer, and the honest answer is ours, not the provider's.
+    pub fn finish_capped(&mut self, id: u64, duration_ms: u128, chars: usize, reasoning_chars: usize,
+        response_bytes: usize, diagnosis: Diagnosis) {
+        if let Some(entry) = self.entries.iter_mut().find(|entry| entry.id == id) {
+            entry.outcome = Outcome::Ok;
+            entry.duration_ms = duration_ms;
+            entry.chars = chars;
+            entry.reasoning_chars = reasoning_chars;
+            entry.response_bytes = response_bytes;
+            entry.detail = "finish_reason = length (the output cap this Agent sent)".to_owned();
+            entry.diagnosis = Some(diagnosis);
+        }
+    }
+
     pub fn finish_failed(&mut self, id: u64, duration_ms: u128, diagnosis: Diagnosis, detail: String) {
         if let Some(entry) = self.entries.iter_mut().find(|entry| entry.id == id) {
             entry.outcome = Outcome::Failed;

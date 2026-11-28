@@ -186,6 +186,31 @@ pub fn transport(may_have_billed: bool) -> Diagnosis {
     }
 }
 
+/// A reply that stopped because the model reached the output cap *we* asked for.
+///
+/// This is the one failure that arrives looking like success: a provider reports
+/// a normal HTTP 200 and a `finish_reason` of `length` (OpenAI-compatible),
+/// `max_tokens` (Anthropic) or `MAX_TOKENS` (Gemini). Nothing in the status code
+/// or the error channel says "cut off", so a build that ignores the finish
+/// reason shows half an answer and no error at all.
+///
+/// The owner is the Agent, not the provider: the ceiling is the `max_tokens`
+/// this app sends. Being honest about that is the whole point — the user's
+/// answer was truncated by our request, and the fix is a longer limit or a
+/// shorter conversation.
+pub fn output_capped(cap_tokens: u32) -> Diagnosis {
+    Diagnosis {
+        stage: Stage::Parse,
+        owner: Owner::Agent,
+        http_status: Some(200),
+        cooldown: None,
+        retry_after: None,
+        summary: format!(
+            "The answer stopped because it reached the {cap_tokens}-token output limit this Agent sent, not because the model finished or the provider failed. The text above is real but incomplete. Ask for the rest of it, or start a shorter chat so more of the window is left for the answer."
+        ),
+    }
+}
+
 pub fn invalid_response(detail: &str) -> Diagnosis {
     Diagnosis {
         stage: Stage::Parse,
@@ -285,6 +310,22 @@ mod tests {
         assert!(!retired.retries_key());
         let decommissioned = from_http(400, Some("This model has been decommissioned and is no longer available."));
         assert_eq!(decommissioned.owner, Owner::Model);
+    }
+
+    #[test]
+    fn a_cut_off_answer_blames_our_own_output_cap_and_never_the_key() {
+        // The 200 is real: the provider completed the request it was given. The
+        // truncation is ours (the max_tokens we sent), so the key must not rest,
+        // the model must not be disabled, and the summary must say both.
+        let capped = output_capped(4096);
+        assert_eq!(capped.owner, Owner::Agent);
+        assert_eq!(capped.stage, Stage::Parse);
+        assert_eq!(capped.http_status, Some(200));
+        assert!(capped.cooldown.is_none(), "a cut-off answer must not bench a key");
+        assert!(!capped.retries_key());
+        assert!(!capped.retries_model());
+        assert!(capped.summary.contains("4096-token output limit"));
+        assert!(capped.summary.contains("not because the model finished or the provider failed"));
     }
 
     #[test]

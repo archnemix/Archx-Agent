@@ -107,7 +107,10 @@ pub fn parse_answer(value: &Value, pointer: &str) -> Result<Reply, CallError> {
     let content = value.pointer(pointer).and_then(Value::as_str).ok_or(CallError::InvalidResponse)?;
     if content.is_empty() { return Err(CallError::InvalidResponse); }
     if content.chars().count() > 96 * 1024 { return Err(CallError::Oversized); }
-    Ok(Reply { content: content.to_owned(), reasoning: None })
+    // The parse pointer says where the text is; the standard finish reason says
+    // whether that text is the whole answer.
+    let cut_off = value.pointer("/choices/0/finish_reason").and_then(Value::as_str) == Some("length");
+    Ok(Reply { content: content.to_owned(), reasoning: None, cut_off })
 }
 
 // Profile is intentionally not Debug, serialized or persisted. A credential
@@ -217,6 +220,11 @@ async fn send_inner(profile: Profile, model: String, key: Zeroizing<String>, tur
                     return Err(failure(CallError::Oversized, Trace { status: Some(status), ..Trace::default() }));
                 }
                 reply.content.push_str(delta);
+                // A custom wrapper that speaks the OpenAI shape still reports
+                // truncation the standard way, so it is read here too.
+                if frame.pointer("/choices/0/finish_reason").and_then(Value::as_str) == Some("length") {
+                    reply.cut_off = true;
+                }
                 if let Some(sender) = progress.as_mut() { sender.send(reply.clone()).await; }
             }
             if done || !provider_message.is_empty() { break; }

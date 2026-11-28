@@ -22,6 +22,10 @@ pub struct StoredChat {
     /// (role, content) pairs; reasoning is stored alongside the assistant turn.
     pub turns: Vec<(String, String, Option<String>)>,
     pub incomplete: Vec<usize>,
+    /// Turns that stopped at the Agent's own output ceiling. Separate from
+    /// `incomplete`: nothing failed, the answer simply ran out of room, and the
+    /// distinction has to survive a restart or the marker disappears.
+    pub cut_off: Vec<usize>,
 }
 
 impl StoredChat {
@@ -52,6 +56,7 @@ impl StoredChat {
                 "role": role, "content": content, "reasoning": reasoning,
             })).collect::<Vec<_>>(),
             "incomplete": self.incomplete,
+            "cut_off": self.cut_off,
         })
     }
 
@@ -72,6 +77,9 @@ impl StoredChat {
             updated: value.get("updated").and_then(Value::as_u64).unwrap_or(0),
             turns,
             incomplete: value.get("incomplete").and_then(Value::as_array)
+                .map(|slots| slots.iter().filter_map(Value::as_u64).map(|slot| slot as usize).take(400).collect())
+                .unwrap_or_default(),
+            cut_off: value.get("cut_off").and_then(Value::as_array)
                 .map(|slots| slots.iter().filter_map(Value::as_u64).map(|slot| slot as usize).take(400).collect())
                 .unwrap_or_default(),
         })
@@ -208,6 +216,7 @@ mod tests {
             mode: 0, model: Some("vendor/model".into()), updated,
             turns: vec![("user".into(), text.into(), None), ("assistant".into(), "Answer".into(), Some("Why".into()))],
             incomplete: Vec::new(),
+            cut_off: Vec::new(),
         }
     }
 

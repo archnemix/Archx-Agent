@@ -26,6 +26,12 @@ pub struct Turn {
 pub struct Reply {
     pub content: String,
     pub reasoning: Option<String>,
+    /// True when the provider said the model stopped because it reached the
+    /// output limit we asked for: `length` (OpenAI-compatible), `max_tokens`
+    /// (Anthropic) or `MAX_TOKENS` (Gemini). Such a reply is complete *as a
+    /// transport event* and incomplete as an answer, which is exactly the case
+    /// that used to look like success.
+    pub cut_off: bool,
 }
 
 /// Transport-level detail used by the Debug page. Never holds a key or header.
@@ -167,6 +173,7 @@ fn extract_reply(provider: Provider, body: &Value) -> Result<Reply, CallError> {
     Ok(Reply {
         content,
         reasoning: (!reasoning.trim().is_empty()).then_some(reasoning),
+        cut_off: output_was_capped(provider, body),
     })
 }
 
@@ -186,6 +193,22 @@ fn endpoint(provider: Provider, model: &str) -> String {
 pub fn endpoint_for(provider: Provider, model: Option<&str>) -> Option<String> {
     if provider == Provider::Custom { return None; }
     Some(endpoint(provider, model.unwrap_or("{model}")))
+}
+
+/// Reads the provider's own statement that generation hit our output ceiling.
+///
+/// All three families report this with a 2xx status, so this is the only signal
+/// there is. Anything else (including a missing field) returns `false`: we only
+/// claim a reply was cut off when the provider said so.
+pub fn output_was_capped(provider: Provider, value: &Value) -> bool {
+    let reason = if provider == Provider::Gemini {
+        value.pointer("/candidates/0/finishReason").and_then(Value::as_str)
+    } else if provider == Provider::Anthropic {
+        value.get("stop_reason").and_then(Value::as_str)
+    } else {
+        value.pointer("/choices/0/finish_reason").and_then(Value::as_str)
+    };
+    matches!(reason, Some("length" | "max_tokens" | "MAX_TOKENS" | "model_length"))
 }
 
 fn payload(provider: Provider, model: &str, turns: &[Turn], max_output_tokens: u32) -> Value {
@@ -362,6 +385,9 @@ pub async fn send_stream_via(provider: Provider, model: String, key: Zeroizing<S
     let mut read = 0usize;
     let mut reply = Reply::default();
     let mut done = false;
+    // The finish reason only ever arrives on the last frame, so it is captured
+    // as frames go by and applied to `reply` once the stream ends.
+    let mut cut_off = false;
     let mut gemini_finished = false;
     let mut provider_error: Option<String> = None;
     while let Some(chunk) = response.chunk().await.map_err(|_| Failure {
@@ -387,6 +413,7 @@ pub async fn send_stream_via(provider: Provider, model: String, key: Zeroizing<S
                 gemini_finished = matches!(frame["candidates"][0]["finishReason"].as_str(), Some("STOP" | "MAX_TOKENS"));
                 if !gemini_finished { return Err(Failure::from(CallError::InvalidResponse)); }
             }
+            if output_was_capped(provider, &frame) { cut_off = true; }
             stream_delta(provider, &frame, &mut reply);
             if reply.content.chars().count() > MAX_VISIBLE_CHARS || reply.reasoning.as_ref().is_some_and(|r| r.chars().count() > MAX_VISIBLE_CHARS) {
                 return Err(Failure::from(CallError::Oversized));
@@ -410,6 +437,10 @@ pub async fn send_stream_via(provider: Provider, model: String, key: Zeroizing<S
         };
         return Err(Failure { diagnosis, trace, may_have_billed: true });
     }
+    // A clean finish that hit our output ceiling is *not* a transport failure:
+    // the text is real, so it is returned, with the cut-off flag set so the UI
+    // can say why it stops where it does.
+    reply.cut_off = cut_off;
     Ok((reply, trace))
 }
 
@@ -427,6 +458,38 @@ mod tests {
         let mut plain = Reply::default();
         stream_delta(Provider::Gemini, &json!({"candidates":[{"content":{"parts":[{"text":"Plain"}]}}]}), &mut plain);
         assert_eq!(plain.reasoning, None);
+    }
+
+    #[test]
+    fn a_finish_reason_of_length_is_recognised_for_every_provider() {
+        // The three families spell "hit the cap" differently, and all three send
+        // it with a 2xx status, which is why this used to disappear.
+        assert!(output_was_capped(Provider::OpenRouter, &json!({"choices":[{"finish_reason":"length"}]})));
+        assert!(output_was_capped(Provider::Grok, &json!({"choices":[{"finish_reason":"length"}]})));
+        assert!(output_was_capped(Provider::Gemini, &json!({"candidates":[{"finishReason":"MAX_TOKENS"}]})));
+        assert!(output_was_capped(Provider::Anthropic, &json!({"stop_reason":"max_tokens"})));
+        // A normal finish is not a cap.
+        assert!(!output_was_capped(Provider::OpenRouter, &json!({"choices":[{"finish_reason":"stop"}]})));
+        assert!(!output_was_capped(Provider::Gemini, &json!({"candidates":[{"finishReason":"STOP"}]})));
+        assert!(!output_was_capped(Provider::Anthropic, &json!({"stop_reason":"end_turn"})));
+        // Silence is not evidence either: a missing field never claims a cap.
+        assert!(!output_was_capped(Provider::OpenRouter, &json!({"choices":[{}]})));
+        assert!(!output_was_capped(Provider::OpenRouter, &json!({})));
+    }
+
+    #[test]
+    fn a_capped_reply_keeps_its_text_and_is_flagged() {
+        // The whole point: the text must survive. A truncated answer is still
+        // worth reading, it just must not pass as a finished one.
+        let reply = extract_reply(Provider::OpenRouter, &json!({
+            "choices": [{"message": {"content": "The first half of"}, "finish_reason": "length"}]
+        })).expect("a capped reply is still a reply");
+        assert_eq!(reply.content, "The first half of");
+        assert!(reply.cut_off);
+        let whole = extract_reply(Provider::OpenRouter, &json!({
+            "choices": [{"message": {"content": "Done."}, "finish_reason": "stop"}]
+        })).expect("reply");
+        assert!(!whole.cut_off);
     }
 
     #[test]

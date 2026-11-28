@@ -4,7 +4,7 @@ use std::sync::LazyLock;
 use iced::widget::{button, column, container, image, markdown, row, scrollable, space, stack, svg, text, text_editor, text_input};
 use iced::{Center, Color, Element, Fill, keyboard};
 
-use crate::app::{ChatDraft, Message, Page};
+use crate::app::{ChatDraft, Message, Page, CHAT_OUTPUT_TOKENS};
 use archx_shared::style;
 use crate::settings::{SettingsState, SecretText};
 use archx_shared::credentials::Provider;
@@ -350,6 +350,13 @@ pub fn view<'a>(app: &'a crate::app::App) -> Element<'a, Message> {
             }
             if assistant && draft.incomplete_slots.contains(&slot) {
                 body = body.push(text("Incomplete · excluded from future context").size(11.0 * scale).color(style::GREY));
+            }
+            // A reply that stopped at our own output ceiling is never silent:
+            // without this line the text above simply ends, which reads as the
+            // model losing its train of thought.
+            if assistant && draft.cut_off_slots.contains(&slot) {
+                body = body.push(text(format!("Stopped at the {CHAT_OUTPUT_TOKENS}-token output limit this Agent sent · the model did not finish · ask for the rest"))
+                    .size(11.0 * scale).color(style::WARN));
             }
             log = log.push(row![avatar(assistant), body].spacing(style::AGENT_GAP_GROUP * scale).width(Fill));
         }
