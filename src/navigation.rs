@@ -153,10 +153,12 @@ fn rail(state: &Launcher) -> Element<'_, Message> {
 
 /// A discovered app's card. Art comes from the manifest's `art` field and the
 /// frame index from the Discover cycle (a scripted screenshot pins both).
-fn tile(app: &App, phase: u8, hovered: Option<&str>) -> Element<'static, Message> {
+/// Borrows from the manifest: the card prints the app's own name, category and
+/// summary, so it cannot be `'static` without copying strings the state owns.
+fn tile(app: &App, phase: u8, hovered: Option<&str>) -> Element<'_, Message> {
     let lit = hovered == Some(app.id.as_str()) || hovered == Some(app.art.as_str());
     let accent = app.is_live();
-    let artwork: Element<'static, Message> = if app.art == "agent" {
+    let artwork: Element<'_, Message> = if app.art == "agent" {
         container(column![
             text("ARCHX  /  SIX MODES").size(10).color(style::GREY),
             space().height(5),
@@ -187,6 +189,14 @@ fn tile(app: &App, phase: u8, hovered: Option<&str>) -> Element<'static, Message
         panel.into()
     };
     let id = app.id.clone();
+    // A buildable app opens; one that is not in this binary says why instead of
+    // being a dead card, and a reserved one says it is in progress.
+    let hosted = crate::app::Hosted::find(&app.id);
+    let openable = app.is_registered() && hosted.is_some();
+    let hint: &str = if openable { "OPEN" }
+        else if !app.ready { "IN PROGRESS" }
+        else if hosted.is_none() { "HELD  ·  NOT IN THIS BUILD" }
+        else { "NOT OPENABLE" };
     let card = column![
         artwork,
         space().height(style::SPACE_2),
@@ -198,7 +208,7 @@ fn tile(app: &App, phase: u8, hovered: Option<&str>) -> Element<'static, Message
         space().height(6),
         text(fit_words(&app.summary, 130)).size(12).color(style::GREY),
         space().height(4),
-        text(app.status_label()).size(style::TYPE_LABEL).color(if accent { style::WHITE } else { style::GREY })
+        text(hint).size(style::TYPE_LABEL).color(if accent { style::WHITE } else { style::GREY })
     ].width(FillPortion(1));
     let control = button(card).padding(0).width(Fill)
         .style(|_, _| iced::widget::button::Style { background: None, ..Default::default() });
@@ -221,12 +231,12 @@ fn fit_words(text: &str, limit: usize) -> String {
     out
 }
 
-fn discover(state: &Launcher) -> Element<'static, Message> {
+fn discover(state: &Launcher) -> Element<'_, Message> {
     let scale = state.display.launcher.factor();
     // The featured tile follows registration, not the "live" label, for the
     // same reason `launchable` does.
     let featured = state.apps.iter().find(|app| app.is_registered());
-    let hero: Element<'static, Message> = match featured {
+    let hero: Element<'_, Message> = match featured {
         Some(app) => {
             let id = app.id.clone();
             container(row![
