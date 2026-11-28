@@ -2405,6 +2405,14 @@ impl App {
         }
         Task::none()
     }
+
+    pub fn view(&self) -> iced::Element<'_, Message> {
+        crate::views::root_view(self)
+    }
+
+    pub fn subscription(&self) -> iced::Subscription<Message> {
+        iced::Subscription::none()
+    }
 }
 
 #[cfg(test)]

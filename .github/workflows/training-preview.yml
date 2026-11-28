@@ -41,7 +41,7 @@ jobs:
             cargo test --workspace --locked
             echo 'COMMAND: CARGO_PROFILE_RELEASE_STRIP=symbols cargo build --release --locked -p archx-training --bin archx-training'
             CARGO_PROFILE_RELEASE_STRIP=symbols cargo build --release --locked -p archx-training --bin archx-training
-          ) > apps/training/docs/Test_Results/non_visual/linux-slice2.log 2>&1
+          ) 2>&1 | tee apps/training/docs/Test_Results/non_visual/linux-slice2.log
 
           for pair in \
             "01-data:pipeline:data" \
@@ -93,7 +93,7 @@ jobs:
             cargo test -p archx-training --locked
             echo 'COMMAND: CARGO_PROFILE_RELEASE_STRIP=symbols cargo build --release --locked -p archx-training --bin archx-training'
             CARGO_PROFILE_RELEASE_STRIP=symbols cargo build --release --locked -p archx-training --bin archx-training
-          ) > apps/training/docs/Test_Results/non_visual/windows-slice2.log 2>&1
+          ) 2>&1 | tee apps/training/docs/Test_Results/non_visual/windows-slice2.log
 
           python -c 'import pathlib,struct; data=pathlib.Path("target/release/archx-training.exe").read_bytes(); pe=struct.unpack_from("<I",data,0x3c)[0]; subsystem=struct.unpack_from("<H",data,pe+92)[0]; assert subsystem==2, f"Expected GUI subsystem 2, found {subsystem}"; print("PASS: Windows GUI subsystem 2 (no console)")' >> apps/training/docs/Test_Results/non_visual/windows-slice2.log 2>&1
           powershell.exe -NoProfile -Command '$info=(Get-Item "target/release/archx-training.exe").VersionInfo; if ($info.CompanyName -ne "Archnemix" -or $info.ProductName -ne "Archx AI Lab - Model Training") { throw "Incorrect PE product metadata: $($info.CompanyName) / $($info.ProductName)" }; Write-Output "PASS: Archnemix Windows product metadata verified"' >> apps/training/docs/Test_Results/non_visual/windows-slice2.log 2>&1

@@ -1071,11 +1071,11 @@ fn probe_cpu() -> CpuInfo {
 fn detect_cpu_brand(logical_cores: usize) -> String {
     #[cfg(target_arch = "x86_64")]
     {
-        let max_ext = unsafe { core::arch::x86_64::__cpuid(0x8000_0000).eax };
+        let max_ext = core::arch::x86_64::__cpuid(0x8000_0000).eax;
         if max_ext >= 0x8000_0004 {
             let mut bytes = Vec::with_capacity(48);
             for leaf in 0x8000_0002..=0x8000_0004 {
-                let res = unsafe { core::arch::x86_64::__cpuid(leaf) };
+                let res = core::arch::x86_64::__cpuid(leaf);
                 bytes.extend_from_slice(&res.eax.to_le_bytes());
                 bytes.extend_from_slice(&res.ebx.to_le_bytes());
                 bytes.extend_from_slice(&res.ecx.to_le_bytes());
