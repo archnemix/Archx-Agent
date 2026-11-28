@@ -21,7 +21,12 @@ static BRAND: LazyLock<image::Handle> = LazyLock::new(|| {
 });
 
 #[derive(Clone, Copy)]
-enum Icon { Home, Agent, About, Settings, Expand, Collapse, Info }
+enum Icon {
+    Home, Agent, About, Settings, Expand, Collapse, Info,
+    /// A workbench app (its manifest says `art = "workbench"`); the launcher
+    /// draws its own icon rather than borrowing the Agent's chat glyph.
+    Workspace,
+}
 
 fn glyph(icon: Icon, selected: bool, size: u32) -> svg::Svg<'static> {
     let bytes: &'static [u8] = match icon {
@@ -32,6 +37,7 @@ fn glyph(icon: Icon, selected: bool, size: u32) -> svg::Svg<'static> {
         Icon::Expand => include_bytes!("../shared/assets/icons/panel-left-open.svg"),
         Icon::Collapse => include_bytes!("../shared/assets/icons/panel-left-close.svg"),
         Icon::Info => include_bytes!("../shared/assets/icons/info.svg"),
+        Icon::Workspace => include_bytes!("../shared/assets/icons/monitor.svg"),
     };
     svg(svg::Handle::from_memory(bytes))
         .width(size).height(size)
@@ -51,10 +57,13 @@ fn compact_action(icon: Icon, label: &'static str, action: Message, selected: bo
     hint(control, label)
 }
 
-fn expanded_action(icon: Icon, label: &'static str, action: Message, selected: bool) -> Element<'static, Message> {
+/// The label is owned, not `&'static str`: an app's rail entry names it from its
+/// manifest, and forcing a static string would mean the launcher could only ever
+/// list apps whose names were compiled into it.
+fn expanded_action(icon: Icon, label: impl Into<String>, action: Message, selected: bool) -> Element<'static, Message> {
     button(row![
         glyph(icon, selected, 19),
-        text(label).size(13).font(style::LABEL).color(if selected { style::WHITE } else { style::GREY })
+        text(label.into()).size(13).font(style::LABEL).color(if selected { style::WHITE } else { style::GREY })
     ].spacing(14).align_y(Center))
         .width(Fill).padding([12, 15]).on_press(action)
         .style(move |theme, status| style::nav(selected, theme, status))
@@ -104,7 +113,10 @@ fn rail(state: &Launcher) -> Element<'static, Message> {
         if openable {
             let Some(hosted) = hosted else { continue };
             let id = hosted.id;
-            content = content.push(expanded_action(Icon::Agent, label,
+            // The glyph follows the app's artwork style from its manifest, so a
+            // workbench app is not drawn with the Agent's icon.
+            let icon = if app.art == "agent" { Icon::Agent } else { Icon::Workspace };
+            content = content.push(expanded_action(icon, label,
                 Message::Navigate(Page::App { id, surface: hosted.surfaces[0] }), active));
         } else {
             // Why it is not openable matters: a held app and an unbuilt one look

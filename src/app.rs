@@ -106,6 +106,33 @@ impl Page {
             Self::App { id, surface } => format!("{id}/{surface}"),
         }
     }
+
+    /// The app page for a hosted app's first surface.
+    pub fn app(id: &'static str) -> Self {
+        let surface = Hosted::find(id)
+            .and_then(|hosted| hosted.surfaces.first().copied())
+            .unwrap_or("agent");
+        Self::App { id, surface }
+    }
+
+    /// Which hosted app this page belongs to, if any.
+    pub fn hosted_app(self) -> Option<(&'static str, &'static str)> {
+        match self {
+            Self::App { id, surface } => Some((id, surface)),
+            _ => None,
+        }
+    }
+
+    /// Any app's surface, not only the Agent's. The launcher's rail, shell and
+    /// transition all key on this, which is what lets a second app behave
+    /// exactly like the first without a new variant anywhere.
+    pub fn is_app_surface(self) -> bool {
+        self.hosted_app().is_some()
+    }
+
+    pub fn is_agent_surface(self) -> bool {
+        matches!(self.hosted_app(), Some(("archx-agent", _)))
+    }
 }
 
 #[derive(Debug, Clone)]
