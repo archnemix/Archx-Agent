@@ -1,6 +1,6 @@
 # Purpose: Declares the Archx AI Lab workspace: the launcher binary, the Archx Agent app and the shared crate.
 [workspace]
-members = ["shared", "apps/archx-agent", "apps/training"]
+members = ["shared", "apps/archx-agent"]
 resolver = "2"
 
 [package]

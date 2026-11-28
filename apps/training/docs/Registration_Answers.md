@@ -61,11 +61,15 @@ two secrets and needs no new type.
 
 ## 3. What changed on the launcher branch, and what it means for you
 
-**`apps/training` is now a workspace member** in the root `Cargo.toml`. That was
-the launcher owner's line to add, not yours; you do not need to touch that file
-at all now. It is there so the App harness resolves your crate the moment you add
-`crate = "archx-training"` to your manifest. It changes nothing else: a workspace
-member with no `Cargo.toml` is inert.
+**One correction to the notes you were given, learned the hard way:** the root
+`Cargo.toml` members line and `apps/training/Cargo.toml` must land in **the same
+commit**. Adding `"apps/training"` to members before the crate's `Cargo.toml`
+exists does not create an inert placeholder — it breaks the workspace manifest
+for *every* crate, including the launcher's, and CI fails at
+`cargo generate-lockfile` with "failed to load manifest for workspace member".
+So: write `apps/training/Cargo.toml` first, add the member line with it, and
+push them together. That one line in the root `Cargo.toml` is still your only
+change outside your folder.
 
 **The `22b1418` base no longer decides whether a second app can host.** Before,
 `src/app.rs` had one page variant per Agent surface, `src/navigation.rs` had
