@@ -609,6 +609,24 @@ impl App {
                     Err(error) => self.settings.status = error,
                 }
             }
+            Message::RefreshFreeList if !self.settings.free_busy && self.snapshot.is_none() => {
+                self.settings.free_busy = true;
+                return Task::perform(archx_shared::free_tiers::fetch(), Message::FreeListFetched);
+            }
+            Message::FreeListFetched(result) => {
+                self.settings.free_busy = false;
+                match result {
+                    Ok(document) => {
+                        self.settings.free_rows = archx_shared::free_tiers::parse(&document);
+                        self.settings.free_checked = Some(storage::now_secs());
+                        self.settings.status = match archx_shared::free_tiers::save(&document) {
+                            Ok(()) => "Free-tier list refreshed from GitHub; verify limits with providers.".into(),
+                            Err(_) => "Free-tier list refreshed, but could not be cached on disk.".into(),
+                        };
+                    }
+                    Err(error) => self.settings.status = format!("{error}. Showing any previously cached list."),
+                }
+            }
             Message::FetchModelMeta if self.snapshot.is_none() => {
                 self.settings.status = "Fetching model metadata from models.dev…".into();
                 return Task::perform(async { archx_shared::model_meta::fetch_models_dev().await.map(|registry| (registry.len(), registry)) },
@@ -745,6 +763,10 @@ impl App {
                     self.settings.catalog_modal = false;
                 }
                 self.settings.section = section;
+                if section == Section::FreeTiers && self.settings.free_checked
+                    .is_none_or(|at| storage::now_secs().saturating_sub(at) >= archx_shared::free_tiers::REFRESH_SECS) {
+                    return self.update(Message::RefreshFreeList);
+                }
             }
             Message::MemoryPreview(memory) => self.memory_preview = memory,
             Message::ToggleAgentPreview if self.memory_preview == MemoryMode::Custom => {

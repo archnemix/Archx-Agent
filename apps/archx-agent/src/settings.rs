@@ -31,15 +31,16 @@ impl fmt::Debug for SecretText {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Section { Providers, Models, Runtime, Storage }
+pub enum Section { Providers, Models, FreeTiers, Runtime, Storage }
 
 impl Section {
-    pub const ALL: [Self; 4] = [Self::Providers, Self::Models, Self::Runtime, Self::Storage];
+    pub const ALL: [Self; 5] = [Self::Providers, Self::Models, Self::FreeTiers, Self::Runtime, Self::Storage];
 
     pub fn label(self) -> &'static str {
         match self {
             Self::Providers => "Providers",
             Self::Models => "Models",
+            Self::FreeTiers => "Free-tier models",
             Self::Runtime => "Memory",
             Self::Storage => "Storage & display",
         }
@@ -96,6 +97,9 @@ pub struct SettingsState {
     pub key_auto_rotate: bool,
     /// Public metadata for the rows (models.dev + free-tier registry).
     pub meta: Option<archx_shared::model_meta::Registry>,
+    pub free_rows: Vec<archx_shared::free_tiers::Row>,
+    pub free_checked: Option<u64>,
+    pub free_busy: bool,
     /// Model health (enabled/disabled per id), mirrored for rendering only.
     pub model_health: ModelHealthSet,
     /// Result of the last "sweep models that no longer exist" run, shown until
@@ -124,6 +128,7 @@ impl Default for SettingsState {
             bulk_selected: HashSet::new(), model_page: 0, model_page_size: 25, provider_picker: false,
             endpoint_draft: None, key_health: KeyHealthSet::new(), key_auto_rotate: true,
             model_health: ModelHealthSet::new(), meta: None,
+            free_rows: Vec::new(), free_checked: None, free_busy: false,
             sweep: None, sweep_undo: Vec::new(), sweep_nonce: 0, sweep_busy: false,
             usage: None, usage_busy: false, usage_nonce: 0 }
     }
@@ -212,6 +217,7 @@ pub fn view<'a>(state: &'a SettingsState,
     let (heading, description) = match state.section {
         Section::Providers => ("Providers", "Select a provider from the list, see and edit the exact URLs it calls, and manage its vault keys."),
         Section::Models => ("Models", "The list scrolls and pages. Tick several models to test, enable, disable or remove them together."),
+        Section::FreeTiers => ("Free-tier models", "Community listing, not a guarantee of provider availability or current limits."),
         Section::Runtime => ("Memory", "Manage runtime caches. Chat context and model limits are not configurable here yet."),
         Section::Storage => ("Storage & display", "Where your data lives, how big the text is in each area, and how to wipe it."),
     };
@@ -240,6 +246,7 @@ pub fn view<'a>(state: &'a SettingsState,
         match state.section {
             Section::Providers => providers(state),
             Section::Models => models(state),
+            Section::FreeTiers => free_tiers(state),
             Section::Runtime => runtime(state, usage, budget),
             Section::Storage => storage(state, display, storage_path),
         }
@@ -733,6 +740,30 @@ fn saved_run_panel(state: &SettingsState) -> Element<'static, Message> {
         ].spacing(2).width(Fill),
         controls
     ].spacing(10).align_y(iced::alignment::Vertical::Top).into()
+}
+
+fn free_tiers(state: &SettingsState) -> Element<'static, Message> {
+    let mut list = column![].spacing(5).width(Fill);
+    for entry in &state.free_rows {
+        list = list.push(container(column![
+            text(format!("{} · {}", entry.provider, entry.model)).size(12).font(style::STRONG).color(style::WHITE),
+            text(entry.details.clone()).size(11).color(style::GREY)
+        ].spacing(3)).padding(8).width(Fill).style(style::card));
+    }
+    let checked = state.free_checked.map(|at| format!("Last fetched: Unix timestamp {at}"))
+        .unwrap_or_else(|| "No downloaded list yet".into());
+    column![
+        surface(column![
+            text("Source: github.com/mnfst/awesome-free-llm-apis").size(12).color(style::WHITE),
+            text("The community list can be outdated. Limits vary by account and region; verify with the provider. Fetching contacts GitHub without your API keys.").size(11.5).color(style::GREY),
+            text(checked).size(11).color(style::DIM),
+            button(text(if state.free_busy { "Refreshing…" } else { "Refresh list" }).size(11))
+                .on_press_maybe((!state.free_busy).then_some(Message::RefreshFreeList)).style(style::tiny_button)
+        ].spacing(8).width(Fill)),
+        space().height(12),
+        if state.free_rows.is_empty() { text("No list available. Refresh to fetch it.").size(12).color(style::GREY).into() }
+        else { scrollable(list).height(500).style(style::quiet_scroll).into() }
+    ].width(Fill).into()
 }
 
 /// Runtime memory: one row per cache per stage, with measured sizes.

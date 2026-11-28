@@ -523,7 +523,11 @@ impl App {
         let ticker = if self.ticker && self.transition.is_some_and(|transition| !transition.is_complete()) {
             time::every(Duration::from_millis(crate::transition::FRAME_MS)).map(|_| Message::Tick)
         } else { Subscription::none() };
-        Subscription::batch([snapshot, ticker])
+        let free_list = if self.snapshot.is_none() {
+            time::every(Duration::from_secs(archx_shared::free_tiers::REFRESH_SECS))
+                .map(|_| Message::Agent(AgentMessage::RefreshFreeList))
+        } else { Subscription::none() };
+        Subscription::batch([snapshot, ticker, free_list])
     }
 
 }

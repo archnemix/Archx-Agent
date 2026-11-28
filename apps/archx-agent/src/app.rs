@@ -235,6 +235,8 @@ pub enum Message {
     ModelPagePrevious,
     FetchModels,
     ModelsFetched(Provider, u64, Result<Vec<CatalogModel>, String>),
+    RefreshFreeList,
+    FreeListFetched(Result<String, String>),
     FetchModelMeta,
     ModelMetaFetched(Result<usize, String>),
     /// Compare the added models against the provider's live `/models` list and
@@ -435,6 +437,10 @@ impl App {
         let next_chat_id = drafts.iter().map(|draft| draft.id).max().unwrap_or(0) + 1;
         let selected_draft = drafts.last().map_or(1, |draft| draft.id);
 
+        if let Some((rows, at)) = archx_shared::free_tiers::load() {
+            settings.free_rows = rows;
+            settings.free_checked = Some(at);
+        }
         let mut app = Self {
             page: Page::Chat,
             sidebar_expanded: !(snapshot.is_some()

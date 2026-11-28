@@ -11,6 +11,7 @@ pub mod debug_log;
 pub mod diagnostics;
 pub mod endpoints;
 pub mod health;
+pub mod free_tiers;
 pub mod memory;
 pub mod model_catalog;
 pub mod model_meta;
