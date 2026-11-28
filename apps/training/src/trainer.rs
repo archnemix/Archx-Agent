@@ -226,9 +226,11 @@ where
                     .map_err(|e| format!("Scalar read failed: {e}"))?;
                 ce_sum += micro_ce / (accum_steps as f32);
 
-                let scaled = (&micro_total / (accum_steps as f64))
+                let scaled = micro_total
+                    .affine(1.0 / (accum_steps as f64), 0.0)
                     .map_err(|e| format!("Loss scale failed: {e}"))?;
-                accum_loss = (&accum_loss + &scaled)
+                accum_loss = accum_loss
+                    .add(&scaled)
                     .map_err(|e| format!("Loss accum failed: {e}"))?;
 
                 for (slot, c) in expert_totals.iter_mut().zip(fwd.expert_counts) {

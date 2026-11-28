@@ -10,6 +10,7 @@ pub mod rng;
 pub mod telemetry;
 pub mod tokenizer;
 pub mod trainer;
+pub mod transformer;
 pub mod views;
 
 pub use app::{App, Message};

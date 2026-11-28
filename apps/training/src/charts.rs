@@ -17,7 +17,7 @@ pub fn loss_chart_svg(points: &[StepPoint], log_scale: bool) -> svg::Handle {
         let mid = h * 0.5;
         let _ = writeln!(
             out,
-            r#"<line x1="{pad}" y1="{mid:.1}" x2="{:.1}" y2="{mid:.1}" stroke="#404040" stroke-width="1.5" stroke-dasharray="5,5"/>"#,
+            r##"<line x1="{pad}" y1="{mid:.1}" x2="{:.1}" y2="{mid:.1}" stroke="#404040" stroke-width="1.5" stroke-dasharray="5,5"/>"##,
             w - pad
         );
         out.push_str("</svg>");
@@ -72,7 +72,7 @@ pub fn loss_chart_svg(points: &[StepPoint], log_scale: bool) -> svg::Handle {
     if !train_pts.is_empty() {
         let _ = writeln!(
             out,
-            r#"<polyline fill="none" stroke="#f4f4f4" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round" points="{train_pts}"/>"#
+            r##"<polyline fill="none" stroke="#f4f4f4" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round" points="{train_pts}"/>"##
         );
     }
 
@@ -86,7 +86,7 @@ pub fn loss_chart_svg(points: &[StepPoint], log_scale: bool) -> svg::Handle {
                 let _ = write!(val_pts, "{x:.1},{y:.1} ");
                 let _ = writeln!(
                     val_dots,
-                    r#"<circle cx="{x:.1}" cy="{y:.1}" r="3.0" fill="#22c55e"/>"#
+                    r##"<circle cx="{x:.1}" cy="{y:.1}" r="3.0" fill="#22c55e"/>"##
                 );
             }
         }
@@ -94,7 +94,7 @@ pub fn loss_chart_svg(points: &[StepPoint], log_scale: bool) -> svg::Handle {
     if !val_pts.is_empty() {
         let _ = writeln!(
             out,
-            r#"<polyline fill="none" stroke="#22c55e" stroke-width="1.8" points="{val_pts}"/>"#
+            r##"<polyline fill="none" stroke="#22c55e" stroke-width="1.8" points="{val_pts}"/>"##
         );
         out.push_str(&val_dots);
     }
@@ -137,11 +137,11 @@ pub fn lr_grad_chart_svg(points: &[StepPoint]) -> svg::Handle {
         }
         let _ = writeln!(
             out,
-            r#"<polyline fill="none" stroke="#8a8a8a" stroke-width="1.5" points="{grad_pts}"/>"#
+            r##"<polyline fill="none" stroke="#8a8a8a" stroke-width="1.5" points="{grad_pts}"/>"##
         );
         let _ = writeln!(
             out,
-            r#"<polyline fill="none" stroke="#eab308" stroke-width="1.8" points="{lr_pts}"/>"#
+            r##"<polyline fill="none" stroke="#eab308" stroke-width="1.8" points="{lr_pts}"/>"##
         );
     }
 
@@ -182,7 +182,7 @@ pub fn heatmap_16x16_svg(tile: &[f32], emerald_tint: bool) -> svg::Handle {
             let y = r as f32 * cell;
             let _ = writeln!(
                 out,
-                r#"<rect x="{x:.2}" y="{y:.2}" width="{:.2}" height="{:.2}" fill="#{red:02x}{green:02x}{blue:02x}"/>"#,
+                r##"<rect x="{x:.2}" y="{y:.2}" width="{:.2}" height="{:.2}" fill="#{red:02x}{green:02x}{blue:02x}"/>"##,
                 cell - 0.8,
                 cell - 0.8
             );
@@ -209,7 +209,7 @@ pub fn moe_load_svg(loads_pct: &[f32]) -> svg::Handle {
         let ideal_y = (h - pad) - (ideal / max_v) * (h - 2.0 * pad);
         let _ = writeln!(
             out,
-            r#"<line x1="{pad}" y1="{ideal_y:.1}" x2="{:.1}" y2="{ideal_y:.1}" stroke="#8a8a8a" stroke-width="1" stroke-dasharray="4,4"/>"#,
+            r##"<line x1="{pad}" y1="{ideal_y:.1}" x2="{:.1}" y2="{ideal_y:.1}" stroke="#8a8a8a" stroke-width="1" stroke-dasharray="4,4"/>"##,
             w - pad
         );
 
@@ -226,7 +226,7 @@ pub fn moe_load_svg(loads_pct: &[f32]) -> svg::Handle {
             };
             let _ = writeln!(
                 out,
-                r#"<rect x="{x:.1}" y="{y:.1}" width="{bar_w:.1}" height="{bh:.1}" rx="3" fill="{color}"/>"#
+                r##"<rect x="{x:.1}" y="{y:.1}" width="{bar_w:.1}" height="{bh:.1}" rx="3" fill="{color}"/>"##
             );
         }
     }
@@ -249,7 +249,7 @@ pub fn arch_blueprint_svg(cfg: &TransformerConfig) -> svg::Handle {
     let head_fill = if cfg.tie_embeddings { "#262626" } else { "#363636" };
     let _ = writeln!(
         out,
-        r#"<rect x="{pad}" y="{pad}" width="{:.1}" height="{bar_h:.1}" rx="3" fill="{head_fill}" stroke="#5c5c5c" stroke-width="1"/>"#,
+        r##"<rect x="{pad}" y="{pad}" width="{:.1}" height="{bar_h:.1}" rx="3" fill="{head_fill}" stroke="#5c5c5c" stroke-width="1"/>"##,
         w - 2.0 * pad
     );
 
@@ -262,13 +262,13 @@ pub fn arch_blueprint_svg(cfg: &TransformerConfig) -> svg::Handle {
 
         let _ = writeln!(
             out,
-            r#"<rect x="{pad}" y="{y:.1}" width="{half_w:.1}" height="{bar_h:.1}" rx="3" fill="#1f1f1f" stroke="#8a8a8a" stroke-width="1"/>"#
+            r##"<rect x="{pad}" y="{y:.1}" width="{half_w:.1}" height="{bar_h:.1}" rx="3" fill="#1f1f1f" stroke="#8a8a8a" stroke-width="1"/>"##
         );
         match cfg.routing {
             Routing::Dense => {
                 let _ = writeln!(
                     out,
-                    r#"<rect x="{right_x:.1}" y="{y:.1}" width="{right_w:.1}" height="{bar_h:.1}" rx="3" fill="#2a2a2a" stroke="#d4d4d4" stroke-width="1"/>"#
+                    r##"<rect x="{right_x:.1}" y="{y:.1}" width="{right_w:.1}" height="{bar_h:.1}" rx="3" fill="#2a2a2a" stroke="#d4d4d4" stroke-width="1"/>"##
                 );
             }
             Routing::MoE => {
@@ -280,7 +280,7 @@ pub fn arch_blueprint_svg(cfg: &TransformerConfig) -> svg::Handle {
                     let fill = if active { "#f4f4f4" } else { "#1a1a1a" };
                     let _ = writeln!(
                         out,
-                        r#"<rect x="{sx:.1}" y="{y:.1}" width="{seg_w:.1}" height="{bar_h:.1}" rx="2" fill="{fill}" stroke="#5c5c5c" stroke-width="0.8"/>"#
+                        r##"<rect x="{sx:.1}" y="{y:.1}" width="{seg_w:.1}" height="{bar_h:.1}" rx="2" fill="{fill}" stroke="#5c5c5c" stroke-width="0.8"/>"##
                     );
                 }
             }
@@ -291,7 +291,7 @@ pub fn arch_blueprint_svg(cfg: &TransformerConfig) -> svg::Handle {
     let bot_y = pad + (shown + 1) as f32 * (bar_h + gap);
     let _ = writeln!(
         out,
-        r#"<rect x="{pad}" y="{bot_y:.1}" width="{:.1}" height="{bar_h:.1}" rx="3" fill="#262626" stroke="#5c5c5c" stroke-width="1"/>"#,
+        r##"<rect x="{pad}" y="{bot_y:.1}" width="{:.1}" height="{bar_h:.1}" rx="3" fill="#262626" stroke="#5c5c5c" stroke-width="1"/>"##,
         w - 2.0 * pad
     );
 
@@ -303,11 +303,11 @@ fn svg_header(w: f32, h: f32) -> String {
     let mut s = String::with_capacity(2048);
     let _ = writeln!(
         s,
-        r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w:.0} {h:.0}" width="{w:.0}" height="{h:.0}">"#
+        r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w:.0} {h:.0}" width="{w:.0}" height="{h:.0}">"##
     );
     let _ = writeln!(
         s,
-        r#"<rect x="0.5" y="0.5" width="{:.1}" height="{:.1}" rx="10" fill="#0d0d0d" stroke="#2c2c2c" stroke-width="1"/>"#,
+        r##"<rect x="0.5" y="0.5" width="{:.1}" height="{:.1}" rx="10" fill="#0d0d0d" stroke="#2c2c2c" stroke-width="1"/>"##,
         w - 1.0,
         h - 1.0
     );
@@ -319,7 +319,7 @@ fn draw_grid(out: &mut String, w: f32, h: f32, pad: f32, rows: usize) {
         let y = pad + (i as f32 / rows as f32) * (h - 2.0 * pad);
         let _ = writeln!(
             out,
-            r#"<line x1="{pad}" y1="{y:.1}" x2="{:.1}" y2="{y:.1}" stroke="#1f1f1f" stroke-width="1"/>"#,
+            r##"<line x1="{pad}" y1="{y:.1}" x2="{:.1}" y2="{y:.1}" stroke="#1f1f1f" stroke-width="1"/>"##,
             w - pad
         );
     }
