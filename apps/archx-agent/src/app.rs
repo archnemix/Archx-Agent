@@ -408,6 +408,7 @@ impl App {
         settings.chosen = persisted.chosen;
         settings.stream_chat = persisted.stream_chat;
         settings.custom.url = persisted.custom_url;
+        settings.meta = model_meta::load_cache().map(|(registry, _)| registry);
         let mut drafts: Vec<ChatDraft> = Vec::new();
         if snapshot.is_none() {
             // Restore saved conversations, newest first is display order (the

@@ -114,7 +114,7 @@ pub fn view(journal: &Journal, filter: Filter, selected: Option<u64>, help_open:
     let header = row![
         column![
             text("Request debug").size(20).font(style::STRONG).color(style::WHITE),
-            text("Every provider request, its stage, owner and timing. Metadata only: no prompt, reply or key text is stored.")
+            text("Recorded requests, stages and timing. Metadata only: no prompt, reply or key text is intentionally stored.")
                 .size(11.5).color(style::GREY)
         ].spacing(3).width(Fill),
         button(text("Help").size(11)).on_press(Message::DebugHelpToggle).style(style::tiny_button),

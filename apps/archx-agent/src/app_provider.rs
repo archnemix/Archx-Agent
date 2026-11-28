@@ -641,6 +641,7 @@ impl App {
             Message::ModelMetaFetched(result) => match result {
                 Ok(count) => {
                     self.meta = archx_shared::model_meta::load_cache().map(|(registry, _)| registry);
+                    self.settings.meta = self.meta.clone();
                     self.meta_checked = Some(storage::now_secs());
                     self.settings.status = format!("Metadata for {count} models updated. Rows now show modality, context and price where known.");
                 }

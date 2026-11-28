@@ -584,6 +584,16 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
             Some(meta) if !meta.line().is_empty() => text(meta.line()).size(10.5).color(style::GREY).into(),
             _ => space().height(0).into(),
         };
+        let extra: Element<'static, Message> = match &meta {
+            Some(meta) if meta.output_limit.is_some() || meta.kind.is_some() || meta.status.is_some() => {
+                let output = meta.output_limit.map(|value| format!("max output: {value} tokens")).unwrap_or_default();
+                let kind = meta.kind.as_ref().map(|value| format!("type: {value}")).unwrap_or_default();
+                let status = meta.status.as_ref().map(|value| format!("status: {value}")).unwrap_or_default();
+                text([output, kind, status].into_iter().filter(|s| !s.is_empty()).collect::<Vec<_>>().join(" · "))
+                    .size(10.5).color(style::GREY).into()
+            }
+            _ => space().height(0).into(),
+        };
         let failure: Element<'static, Message> = state.model_health.slot(model)
             .filter(|slot| slot.disabled && !slot.reason.is_empty())
             .map(|slot| text(format!("disabled · {}", slot.reason)).size(10.5).color(style::WARN).into())
@@ -602,6 +612,7 @@ fn models(state: &SettingsState) -> Element<'static, Message> {
                 button(text("Remove").size(10.5)).on_press(Message::RemoveModel(slot)).style(style::tiny_button)
             ].spacing(6).align_y(Center),
             detail,
+            extra,
             failure
         ].spacing(3)).padding([6, 8]).width(Fill).style(style::card));
     }
@@ -752,6 +763,9 @@ fn free_tiers(state: &SettingsState) -> Element<'static, Message> {
     }
     let checked = state.free_checked.map(|at| format!("Last fetched: Unix timestamp {at}"))
         .unwrap_or_else(|| "No downloaded list yet".into());
+    let list_area: Element<'static, Message> = if state.free_rows.is_empty() {
+        text("No list available. Refresh to fetch it.").size(12).color(style::GREY).into()
+    } else { scrollable(list).height(500).style(style::quiet_scroll).into() };
     column![
         surface(column![
             text("Source: github.com/mnfst/awesome-free-llm-apis").size(12).color(style::WHITE),
@@ -761,8 +775,7 @@ fn free_tiers(state: &SettingsState) -> Element<'static, Message> {
                 .on_press_maybe((!state.free_busy).then_some(Message::RefreshFreeList)).style(style::tiny_button)
         ].spacing(8).width(Fill)),
         space().height(12),
-        if state.free_rows.is_empty() { text("No list available. Refresh to fetch it.").size(12).color(style::GREY).into() }
-        else { scrollable(list).height(500).style(style::quiet_scroll).into() }
+        list_area
     ].width(Fill).into()
 }
 
