@@ -925,8 +925,10 @@ mod tests {
             source_label: "Synthetic convergence check".to_owned(),
             train_docs: docs.clone(),
             val_docs,
+            total_raw_docs: 18,
             total_chars: docs.iter().map(|s| s.len()).sum(),
-            dedup_removed: 0,
+            avg_chars: 28,
+            ..PreparedDataset::default()
         };
         let tk = LabTokenizer::train_or_load(&cfg.tokenizer, &ds.train_docs).expect("tk");
 
