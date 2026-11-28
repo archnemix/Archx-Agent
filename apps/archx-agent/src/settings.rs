@@ -753,9 +753,10 @@ fn runtime<'a>(_state: &'a SettingsState, usage: &'a [archx_shared::memory::Usag
         ].spacing(8).align_y(Center);
         for stage in archx_shared::memory::Stage::ALL {
             let keep = budget.keeps(stage, item);
-            row = row.push(button(text(if keep { "keep" } else { "drop" }).size(10)
+            let supported = !matches!(item, archx_shared::memory::Item::KeyHealth | archx_shared::memory::Item::DebugJournal);
+            row = row.push(button(text(if !supported { "fixed" } else if keep { "keep" } else { "drop" }).size(10)
                 .color(if keep { style::WHITE } else { style::DIM }))
-                .padding([5, 8]).on_press(Message::ToggleRuntime(stage, item))
+                .padding([5, 8]).on_press_maybe(supported.then_some(Message::ToggleRuntime(stage, item)))
                 .style(move |theme, status| style::list_row(keep, theme, status)));
         }
         matrix = matrix.push(container(row).padding([6, 8]).width(Fill).style(style::card));
@@ -772,7 +773,7 @@ fn runtime<'a>(_state: &'a SettingsState, usage: &'a [archx_shared::memory::Usag
             space().height(10),
             matrix,
             space().height(8),
-            text("From left to right: Launcher · Agent idle · Streaming · Settings. Keep retains the cache at that stage; drop requests its release on entry.")
+            text("Left to right: Launcher · Agent idle · Streaming · Settings. Drop releases supported caches when selected; automatic stage transitions are not yet implemented. Fixed rows cannot safely be released here.")
                 .size(10.5).color(style::DIM)
         ].width(Fill)),
         surface(column![

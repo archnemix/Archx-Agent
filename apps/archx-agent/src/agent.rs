@@ -71,14 +71,6 @@ impl<'a> markdown::Viewer<'a, Message> for ChatViewer {
     }
 }
 
-/// Rough rendered height of a reasoning body, used to size its scroller so a
-/// short trace does not leave an empty 300 px box (the reference's
-/// `.thinking-body` grows to `max-height: 300px` and then scrolls).
-fn reasoning_size(text: &str) -> u16 {
-    let lines = text.lines().count().max(1) as u16;
-    28 + lines.saturating_mul(18)
-}
-
 /// Returned reasoning is shown as preformatted text, not Markdown.
 ///
 /// This is a deliberate fidelity decision, taken from the reference's CSS and
@@ -338,8 +330,7 @@ pub fn view<'a>(app: &'a crate::app::App) -> Element<'a, Message> {
                     if *expanded {
                         thinking = thinking.push(container(scrollable(
                             container(reasoning_body(reasoning, scale)).padding([8, 12]))
-                            .height((reasoning_size(reasoning) as f32).min(300.0))
-                            .style(style::quiet_scroll)).width(Fill)
+                            .style(style::quiet_scroll)).width(Fill).max_height(16.0 + 5.0 * 13.0 * scale * 1.3)
                             .style(style::chat_thinking_body));
                     }
                     body = body.push(container(thinking).width(Fill).style(style::chat_thinking));
@@ -374,8 +365,7 @@ pub fn view<'a>(app: &'a crate::app::App) -> Element<'a, Message> {
                 if open {
                     disclosure = disclosure.push(container(scrollable(
                         container(reasoning_body(reasoning, scale)).padding([8, 12]))
-                        .height((reasoning_size(reasoning) as f32).min(300.0))
-                        .style(style::quiet_scroll)).width(Fill).style(style::chat_thinking_body));
+                        .style(style::quiet_scroll)).width(Fill).max_height(16.0 + 5.0 * 13.0 * scale * 1.3).style(style::chat_thinking_body));
                 }
                 body = body.push(container(disclosure).width(Fill).style(style::chat_thinking));
             }
@@ -384,10 +374,9 @@ pub fn view<'a>(app: &'a crate::app::App) -> Element<'a, Message> {
         }
         let list = scrollable(container(container(log).max_width(f32::from(display.chat_measure)).width(Fill).padding([24, 20]))
             .center_x(Fill)).id("chat-log").width(Fill).height(Fill).style(style::quiet_scroll);
-        let list = if app.snapshot_active() { list } else { list.anchor_bottom() };
         let id = draft.id;
         list.on_scroll(move |viewport| {
-            Message::ChatScrolled(id, viewport.absolute_offset().y <= 32.0)
+            Message::ChatScrolled(id, viewport.absolute_offset().y + viewport.bounds().height + 32.0 >= viewport.content_bounds().height)
         }).into()
     } else {
         let no_model = active_mode == 0 && !connected;
@@ -521,7 +510,7 @@ pub fn settings_shell<'a>(app: &'a crate::app::App) -> Element<'a, Message> {
 /// The Debug page inside the Agent shell (rail + page).
 pub fn debug_shell(app: &crate::app::App) -> Element<'_, Message> {
     row![rail(&app.drafts, app.selected_draft, &app.settings, app.page, &app.display),
-        crate::debug_page::view(&app.journal, app.journal_filter, app.debug_selected)]
+        crate::debug_page::view(&app.journal, app.journal_filter, app.debug_selected, app.debug_help_open, app.debug_help_seen)]
         .width(Fill).height(Fill).into()
 }
 

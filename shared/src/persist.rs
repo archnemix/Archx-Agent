@@ -106,6 +106,7 @@ pub struct PersistedSettings {
     /// The Launcher's per-stage matrix. Separate on purpose: launcher settings
     /// live here, app settings live in the app, and neither edits the other.
     pub launcher_budget: crate::memory::Budget,
+    pub debug_help_seen: bool,
     pub stream_chat: bool,
     pub dialog_timeout_secs: u16,
     pub import_page_size: u16,
@@ -125,6 +126,7 @@ impl Default for PersistedSettings {
             display: DisplaySettings::default(),
             budget: crate::memory::Budget::default(),
             launcher_budget: crate::memory::Budget::default(),
+            debug_help_seen: false,
             stream_chat: true,
             dialog_timeout_secs: 45,
             import_page_size: 60,
@@ -164,6 +166,7 @@ impl PersistedSettings {
             // own state is a few KB, so this is a decision recorded honestly,
             // not a cap; the UI says exactly that.
             "launcher_budget": self.launcher_budget.to_json(),
+            "debug_help_seen": self.debug_help_seen,
             "stream_chat": self.stream_chat,
             "dialog_timeout_secs": self.dialog_timeout_secs,
             "import_page_size": self.import_page_size,
@@ -209,6 +212,7 @@ impl PersistedSettings {
         if let Some(display) = body.get("display") { settings.display = DisplaySettings::from_json(display); }
         if let Some(budget) = body.get("budget") { settings.budget = crate::memory::Budget::from_json(budget); }
         if let Some(budget) = body.get("launcher_budget") { settings.launcher_budget = crate::memory::Budget::from_json(budget); }
+        settings.debug_help_seen = body.get("debug_help_seen").and_then(Value::as_bool).unwrap_or(false);
         settings.stream_chat = body.get("stream_chat").and_then(Value::as_bool).unwrap_or(true);
         settings.dialog_timeout_secs = body.get("dialog_timeout_secs").and_then(Value::as_u64)
             .map(|raw| raw.clamp(15, 180) as u16).unwrap_or(45);

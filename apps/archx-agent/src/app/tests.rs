@@ -403,3 +403,40 @@ fn memory_is_a_settings_category_without_an_agent_memory_entry() {
     assert!(!labels.contains(&"Agent memory"));
     assert!(!labels.contains(&"Runtime memory"));
 }
+
+#[test]
+fn synthetic_catalog_cache_grows_then_is_released_without_losing_models() {
+    let _dir = ConfigDir::new("synthetic-memory");
+    let mut app = configured();
+    let synthetic: Vec<_> = (0..5000).map(|i| CatalogModel {
+        id: format!("vendor/model-{i:05}"), name: format!("Synthetic model {i:05}"),
+        free: false, router: false, reasoning: false,
+    }).collect();
+    app.store.store_catalog(Provider::OpenRouter, synthetic);
+    app.refresh_usage();
+    let find = |app: &App| *app.memory_usage.iter().find(|u| u.item == archx_shared::memory::Item::ModelCatalog).unwrap();
+    let before = find(&app);
+    assert_eq!(before.entries, 5000);
+    assert!(before.bytes > 100_000);
+    app.release(archx_shared::memory::Item::ModelCatalog);
+    let after = find(&app);
+    assert_eq!((after.entries, after.bytes), (0, 0));
+    assert_eq!(app.settings.models[Provider::OpenRouter.index()].len(), 2);
+}
+
+#[test]
+fn probe_events_persist_request_metadata_and_no_reply_body() {
+    let _dir = ConfigDir::new("probe-debug");
+    let mut app = configured();
+    app.settings.probe_busy = true;
+    let nonce = app.settings.probe_nonce;
+    let provider = app.settings.provider;
+    let _ = app.update(Message::ProbeEvent(provider, nonce, ProbeEvent::Started("vendor/one".into(), 7, 123)));
+    let _ = app.update(Message::ProbeEvent(provider, nonce, ProbeEvent::Finished(20, 5, 50, None)));
+    assert_eq!(app.journal.entries().len(), 1);
+    assert_eq!(app.journal.entries()[0].key_id, 7);
+    assert_eq!(app.journal.entries()[0].outcome, debug_log::Outcome::Ok);
+    let persisted = debug_log::Journal::from_json(&storage::load_body(storage::Area::Debug).unwrap());
+    assert_eq!(persisted.entries().len(), 1);
+    assert_eq!(persisted.entries()[0].request_bytes, 123);
+}

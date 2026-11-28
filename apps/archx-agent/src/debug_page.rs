@@ -72,7 +72,7 @@ fn entry_row(entry: &Entry, selected: bool, id: u64) -> Element<'static, Message
         .into()
 }
 
-pub fn view(journal: &Journal, filter: Filter, selected: Option<u64>) -> Element<'static, Message> {
+pub fn view(journal: &Journal, filter: Filter, selected: Option<u64>, help_open: bool, help_seen: bool) -> Element<'static, Message> {
     let (total, failed, pending) = journal.counts();
     let entries: Vec<Entry> = journal.view(filter).into_iter().cloned().collect();
     let mut list = column![].spacing(4).width(Fill);
@@ -105,12 +105,19 @@ pub fn view(journal: &Journal, filter: Filter, selected: Option<u64>) -> Element
         text(format!("Timeouts: the Agent enforces its own limit of {} s per request and {} s per catalog fetch. A timeout is our limit, not the provider's quota; the request may already be billed.",
             diagnostics::REQUEST_TIMEOUT_SECS, diagnostics::CATALOG_TIMEOUT_SECS)).size(11).color(style::DIM)
     ].spacing(3);
+    let help: Element<'static, Message> = if help_open {
+        container(column![stage_legend, space().height(8),
+            button(text(if help_seen { "Close" } else { "OK, got it" }).size(11))
+                .on_press(Message::DebugHelpOk).style(style::tiny_button)
+        ].spacing(4)).padding(16).width(Fill).style(style::card).into()
+    } else { space().height(0).into() };
     let header = row![
         column![
             text("Request debug").size(20).font(style::STRONG).color(style::WHITE),
             text("Every provider request, its stage, owner and timing. Metadata only: no prompt, reply or key text is stored.")
                 .size(11.5).color(style::GREY)
         ].spacing(3).width(Fill),
+        button(text("Help").size(11)).on_press(Message::DebugHelpToggle).style(style::tiny_button),
         button(text("Export").size(11)).on_press(Message::DebugExport).style(style::tiny_button),
         button(text("Reload").size(11)).on_press(Message::DebugRefresh).style(style::tiny_button),
         button(text("Clear").size(11)).on_press(Message::DebugWipe).style(style::tiny_button)
@@ -126,8 +133,7 @@ pub fn view(journal: &Journal, filter: Filter, selected: Option<u64>) -> Element
             space().height(10),
             filters,
             space().height(12),
-            scrollable(container(list).width(Fill)).height(Fill).style(style::quiet_scroll)
-        ].width(Fill).height(Fill)).padding(20).width(Fill).height(Fill),
-        container(stage_legend).padding(20).width(Fill).style(style::card)
+            scrollable(column![help, space().height(8), container(list).width(Fill)].width(Fill)).height(Fill).style(style::quiet_scroll)
+        ].width(Fill).height(Fill)).padding(20).width(Fill).height(Fill)
     ].width(Fill).height(Fill).into()
 }

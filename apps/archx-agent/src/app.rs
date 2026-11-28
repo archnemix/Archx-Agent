@@ -156,6 +156,13 @@ pub struct Finished {
 }
 
 #[derive(Debug, Clone)]
+pub enum ProbeEvent {
+    Started(String, u64, usize),
+    Finished(u128, usize, usize, Option<Failure>),
+    Result(String, Result<(SecretText, u128), String>),
+}
+
+#[derive(Debug, Clone)]
 pub enum Message {
     // Navigation inside the Agent.
     Open(Page),
@@ -268,6 +275,7 @@ pub enum Message {
     CancelCatalogProbe,
     ConfirmCatalogProbe,
     CatalogProbeProgress(Provider, u64, String, Result<(SecretText, u128), String>),
+    ProbeEvent(Provider, u64, ProbeEvent),
     CatalogProbeDone(Provider, u64, Result<(), String>),
     DismissProbeResults,
     // Custom endpoint.
@@ -287,6 +295,8 @@ pub enum Message {
     TestResult(Result<SecretText, String>),
     ExpectedWord(String),
     // Debug page.
+    DebugHelpToggle,
+    DebugHelpOk,
     DebugFilter(debug_log::Filter),
     DebugSelect(u64),
     DebugRefresh,
@@ -349,11 +359,14 @@ pub struct App {
     pub store: ChatStore,
     pub journal: debug_log::Journal,
     pub journal_filter: debug_log::Filter,
+    pub debug_help_seen: bool,
+    pub debug_help_open: bool,
     pub endpoints: endpoints::Registry,
     /// An endpoint row being edited, before Save validates it.
     pub endpoint_draft: Option<(endpoints::Kind, String)>,
     /// The last explicit probe run's handle, so Stop can abort it.
     pub probe_handle: Option<iced::task::Handle>,
+    pub probe_journal_pending: Option<u64>,
     pub display: DisplaySettings,
     pub meta: Option<model_meta::Registry>,
     pub meta_checked: Option<u64>,
@@ -441,9 +454,12 @@ impl App {
             journal: debug_log::Journal::from_json(&storage::load_body(storage::Area::Debug)
                 .unwrap_or(serde_json::Value::Null)),
             journal_filter: debug_log::Filter::All,
+            debug_help_seen: persisted.debug_help_seen,
+            debug_help_open: !persisted.debug_help_seen,
             endpoints: persisted.endpoints,
             endpoint_draft: None,
             probe_handle: None,
+            probe_journal_pending: None,
             display: persisted.display,
             meta: model_meta::load_cache().map(|(registry, _)| registry),
             meta_checked: model_meta::load_cache().map(|(_, at)| at),
@@ -453,7 +469,7 @@ impl App {
             reasoning_open_default: false,
             visible: false,
             scope: MemoryScope::Balanced,
-            memory_budget: archx_shared::memory::Budget::default(),
+            memory_budget: persisted.budget.clone(),
             agent_phase: 0,
             snapshot,
             snapshot_requested: false,
@@ -752,8 +768,8 @@ impl App {
                 self.store.catalogs = std::array::from_fn(|_| Vec::new());
                 self.store.catalog_fetched = [0; Provider::COUNT];
             }
-            archx_shared::memory::Item::ModelMeta => { self.meta = None; }
-            archx_shared::memory::Item::DebugJournal => { self.journal.clear(); }
+            archx_shared::memory::Item::ModelMeta => { self.meta = None; self.settings.meta = None; }
+            archx_shared::memory::Item::DebugJournal => { /* Cannot unload safely while new requests can write it. */ }
             archx_shared::memory::Item::KeyHealth => { /* rotation state is a few bytes; kept */ }
         }
         self.refresh_usage();
@@ -762,10 +778,12 @@ impl App {
     /// Re-measures what the process currently holds.
     pub fn refresh_usage(&mut self) {
         use archx_shared::memory::{Item, Usage};
-        let bodies: usize = self.drafts.iter()
-            .flat_map(|draft| draft.turns.iter())
+        // Payload bytes of currently cached parsed assistant bodies, not the
+        // original transcript. This is only an indicator, not allocator usage.
+        let bodies: usize = self.drafts.iter().flat_map(|draft| draft.formatted.iter()
+            .filter_map(|(slot, _, _, _)| draft.turns.get(*slot)))
             .map(|turn| turn.content.len()).sum();
-        let body_entries: usize = self.drafts.iter().map(|draft| draft.turns.len()).sum();
+        let body_entries: usize = self.drafts.iter().map(|draft| draft.formatted.len()).sum();
         let catalogs: usize = self.store.catalogs.iter().flat_map(|models| models.iter()).map(|model| model.id.len() + model.name.len()).sum();
         let catalog_entries: usize = self.store.catalogs.iter().map(Vec::len).sum();
         let meta_entries = self.meta.as_ref().map_or(0, |registry| registry.len());
@@ -852,7 +870,7 @@ impl App {
                 self.selected_draft = id;
                 if let Some(draft) = self.current_mut() { draft.last_viewed = storage::now_secs(); }
                 if self.current().is_some_and(|draft| draft.follow_tail && !draft.turns.is_empty()) {
-                    return iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::START);
+                    return iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::END);
                 }
             }
             Message::DeleteChat(id) => {
@@ -923,7 +941,7 @@ impl App {
             }
             Message::JumpToLatest => {
                 if let Some(draft) = self.current_mut() { draft.follow_tail = true; }
-                return iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::START);
+                return iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::END);
             }
             Message::IgnoreMarkdownLink => {}
             Message::CopyCode(code) if self.snapshot.is_none() => return iced::clipboard::write(code.0.to_string()),
@@ -932,7 +950,7 @@ impl App {
                     draft.partial = Some((markdown::Content::parse(&reply.content), reply.reasoning.clone()));
                     draft.partial_raw = Some(reply);
                     if self.selected_draft == id && draft.follow_tail {
-                        return iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::START);
+                        return iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::END);
                     }
                 }
             }
@@ -999,7 +1017,7 @@ impl App {
                     }
                     self.persist_chat(id);
                     if at_tail {
-                        return iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::START);
+                        return iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::END);
                     }
                 }
             }
@@ -1207,7 +1225,7 @@ impl App {
             if let Some(draft) = self.drafts.iter_mut().find(|draft| draft.id == id) {
                 draft.request_handle = Some(handle);
             }
-            Task::batch([task, iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::START)])
+            Task::batch([task, iced::widget::operation::snap_to("chat-log", iced::widget::scrollable::RelativeOffset::END)])
         } else {
             let _ = handle;
             task

@@ -11,7 +11,7 @@ use iced::task::sipper;
 use iced::Task;
 use zeroize::Zeroizing;
 
-use crate::app::{App, Message, MemoryMode, MemoryScope, Page};
+use crate::app::{App, Message, MemoryMode, MemoryScope, Page, ProbeEvent};
 use archx_shared::credentials::{Provider, Vault, VaultError};
 use archx_shared::health::{KeyHealthSet, ModelHealthSet};
 use crate::custom_endpoint;
@@ -456,6 +456,7 @@ impl App {
                 self.settings.probe_pending = false;
                 if self.settings.probe_busy {
                     if let Some(handle) = self.probe_handle.take() { handle.abort(); }
+                    self.cancel_probe_journal();
                     self.settings.probe_busy = false;
                     self.settings.probe_nonce = self.settings.probe_nonce.wrapping_add(1);
                     self.settings.status = "Testing stopped. Results already received are saved; no further models will be tested.".into();
@@ -466,6 +467,28 @@ impl App {
                 self.settings.probe_pending = false;
                 let ids = self.settings.catalog_selected[self.settings.index()].clone();
                 return self.start_probe(ids);
+            }
+            Message::ProbeEvent(provider, nonce, event) if self.settings.provider == provider
+                && self.settings.probe_busy && self.settings.probe_nonce == nonce => {
+                match event {
+                    ProbeEvent::Started(model, key_id, request_bytes) => {
+                        self.probe_journal_pending = Some(self.journal.begin(provider.name(), model, key_id, false, request_bytes));
+                        self.save_journal();
+                    }
+                    ProbeEvent::Finished(ms, chars, bytes, failure) => {
+                        if let Some(id) = self.probe_journal_pending.take() {
+                            if let Some(failure) = failure {
+                                self.journal.finish_failed(id, ms, failure.diagnosis, failure.trace.provider_message);
+                            } else {
+                                self.journal.finish_ok(id, ms, chars, 0, bytes);
+                            }
+                            self.save_journal();
+                        }
+                    }
+                    ProbeEvent::Result(id, result) => {
+                        return self.update(Message::CatalogProbeProgress(provider, nonce, id, result));
+                    }
+                }
             }
             Message::CatalogProbeProgress(provider, nonce, id, result) if self.settings.provider == provider
                 && self.settings.probe_busy && self.settings.probe_nonce == nonce => {
@@ -510,6 +533,7 @@ impl App {
                 self.settings.saved_run = Some(run);
                 self.persist_tests();
             }
+            Message::ToggleRuntime(_, archx_shared::memory::Item::KeyHealth | archx_shared::memory::Item::DebugJournal) => {}
             Message::ToggleRuntime(stage, item) => {
                 self.memory_budget.toggle(stage, item);
                 if !self.memory_budget.keeps(stage, item) { self.release(item); }
@@ -711,6 +735,7 @@ impl App {
                 self.settings.clear_secret();
                 if section != Section::Models && self.settings.probe_busy {
                     if let Some(handle) = self.probe_handle.take() { handle.abort(); }
+                    self.cancel_probe_journal();
                     self.settings.probe_busy = false;
                     self.settings.probe_nonce = self.settings.probe_nonce.wrapping_add(1);
                 }
@@ -805,6 +830,12 @@ impl App {
             }
 
             // ---------- debug page ------------------------------------------------
+            Message::DebugHelpToggle => self.debug_help_open = !self.debug_help_open,
+            Message::DebugHelpOk => {
+                self.debug_help_seen = true;
+                self.debug_help_open = false;
+                self.persist_settings();
+            }
             Message::DebugFilter(filter) => self.journal_filter = filter,
             Message::DebugRefresh => {
                 self.journal = debug_log::Journal::from_json(&storage::load_body(storage::Area::Debug)
@@ -966,6 +997,18 @@ impl App {
         }
     }
 
+    fn cancel_probe_journal(&mut self) {
+        if let Some(id) = self.probe_journal_pending.take() {
+            let diagnosis = diagnostics::Diagnosis {
+                stage: diagnostics::Stage::Request, owner: diagnostics::Owner::Agent,
+                http_status: None, cooldown: None, retry_after: None,
+                summary: "Test cancelled; a request already sent may still be billed.".into(),
+            };
+            self.journal.finish_failed(id, 0, diagnosis, String::new());
+            self.save_journal();
+        }
+    }
+
     /// Starts the explicit probe run for the given model ids.
     pub(super) fn start_probe(&mut self, ids: Vec<String>) -> Task<Message> {
         let provider = self.settings.provider;
@@ -986,14 +1029,35 @@ impl App {
         self.settings.status = format!("Testing {total} model(s). Each may send one request; results are saved as they arrive.");
         let task = Task::sip(sipper(async move |mut sender| {
             for (offset, id) in ids.into_iter().enumerate() {
+                // Serialize all requests and leave time between them, even with one key.
+                // Multiple configured keys are selected round-robin by choose_key.
+                if offset > 0 { tokio::time::sleep(Duration::from_secs(2)).await; }
                 let result = match choose_key(provider, offset).await {
-                    Ok((_, key)) => probe_catalog_model(provider, id.clone(), key, &word, &registry).await,
+                    Ok((key_id, key)) => {
+                        let turns = vec![Turn { role: "user", content: format!("Reply with the word {word}.") }];
+                        let request_bytes = provider_api::request_size(provider, &id, &turns, 256);
+                        sender.send(ProbeEvent::Started(id.clone(), key_id, request_bytes)).await;
+                        let start = std::time::Instant::now();
+                        let response = provider_api::send_via(provider, id.clone(), key, turns, 256, &registry).await;
+                        let ms = start.elapsed().as_millis();
+                        match response {
+                            Ok((reply, trace)) => {
+                                sender.send(ProbeEvent::Finished(ms, reply.content.chars().count(), trace.response_bytes, None)).await;
+                                Ok((SecretText::new(reply.content), ms))
+                            }
+                            Err(failure) => {
+                                let error = describe_failure(&failure);
+                                sender.send(ProbeEvent::Finished(ms, 0, failure.trace.response_bytes, Some(failure))).await;
+                                Err(error)
+                            }
+                        }
+                    }
                     Err(error) => Err(error),
                 };
-                sender.send((id, result)).await;
+                sender.send(ProbeEvent::Result(id, result)).await;
             }
             Ok::<(), String>(())
-        }), move |(id, result)| Message::CatalogProbeProgress(provider, nonce, id, result),
+        }), move |event| Message::ProbeEvent(provider, nonce, event),
             move |result| Message::CatalogProbeDone(provider, nonce, result));
         let (task, handle) = task.abortable();
         self.probe_handle = Some(handle);
@@ -1020,6 +1084,7 @@ impl App {
             budget: self.memory_budget.clone(),
             launcher_budget: archx_shared::persist::PersistedSettings::load()
                 .map(|settings| settings.launcher_budget).unwrap_or_default(),
+            debug_help_seen: self.debug_help_seen,
             stream_chat: self.settings.stream_chat,
             dialog_timeout_secs: diagnostics::REQUEST_TIMEOUT_SECS as u16,
             import_page_size: 60,
@@ -1140,24 +1205,6 @@ pub(super) async fn choose_key(provider: Provider, offset: usize) -> Result<(u64
     }).await.map_err(|_| VaultError::Unavailable.message().to_owned())
         .and_then(|result| result.map_err(|error| error.message().to_owned()))?;
     Ok(stored)
-}
-
-/// One probe attempt with at most one retry for a *retryable* transport status.
-async fn probe_catalog_model(provider: Provider, model: String, key: Zeroizing<String>, word: &str,
-    registry: &endpoints::Registry) -> Result<(SecretText, u128), String> {
-    let start = std::time::Instant::now();
-    let turns = vec![Turn { role: "user", content: format!("Reply with the word {word}.") }];
-    match provider_api::send_via(provider, model.clone(), key.clone(), turns.clone(), 256, registry).await {
-        Ok((reply, _trace)) => Ok((SecretText::new(reply.content), start.elapsed().as_millis())),
-        Err(failure) if failure.diagnosis.http_status.is_some_and(|status| matches!(status, 408 | 429 | 500..=599)) => {
-            tokio::time::sleep(Duration::from_millis(250)).await;
-            match provider_api::send_via(provider, model, key, turns, 256, registry).await {
-                Ok((reply, _)) => Ok((SecretText::new(reply.content), start.elapsed().as_millis())),
-                Err(failure) => Err(describe_failure(&failure)),
-            }
-        }
-        Err(failure) => Err(describe_failure(&failure)),
-    }
 }
 
 fn describe_failure(failure: &Failure) -> String {
