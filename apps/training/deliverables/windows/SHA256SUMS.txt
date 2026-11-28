@@ -1,0 +1,1 @@
+65bfa80e87e458de883b86a98cf4fad7d664184ca2b77aaf39884b888f898205 *apps/training/deliverables/windows/archx-training.exe
