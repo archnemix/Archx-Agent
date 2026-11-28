@@ -1,1 +1,1 @@
-65bfa80e87e458de883b86a98cf4fad7d664184ca2b77aaf39884b888f898205 *apps/training/deliverables/windows/archx-training.exe
+7ac8cdbf98632079da6fae69d339e902e5f50ea382c545d60ad25a81d898f484 *apps/training/deliverables/windows/archx-training.exe

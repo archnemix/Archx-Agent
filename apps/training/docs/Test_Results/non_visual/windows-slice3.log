@@ -1,0 +1,180 @@
+COMMAND: cargo test -p archx-training --locked
+[1m[92m    Updating[0m crates.io index
+[1m[92m   Compiling[0m archx-training v0.1.0 (D:\a\Archx-Agent\Archx-Agent\apps\training)
+[1m[92m   Compiling[0m archx-shared v0.1.0 (D:\a\Archx-Agent\Archx-Agent\shared)
+[1m[93mwarning[0m[1m[97m: unused import: `json`[0m
+ [1m[96m--> [0mshared\src\endpoints.rs:9:18
+  [1m[96m|[0m
+[1m[96m9[0m [1m[96m|[0m use serde_json::{json, Value};
+  [1m[96m|[0m                  [1m[93m^^^^[0m
+  [1m[96m|[0m
+  [1m[96m= [0m[1m[97mnote[0m: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+[1m[93mwarning[0m[1m[97m: unused variable: `count`[0m
+   [1m[96m--> [0mshared\src\usage.rs:140:9
+    [1m[96m|[0m
+[1m[96m140[0m [1m[96m|[0m     let count = |key: &str| data.get(key).and_then(Value::as_u64);
+    [1m[96m|[0m         [1m[93m^^^^^[0m [1m[93mhelp: if this is intentional, prefix it with an underscore: `_count`[0m
+    [1m[96m|[0m
+    [1m[96m= [0m[1m[97mnote[0m: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+[1m[93mwarning[0m[1m[97m: trait `CredentialStore` is more private than the item `Vault<S>`[0m
+   [1m[96m--> [0mshared\src\credentials.rs:134:1
+    [1m[96m|[0m
+[1m[96m134[0m [1m[96m|[0m impl<S: CredentialStore> Vault<S> {
+    [1m[96m|[0m [1m[93m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m [1m[93mimplementation `Vault<S>` is reachable at visibility `pub`[0m
+    [1m[96m|[0m
+[1m[92mnote[0m: but trait `CredentialStore` is only usable at visibility `pub(crate)`
+   [1m[96m--> [0mshared\src\credentials.rs:91:1
+    [1m[96m|[0m
+[1m[96m 91[0m [1m[96m|[0m pub(crate) trait CredentialStore {
+    [1m[96m|[0m [1m[92m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+    [1m[96m= [0m[1m[97mnote[0m: `#[warn(private_bounds)]` on by default
+
+[1m[93mwarning[0m[1m[97m: function `repo_root` is never used[0m
+   [1m[96m--> [0mshared\src\apps.rs:338:4
+    [1m[96m|[0m
+[1m[96m338[0m [1m[96m|[0m fn repo_root() -> PathBuf {
+    [1m[96m|[0m    [1m[93m^^^^^^^^^[0m
+    [1m[96m|[0m
+    [1m[96m= [0m[1m[97mnote[0m: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+[1m[93mwarning[0m: `archx-shared` (lib) generated 4 warnings (run `cargo fix --lib -p archx-shared` to apply 2 suggestions)
+[1m[93mwarning[0m[1m[97m: variant `Rtx4070Super_12Gb` should have an upper camel case name[0m
+    [1m[96m--> [0mapps\training\src\hardware.rs:1344:5
+     [1m[96m|[0m
+[1m[96m1344[0m [1m[96m|[0m     Rtx4070Super_12Gb,
+     [1m[96m|[0m     [1m[93m^^^^^^^^^^^^^^^^^[0m [1m[93mhelp: convert the identifier to upper camel case: `Rtx4070super12gb`[0m
+     [1m[96m|[0m
+     [1m[96m= [0m[1m[97mnote[0m: `#[warn(non_camel_case_types)]` (part of `#[warn(nonstandard_style)]`) on by default
+
+[1m[93mwarning[0m[1m[97m: variant `Rx7800Xt_16Gb` should have an upper camel case name[0m
+    [1m[96m--> [0mapps\training\src\hardware.rs:1347:5
+     [1m[96m|[0m
+[1m[96m1347[0m [1m[96m|[0m     Rx7800Xt_16Gb,
+     [1m[96m|[0m     [1m[93m^^^^^^^^^^^^^[0m [1m[93mhelp: convert the identifier to upper camel case: `Rx7800xt16gb`[0m
+
+[1m[93mwarning[0m: `archx-training` (lib) generated 2 warnings
+[1m[93mwarning[0m: `archx-training` (lib test) generated 2 warnings (2 duplicates)
+[1m[92m    Finished[0m `test` profile [unoptimized + debuginfo] target(s) in 33.14s
+[1m[92m     Running[0m unittests src\lib.rs (target\debug\build\archx-training/23684ba5dbe419f4\out\archx_training-23684ba5dbe419f4.exe)
+
+running 28 tests
+test config::tests::lion_uses_less_optimizer_memory_than_adamw_and_checkpointing_shrinks_activations ... ok
+test config::tests::moe_increases_total_params_more_than_active_params ... ok
+test config::tests::sanitize_keeps_head_and_kv_divisibility_valid ... ok
+test config::tests::size_prediction_and_chinchilla_ratio_adjuster_work ... ok
+test app::tests::manifest_satisfies_archx_shared_ready_and_file_contract ... ok
+test dataset::tests::jsonl_and_csv_parsers_extract_prompt_response_and_columns ... ok
+test dataset::tests::builtin_dataset_deduplicates_and_splits_deterministically ... ok
+test hardware::tests::live_hardware_probe_and_optimization_plan_succeed ... ok
+test optim::tests::all_four_optimizers_reduce_quadratic_objective ... ok
+test optim::tests::lr_schedules_warm_up_and_stay_bounded ... ok
+test optim::tests::per_micro_batch_accum_matches_full_batch_gradient_step_exactly ... ok
+test repro::tests::genesis_sha256_is_deterministic_and_provenance_bundle_exports_cleanly ... ok
+test rng::tests::greedy_and_top_k_sampling_respect_constraints ... ok
+test rng::tests::same_seed_yields_identical_sequences_across_all_four_prng_engines ... ok
+test rng::tests::truncated_normal_respects_sigma_clip_and_seed_hierarchy_separates_domains ... ok
+test tokenizer::tests::byte_bpe_roundtrips_utf8_custom_specials_and_single_digits_losslessly ... ok
+test tokenizer::tests::sequence_packing_builds_uniform_causal_windows ... ok
+test tokenizer::tests::wordpiece_unigram_and_char_tokenizers_encode_and_arena_compares_all_four ... ok
+test app::tests::host_contract_hooks_map_surfaces_and_back_to_launcher ... ok
+test hardware::tests::live_compute_benchmark_runs_cleanly_on_any_host ... ok
+test app::tests::persisted_documents_pass_credential_guard_and_never_touch_agent_files ... ok
+test transformer::tests::chunked_cross_entropy_matches_full_logits_and_gradients ... ok
+test transformer::tests::sandwich_norm_softcap_and_sparse_moe_backpropagate_cleanly ... ok
+test transformer::tests::seeded_init_is_deterministic_and_genesis_safetensors_reloads_across_seeds ... ok
+test views::tests::all_surfaces_and_pipeline_stages_render_without_panicking ... ok
+test trainer::tests::moe_pipeline_with_muon_trains_and_records_expert_load ... ok
+test trainer::tests::end_to_end_pipeline_trains_exports_genesis_and_provenance_and_generates_tokens ... ok
+test trainer::tests::real_learning_memorizes_pattern_and_mutates_safetensors_weights ... ok
+
+test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.18s
+
+[1m[92m     Running[0m unittests src\bin\archx-training.rs (target\debug\build\archx-training/3c2617e712f2c5ba\out\archx_training-3c2617e712f2c5ba.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m   Doc-tests[0m archx_training
+[1m[93mwarning[0m[1m[97m: variant `Rtx4070Super_12Gb` should have an upper camel case name[0m
+    [1m[96m--> [0mapps\training\src\hardware.rs:1344:5
+     [1m[96m|[0m
+[1m[96m1344[0m [1m[96m|[0m     Rtx4070Super_12Gb,
+     [1m[96m|[0m     [1m[93m^^^^^^^^^^^^^^^^^[0m [1m[93mhelp: convert the identifier to upper camel case: `Rtx4070super12gb`[0m
+     [1m[96m|[0m
+     [1m[96m= [0m[1m[97mnote[0m: `#[warn(non_camel_case_types)]` (part of `#[warn(nonstandard_style)]`) on by default
+
+[1m[93mwarning[0m[1m[97m: variant `Rx7800Xt_16Gb` should have an upper camel case name[0m
+    [1m[96m--> [0mapps\training\src\hardware.rs:1347:5
+     [1m[96m|[0m
+[1m[96m1347[0m [1m[96m|[0m     Rx7800Xt_16Gb,
+     [1m[96m|[0m     [1m[93m^^^^^^^^^^^^^[0m [1m[93mhelp: convert the identifier to upper camel case: `Rx7800xt16gb`[0m
+
+[1m[93mwarning[0m[1m[97m: 2 warnings emitted[0m
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+COMMAND: CARGO_PROFILE_RELEASE_STRIP=symbols cargo build --release --locked -p archx-training --bin archx-training
+[1m[92m   Compiling[0m archx-training v0.1.0 (D:\a\Archx-Agent\Archx-Agent\apps\training)
+[1m[92m   Compiling[0m archx-shared v0.1.0 (D:\a\Archx-Agent\Archx-Agent\shared)
+[1m[93mwarning[0m[1m[97m: unused import: `json`[0m
+ [1m[96m--> [0mshared\src\endpoints.rs:9:18
+  [1m[96m|[0m
+[1m[96m9[0m [1m[96m|[0m use serde_json::{json, Value};
+  [1m[96m|[0m                  [1m[93m^^^^[0m
+  [1m[96m|[0m
+  [1m[96m= [0m[1m[97mnote[0m: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+[1m[93mwarning[0m[1m[97m: unused variable: `count`[0m
+   [1m[96m--> [0mshared\src\usage.rs:140:9
+    [1m[96m|[0m
+[1m[96m140[0m [1m[96m|[0m     let count = |key: &str| data.get(key).and_then(Value::as_u64);
+    [1m[96m|[0m         [1m[93m^^^^^[0m [1m[93mhelp: if this is intentional, prefix it with an underscore: `_count`[0m
+    [1m[96m|[0m
+    [1m[96m= [0m[1m[97mnote[0m: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+[1m[93mwarning[0m[1m[97m: trait `CredentialStore` is more private than the item `Vault<S>`[0m
+   [1m[96m--> [0mshared\src\credentials.rs:134:1
+    [1m[96m|[0m
+[1m[96m134[0m [1m[96m|[0m impl<S: CredentialStore> Vault<S> {
+    [1m[96m|[0m [1m[93m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m [1m[93mimplementation `Vault<S>` is reachable at visibility `pub`[0m
+    [1m[96m|[0m
+[1m[92mnote[0m: but trait `CredentialStore` is only usable at visibility `pub(crate)`
+   [1m[96m--> [0mshared\src\credentials.rs:91:1
+    [1m[96m|[0m
+[1m[96m 91[0m [1m[96m|[0m pub(crate) trait CredentialStore {
+    [1m[96m|[0m [1m[92m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+    [1m[96m= [0m[1m[97mnote[0m: `#[warn(private_bounds)]` on by default
+
+[1m[93mwarning[0m[1m[97m: function `repo_root` is never used[0m
+   [1m[96m--> [0mshared\src\apps.rs:338:4
+    [1m[96m|[0m
+[1m[96m338[0m [1m[96m|[0m fn repo_root() -> PathBuf {
+    [1m[96m|[0m    [1m[93m^^^^^^^^^[0m
+    [1m[96m|[0m
+    [1m[96m= [0m[1m[97mnote[0m: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+[1m[93mwarning[0m[1m[97m: variant `Rtx4070Super_12Gb` should have an upper camel case name[0m
+    [1m[96m--> [0mapps\training\src\hardware.rs:1344:5
+     [1m[96m|[0m
+[1m[96m1344[0m [1m[96m|[0m     Rtx4070Super_12Gb,
+     [1m[96m|[0m     [1m[93m^^^^^^^^^^^^^^^^^[0m [1m[93mhelp: convert the identifier to upper camel case: `Rtx4070super12gb`[0m
+     [1m[96m|[0m
+     [1m[96m= [0m[1m[97mnote[0m: `#[warn(non_camel_case_types)]` (part of `#[warn(nonstandard_style)]`) on by default
+
+[1m[93mwarning[0m[1m[97m: variant `Rx7800Xt_16Gb` should have an upper camel case name[0m
+    [1m[96m--> [0mapps\training\src\hardware.rs:1347:5
+     [1m[96m|[0m
+[1m[96m1347[0m [1m[96m|[0m     Rx7800Xt_16Gb,
+     [1m[96m|[0m     [1m[93m^^^^^^^^^^^^^[0m [1m[93mhelp: convert the identifier to upper camel case: `Rx7800xt16gb`[0m
+
+[1m[93mwarning[0m: `archx-shared` (lib) generated 4 warnings (run `cargo fix --lib -p archx-shared` to apply 2 suggestions)
+[1m[93mwarning[0m: `archx-training` (lib) generated 2 warnings
+[1m[92m    Finished[0m `release` profile [optimized] target(s) in 39.19s
+PASS: Windows GUI subsystem 2 (no console)
+PASS: Archnemix Windows product metadata verified
