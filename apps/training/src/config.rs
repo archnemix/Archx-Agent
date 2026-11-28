@@ -986,6 +986,36 @@ impl Default for RunConfig {
     }
 }
 
+/// Progressive UI complexity tier so non-technical users get a calm, plain-English
+/// workflow while everyday builders and ML researchers still control every parameter.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum UiComplexity {
+    #[default]
+    Simple,
+    Standard,
+    Expert,
+}
+
+impl UiComplexity {
+    pub const ALL: [Self; 3] = [Self::Simple, Self::Standard, Self::Expert];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Simple => "Simple",
+            Self::Standard => "Normal",
+            Self::Expert => "Advanced",
+        }
+    }
+
+    pub fn subtitle(self) -> &'static str {
+        match self {
+            Self::Simple => "Guided plain-English setup — train a model in 3 clicks without technical jargon.",
+            Self::Standard => "Everyday builder controls — size predictor, token-to-param ratio, layers, batch & seed.",
+            Self::Expert => "Full research lab — every tokenizer rule, RoPE/norm topology, MoE router, GPU kernel & SHA-256 knob.",
+        }
+    }
+}
+
 /// Real-time analytical parameter, RAM, KV-cache, and FLOPs breakdown.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct ModelSpecEstimate {
@@ -997,6 +1027,45 @@ pub struct ModelSpecEstimate {
     pub kv_cache_kb: f64,
     pub total_train_mb: f64,
     pub flops_per_step: f64,
+}
+
+/// Exact disk & runtime memory size forecast for exported checkpoints and local inference.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct SizePrediction {
+    pub total_params: usize,
+    pub active_params: usize,
+    /// Exact `.safetensors` single-checkpoint size in FP32 (`4 bytes/param` + JSON header).
+    pub fp32_safetensors_mb: f64,
+    /// Half-precision (`BF16` / `FP16`) checkpoint size (`2 bytes/param` + header).
+    pub fp16_bf16_mb: f64,
+    /// 8-bit quantized deployment estimate (`~1.05 bytes/param` including scales).
+    pub int8_quant_mb: f64,
+    /// 4-bit group-quantized deployment estimate (`~0.56 bytes/param` including scales).
+    pub int4_quant_mb: f64,
+    /// Total disk space for a full run folder (`best/` + `latest/` + optional `genesis/` + `tokenizer.json` + logs).
+    pub full_run_folder_mb: f64,
+    /// Peak RAM/VRAM required during training (accounting for micro-batching, chunked CE & checkpointing).
+    pub peak_train_ram_mb: f64,
+    /// RAM required to chat with the model in Playground (`FP32` weights + context KV cache).
+    pub chat_fp32_ram_mb: f64,
+    /// RAM required for `FP16`/`BF16` inference (`2B` weights + context KV cache).
+    pub chat_fp16_ram_mb: f64,
+}
+
+/// Chinchilla / Llama scaling-law analysis of scheduled training tokens vs. active model parameters.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TokenParamRatioSummary {
+    pub active_params: usize,
+    pub tokens_per_step: usize,
+    pub scheduled_tokens: usize,
+    pub tokens_per_param: f64,
+    pub chinchilla_optimal_tokens: usize,
+    pub chinchilla_optimal_steps: usize,
+    pub corpus_tokens: Option<usize>,
+    pub epochs_over_corpus: Option<f64>,
+    pub status_badge: &'static str,
+    pub plain_advice: String,
+    pub is_balanced: bool,
 }
 
 impl RunConfig {
@@ -1061,22 +1130,35 @@ impl RunConfig {
         let grads_mb = weights_mb;
         let optimizer_mb = weights_mb * self.hyper.optimizer.state_floats_per_param();
 
-        let tokens_per_micro = (self.hyper.batch_size.max(1) * m.seq_len) as f64;
+        let eff_micro_batch = if self.hardware_exec.activation_checkpointing && self.hyper.batch_size >= 2 {
+            (self.hyper.batch_size / 2).max(1)
+        } else {
+            self.hyper.batch_size.max(1)
+        };
+        let tokens_per_micro = (eff_micro_batch * m.seq_len) as f64;
         let ckpt_factor = if self.hardware_exec.activation_checkpointing {
-            (m.n_layers as f64).sqrt() / (m.n_layers.max(1) as f64)
+            ((m.n_layers as f64).sqrt() / (m.n_layers.max(1) as f64)).min(0.65)
         } else {
             1.0
         };
         let act_bytes = self.hardware_exec.precision.activation_bytes_per_elem();
         let act_floats_per_tok = m.n_layers as f64
             * (4.0 * d as f64 + 2.0 * m.d_ff as f64 + m.seq_len as f64 * m.n_heads as f64);
+        let ce_tokens = if self.hardware_exec.fused_ce_chunk_tokens > 0 {
+            tokens_per_micro.min(self.hardware_exec.fused_ce_chunk_tokens as f64)
+        } else {
+            tokens_per_micro
+        };
+        let logits_mb = (ce_tokens * m.vocab_size as f64 * 4.0) / (1024.0 * 1024.0);
         let activations_mb =
-            (tokens_per_micro * act_floats_per_tok * act_bytes * ckpt_factor) / (1024.0 * 1024.0);
+            (tokens_per_micro * act_floats_per_tok * act_bytes * ckpt_factor) / (1024.0 * 1024.0)
+                + logits_mb;
 
         let kv_cache_kb = (m.n_layers * 2 * kv_dim * m.seq_len) as f64 * bytes_per_f32 / 1024.0;
         let total_train_mb = weights_mb + grads_mb + optimizer_mb + activations_mb;
 
-        let effective_tokens = tokens_per_micro * self.hyper.grad_accum_steps.max(1) as f64;
+        let effective_tokens =
+            (self.hyper.batch_size.max(1) * m.seq_len * self.hyper.grad_accum_steps.max(1)) as f64;
         let flops_per_step = 6.0 * (active_params as f64) * effective_tokens;
 
         ModelSpecEstimate {
@@ -1089,6 +1171,200 @@ impl RunConfig {
             total_train_mb,
             flops_per_step,
         }
+    }
+
+    /// Predicts exact exported checkpoint file sizes across precisions and full run disk usage.
+    pub fn predict_sizes(&self) -> SizePrediction {
+        let est = self.estimate_specs();
+        let header_mb = 0.025; // ~25 KB safetensors JSON tensor metadata header
+        let mb = 1024.0 * 1024.0;
+        let fp32_safetensors_mb = (est.total_params as f64 * 4.0) / mb + header_mb;
+        let fp16_bf16_mb = (est.total_params as f64 * 2.0) / mb + header_mb;
+        let int8_quant_mb = (est.total_params as f64 * 1.05) / mb + header_mb;
+        let int4_quant_mb = (est.total_params as f64 * 0.56) / mb + header_mb;
+
+        let ckpt_copies = if self.seeds.auto_export_genesis_init {
+            3.0 // best + latest + genesis_step0
+        } else {
+            2.0 // best + latest
+        };
+        let tokenizer_and_meta_mb = (self.model.vocab_size as f64 * 28.0) / mb + 0.15;
+        let full_run_folder_mb = fp32_safetensors_mb * ckpt_copies + tokenizer_and_meta_mb;
+
+        let kv_mb = est.kv_cache_kb / 1024.0;
+        let chat_fp32_ram_mb = fp32_safetensors_mb + kv_mb + 4.0;
+        let chat_fp16_ram_mb = fp16_bf16_mb + kv_mb * 0.5 + 4.0;
+
+        SizePrediction {
+            total_params: est.total_params,
+            active_params: est.active_params,
+            fp32_safetensors_mb,
+            fp16_bf16_mb,
+            int8_quant_mb,
+            int4_quant_mb,
+            full_run_folder_mb,
+            peak_train_ram_mb: est.total_train_mb,
+            chat_fp32_ram_mb,
+            chat_fp16_ram_mb,
+        }
+    }
+
+    /// Computes live Tokens-per-Parameter ratio (Chinchilla 20× golden rule & corpus epoch check).
+    pub fn token_param_ratio(&self, corpus_tokens: Option<usize>) -> TokenParamRatioSummary {
+        let est = self.estimate_specs();
+        let m = self.model.sanitized();
+        let active_params = est.active_params.max(1);
+        let tokens_per_step =
+            (self.hyper.batch_size.max(1) * self.hyper.grad_accum_steps.max(1) * m.seq_len).max(1);
+        let scheduled_tokens = self.hyper.total_steps.max(1).saturating_mul(tokens_per_step);
+        let tokens_per_param = scheduled_tokens as f64 / active_params as f64;
+
+        let chinchilla_optimal_tokens = active_params.saturating_mul(20);
+        let chinchilla_optimal_steps =
+            ((chinchilla_optimal_tokens + tokens_per_step - 1) / tokens_per_step).max(10);
+
+        let epochs_over_corpus = corpus_tokens
+            .filter(|&c| c > 0)
+            .map(|c| scheduled_tokens as f64 / c as f64);
+
+        let (status_badge, is_balanced, mut advice) = if tokens_per_param < 2.0 {
+            (
+                "Smoke Test (<2 tok/param)",
+                false,
+                format!(
+                    "Only {:.1} tokens per parameter — good for a quick 10-second test, but increase steps to ~{} for Chinchilla-optimal learning (20 tok/param).",
+                    tokens_per_param, chinchilla_optimal_steps
+                ),
+            )
+        } else if tokens_per_param < 12.0 {
+            (
+                "Light Draft (Fast)",
+                true,
+                format!(
+                    "{:.1} tokens per parameter — learns basic patterns quickly. Click '20× Optimal' ({} steps) for full Chinchilla convergence.",
+                    tokens_per_param, chinchilla_optimal_steps
+                ),
+            )
+        } else if tokens_per_param <= 30.0 {
+            (
+                "Chinchilla Optimal (~20×)",
+                true,
+                format!(
+                    "{:.1} tokens per parameter — right inside the 15×–30× compute-optimal scaling sweet spot.",
+                    tokens_per_param
+                ),
+            )
+        } else if tokens_per_param <= 85.0 {
+            (
+                "Over-Trained · Smart Small Model",
+                true,
+                format!(
+                    "{:.1} tokens per parameter — Llama/Qwen inference-optimal regime (packs maximum quality into a compact model).",
+                    tokens_per_param
+                ),
+            )
+        } else {
+            (
+                "Heavy Saturation (>85×)",
+                false,
+                format!(
+                    "{:.1} tokens per parameter — diminishing returns unless your dataset is very large; consider scaling model width/layers up.",
+                    tokens_per_param
+                ),
+            )
+        };
+
+        if let Some(ep) = epochs_over_corpus {
+            if ep > 12.0 {
+                advice.push_str(&format!(
+                    " Note: repeats active dataset {:.1}× (risk of memorizing exact sentences — add more text or click 'Size Model to Dataset').",
+                    ep
+                ));
+            } else {
+                advice.push_str(&format!(" Passes over dataset ~{:.1}×.", ep));
+            }
+        }
+
+        TokenParamRatioSummary {
+            active_params,
+            tokens_per_step,
+            scheduled_tokens,
+            tokens_per_param,
+            chinchilla_optimal_tokens,
+            chinchilla_optimal_steps,
+            corpus_tokens,
+            epochs_over_corpus,
+            status_badge,
+            plain_advice: advice,
+            is_balanced,
+        }
+    }
+
+    /// Updates `hyper.total_steps` (and proportional `warmup_steps`) so `scheduled_tokens / active_params`
+    /// matches `target_ratio` (e.g. `20.0` for Chinchilla compute-optimal).
+    pub fn apply_target_tokens_per_param(&mut self, target_ratio: f64) {
+        let ratio = target_ratio.clamp(0.5, 200.0);
+        let est = self.estimate_specs();
+        let m = self.model.sanitized();
+        let tok_per_step =
+            (self.hyper.batch_size.max(1) * self.hyper.grad_accum_steps.max(1) * m.seq_len).max(1);
+        let desired_tokens = ((est.active_params as f64) * ratio).round() as usize;
+        let steps = ((desired_tokens + tok_per_step - 1) / tok_per_step).clamp(8, 200_000);
+        self.hyper.total_steps = steps;
+        self.hyper.warmup_steps = ((steps as f64 * 0.08).round() as usize).clamp(2, 2_000);
+    }
+
+    /// Automatically sizes Transformer depth/width AND step count to fit `corpus_tokens`
+    /// at `target_ratio` tokens/parameter over `target_epochs` passes through the dataset.
+    pub fn auto_size_model_for_dataset(
+        &mut self,
+        corpus_tokens: usize,
+        target_ratio: f64,
+        target_epochs: f64,
+    ) {
+        let ratio = target_ratio.clamp(2.0, 100.0);
+        let epochs = target_epochs.clamp(1.0, 8.0);
+        let budget_tokens = ((corpus_tokens.max(2_048) as f64) * epochs) as usize;
+        let ideal_params = ((budget_tokens as f64) / ratio) as usize;
+
+        // Pick clean hardware-aligned architecture tiers matching `ideal_params`.
+        let (layers, d_model, n_heads, n_kv, d_ff, preset) = if ideal_params < 600_000 {
+            (3, 96, 4, 2, 256, Preset::Nano)
+        } else if ideal_params < 3_500_000 {
+            (4, 160, 4, 2, 448, Preset::Micro)
+        } else if ideal_params < 10_000_000 {
+            (6, 256, 8, 4, 704, Preset::Custom)
+        } else if ideal_params < 26_000_000 {
+            (8, 384, 8, 4, 1024, Preset::Small)
+        } else {
+            (12, 512, 8, 4, 1408, Preset::Base)
+        };
+
+        self.preset = preset;
+        self.model.n_layers = layers;
+        self.model.d_model = d_model;
+        self.model.n_heads = n_heads;
+        self.model.n_kv_heads = n_kv;
+        self.model.d_ff = d_ff;
+
+        let m = self.model.sanitized();
+        let tok_per_step =
+            (self.hyper.batch_size.max(1) * self.hyper.grad_accum_steps.max(1) * m.seq_len).max(1);
+        let steps = ((budget_tokens + tok_per_step - 1) / tok_per_step).clamp(12, 200_000);
+        self.hyper.total_steps = steps;
+        self.hyper.warmup_steps = ((steps as f64 * 0.08).round() as usize).clamp(2, 2_000);
+    }
+}
+
+pub fn format_size_mb(mb: f64) -> String {
+    if mb >= 1024.0 {
+        format!("{:.2} GB", mb / 1024.0)
+    } else if mb >= 10.0 {
+        format!("{:.1} MB", mb)
+    } else if mb >= 1.0 {
+        format!("{:.2} MB", mb)
+    } else {
+        format!("{:.0} KB", (mb * 1024.0).max(1.0))
     }
 }
 
@@ -1157,5 +1433,27 @@ mod tests {
         b.hardware_exec.activation_checkpointing = true;
         assert!(b.estimate_specs().optimizer_mb < a.estimate_specs().optimizer_mb);
         assert!(b.estimate_specs().activations_mb < a.estimate_specs().activations_mb);
+    }
+
+    #[test]
+    fn size_prediction_and_chinchilla_ratio_adjuster_work() {
+        let mut cfg = RunConfig::default();
+        let sz = cfg.predict_sizes();
+        assert!(sz.fp32_safetensors_mb > sz.fp16_bf16_mb);
+        assert!(sz.fp16_bf16_mb > sz.int8_quant_mb);
+        assert!(sz.int8_quant_mb > sz.int4_quant_mb);
+        assert!(sz.full_run_folder_mb >= sz.fp32_safetensors_mb * 2.0);
+
+        cfg.apply_target_tokens_per_param(20.0);
+        let rep = cfg.token_param_ratio(Some(500_000));
+        assert!(
+            (rep.tokens_per_param - 20.0).abs() < 1.5,
+            "Expected ~20 tok/param, got {}",
+            rep.tokens_per_param
+        );
+        assert!(rep.is_balanced);
+
+        cfg.auto_size_model_for_dataset(100_000_000, 20.0, 1.0);
+        assert!(cfg.estimate_specs().total_params > 1_000_000);
     }
 }

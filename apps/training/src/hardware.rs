@@ -451,6 +451,9 @@ impl OptimizationPlan {
                     .to_owned(),
             );
         }
+        if let Some(hw_note) = detect_known_hardware_note(hw) {
+            rationale.insert(0, hw_note);
+        }
 
         let summary = OptimizationPlanSummary {
             resolved_target,
@@ -1328,6 +1331,242 @@ fn block_on_future<F: Future>(mut fut: F) -> F::Output {
         }
         *ready = false;
     }
+}
+
+/// Curated catalog of widely owned consumer GPUs & CPUs so users can simulate
+/// memory fit, micro-batching, and custom optimization plans on popular PCs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum ReferenceHardwarePreset {
+    #[default]
+    MyDetectedPc,
+    Rtx3060_12Gb,
+    Rtx4060_8Gb,
+    Rtx4070Super_12Gb,
+    Rtx4090_24Gb,
+    Gtx1650_4Gb,
+    Rx7800Xt_16Gb,
+    AppleM2_16Gb,
+    LaptopCpu8Core,
+}
+
+impl ReferenceHardwarePreset {
+    pub const ALL: [Self; 9] = [
+        Self::MyDetectedPc,
+        Self::Rtx3060_12Gb,
+        Self::Rtx4060_8Gb,
+        Self::Rtx4070Super_12Gb,
+        Self::Rtx4090_24Gb,
+        Self::Gtx1650_4Gb,
+        Self::Rx7800Xt_16Gb,
+        Self::AppleM2_16Gb,
+        Self::LaptopCpu8Core,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::MyDetectedPc => "My Actual PC (Live)",
+            Self::Rtx3060_12Gb => "RTX 3060 · 12 GB",
+            Self::Rtx4060_8Gb => "RTX 4060 · 8 GB",
+            Self::Rtx4070Super_12Gb => "RTX 4070S · 12 GB",
+            Self::Rtx4090_24Gb => "RTX 4090 · 24 GB",
+            Self::Gtx1650_4Gb => "GTX 1650 · 4 GB",
+            Self::Rx7800Xt_16Gb => "RX 7800 XT · 16 GB",
+            Self::AppleM2_16Gb => "Apple M2 · 16 GB",
+            Self::LaptopCpu8Core => "8-Core Laptop CPU",
+        }
+    }
+
+    pub fn resolve_profile(self, live: &HardwareProfile) -> HardwareProfile {
+        match self {
+            Self::MyDetectedPc => live.clone(),
+            Self::Rtx3060_12Gb => synthetic_hw(
+                "AMD Ryzen 5 5600X 6-Core Processor",
+                "x86_64",
+                12,
+                10,
+                &["AVX2", "FMA", "F16C", "SSE4.2"],
+                16_384,
+                12_288,
+                Some(("NVIDIA GeForce RTX 3060 (12 GB Ampere)", "Discrete GPU", "Vulkan / DX12", 12_288, true)),
+            ),
+            Self::Rtx4060_8Gb => synthetic_hw(
+                "Intel Core i5-13400F (10C / 16T)",
+                "x86_64",
+                16,
+                14,
+                &["AVX2", "FMA", "F16C", "SSE4.2"],
+                16_384,
+                11_800,
+                Some(("NVIDIA GeForce RTX 4060 (8 GB Ada)", "Discrete GPU", "Vulkan / DX12", 8_192, true)),
+            ),
+            Self::Rtx4070Super_12Gb => synthetic_hw(
+                "AMD Ryzen 7 7800X3D 8-Core Processor",
+                "x86_64",
+                16,
+                14,
+                &["AVX-512F", "AVX2", "FMA", "F16C"],
+                32_768,
+                25_600,
+                Some(("NVIDIA GeForce RTX 4070 SUPER (12 GB Ada)", "Discrete GPU", "Vulkan / DX12", 12_288, true)),
+            ),
+            Self::Rtx4090_24Gb => synthetic_hw(
+                "AMD Ryzen 9 7950X 16-Core Processor",
+                "x86_64",
+                32,
+                28,
+                &["AVX-512F", "AVX2", "FMA", "F16C"],
+                65_536,
+                52_000,
+                Some(("NVIDIA GeForce RTX 4090 (24 GB Ada)", "Discrete GPU", "Vulkan / DX12", 24_576, true)),
+            ),
+            Self::Gtx1650_4Gb => synthetic_hw(
+                "Intel Core i5-10300H (4C / 8T)",
+                "x86_64",
+                8,
+                6,
+                &["AVX2", "FMA", "SSE4.2"],
+                8_192,
+                5_400,
+                Some(("NVIDIA GeForce GTX 1650 (4 GB Turing)", "Discrete GPU", "Vulkan / DX12", 4_096, false)),
+            ),
+            Self::Rx7800Xt_16Gb => synthetic_hw(
+                "AMD Ryzen 5 7600 6-Core Processor",
+                "x86_64",
+                12,
+                10,
+                &["AVX-512F", "AVX2", "FMA"],
+                32_768,
+                24_000,
+                Some(("AMD Radeon RX 7800 XT (16 GB RDNA 3)", "Discrete GPU", "Vulkan / DX12", 16_384, true)),
+            ),
+            Self::AppleM2_16Gb => synthetic_hw(
+                "Apple M2 8-Core Silicon",
+                "aarch64",
+                8,
+                7,
+                &["NEON"],
+                16_384,
+                12_800,
+                Some(("Apple M2 10-Core GPU (Unified 16 GB)", "Integrated GPU", "Metal", 12_288, true)),
+            ),
+            Self::LaptopCpu8Core => synthetic_hw(
+                "AMD Ryzen 7 6800U Mobile (8C / 16T)",
+                "x86_64",
+                16,
+                12,
+                &["AVX2", "FMA", "SSE4.2"],
+                16_384,
+                10_500,
+                None,
+            ),
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn synthetic_hw(
+    cpu_brand: &str,
+    arch: &str,
+    logical_cores: usize,
+    rec_threads: usize,
+    simd: &[&str],
+    total_ram_mb: u64,
+    avail_ram_mb: u64,
+    gpu_spec: Option<(&str, &str, &str, u64, bool)>,
+) -> HardwareProfile {
+    let gpus = match gpu_spec {
+        Some((name, dev_type, backend, vram_mb, f16)) => vec![GpuAdapterInfo {
+            index: 0,
+            name: name.to_owned(),
+            vendor_id: 0,
+            device_id: 0,
+            device_type: dev_type.to_owned(),
+            is_hardware_gpu: true,
+            backend: backend.to_owned(),
+            driver: "Reference Hardware Profile".to_owned(),
+            driver_info: "Simulated Popular Consumer Device".to_owned(),
+            max_buffer_mb: vram_mb,
+            max_storage_binding_mb: (vram_mb / 2).max(1_024),
+            max_workgroup_size_x: 1024,
+            max_invocations_per_workgroup: 1024,
+            supports_compute: true,
+            supports_f16: f16,
+            supports_subgroups: true,
+        }],
+        None => Vec::new(),
+    };
+    HardwareProfile {
+        probed_at_unix: 0,
+        cpu: CpuInfo {
+            brand: cpu_brand.to_owned(),
+            arch: arch.to_owned(),
+            os: "reference".to_owned(),
+            logical_cores,
+            recommended_threads: rec_threads,
+            simd_features: simd.iter().map(|s| (*s).to_owned()).collect(),
+        },
+        memory: MemoryInfo {
+            total_ram_mb,
+            available_ram_mb: avail_ram_mb,
+        },
+        gpus,
+    }
+}
+
+fn detect_known_hardware_note(hw: &HardwareProfile) -> Option<String> {
+    if let Some(gpu) = hw.best_hardware_gpu() {
+        let up = gpu.name.to_uppercase();
+        if up.contains("RTX 40") || up.contains("RTX 50") {
+            return Some(format!(
+                "Matched NVIDIA Ada/Blackwell Profile ({}): large L2 cache & fast FP16/BF16 — 128-aligned vocab + BF16/FP16 mixed weights maximize throughput.",
+                gpu.name
+            ));
+        }
+        if up.contains("RTX 30") || up.contains("RTX 20") {
+            return Some(format!(
+                "Matched NVIDIA Ampere/Turing Profile ({}): strong 16×16 shared-memory tile throughput; enable chunked cross-entropy on 8 GB cards.",
+                gpu.name
+            ));
+        }
+        if up.contains("GTX 16") || up.contains("GTX 10") {
+            return Some(format!(
+                "Matched Budget GeForce Profile ({}): keep FP32 precision + Activation Checkpointing ON to stay comfortably inside 4–6 GB VRAM.",
+                gpu.name
+            ));
+        }
+        if up.contains("RADEON") || up.contains("RX ") {
+            return Some(format!(
+                "Matched AMD Radeon RDNA Profile ({}): 64-wide wavefront / 16×16 WGSL tiles + 128× vocab padding prevent tail wave divergence.",
+                gpu.name
+            ));
+        }
+        if up.contains("APPLE M") {
+            return Some(format!(
+                "Matched Apple Silicon Unified Memory ({}): zero PCIe copy overhead between CPU & Metal GPU.",
+                gpu.name
+            ));
+        }
+    }
+    let cpu_up = hw.cpu.brand.to_uppercase();
+    if cpu_up.contains("X3D") {
+        return Some(format!(
+            "Matched AMD 3D V-Cache CPU ({}): 96 MB L3 cache accelerates Nano/Micro Transformer SIMD matmuls with minimal DRAM stalls.",
+            hw.cpu.brand
+        ));
+    }
+    if cpu_up.contains("RYZEN") || cpu_up.contains("EPYC") {
+        return Some(format!(
+            "Matched AMD Zen CPU ({}): paired 256-bit/512-bit FMA pipelines — Rayon {} threads + 64× vocab padding recommended.",
+            hw.cpu.brand, hw.cpu.recommended_threads
+        ));
+    }
+    if cpu_up.contains("INTEL") {
+        return Some(format!(
+            "Matched Intel Core/Xeon CPU ({}): pin Rayon to {} performance threads to avoid E-core stragglers during autograd.",
+            hw.cpu.brand, hw.cpu.recommended_threads
+        ));
+    }
+    None
 }
 
 #[cfg(test)]

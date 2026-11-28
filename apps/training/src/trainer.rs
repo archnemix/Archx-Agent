@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
-use candle_core::{DType, Device, Tensor};
+use candle_core::{Device, Tensor};
 use candle_nn::VarMap;
 
 use crate::config::{ComputeTarget, RunConfig, SamplingConfig};
@@ -110,7 +110,22 @@ where
     let stochastic_seed = run_cfg.seeds.effective_stochastic_seed();
     let prng_algo = run_cfg.seeds.algorithm;
 
-    run_cfg.model.vocab_size = tokenizer.vocab_size();
+    // Probe host hardware and compile custom execution plan for provenance archival.
+    let hw = HardwareProfile::probe();
+    let base_vocab = tokenizer.vocab_size();
+    run_cfg.model.vocab_size = if run_cfg.hardware_exec.pad_vocab_for_hardware {
+        let align = if run_cfg.hardware_exec.target == ComputeTarget::Gpu
+            || (run_cfg.hardware_exec.target == ComputeTarget::Auto
+                && hw.best_hardware_gpu().is_some())
+        {
+            128usize
+        } else {
+            64usize
+        };
+        base_vocab.div_ceil(align) * align
+    } else {
+        base_vocab
+    };
     run_cfg.model.init_seed = weight_seed;
     run_cfg.model.prng_algorithm = prng_algo;
     let model_cfg = run_cfg.model.sanitized();
@@ -119,8 +134,6 @@ where
         .map_err(|_| format!("Could not create run folder {}", run_dir.display()))?;
     tokenizer.save_to_path(&run_dir.join("tokenizer.json"))?;
 
-    // Probe host hardware and compile custom execution plan for provenance archival.
-    let hw = HardwareProfile::probe();
     let plan = OptimizationPlan::compile(&hw, &run_cfg);
     let _ = std::fs::write(run_dir.join("optimization_plan.toml"), &plan.custom_script_toml);
 
@@ -264,8 +277,20 @@ where
         let mut lr_backoff = 1.0f64;
 
         let total_steps = run_cfg.hyper.total_steps.max(1);
-        let batch_size = run_cfg.hyper.batch_size.max(1);
-        let accum_steps = run_cfg.hyper.grad_accum_steps.max(1);
+        let raw_batch_size = run_cfg.hyper.batch_size.max(1);
+        let raw_accum_steps = run_cfg.hyper.grad_accum_steps.max(1);
+        // When Activation Checkpointing / Low-Memory Micro-Slicing is enabled and batch_size >= 2,
+        // split each micro-batch into 2 smaller sub-passes with immediate per-sub-pass backward()
+        // so live activation RAM drops by ~2× while preserving exact mathematical gradients!
+        let (batch_size, accum_steps) =
+            if run_cfg.hardware_exec.activation_checkpointing && raw_batch_size >= 2 {
+                let half = (raw_batch_size / 2).max(1);
+                let factor = (raw_batch_size + half - 1) / half;
+                (half, raw_accum_steps * factor)
+            } else {
+                (raw_batch_size, raw_accum_steps)
+            };
+        let ce_chunk = run_cfg.hardware_exec.fused_ce_chunk_tokens;
         let seq_len = model_cfg.seq_len;
 
         let mut order: Vec<usize> = (0..train_windows.len()).collect();
@@ -327,8 +352,12 @@ where
             }
 
             let step_start = Instant::now();
-            let mut accum_loss = Tensor::zeros((), DType::F32, &device)
-                .map_err(|e| format!("Tensor error: {e}"))?;
+            optimizer.zero_accum();
+            let mode = TelemetryMode::from_u8(control.telemetry_mode.load(Ordering::Relaxed));
+            let force_snap = control.snapshot_now.swap(false, Ordering::Relaxed);
+            let want_neural = mode.should_sample(step, force_snap);
+            let mut last_micro_grads = None;
+
             let mut ce_sum = 0.0f32;
             let mut expert_totals = if model_cfg.routing == crate::config::Routing::MoE {
                 vec![0usize; model_cfg.moe.n_experts]
@@ -336,7 +365,7 @@ where
                 Vec::new()
             };
 
-            for _ in 0..accum_steps {
+            for micro_idx in 0..accum_steps {
                 let (x_batch, y_batch) = next_batch(
                     &train_windows,
                     &mut order,
@@ -349,10 +378,11 @@ where
                 .map_err(|e| format!("Batch construction failed: {e}"))?;
 
                 let fwd = model
-                    .forward_step(
+                    .forward_step_chunked(
                         &x_batch,
                         Some(&y_batch),
                         run_cfg.hyper.label_smoothing,
+                        ce_chunk,
                         Some(&mut stoch_rng),
                     )
                     .map_err(|e| format!("Forward pass failed at step {step}: {e}"))?;
@@ -365,15 +395,22 @@ where
                     .map_err(|e| format!("Scalar read failed: {e}"))?;
                 ce_sum += micro_ce / (accum_steps as f32);
 
+                for (slot, c) in expert_totals.iter_mut().zip(fwd.expert_counts) {
+                    *slot += c;
+                }
+
                 let scaled = micro_total
                     .affine(1.0 / (accum_steps as f64), 0.0)
                     .map_err(|e| format!("Loss scale failed: {e}"))?;
-                accum_loss = accum_loss
-                    .add(&scaled)
-                    .map_err(|e| format!("Loss accum failed: {e}"))?;
-
-                for (slot, c) in expert_totals.iter_mut().zip(fwd.expert_counts) {
-                    *slot += c;
+                // Immediate backward() inside each micro-batch frees the forward activation graph right away!
+                let micro_grads = scaled
+                    .backward()
+                    .map_err(|e| format!("Backward pass failed at step {step}: {e}"))?;
+                optimizer
+                    .accumulate_grads(&micro_grads)
+                    .map_err(|e| format!("Gradient accum failed at step {step}: {e}"))?;
+                if want_neural && micro_idx + 1 == accum_steps {
+                    last_micro_grads = Some(micro_grads);
                 }
             }
 
@@ -383,6 +420,7 @@ where
                     && step > 5
                     && ce_sum > best_loss * 5.5 + 2.0)
             {
+                optimizer.zero_accum();
                 restore_varmap(&model.varmap, &healthy_backup);
                 lr_backoff = (lr_backoff * 0.5).max(0.05);
                 emit(TrainEvent::Journal(format!(
@@ -391,13 +429,13 @@ where
                 continue;
             }
 
-            let grads = accum_loss
-                .backward()
-                .map_err(|e| format!("Backward pass failed at step {step}: {e}"))?;
             let lr = scheduled_lr(step, &run_cfg.hyper) * lr_backoff;
             let grad_norm = optimizer
-                .step_with_grads(&grads, lr, run_cfg.hyper.grad_clip_norm)
+                .step_accumulated(lr, run_cfg.hyper.grad_clip_norm)
                 .map_err(|e| format!("Optimizer step failed at step {step}: {e}"))?;
+            optimizer
+                .apply_mixed_precision_projection(run_cfg.hardware_exec.precision)
+                .map_err(|e| format!("Mixed precision projection failed at step {step}: {e}"))?;
 
             let elapsed = step_start.elapsed().as_secs_f32().max(1e-4);
             let tokens_processed = (batch_size * accum_steps * seq_len) as f32;
@@ -455,13 +493,11 @@ where
                 }
             }
 
-            let mode = TelemetryMode::from_u8(control.telemetry_mode.load(Ordering::Relaxed));
-            let force_snap = control.snapshot_now.swap(false, Ordering::Relaxed);
-            let neural = if mode.should_sample(step, force_snap) {
+            let neural = if want_neural {
                 let inspected = control.inspected_layer.load(Ordering::Relaxed);
                 Some(capture_neural_snapshot(
                     &model.varmap,
-                    Some(&grads),
+                    last_micro_grads.as_ref(),
                     model_cfg.n_layers,
                     inspected,
                     &expert_totals,
@@ -684,6 +720,7 @@ where
         let mut logits = model
             .next_token_logits(&context)
             .map_err(|e| format!("Inference error: {e}"))?;
+        logits.truncate(tokenizer.vocab_size());
         if let Some(p) = logits.get_mut(PAD_ID as usize) {
             *p = -1e9;
         }
@@ -851,6 +888,94 @@ mod tests {
 
         assert!(saw_expert_load, "expected MoE expert load telemetry");
         assert!(dir.join("best/model.safetensors").is_file());
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn real_learning_memorizes_pattern_and_mutates_safetensors_weights() {
+        let mut cfg = RunConfig::default();
+        cfg.preset = Preset::Nano;
+        cfg.tokenizer.kind = TokenizerKind::CharLevel;
+        cfg.tokenizer.vocab_size = 96;
+        cfg.tokenizer.sequence_packing = false;
+        cfg.model = crate::config::TransformerConfig::from_preset(Preset::Nano, Routing::Dense);
+        cfg.model.n_layers = 2;
+        cfg.model.d_model = 48;
+        cfg.model.n_heads = 4;
+        cfg.model.n_kv_heads = 2;
+        cfg.model.d_ff = 96;
+        cfg.model.seq_len = 28;
+        cfg.seeds.auto_export_genesis_init = true;
+        cfg.hardware_exec.activation_checkpointing = true;
+        cfg.hardware_exec.fused_ce_chunk_tokens = 16;
+        cfg.hardware_exec.precision = crate::config::PrecisionMode::Bf16MixedPlan;
+        cfg.hyper.batch_size = 4;
+        cfg.hyper.grad_accum_steps = 2;
+        cfg.hyper.total_steps = 45;
+        cfg.hyper.warmup_steps = 4;
+        cfg.hyper.lr = 1.2e-2;
+        cfg.hyper.eval_every = 15;
+        cfg.hyper.compute_threads = 2;
+
+        let docs: Vec<String> = (0..16)
+            .map(|_| "<user>code?<assistant>ARCHX42".to_owned())
+            .collect();
+        let val_docs: Vec<String> = vec!["<user>code?<assistant>ARCHX42".to_owned(); 2];
+        let ds = PreparedDataset {
+            source_label: "Synthetic convergence check".to_owned(),
+            train_docs: docs.clone(),
+            val_docs,
+            total_chars: docs.iter().map(|s| s.len()).sum(),
+            dedup_removed: 0,
+        };
+        let tk = LabTokenizer::train_or_load(&cfg.tokenizer, &ds.train_docs).expect("tk");
+
+        let dir = std::env::temp_dir().join(format!("archx-real-learn-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let control = TrainControl::new(TelemetryMode::Off, 0);
+
+        let mut step_losses = Vec::new();
+        let mut grad_norms = Vec::new();
+        execute_training_pipeline(cfg.clone(), ds, tk, dir.clone(), control, |ev| {
+            if let TrainEvent::Step { point, .. } = ev {
+                step_losses.push(point.train_loss);
+                grad_norms.push(point.grad_norm);
+            }
+        })
+        .expect("real learning run succeeds");
+
+        let first_loss = step_losses[0];
+        let last_loss = *step_losses.last().unwrap();
+        assert!(
+            first_loss > 2.5 && last_loss < 0.35,
+            "Expected dramatic real convergence (>2.5 -> <0.35), got {first_loss:.4} -> {last_loss:.4}"
+        );
+        assert!(grad_norms.iter().all(|g| g.is_finite() && *g > 0.0));
+
+        // Verify Genesis step-0 weights genuinely mutated into trained best weights!
+        let genesis_bytes = std::fs::read(dir.join("genesis/genesis_step0.safetensors")).unwrap();
+        let trained_bytes = std::fs::read(dir.join("best/model.safetensors")).unwrap();
+        assert_ne!(genesis_bytes, trained_bytes, "Trained weights must differ from step-0 Genesis");
+
+        // Verify greedy generation reproduces the learned answer!
+        let mut samp = cfg.sampling.clone();
+        samp.temperature = 0.0;
+        samp.max_new_tokens = 12;
+        let stop = AtomicBool::new(false);
+        let out = generate_from_checkpoint(
+            &dir.join("best"),
+            &[],
+            "code?",
+            &samp,
+            0,
+            &stop,
+            |_| {},
+        )
+        .expect("greedy gen");
+        assert!(
+            out.contains("ARCHX42"),
+            "Expected trained model to generate learned 'ARCHX42', got {out:?}"
+        );
         let _ = std::fs::remove_dir_all(dir);
     }
 }

@@ -1,4 +1,4 @@
-# Purpose: Compiles, tests, screenshots, and packages the standalone Archx Training Studio executable on Linux and Windows.
+# Purpose: Compiles, tests, screenshots (Simple, Normal & Advanced UI modes), and packages the standalone Archx Training Studio executable on Linux and Windows.
 name: Training Studio Standalone Build & GUI Review
 
 on:
@@ -27,7 +27,7 @@ jobs:
           persist-credentials: true
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: Test workspace, build standalone binary, and capture stage screenshots
+      - name: Test workspace, build standalone binary, and capture Simple/Normal/Advanced screenshots
         shell: bash
         run: |
           set -euo pipefail
@@ -35,31 +35,31 @@ jobs:
           sudo apt-get install -y -qq libxkbcommon-dev libxkbcommon-x11-0 libwayland-dev libasound2-dev xvfb mesa-vulkan-drivers > /dev/null
           mkdir -p apps/training/docs/Test_Results/{non_visual,visual}
           (
-            echo 'COMMAND: cargo update --workspace'
-            cargo update --workspace
             echo 'COMMAND: cargo test --workspace --locked'
             cargo test --workspace --locked
             echo 'COMMAND: CARGO_PROFILE_RELEASE_STRIP=symbols cargo build --release --locked -p archx-training --bin archx-training'
             CARGO_PROFILE_RELEASE_STRIP=symbols cargo build --release --locked -p archx-training --bin archx-training
-          ) 2>&1 | tee apps/training/docs/Test_Results/non_visual/linux-slice2.log
+          ) 2>&1 | tee apps/training/docs/Test_Results/non_visual/linux-slice3.log
 
-          for pair in \
-            "01-data:pipeline:data" \
-            "02-tokenizer:pipeline:tokenizer" \
-            "03-architecture:pipeline:architecture" \
-            "04-hardware:pipeline:hardware" \
-            "05-genesis:pipeline:repro" \
-            "06-train:pipeline:train" \
-            "playground:playground:train" \
-            "neural:neural:train"; do
-            IFS=":" read -r slug surf stg <<< "$pair"
+          for spec in \
+            "01-simple-data:pipeline:data:simple" \
+            "02-simple-words:pipeline:tokenizer:simple" \
+            "03-simple-brain-size:pipeline:architecture:simple" \
+            "04-simple-pc:pipeline:hardware:simple" \
+            "05-simple-save:pipeline:repro:simple" \
+            "03-normal-size-ratio:pipeline:architecture:normal" \
+            "04-normal-gpu-sim:pipeline:hardware:normal" \
+            "02-advanced-tokenizer:pipeline:tokenizer:advanced" \
+            "04-advanced-hardware:pipeline:hardware:advanced"; do
+            IFS=":" read -r slug surf stg mode <<< "$spec"
             out="apps/training/docs/Test_Results/visual/linux-${slug}.png"
             xvfb-run -a env \
               ARCHX_SNAPSHOT_SIZE=wide \
+              ARCHX_UI_MODE="$mode" \
               ARCHX_TRAINING_SURFACE="$surf" \
               ARCHX_TRAINING_STAGE="$stg" \
               ARCHX_SNAPSHOT="$out" \
-              ./target/release/archx-training >> apps/training/docs/Test_Results/non_visual/linux-slice2.log 2>&1
+              ./target/release/archx-training >> apps/training/docs/Test_Results/non_visual/linux-slice3.log 2>&1
             test -s "$out"
           done
       - name: Commit Linux test logs and screenshots
@@ -68,8 +68,7 @@ jobs:
           git config user.name 'archx-ci[bot]'
           git config user.email 'archx-ci[bot]@users.noreply.github.com'
           git add -A apps/training/docs/Test_Results/
-          if test -f Cargo.lock; then git add Cargo.lock; fi
-          git diff --cached --quiet || (git commit -m 'Record Training Studio Slice #2 Linux tests & screenshots' && git pull --rebase origin arena/0cc2c3bf-archx-agent && git push origin HEAD:arena/0cc2c3bf-archx-agent)
+          git diff --cached --quiet || (git commit -m 'Record Training Studio Slice #3 Linux tests & progressive UI screenshots' && git pull --rebase origin arena/0cc2c3bf-archx-agent && git push origin HEAD:arena/0cc2c3bf-archx-agent)
 
   windows:
     needs: linux
@@ -87,29 +86,28 @@ jobs:
           set -euo pipefail
           mkdir -p apps/training/docs/Test_Results/{non_visual,visual} apps/training/deliverables/windows
           (
-            echo 'COMMAND: cargo update --workspace'
-            cargo update --workspace
             echo 'COMMAND: cargo test -p archx-training --locked'
             cargo test -p archx-training --locked
             echo 'COMMAND: CARGO_PROFILE_RELEASE_STRIP=symbols cargo build --release --locked -p archx-training --bin archx-training'
             CARGO_PROFILE_RELEASE_STRIP=symbols cargo build --release --locked -p archx-training --bin archx-training
-          ) 2>&1 | tee apps/training/docs/Test_Results/non_visual/windows-slice2.log
+          ) 2>&1 | tee apps/training/docs/Test_Results/non_visual/windows-slice3.log
 
-          python -c 'import pathlib,struct; data=pathlib.Path("target/release/archx-training.exe").read_bytes(); pe=struct.unpack_from("<I",data,0x3c)[0]; subsystem=struct.unpack_from("<H",data,pe+92)[0]; assert subsystem==2, f"Expected GUI subsystem 2, found {subsystem}"; print("PASS: Windows GUI subsystem 2 (no console)")' >> apps/training/docs/Test_Results/non_visual/windows-slice2.log 2>&1
-          powershell.exe -NoProfile -Command '$info=(Get-Item "target/release/archx-training.exe").VersionInfo; if ($info.CompanyName -ne "Archnemix" -or $info.ProductName -ne "Archx AI Lab - Model Training") { throw "Incorrect PE product metadata: $($info.CompanyName) / $($info.ProductName)" }; Write-Output "PASS: Archnemix Windows product metadata verified"' >> apps/training/docs/Test_Results/non_visual/windows-slice2.log 2>&1
+          python -c 'import pathlib,struct; data=pathlib.Path("target/release/archx-training.exe").read_bytes(); pe=struct.unpack_from("<I",data,0x3c)[0]; subsystem=struct.unpack_from("<H",data,pe+92)[0]; assert subsystem==2, f"Expected GUI subsystem 2, found {subsystem}"; print("PASS: Windows GUI subsystem 2 (no console)")' >> apps/training/docs/Test_Results/non_visual/windows-slice3.log 2>&1
+          powershell.exe -NoProfile -Command '$info=(Get-Item "target/release/archx-training.exe").VersionInfo; if ($info.CompanyName -ne "Archnemix" -or $info.ProductName -ne "Archx AI Lab - Model Training") { throw "Incorrect PE product metadata: $($info.CompanyName) / $($info.ProductName)" }; Write-Output "PASS: Archnemix Windows product metadata verified"' >> apps/training/docs/Test_Results/non_visual/windows-slice3.log 2>&1
 
-          for pair in \
-            "02-tokenizer:pipeline:tokenizer" \
-            "04-hardware:pipeline:hardware" \
-            "05-genesis:pipeline:repro" \
-            "06-train:pipeline:train"; do
-            IFS=":" read -r slug surf stg <<< "$pair"
+          for spec in \
+            "03-simple-brain-size:pipeline:architecture:simple" \
+            "04-simple-pc:pipeline:hardware:simple" \
+            "03-normal-size-ratio:pipeline:architecture:normal" \
+            "04-normal-gpu-sim:pipeline:hardware:normal"; do
+            IFS=":" read -r slug surf stg mode <<< "$spec"
             out="apps/training/docs/Test_Results/visual/windows-${slug}.png"
             ARCHX_SNAPSHOT_SIZE=wide \
+              ARCHX_UI_MODE="$mode" \
               ARCHX_TRAINING_SURFACE="$surf" \
               ARCHX_TRAINING_STAGE="$stg" \
               ARCHX_SNAPSHOT="$out" \
-              ./target/release/archx-training.exe >> apps/training/docs/Test_Results/non_visual/windows-slice2.log 2>&1
+              ./target/release/archx-training.exe >> apps/training/docs/Test_Results/non_visual/windows-slice3.log 2>&1
             test -s "$out"
           done
 
@@ -127,4 +125,4 @@ jobs:
           git config user.name 'archx-ci[bot]'
           git config user.email 'archx-ci[bot]@users.noreply.github.com'
           git add -A apps/training/docs/Test_Results/ apps/training/deliverables/windows/
-          git diff --cached --quiet || (git commit -m 'Publish standalone Windows archx-training.exe and Slice #2 Windows screenshots' && git pull --rebase origin arena/0cc2c3bf-archx-agent && git push origin HEAD:arena/0cc2c3bf-archx-agent)
+          git diff --cached --quiet || (git commit -m 'Publish standalone Windows archx-training.exe and Slice #3 Windows screenshots' && git pull --rebase origin arena/0cc2c3bf-archx-agent && git push origin HEAD:arena/0cc2c3bf-archx-agent)

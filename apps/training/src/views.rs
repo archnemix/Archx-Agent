@@ -19,7 +19,8 @@ use crate::charts::{
 };
 use crate::config::{
     ActivationKind, Backbone, DatasetSource, InitDist, LrSchedule, Mechanism, Modality, NormKind,
-    OptimizerKind, PosEncoding, Preset, Routing, TokenizerKind, format_count, format_flops,
+    OptimizerKind, PosEncoding, Preset, Routing, TokenizerKind, UiComplexity, format_count,
+    format_flops, format_size_mb,
 };
 use crate::telemetry::{HealthState, TelemetryMode};
 
@@ -313,26 +314,48 @@ fn banner_bar(app: &App) -> Element<'_, Message> {
 // ---------------------------------------------------------------------------
 
 fn pipeline_surface(app: &App) -> Element<'_, Message> {
+    let simple = app.ui_complexity == UiComplexity::Simple;
+
     let mut stage_pills = row![].spacing(5).align_y(Center);
     for st in PipelineStage::ALL {
         let active = app.stage == st;
-        let short_lbl = match st {
-            PipelineStage::Data => "DATA",
-            PipelineStage::Tokenizer => "TOKENIZER",
-            PipelineStage::Architecture => "ARCHITECT",
-            PipelineStage::Hardware => "HARDWARE",
-            PipelineStage::Repro => "GENESIS",
-            PipelineStage::Train => "TRAIN",
+        let pill_lbl = if simple {
+            match st {
+                PipelineStage::Data => "1 Text",
+                PipelineStage::Tokenizer => "2 Words",
+                PipelineStage::Architecture => "3 Brain",
+                PipelineStage::Hardware => "4 PC",
+                PipelineStage::Repro => "5 Save",
+                PipelineStage::Train => "6 Train",
+            }
+            .to_owned()
+        } else {
+            let short_lbl = match st {
+                PipelineStage::Data => "DATA",
+                PipelineStage::Tokenizer => "TOKENIZER",
+                PipelineStage::Architecture => "MODEL",
+                PipelineStage::Hardware => "HARDWARE",
+                PipelineStage::Repro => "GENESIS",
+                PipelineStage::Train => "TRAIN",
+            };
+            format!("{} {}", st.code(), short_lbl)
         };
         stage_pills = stage_pills.push(
-            button(
-                text(format!("{} {}", st.code(), short_lbl))
-                    .size(11)
-                    .font(style::LABEL),
-            )
-            .padding([6, 10])
-            .on_press(Message::SelectStage(st))
-            .style(move |t, s| style::mini_toggle(active, t, s)),
+            button(text(pill_lbl).size(11).font(style::LABEL))
+                .padding([6, 10])
+                .on_press(Message::SelectStage(st))
+                .style(move |t, s| style::mini_toggle(active, t, s)),
+        );
+    }
+
+    let mut ui_tier_pills = row![].spacing(3).align_y(Center);
+    for tier in UiComplexity::ALL {
+        let active = app.ui_complexity == tier;
+        ui_tier_pills = ui_tier_pills.push(
+            button(text(tier.label()).size(10.5).font(style::LABEL))
+                .padding([4, 9])
+                .on_press(Message::SelectUiComplexity(tier))
+                .style(move |t, s| style::mini_toggle(active, t, s)),
         );
     }
 
@@ -343,26 +366,32 @@ fn pipeline_surface(app: &App) -> Element<'_, Message> {
             .style(style::control_button)
             .into()
     } else {
-        button(text("Train model  →").size(12).font(style::STRONG).color(style::BLACK))
-            .padding([8, 14])
-            .on_press(Message::StartTraining)
-            .style(style::primary_button)
-            .into()
+        button(
+            text("Train model  →")
+                .size(12)
+                .font(style::STRONG)
+                .color(style::BLACK),
+        )
+        .padding([8, 14])
+        .on_press(Message::StartTraining)
+        .style(style::primary_button)
+        .into()
     };
 
     let header = container(
         row![
             stage_pills,
             space().width(Fill),
+            container(ui_tier_pills).padding([2, 3]).style(style::badge),
             text_input("Run name…", &app.cfg.name)
                 .on_input(Message::EditRunName)
-                .width(160)
-                .padding([7, 10])
+                .width(142)
+                .padding([7, 9])
                 .size(12)
                 .style(style::composer_input),
             action_btn
         ]
-        .spacing(8)
+        .spacing(7)
         .align_y(Center),
     )
     .width(Fill)
@@ -395,7 +424,10 @@ fn pipeline_surface(app: &App) -> Element<'_, Message> {
 
 fn live_spec_sidebar(app: &App) -> Element<'_, Message> {
     let est = app.cfg.estimate_specs();
+    let sz = app.cfg.predict_sizes();
+    let ratio = app.cfg.token_param_ratio(app.estimated_corpus_tokens());
     let m = app.cfg.model.sanitized();
+    let simple = app.ui_complexity == UiComplexity::Simple;
 
     let kv_row = |label: &'static str, val: String| -> Element<'static, Message> {
         row![
@@ -406,88 +438,137 @@ fn live_spec_sidebar(app: &App) -> Element<'_, Message> {
         .into()
     };
 
-    let ckpt_status = match app.active_run() {
-        Some(r) if r.has_best_ckpt => format!(
-            "best ({:.3})",
-            r.best_loss.unwrap_or(0.0)
-        ),
-        Some(r) if r.completed_steps > 0 => format!("{} steps", r.completed_steps),
-        _ => "untrained".to_owned(),
+    let kv_accent = |label: &'static str, val: String, ok: bool| -> Element<'static, Message> {
+        row![
+            text(label).size(11.5).color(style::GREY).width(Fill),
+            text(val)
+                .size(12)
+                .font(style::STRONG)
+                .color(if ok { style::OK } else { style::DANGER })
+        ]
+        .align_y(Center)
+        .into()
     };
 
-    let content = column![
-        text("LIVE MODEL SPEC")
-            .size(10.5)
-            .font(style::LABEL)
-            .color(style::DIM),
-        space().height(4),
-        text(format!(
-            "{} · {}",
-            app.cfg.backbone.label(),
-            m.routing.label()
-        ))
-        .size(14.5)
-        .font(style::DISPLAY)
-        .color(style::WHITE),
-        space().height(10),
-        svg(arch_blueprint_svg(&m)).width(Fill).height(132),
-        space().height(12),
-        kv_row("Total parameters", format_count(est.total_params)),
-        kv_row("Active / token", format_count(est.active_params)),
-        kv_row("Attention", format!("{} ({}Q / {}KV)", m.attention_mode_label(), m.n_heads, m.n_kv_heads)),
-        kv_row("Context × vocab", format!("{} × {}", m.seq_len, m.vocab_size)),
-        space().height(8),
-        container(space().height(1)).width(Fill).style(style::rail_divider),
-        space().height(8),
-        text("ESTIMATED MEMORY")
-            .size(10.5)
-            .font(style::LABEL)
-            .color(style::DIM),
-        kv_row("Weights (F32)", format!("{:.1} MB", est.weights_mb)),
-        kv_row("Optimizer state", format!("{:.1} MB", est.optimizer_mb)),
-        kv_row("Activations", format!("{:.1} MB", est.activations_mb)),
-        kv_row("KV cache / seq", format!("{:.0} KB", est.kv_cache_kb)),
-        kv_row("Total train RAM", format!("{:.1} MB", est.total_train_mb)),
-        space().height(8),
-        container(space().height(1)).width(Fill).style(style::rail_divider),
-        space().height(8),
-        kv_row("Compute / step", format_flops(est.flops_per_step)),
-        kv_row(
-            "Target device",
-            if app.optimization_plan.summary.resolved_device_label.starts_with("GPU") {
-                "WGSL GPU".to_owned()
-            } else {
-                format!("CPU ({}T)", app.cfg.hyper.compute_threads)
-            }
-        ),
-        kv_row(
-            "PRNG · Seed",
-            format!(
-                "{} #{}",
-                app.cfg
-                    .seeds
-                    .algorithm
-                    .label()
-                    .split(' ')
-                    .next()
-                    .unwrap_or("PRNG"),
-                app.cfg.seeds.master_seed
+    let ckpt_status = match app.active_run() {
+        Some(r) if r.has_best_ckpt => format!("Trained (loss {:.3})", r.best_loss.unwrap_or(0.0)),
+        Some(r) if r.completed_steps > 0 => format!("{} steps", r.completed_steps),
+        _ => "Ready to train".to_owned(),
+    };
+
+    let device_str = if app
+        .optimization_plan
+        .summary
+        .resolved_device_label
+        .starts_with("GPU")
+    {
+        "Graphics Card (GPU)".to_owned()
+    } else {
+        format!("CPU ({} threads)", app.cfg.hyper.compute_threads)
+    };
+
+    let content = if simple {
+        column![
+            text("YOUR AI SUMMARY")
+                .size(10.5)
+                .font(style::LABEL)
+                .color(style::DIM),
+            space().height(4),
+            text(format!("{} Brain", app.cfg.preset.label().split(' ').next().unwrap_or("Custom")))
+                .size(15.5)
+                .font(style::DISPLAY)
+                .color(style::WHITE),
+            space().height(10),
+            svg(arch_blueprint_svg(&m)).width(Fill).height(118),
+            space().height(12),
+            kv_row("Brain size", format!("{} params", format_count(sz.total_params))),
+            kv_accent("Saved AI file", format_size_mb(sz.fp32_safetensors_mb), true),
+            kv_row("Compact (16-bit)", format_size_mb(sz.fp16_bf16_mb)),
+            kv_row("Memory needed", format_size_mb(sz.peak_train_ram_mb)),
+            space().height(8),
+            container(space().height(1)).width(Fill).style(style::rail_divider),
+            space().height(8),
+            text("TRAINING BALANCE")
+                .size(10.5)
+                .font(style::LABEL)
+                .color(style::DIM),
+            kv_accent(
+                "Tokens / param",
+                format!("{:.1}×", ratio.tokens_per_param),
+                ratio.is_balanced
+            ),
+            kv_row("Total study tokens", format_count(ratio.scheduled_tokens)),
+            kv_row("Runs on", device_str),
+            kv_row("Status", ckpt_status),
+            space().height(12),
+            button(
+                container(text("Chat with your AI  →").size(11.5).font(style::LABEL))
+                    .center_x(Fill)
             )
-        ),
-        kv_row("Checkpoint", ckpt_status),
-        space().height(10),
-        button(
-            container(text("Open Playground chat  →").size(11.5).font(style::LABEL))
-                .center_x(Fill)
-        )
+            .width(Fill)
+            .padding([8, 12])
+            .on_press(Message::OpenSurface(Surface::Playground))
+            .style(style::control_button)
+        ]
+        .spacing(6)
+        .padding(18)
         .width(Fill)
-        .padding([8, 12])
-        .on_press(Message::OpenSurface(Surface::Playground))
-        .style(style::control_button)
-    ]
-    .spacing(6)
-    .padding(18)
-    .width(Fill);
+    } else {
+        column![
+            text("LIVE MODEL & SIZE SPEC")
+                .size(10.5)
+                .font(style::LABEL)
+                .color(style::DIM),
+            space().height(4),
+            text(format!("{} · {}", app.cfg.backbone.label(), m.routing.label()))
+                .size(14.5)
+                .font(style::DISPLAY)
+                .color(style::WHITE),
+            space().height(10),
+            svg(arch_blueprint_svg(&m)).width(Fill).height(124),
+            space().height(10),
+            kv_row("Total parameters", format_count(est.total_params)),
+            kv_row("Active / token", format_count(est.active_params)),
+            kv_accent(
+                "Token : Param",
+                format!("{:.1}×", ratio.tokens_per_param),
+                ratio.is_balanced
+            ),
+            kv_row(
+                "Attention",
+                format!("{} ({}Q / {}KV)", m.attention_mode_label(), m.n_heads, m.n_kv_heads)
+            ),
+            space().height(6),
+            container(space().height(1)).width(Fill).style(style::rail_divider),
+            space().height(6),
+            text("PREDICTED DISK & RAM")
+                .size(10.5)
+                .font(style::LABEL)
+                .color(style::DIM),
+            kv_accent("FP32 checkpoint", format_size_mb(sz.fp32_safetensors_mb), true),
+            kv_row("BF16 / INT4 est.", format!("{} / {}", format_size_mb(sz.fp16_bf16_mb), format_size_mb(sz.int4_quant_mb))),
+            kv_row("Run folder disk", format_size_mb(sz.full_run_folder_mb)),
+            kv_row("Peak train RAM", format_size_mb(sz.peak_train_ram_mb)),
+            space().height(6),
+            container(space().height(1)).width(Fill).style(style::rail_divider),
+            space().height(6),
+            kv_row("Compute / step", format_flops(est.flops_per_step)),
+            kv_row("Target device", device_str),
+            kv_row("Checkpoint", ckpt_status),
+            space().height(10),
+            button(
+                container(text("Open Playground chat  →").size(11.5).font(style::LABEL))
+                    .center_x(Fill)
+            )
+            .width(Fill)
+            .padding([8, 12])
+            .on_press(Message::OpenSurface(Surface::Playground))
+            .style(style::control_button)
+        ]
+        .spacing(6)
+        .padding(18)
+        .width(Fill)
+    };
 
     container(scrollable(content).height(Fill).style(style::quiet_scroll))
         .width(282)
@@ -588,6 +669,143 @@ fn toggle_row<'a>(label: &'static str, hint: &'static str, on: bool, msg: Messag
 
 fn stage_data_view(app: &App) -> Element<'_, Message> {
     let ds_cfg = &app.cfg.dataset;
+
+    if app.ui_complexity == UiComplexity::Simple {
+        let mut simple_sources = row![].spacing(8);
+        for (src, friendly_lbl) in [
+            (DatasetSource::BuiltinDialogues, "Sample Chat & Reasoning"),
+            (DatasetSource::BuiltinTinyStories, "Sample Short Stories"),
+            (DatasetSource::BuiltinRustCode, "Sample Code"),
+            (DatasetSource::LocalPath, "My Own Text File / Folder"),
+        ] {
+            let active = ds_cfg.source == src;
+            simple_sources = simple_sources.push(
+                button(text(friendly_lbl).size(12).font(style::LABEL))
+                    .padding([7, 14])
+                    .on_press(Message::SelectDatasetSource(src))
+                    .style(move |t, s| style::mini_toggle(active, t, s)),
+            );
+        }
+
+        let local_box: Element<'_, Message> = if ds_cfg.source == DatasetSource::LocalPath {
+            column![
+                text("PATH TO YOUR TEXT FILE OR FOLDER (.txt, .md, .jsonl, .csv)")
+                    .size(10.5)
+                    .font(style::LABEL)
+                    .color(style::DIM),
+                text_input("Paste a file or folder path…", &ds_cfg.local_path)
+                    .on_input(Message::EditLocalPath)
+                    .padding([9, 12])
+                    .size(13)
+                    .style(style::composer_input),
+            ]
+            .spacing(6)
+            .into()
+        } else {
+            space().height(0).into()
+        };
+
+        let status_card: Element<'_, Message> = if let Some(ds) = &app.dataset {
+            let first_sample = ds
+                .sample_docs
+                .first()
+                .map(|s| s.as_str())
+                .unwrap_or("Dataset ready.");
+            container(
+                column![
+                    row![
+                        text("ACTIVE TRAINING TEXT")
+                            .size(10.5)
+                            .font(style::LABEL)
+                            .color(style::DIM)
+                            .width(Fill),
+                        text(format!(
+                            "{} examples ready (~{} tokens)",
+                            ds.train_docs.len() + ds.val_docs.len(),
+                            format_count(app.estimated_corpus_tokens().unwrap_or(0))
+                        ))
+                        .size(11.5)
+                        .font(style::LABEL)
+                        .color(style::OK),
+                    ]
+                    .align_y(Center),
+                    container(text(first_sample).size(12.5).color(style::TEXT_2))
+                        .width(Fill)
+                        .padding(12)
+                        .style(style::surface),
+                ]
+                .spacing(9),
+            )
+            .width(Fill)
+            .padding(18)
+            .style(style::card)
+            .into()
+        } else {
+            space().height(0).into()
+        };
+
+        return column![
+            section_eyebrow(
+                "STEP 1 OF 6 · TRAINING TEXT",
+                "What Should Your AI Learn From?",
+                "Pick an included offline starter pack to try immediately, or point to your own text files."
+            ),
+            container(
+                column![
+                    text("CHOOSE TEXT SOURCE")
+                        .size(10.5)
+                        .font(style::LABEL)
+                        .color(style::DIM),
+                    simple_sources,
+                    local_box,
+                    row![
+                        button(
+                            text(if app.dataset_busy {
+                                "Loading text…"
+                            } else {
+                                "Reload Text"
+                            })
+                            .size(12)
+                            .font(style::LABEL)
+                        )
+                        .padding([8, 14])
+                        .on_press_maybe((!app.dataset_busy).then_some(Message::PrepareDataset))
+                        .style(style::control_button),
+                        space().width(Fill),
+                        button(
+                            text("Next: How AI Reads Words  →")
+                                .size(12.5)
+                                .font(style::STRONG)
+                                .color(style::BLACK)
+                        )
+                        .padding([9, 16])
+                        .on_press(Message::SelectStage(PipelineStage::Tokenizer))
+                        .style(style::primary_button),
+                    ]
+                    .spacing(10)
+                    .align_y(Center),
+                ]
+                .spacing(12)
+            )
+            .width(Fill)
+            .padding(18)
+            .style(style::card),
+            status_card,
+            row![
+                text("Need Hugging Face Hub, Kaggle, custom train/val splits, or deduplication?")
+                    .size(11.5)
+                    .color(style::DIM)
+                    .width(Fill),
+                button(text("Show Normal Dataset Controls").size(11).font(style::LABEL))
+                    .padding([5, 11])
+                    .on_press(Message::SelectUiComplexity(UiComplexity::Standard))
+                    .style(style::tiny_button),
+            ]
+            .align_y(Center),
+        ]
+        .spacing(16)
+        .into();
+    }
 
     let mut builtin_row = row![].spacing(7);
     let mut external_row = row![].spacing(7);
@@ -1155,6 +1373,74 @@ fn stage_tokenizer_view(app: &App) -> Element<'_, Message> {
 fn stage_architecture_view(app: &App) -> Element<'_, Message> {
     let m = &app.cfg.model;
     let h = &app.cfg.hyper;
+    let level = app.ui_complexity;
+
+    // --- SIMPLE MODE: Ultra-clean, plain-English Brain Size + Size Prediction + Ratio Balance ---
+    if level == UiComplexity::Simple {
+        let mut friendly_presets = row![].spacing(8);
+        for (p, friendly_lbl) in [
+            (Preset::Tiny, "Tiny · Instant (~15s)"),
+            (Preset::Small, "Small · Fast (~1m)"),
+            (Preset::Medium, "Medium · Capable"),
+            (Preset::Large, "Large · Deep"),
+        ] {
+            let active = app.cfg.preset == p;
+            friendly_presets = friendly_presets.push(
+                button(text(friendly_lbl).size(12).font(style::LABEL))
+                    .padding([8, 15])
+                    .on_press(Message::SelectPreset(p))
+                    .style(move |t, s| style::mini_toggle(active, t, s)),
+            );
+        }
+
+        return column![
+            section_eyebrow(
+                "STEP 3 OF 6 · AI BRAIN SIZE & BALANCE",
+                "How Big Should Your AI Be?",
+                "Pick a brain size below. We instantly predict the saved file size, memory needed, and optimal training length."
+            ),
+            container(
+                column![
+                    text("CHOOSE AI BRAIN SIZE")
+                        .size(10.5)
+                        .font(style::LABEL)
+                        .color(style::DIM),
+                    friendly_presets,
+                    text(format!(
+                        "Current layout: {} layers · {} width · {} context window",
+                        m.n_layers, m.d_model, m.seq_len
+                    ))
+                    .size(12)
+                    .color(style::GREY),
+                ]
+                .spacing(10)
+            )
+            .width(Fill)
+            .padding(18)
+            .style(style::card),
+            crate::views_advanced::size_and_ratio_cards(app),
+            row![
+                button(text("Customize Layers & Optimizer (Normal)").size(11.5).font(style::LABEL))
+                    .padding([8, 13])
+                    .on_press(Message::SelectUiComplexity(UiComplexity::Standard))
+                    .style(style::tiny_button),
+                space().width(Fill),
+                button(
+                    text("Next: Check Your Computer  →")
+                        .size(12.5)
+                        .font(style::STRONG)
+                        .color(style::BLACK)
+                )
+                .padding([9, 16])
+                .on_press(Message::SelectStage(PipelineStage::Hardware))
+                .style(style::primary_button),
+            ]
+            .spacing(10)
+            .align_y(Center),
+        ]
+        .spacing(16)
+        .into();
+    }
 
     let mut mod_pills = Vec::new();
     for item in Modality::ALL {
@@ -1290,13 +1576,7 @@ fn stage_architecture_view(app: &App) -> Element<'_, Message> {
         );
     }
 
-    column![
-        section_eyebrow(
-            "STAGE 03 / ARCHITECTURE, SEED & OPTIMIZER",
-            "Configure Transformer Pipeline",
-            "Slice 1: Autoregressive Transformer (Dense & Top-k MoE). Essential controls stay clean; open Expert drawers for full research depth."
-        ),
-        // 4-Axis Composable Matrix
+    let taxonomy_card: Element<'_, Message> = if level == UiComplexity::Expert {
         container(
             column![
                 text("MODEL TAXONOMY (MODALITY × MECHANISM × BACKBONE × ROUTING)")
@@ -1308,11 +1588,55 @@ fn stage_architecture_view(app: &App) -> Element<'_, Message> {
                 pill_grid(bb_pills, 4),
                 route_row
             ]
-            .spacing(9)
+            .spacing(9),
         )
         .width(Fill)
         .padding(16)
-        .style(style::card),
+        .style(style::card)
+        .into()
+    } else {
+        container(
+            row![
+                text("ROUTING TOPOLOGY")
+                    .size(10.5)
+                    .font(style::LABEL)
+                    .color(style::DIM)
+                    .width(Fill),
+                route_row
+            ]
+            .align_y(Center),
+        )
+        .width(Fill)
+        .padding(14)
+        .style(style::card)
+        .into()
+    };
+
+    let expert_drawers_or_hint: Element<'_, Message> = if level == UiComplexity::Expert {
+        expert_drawers_view(app)
+    } else {
+        row![
+            text("Want RoPE scaling, norm placement, soft-capping, or custom init distributions?")
+                .size(11.5)
+                .color(style::DIM)
+                .width(Fill),
+            button(text("Unlock Advanced Research Controls").size(11).font(style::LABEL))
+                .padding([5, 11])
+                .on_press(Message::SelectUiComplexity(UiComplexity::Expert))
+                .style(style::tiny_button),
+        ]
+        .align_y(Center)
+        .into()
+    };
+
+    column![
+        section_eyebrow(
+            "STAGE 03 / MODEL ARCHITECTURE, SIZE PREDICTOR & SCALING RATIO",
+            "Configure Model Dimensions, Size & Token Ratio",
+            "Tune dimensions, inspect multi-format checkpoint sizes, and balance training tokens per parameter."
+        ),
+        crate::views_advanced::size_and_ratio_cards(app),
+        taxonomy_card,
         // Essential dimensions
         container(
             column![
@@ -1426,7 +1750,7 @@ fn stage_architecture_view(app: &App) -> Element<'_, Message> {
         .padding(18)
         .style(style::card),
         crate::views_advanced::transformer_advanced_card(app),
-        expert_drawers_view(app),
+        expert_drawers_or_hint,
         row![
             space().width(Fill),
             button(text("Next: 04 Hardware & Plan  →").size(12).font(style::LABEL))

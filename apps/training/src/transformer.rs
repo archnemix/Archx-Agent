@@ -507,6 +507,8 @@ pub struct TransformerModel {
     pub device: Device,
     tok_embeddings: Embedding,
     pos_embeddings: Option<Tensor>,
+    cached_causal_mask: Tensor,
+    cached_mask_seq: usize,
     layers: Vec<TransformerBlock>,
     final_norm: LayerNorm,
     lm_head: Option<Linear>,
@@ -625,6 +627,9 @@ impl TransformerModel {
         } else {
             Some(sb.linear("lm_head", cfg.d_model, cfg.vocab_size, false, 1.0)?)
         };
+        let cached_mask_seq = cfg.seq_len.max(256);
+        let cached_causal_mask =
+            build_causal_mask(cached_mask_seq, cfg.sliding_window, &device)?;
 
         Ok(Self {
             cfg,
@@ -632,6 +637,8 @@ impl TransformerModel {
             device,
             tok_embeddings,
             pos_embeddings,
+            cached_causal_mask,
+            cached_mask_seq,
             layers,
             final_norm,
             lm_head,
@@ -683,14 +690,33 @@ impl TransformerModel {
         Ok(model)
     }
 
-    pub fn forward_step(
+    fn causal_mask_slice(&self, seq: usize) -> CandleResult<Tensor> {
+        if seq <= self.cached_mask_seq {
+            self.cached_causal_mask
+                .narrow(2, 0, seq)?
+                .narrow(3, 0, seq)
+        } else {
+            build_causal_mask(seq, self.cfg.sliding_window, &self.device)
+        }
+    }
+
+    fn project_2d_hidden_to_logits(&self, h_2d: &Tensor) -> CandleResult<Tensor> {
+        let raw = match &self.lm_head {
+            Some(head) => head.forward(h_2d)?,
+            None => {
+                let w_t = self.tok_embeddings.embeddings().t()?.contiguous()?;
+                h_2d.matmul(&w_t)?
+            }
+        };
+        apply_logit_softcap(raw, self.cfg.final_logit_softcap)
+    }
+
+    fn forward_trunk(
         &self,
         input_ids: &Tensor,
-        targets: Option<&Tensor>,
-        label_smoothing: f32,
         mut training_rng: Option<&mut Rng>,
-    ) -> CandleResult<ForwardOutput> {
-        let (b, seq) = input_ids.dims2()?;
+    ) -> CandleResult<(Tensor, Tensor, Vec<usize>)> {
+        let (_, seq) = input_ids.dims2()?;
         let mut h = self.tok_embeddings.forward(input_ids)?;
         if self.cfg.embed_scale == EmbedScaleMode::SqrtDModel {
             h = h.affine((self.cfg.d_model as f64).sqrt(), 0.0)?;
@@ -700,7 +726,7 @@ impl TransformerModel {
             h = h.broadcast_add(&pos)?;
         }
 
-        let mask = build_causal_mask(seq, self.cfg.sliding_window, &self.device)?;
+        let mask = self.causal_mask_slice(seq)?;
         let mut aux_total = Tensor::zeros((), DType::F32, &self.device)?;
         let mut agg_expert_counts = if self.cfg.routing == Routing::MoE {
             vec![0usize; self.cfg.moe.n_experts]
@@ -709,7 +735,6 @@ impl TransformerModel {
         };
 
         for block in &self.layers {
-            // Attention sublayer with PreNorm / PostNorm / SandwichNorm topology.
             h = match block.placement {
                 NormPlacement::PreNorm => {
                     let attn_out = block.attn.forward(&block.attn_norm.forward(&h)?, &mask)?;
@@ -728,7 +753,6 @@ impl TransformerModel {
                 }
             };
 
-            // FFN / MoE sublayer with PreNorm / PostNorm / SandwichNorm topology.
             let ffn_in = match block.placement {
                 NormPlacement::PreNorm | NormPlacement::SandwichNorm => block.ffn_norm.forward(&h)?,
                 NormPlacement::PostNorm => h.clone(),
@@ -760,18 +784,60 @@ impl TransformerModel {
         }
 
         let h = self.final_norm.forward(&h)?;
-        let raw_logits = match &self.lm_head {
-            Some(head) => head.forward(&h)?,
-            None => {
-                let w_t = self.tok_embeddings.embeddings().t()?.contiguous()?;
-                h.reshape((b * seq, self.cfg.d_model))?
-                    .matmul(&w_t)?
-                    .reshape((b, seq, self.cfg.vocab_size))?
-            }
-        };
-        let logits = apply_logit_softcap(raw_logits, self.cfg.final_logit_softcap)?;
+        Ok((h, aux_total, agg_expert_counts))
+    }
 
-        let (ce_loss, total_loss) = if let Some(target_ids) = targets {
+    pub fn forward_step(
+        &self,
+        input_ids: &Tensor,
+        targets: Option<&Tensor>,
+        label_smoothing: f32,
+        training_rng: Option<&mut Rng>,
+    ) -> CandleResult<ForwardOutput> {
+        self.forward_step_chunked(input_ids, targets, label_smoothing, 0, training_rng)
+    }
+
+    /// Runs a forward step with optional chunked LM-head cross-entropy (`ce_chunk_tokens > 0`).
+    /// When `targets.is_some()` and `b * seq > ce_chunk_tokens > 0`, LM-head logits are computed
+    /// slice-by-slice so the full `[b * seq, vocab_size]` tensor never needs to reside in RAM at once.
+    pub fn forward_step_chunked(
+        &self,
+        input_ids: &Tensor,
+        targets: Option<&Tensor>,
+        label_smoothing: f32,
+        ce_chunk_tokens: usize,
+        training_rng: Option<&mut Rng>,
+    ) -> CandleResult<ForwardOutput> {
+        let (b, seq) = input_ids.dims2()?;
+        let (h, aux_total, agg_expert_counts) = self.forward_trunk(input_ids, training_rng)?;
+
+        if let Some(target_ids) = targets {
+            let n_tokens = b * seq;
+            if ce_chunk_tokens > 0 && n_tokens > ce_chunk_tokens {
+                let h_flat = h.reshape((n_tokens, self.cfg.d_model))?;
+                let flat_targets = target_ids.flatten_all()?.to_vec1::<u32>()?;
+                let ce = chunked_lm_cross_entropy(
+                    self,
+                    &h_flat,
+                    &flat_targets,
+                    ce_chunk_tokens,
+                    label_smoothing,
+                )?;
+                let total = (&ce + &aux_total)?;
+                let placeholder_logits = Tensor::zeros((1,), DType::F32, &self.device)?;
+                return Ok(ForwardOutput {
+                    logits: placeholder_logits,
+                    ce_loss: Some(ce),
+                    aux_loss: aux_total,
+                    total_loss: Some(total),
+                    expert_counts: agg_expert_counts,
+                });
+            }
+
+            let h_flat = h.reshape((n_tokens, self.cfg.d_model))?;
+            let logits = self
+                .project_2d_hidden_to_logits(&h_flat)?
+                .reshape((b, seq, self.cfg.vocab_size))?;
             let ce = masked_cross_entropy(
                 &logits,
                 target_ids,
@@ -779,20 +845,30 @@ impl TransformerModel {
                 label_smoothing,
             )?;
             let total = (&ce + &aux_total)?;
-            (Some(ce), Some(total))
+            Ok(ForwardOutput {
+                logits,
+                ce_loss: Some(ce),
+                aux_loss: aux_total,
+                total_loss: Some(total),
+                expert_counts: agg_expert_counts,
+            })
         } else {
-            (None, None)
-        };
-
-        Ok(ForwardOutput {
-            logits,
-            ce_loss,
-            aux_loss: aux_total,
-            total_loss,
-            expert_counts: agg_expert_counts,
-        })
+            let h_flat = h.reshape((b * seq, self.cfg.d_model))?;
+            let logits = self
+                .project_2d_hidden_to_logits(&h_flat)?
+                .reshape((b, seq, self.cfg.vocab_size))?;
+            Ok(ForwardOutput {
+                logits,
+                ce_loss: None,
+                aux_loss: aux_total,
+                total_loss: None,
+                expert_counts: agg_expert_counts,
+            })
+        }
     }
 
+    /// Fast autoregressive next-token inference: runs the causal trunk and projects ONLY the
+    /// final context token `[1, d_model]` through the vocabulary head (`seq_len×` fewer LM-head FLOPs).
     pub fn next_token_logits(&self, context_ids: &[u32]) -> CandleResult<Vec<f32>> {
         let max_ctx = self.cfg.seq_len.max(16);
         let tail = if context_ids.len() > max_ctx {
@@ -801,10 +877,69 @@ impl TransformerModel {
             context_ids
         };
         let input = Tensor::from_vec(tail.to_vec(), (1, tail.len()), &self.device)?;
-        let out = self.forward_step(&input, None, 0.0, None)?;
-        let last = out.logits.narrow(1, tail.len() - 1, 1)?.squeeze(0)?.squeeze(0)?;
-        last.to_vec1::<f32>()
+        let (h, _, _) = self.forward_trunk(&input, None)?;
+        let last_h = h
+            .narrow(1, tail.len() - 1, 1)?
+            .reshape((1, self.cfg.d_model))?;
+        let last_logits = self.project_2d_hidden_to_logits(&last_h)?.squeeze(0)?;
+        last_logits.to_vec1::<f32>()
     }
+}
+
+fn chunked_lm_cross_entropy(
+    model: &TransformerModel,
+    h_flat: &Tensor,
+    flat_targets: &[u32],
+    chunk_size: usize,
+    label_smoothing: f32,
+) -> CandleResult<Tensor> {
+    let n_total = flat_targets.len();
+    let vocab_size = model.cfg.vocab_size;
+    let eps = label_smoothing.clamp(0.0, 0.25);
+
+    let mut weighted_sum = Tensor::zeros((), DType::F32, h_flat.device())?;
+    let mut total_active = 0usize;
+
+    let mut start = 0usize;
+    while start < n_total {
+        let len = (n_total - start).min(chunk_size.max(1));
+        let sub_targets = &flat_targets[start..start + len];
+
+        let mut active_local_idx = Vec::with_capacity(len);
+        let mut active_tgt = Vec::with_capacity(len);
+        for (i, &tok) in sub_targets.iter().enumerate() {
+            if tok != PAD_ID && (tok as usize) < vocab_size {
+                active_local_idx.push(i as u32);
+                active_tgt.push(tok);
+            }
+        }
+
+        if !active_local_idx.is_empty() {
+            let h_chunk = h_flat.narrow(0, start, len)?.contiguous()?;
+            let idx_t = Tensor::from_vec(active_local_idx, active_tgt.len(), h_flat.device())?;
+            let tgt_t = Tensor::from_vec(active_tgt.clone(), active_tgt.len(), h_flat.device())?;
+            let h_sel = h_chunk.index_select(&idx_t, 0)?;
+            let chunk_logits = model.project_2d_hidden_to_logits(&h_sel)?;
+            let log_probs = ops::log_softmax(&chunk_logits, D::Minus1)?;
+            let nll = candle_nn::loss::nll(&log_probs, &tgt_t)?;
+            let chunk_loss = if eps > 1e-5 {
+                let smooth_loss = log_probs.mean_all()?.neg()?;
+                (&nll.affine(f64::from(1.0 - eps), 0.0)?
+                    + &smooth_loss.affine(f64::from(eps), 0.0)?)?
+            } else {
+                nll
+            };
+            let count = active_tgt.len();
+            total_active += count;
+            weighted_sum = (&weighted_sum + &chunk_loss.affine(count as f64, 0.0)?)?;
+        }
+        start += len;
+    }
+
+    if total_active == 0 {
+        return Tensor::zeros((), DType::F32, h_flat.device());
+    }
+    weighted_sum.affine(1.0 / (total_active as f64), 0.0)
 }
 
 fn build_causal_mask(seq: usize, sliding_window: usize, device: &Device) -> CandleResult<Tensor> {
@@ -944,5 +1079,45 @@ mod tests {
         let map = model.varmap.data().lock().unwrap();
         let router_var = map.get("layers.0.moe.router.weight").expect("router var");
         assert!(grads.get(router_var).is_some());
+    }
+
+    #[test]
+    fn chunked_cross_entropy_matches_full_logits_and_gradients() {
+        let mut cfg = TransformerConfig::from_preset(crate::config::Preset::Nano, Routing::Dense);
+        cfg.vocab_size = 64;
+        cfg.seq_len = 16;
+        cfg.init_seed = 777;
+        let model = TransformerModel::new(&cfg, Device::Cpu).expect("model");
+
+        let x_vec: Vec<u32> = (0..32).map(|i| ((i * 5 + 3) % 60) as u32 + 1).collect();
+        let mut y_vec: Vec<u32> = (0..32).map(|i| ((i * 7 + 9) % 60) as u32 + 1).collect();
+        y_vec[5] = PAD_ID;
+        y_vec[19] = PAD_ID;
+        let x = Tensor::from_vec(x_vec, (2, 16), &Device::Cpu).unwrap();
+        let y = Tensor::from_vec(y_vec, (2, 16), &Device::Cpu).unwrap();
+
+        let out_full = model
+            .forward_step_chunked(&x, Some(&y), 0.05, 0, None)
+            .unwrap();
+        let out_chunk = model
+            .forward_step_chunked(&x, Some(&y), 0.05, 7, None)
+            .unwrap();
+
+        let l_full = out_full.total_loss.as_ref().unwrap().to_scalar::<f32>().unwrap();
+        let l_chunk = out_chunk.total_loss.as_ref().unwrap().to_scalar::<f32>().unwrap();
+        assert!(
+            (l_full - l_chunk).abs() < 1e-5,
+            "Chunked CE loss {l_chunk} != full CE loss {l_full}"
+        );
+
+        let g_full = out_full.total_loss.unwrap().backward().unwrap();
+        let g_chunk = out_chunk.total_loss.unwrap().backward().unwrap();
+        let map = model.varmap.data().lock().unwrap();
+        let emb_var = map.get("tok_embeddings.weight").unwrap();
+        let gf = g_full.get(emb_var).unwrap().flatten_all().unwrap().to_vec1::<f32>().unwrap();
+        let gc = g_chunk.get(emb_var).unwrap().flatten_all().unwrap().to_vec1::<f32>().unwrap();
+        for (a, b) in gf.iter().zip(gc.iter()) {
+            assert!((a - b).abs() < 1e-5, "Grad mismatch {a} vs {b}");
+        }
     }
 }

@@ -18,11 +18,12 @@ use crate::config::{
     ActivationKind, Backbone, ComputeTarget, DatasetSource, DigitPolicy, EmbedScaleMode, InitDist,
     LrSchedule, Mechanism, Modality, NormKind, NormPlacement, OptimizerKind, PosEncoding,
     PreTokenizeMode, PrecisionMode, Preset, ResidualScaleMode, RopeScalingMode, Routing, RunConfig,
-    TokenizerKind, UnicodeNorm,
+    TokenizerKind, UiComplexity, UnicodeNorm,
 };
 use crate::dataset::{PreparedDataset, fetch_remote_dataset, load_local_or_builtin};
 use crate::hardware::{
-    ComputeBenchmarkReport, HardwareProfile, OptimizationPlan, run_live_compute_benchmark,
+    ComputeBenchmarkReport, HardwareProfile, OptimizationPlan, ReferenceHardwarePreset,
+    run_live_compute_benchmark,
 };
 use crate::repro::{GenesisStateReport, build_and_inspect_genesis, export_provenance_and_genesis};
 use crate::rng::{PrngAlgorithm, roll_os_entropy_seed};
@@ -153,13 +154,16 @@ struct StoredSettingsDoc {
     pub kaggle_vault_slot: Option<u64>,
     pub default_threads: Option<usize>,
     pub log_loss_chart: bool,
+    #[serde(default)]
+    pub ui_complexity: UiComplexity,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    // Navigation & host
+    // Navigation, UI Experience Tier & host
     OpenSurface(Surface),
     SelectStage(PipelineStage),
+    SelectUiComplexity(UiComplexity),
     BackToLauncher,
     DismissBanner,
 
@@ -268,9 +272,14 @@ pub enum Message {
     AdjustWarmupSteps(isize),
     AdjustEvalEvery(isize),
     AdjustCheckpointEvery(isize),
+    ApplyTokensPerParamRatio(f64),
+    AdjustTokensPerParamRatio(f64),
+    EditTokensPerParamRatio(String),
+    AutoSizeModelToDataset,
 
     // Stage 04: Hardware Inspector, CPU vs GPU Selector, & Custom Optimization Plan
     RescanHardware,
+    SelectReferenceHardwarePreset(ReferenceHardwarePreset),
     SelectComputeTarget(ComputeTarget),
     SelectPreferredGpu(usize),
     SelectPrecisionMode(PrecisionMode),
@@ -338,6 +347,7 @@ pub struct App {
     pub display: DisplaySettings,
     pub surface: Surface,
     pub stage: PipelineStage,
+    pub ui_complexity: UiComplexity,
     pub banner: Option<(bool, String)>,
 
     // Runs & active configuration
@@ -355,6 +365,7 @@ pub struct App {
     pub vocab_input: String,
     pub lr_input: String,
     pub steps_input: String,
+    pub target_ratio_input: String,
     pub min_chars_input: String,
     pub max_chars_input: String,
     pub max_rows_input: String,
@@ -376,6 +387,8 @@ pub struct App {
     pub expert_stability_open: bool,
 
     // Hardware, Optimization Plan, Tokenizer Arena, & Genesis State
+    pub live_hardware: HardwareProfile,
+    pub hw_preset: ReferenceHardwarePreset,
     pub hardware: HardwareProfile,
     pub optimization_plan: OptimizationPlan,
     pub compute_benchmark: Option<ComputeBenchmarkReport>,
@@ -508,11 +521,13 @@ impl App {
             .ok()
             .map(|(_, rep)| rep);
 
+        let live_hardware = hardware.clone();
         let mut app = Self {
             left_for_launcher: false,
             display,
             surface: Surface::Pipeline,
             stage: PipelineStage::Data,
+            ui_complexity: stored_settings.ui_complexity,
             banner: None,
             runs,
             active_run_id: active.id,
@@ -526,6 +541,7 @@ impl App {
             vocab_input: String::new(),
             lr_input: String::new(),
             steps_input: String::new(),
+            target_ratio_input: String::new(),
             min_chars_input: String::new(),
             max_chars_input: String::new(),
             max_rows_input: String::new(),
@@ -539,10 +555,12 @@ impl App {
             label_smooth_input: String::new(),
             sample_seed_input: String::new(),
             data_advanced_open: false,
-            tokenizer_advanced_open: true,
-            expert_attn_open: true,
+            tokenizer_advanced_open: false,
+            expert_attn_open: false,
             expert_init_open: false,
             expert_stability_open: false,
+            live_hardware,
+            hw_preset: ReferenceHardwarePreset::MyDetectedPc,
             hardware,
             optimization_plan,
             compute_benchmark: None,
@@ -629,7 +647,15 @@ impl App {
     pub fn prepare_snapshot(&mut self, surface: &str) {
         self.snapshot_mode = true;
         self.banner = None;
-        self.hardware = HardwareProfile::snapshot_fixture();
+        self.live_hardware = HardwareProfile::snapshot_fixture();
+        self.hardware = self.hw_preset.resolve_profile(&self.live_hardware);
+        if let Ok(mode_str) = std::env::var("ARCHX_UI_MODE") {
+            self.ui_complexity = match mode_str.trim().to_ascii_lowercase().as_str() {
+                "normal" | "standard" => UiComplexity::Standard,
+                "advanced" | "expert" => UiComplexity::Expert,
+                _ => UiComplexity::Simple,
+            };
+        }
         self.enter_surface(surface);
         if let Ok(stage_override) = std::env::var("ARCHX_TRAINING_STAGE") {
             self.enter_surface(stage_override.trim());
@@ -721,6 +747,11 @@ impl App {
         self.vocab_input = self.cfg.tokenizer.vocab_size.to_string();
         self.lr_input = format!("{:.4}", self.cfg.hyper.lr);
         self.steps_input = self.cfg.hyper.total_steps.to_string();
+        let cur_ratio = self
+            .cfg
+            .token_param_ratio(self.estimated_corpus_tokens())
+            .tokens_per_param;
+        self.target_ratio_input = format!("{cur_ratio:.1}");
         self.min_chars_input = self.cfg.dataset.min_chars.to_string();
         self.max_chars_input = self.cfg.dataset.max_chars.to_string();
         self.max_rows_input = self.cfg.dataset.max_remote_rows.to_string();
@@ -733,6 +764,12 @@ impl App {
         self.weight_decay_input = format!("{:.3}", self.cfg.hyper.weight_decay);
         self.label_smooth_input = format!("{:.2}", self.cfg.hyper.label_smoothing);
         self.sample_seed_input = self.cfg.sampling.seed.to_string();
+    }
+
+    pub fn estimated_corpus_tokens(&self) -> Option<usize> {
+        let ds = self.dataset.as_ref()?;
+        let cpt = f64::from(self.tokenizer_preview.chars_per_token).clamp(1.2, 6.0);
+        Some(((ds.total_chars as f64) / cpt).round() as usize)
     }
 
     pub fn active_run(&self) -> Option<&SavedRun> {
@@ -796,6 +833,7 @@ impl App {
             kaggle_vault_slot: self.kaggle_vault_slot,
             default_threads: Some(self.cfg.hyper.compute_threads),
             log_loss_chart: self.log_loss_chart,
+            ui_complexity: self.ui_complexity,
         };
         if let Ok(val) = serde_json::to_value(doc) {
             let _ = storage::save_app(APP_ID, AREA_SETTINGS, val);
@@ -835,6 +873,10 @@ impl App {
                 self.refresh_checkpoint_flags();
             }
             Message::SelectStage(st) => self.stage = st,
+            Message::SelectUiComplexity(tier) => {
+                self.ui_complexity = tier;
+                self.persist_settings();
+            }
             Message::BackToLauncher => {
                 if self.snapshot_mode {
                     return Task::none();
@@ -1614,10 +1656,65 @@ impl App {
                     (self.cfg.hyper.checkpoint_every as isize + delta).clamp(5, 2000) as usize;
                 self.sync_active_run_record();
             }
+            Message::ApplyTokensPerParamRatio(target) => {
+                self.cfg.apply_target_tokens_per_param(target);
+                self.sync_text_inputs();
+                self.sync_active_run_record();
+                let rep = self.cfg.token_param_ratio(self.estimated_corpus_tokens());
+                self.banner = Some((
+                    true,
+                    format!(
+                        "Matched steps to {:.1} tokens/param -> {} steps ({} total tokens).",
+                        rep.tokens_per_param,
+                        self.cfg.hyper.total_steps,
+                        crate::config::format_count(rep.scheduled_tokens)
+                    ),
+                ));
+            }
+            Message::AdjustTokensPerParamRatio(delta) => {
+                let cur = self
+                    .cfg
+                    .token_param_ratio(self.estimated_corpus_tokens())
+                    .tokens_per_param;
+                let next = (cur + delta).clamp(1.0, 200.0);
+                self.cfg.apply_target_tokens_per_param(next);
+                self.sync_text_inputs();
+                self.sync_active_run_record();
+            }
+            Message::EditTokensPerParamRatio(s) => {
+                if let Ok(v) = s.trim().parse::<f64>() {
+                    if (0.5..=200.0).contains(&v) {
+                        self.cfg.apply_target_tokens_per_param(v);
+                        self.steps_input = self.cfg.hyper.total_steps.to_string();
+                        self.sync_active_run_record();
+                    }
+                }
+                self.target_ratio_input = s;
+            }
+            Message::AutoSizeModelToDataset => {
+                let corpus_tok = self.estimated_corpus_tokens().unwrap_or(20_000);
+                self.cfg.auto_size_model_for_dataset(corpus_tok, 20.0, 3.0);
+                self.sync_text_inputs();
+                self.genesis_report = build_and_inspect_genesis(&self.cfg).ok().map(|(_, r)| r);
+                self.sync_active_run_record();
+                let sz = self.cfg.predict_sizes();
+                self.banner = Some((
+                    true,
+                    format!(
+                        "Sized model to active dataset (~{} tokens): {} params ({}) · {} steps (~20 tok/param).",
+                        crate::config::format_count(corpus_tok),
+                        crate::config::format_count(sz.total_params),
+                        crate::config::format_size_mb(sz.fp32_safetensors_mb),
+                        self.cfg.hyper.total_steps
+                    ),
+                ));
+            }
 
             // Stage 04: Hardware & Custom Optimization Plan
             Message::RescanHardware => {
-                self.hardware = HardwareProfile::probe();
+                self.live_hardware = HardwareProfile::probe();
+                self.hw_preset = ReferenceHardwarePreset::MyDetectedPc;
+                self.hardware = self.live_hardware.clone();
                 self.recompute_plan();
                 let gpu_count = self.hardware.gpus.len();
                 let msg = format!(
@@ -1629,6 +1726,11 @@ impl App {
                 );
                 self.log_event("hardware", &msg);
                 self.banner = Some((true, msg));
+            }
+            Message::SelectReferenceHardwarePreset(preset) => {
+                self.hw_preset = preset;
+                self.hardware = preset.resolve_profile(&self.live_hardware);
+                self.recompute_plan();
             }
             Message::SelectComputeTarget(target) => {
                 self.cfg.hardware_exec.target = target;

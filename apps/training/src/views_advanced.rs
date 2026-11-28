@@ -1,4 +1,4 @@
-//! Purpose: Renders the deep Tokenizer Studio & 4-Way Comparison Arena, Hardware Inspector & Custom Optimization Planner (`04`), Seed/Genesis State & Provenance Lab (`05`), and Engine #1 Transformer advanced controls.
+//! Purpose: Renders progressive (`Simple` / `Normal` / `Advanced`) views for Model Size Prediction, Parameter-to-Token Ratio Adjustment, Tokenizer Studio, Hardware & Popular GPU/CPU Simulator (`04`), and Seed/Genesis Provenance (`05`).
 
 use iced::widget::{button, column, container, row, scrollable, space, text, text_input};
 use iced::{Center, Element, Fill, FillPortion};
@@ -8,8 +8,10 @@ use archx_shared::style;
 use crate::app::{App, Message, PipelineStage};
 use crate::config::{
     ComputeTarget, DigitPolicy, EmbedScaleMode, NormPlacement, PreTokenizeMode, PrecisionMode,
-    ResidualScaleMode, RopeScalingMode, TokenizerKind, UnicodeNorm, format_count,
+    ResidualScaleMode, RopeScalingMode, TokenizerKind, UiComplexity, UnicodeNorm, format_count,
+    format_size_mb,
 };
+use crate::hardware::ReferenceHardwarePreset;
 use crate::rng::PrngAlgorithm;
 use crate::tokenizer::tokenizer_guide;
 
@@ -21,7 +23,7 @@ fn eyebrow_header(
     column![
         text(eyebrow).size(10.5).font(style::LABEL).color(style::DIM),
         text(title).size(22).font(style::DISPLAY).color(style::WHITE),
-        text(subtitle).size(12.5).color(style::GREY)
+        text(subtitle).size(13).color(style::GREY)
     ]
     .spacing(4)
     .into()
@@ -87,27 +89,489 @@ fn switch_row<'a>(
     .into()
 }
 
-fn guide_kv<'a>(label: &'static str, body: &'a str) -> Element<'a, Message> {
-    row![
-        text(label)
-            .size(11)
-            .font(style::LABEL)
-            .color(style::DIM)
-            .width(155),
-        text(body).size(12).color(style::TEXT_2).width(Fill)
-    ]
-    .spacing(10)
+fn mode_upsell_footer<'a>(current: UiComplexity) -> Element<'a, Message> {
+    match current {
+        UiComplexity::Simple => row![
+            text("Showing clean Simple essentials.")
+                .size(11.5)
+                .color(style::DIM)
+                .width(Fill),
+            button(text("Show Normal Controls").size(11).font(style::LABEL))
+                .padding([5, 11])
+                .on_press(Message::SelectUiComplexity(UiComplexity::Standard))
+                .style(style::tiny_button),
+            button(text("Show All Research Settings").size(11).font(style::LABEL))
+                .padding([5, 11])
+                .on_press(Message::SelectUiComplexity(UiComplexity::Expert))
+                .style(style::tiny_button),
+        ]
+        .spacing(8)
+        .align_y(Center)
+        .into(),
+        UiComplexity::Standard => row![
+            text("Showing Normal builder controls.")
+                .size(11.5)
+                .color(style::DIM)
+                .width(Fill),
+            button(text("Switch to Simple").size(11).font(style::LABEL))
+                .padding([5, 11])
+                .on_press(Message::SelectUiComplexity(UiComplexity::Simple))
+                .style(style::tiny_button),
+            button(text("Unlock Advanced Research Controls").size(11).font(style::LABEL))
+                .padding([5, 11])
+                .on_press(Message::SelectUiComplexity(UiComplexity::Expert))
+                .style(style::tiny_button),
+        ]
+        .spacing(8)
+        .align_y(Center)
+        .into(),
+        UiComplexity::Expert => space().height(0).into(),
+    }
+}
+
+fn size_tile<'a>(
+    eyebrow: &'static str,
+    big_val: String,
+    sub: String,
+    accent: bool,
+) -> Element<'a, Message> {
+    container(
+        column![
+            text(eyebrow).size(10).font(style::LABEL).color(style::DIM),
+            text(big_val)
+                .size(16.5)
+                .font(style::DISPLAY)
+                .color(if accent { style::OK } else { style::WHITE }),
+            text(sub).size(11).color(style::GREY),
+        ]
+        .spacing(3),
+    )
+    .width(FillPortion(1))
+    .padding(12)
+    .style(style::surface)
     .into()
 }
 
 // ============================================================================
-// STAGE 02: DEEP TOKENIZER STUDIO, DIFFERENCES GUIDE & 4-WAY COMPARISON ARENA
+// MODEL FILE SIZE PREDICTOR & PARAMETER-TO-TOKEN RATIO ADJUSTER (STAGE 03)
+// ============================================================================
+
+pub fn size_and_ratio_cards(app: &App) -> Element<'_, Message> {
+    let sz = app.cfg.predict_sizes();
+    let ratio = app.cfg.token_param_ratio(app.estimated_corpus_tokens());
+    let simple = app.ui_complexity == UiComplexity::Simple;
+
+    // 1. Model Disk & RAM Size Predictor Card
+    let size_card: Element<'_, Message> = if simple {
+        container(
+            column![
+                row![
+                    text("PREDICTED AI FILE SIZE & MEMORY")
+                        .size(10.5)
+                        .font(style::LABEL)
+                        .color(style::DIM)
+                        .width(Fill),
+                    text(format!("{} parameters", format_count(sz.total_params)))
+                        .size(11.5)
+                        .font(style::LABEL)
+                        .color(style::OK),
+                ]
+                .align_y(Center),
+                row![
+                    size_tile(
+                        "SAVED MODEL FILE",
+                        format_size_mb(sz.fp32_safetensors_mb),
+                        "Exact .safetensors file".to_owned(),
+                        true,
+                    ),
+                    size_tile(
+                        "COMPACT / 4-BIT EST.",
+                        format!(
+                            "{} / {}",
+                            format_size_mb(sz.fp16_bf16_mb),
+                            format_size_mb(sz.int4_quant_mb)
+                        ),
+                        "Half-precision / 4-bit".to_owned(),
+                        false,
+                    ),
+                    size_tile(
+                        "MEMORY TO TRAIN",
+                        format_size_mb(sz.peak_train_ram_mb),
+                        format!("Full folder: {}", format_size_mb(sz.full_run_folder_mb)),
+                        false,
+                    ),
+                ]
+                .spacing(10),
+            ]
+            .spacing(10),
+        )
+        .width(Fill)
+        .padding(18)
+        .style(style::card)
+        .into()
+    } else {
+        container(
+            column![
+                row![
+                    text("MODEL FILE SIZE & RUNTIME MEMORY PREDICTOR")
+                        .size(10.5)
+                        .font(style::LABEL)
+                        .color(style::DIM)
+                        .width(Fill),
+                    text(format!(
+                        "Total: {} params ({} active/token)",
+                        format_count(sz.total_params),
+                        format_count(sz.active_params)
+                    ))
+                    .size(11.5)
+                    .font(style::LABEL)
+                    .color(style::OK),
+                ]
+                .align_y(Center),
+                row![
+                    size_tile(
+                        "FP32 SAFETENSORS",
+                        format_size_mb(sz.fp32_safetensors_mb),
+                        "Exact 32-bit checkpoint".to_owned(),
+                        true,
+                    ),
+                    size_tile(
+                        "BF16 / FP16 SIZE",
+                        format_size_mb(sz.fp16_bf16_mb),
+                        "16-bit export size".to_owned(),
+                        false,
+                    ),
+                    size_tile(
+                        "INT8 / INT4 QUANT",
+                        format!(
+                            "{} / {}",
+                            format_size_mb(sz.int8_quant_mb),
+                            format_size_mb(sz.int4_quant_mb)
+                        ),
+                        "8-bit & 4-bit edge size".to_owned(),
+                        false,
+                    ),
+                    size_tile(
+                        "PEAK TRAIN / CHAT RAM",
+                        format!(
+                            "{} / {}",
+                            format_size_mb(sz.peak_train_ram_mb),
+                            format_size_mb(sz.chat_fp32_ram_mb)
+                        ),
+                        format!("Run folder: {}", format_size_mb(sz.full_run_folder_mb)),
+                        false,
+                    ),
+                ]
+                .spacing(10),
+            ]
+            .spacing(10),
+        )
+        .width(Fill)
+        .padding(18)
+        .style(style::card)
+        .into()
+    };
+
+    // 2. Interactive Parameter-to-Token Ratio Adjuster Card
+    let mut ratio_presets = row![].spacing(7);
+    let presets: &[(f64, &str)] = if simple {
+        &[
+            (2.0, "Quick Test (2×)"),
+            (20.0, "Recommended Optimal (20×)"),
+            (40.0, "Extra Thorough (40×)"),
+        ]
+    } else {
+        &[
+            (2.0, "2× Smoke"),
+            (10.0, "10× Draft"),
+            (20.0, "20× Chinchilla"),
+            (40.0, "40× Llama"),
+            (80.0, "80× Deep"),
+        ]
+    };
+
+    for &(target_r, lbl) in presets {
+        let near = (ratio.tokens_per_param - target_r).abs() < (target_r * 0.18).max(0.8);
+        ratio_presets = ratio_presets.push(
+            button(text(lbl).size(11.5).font(style::LABEL))
+                .padding([6, 12])
+                .on_press(Message::ApplyTokensPerParamRatio(target_r))
+                .style(move |t, s| style::mini_toggle(near, t, s)),
+        );
+    }
+    ratio_presets = ratio_presets.push(
+        button(
+            text(if simple {
+                "Auto-Size AI to My Text"
+            } else {
+                "Auto-Size Model to Dataset"
+            })
+            .size(11.5)
+            .font(style::STRONG),
+        )
+        .padding([6, 13])
+        .on_press(Message::AutoSizeModelToDataset)
+        .style(style::control_button),
+    );
+
+    let fine_adjust_row: Element<'_, Message> = if simple {
+        space().height(0).into()
+    } else {
+        row![
+            mini_stepper(
+                "TOKENS / PARAM STEPPER",
+                format!("{:.1}×", ratio.tokens_per_param),
+                Message::AdjustTokensPerParamRatio(-2.0),
+                Message::AdjustTokensPerParamRatio(2.0),
+            ),
+            container(
+                column![
+                    text("TARGET TOKENS / PARAM")
+                        .size(10.5)
+                        .font(style::LABEL)
+                        .color(style::DIM),
+                    text_input("20.0", &app.target_ratio_input)
+                        .on_input(Message::EditTokensPerParamRatio)
+                        .padding([7, 10])
+                        .size(13)
+                        .style(style::composer_input),
+                ]
+                .spacing(6),
+            )
+            .width(FillPortion(1))
+            .padding(12)
+            .style(style::card),
+            container(
+                column![
+                    text("SCHEDULED TOKENS")
+                        .size(10.5)
+                        .font(style::LABEL)
+                        .color(style::DIM),
+                    text(format!(
+                        "{} ({} steps)",
+                        format_count(ratio.scheduled_tokens),
+                        app.cfg.hyper.total_steps
+                    ))
+                    .size(13)
+                    .font(style::LABEL)
+                    .color(style::WHITE),
+                ]
+                .spacing(6),
+            )
+            .width(FillPortion(1))
+            .padding(12)
+            .style(style::card),
+        ]
+        .spacing(10)
+        .into()
+    };
+
+    let ratio_card = container(
+        column![
+            row![
+                column![
+                    text(if simple {
+                        "TRAINING BALANCE (TEXT TOKENS PER PARAMETER)"
+                    } else {
+                        "PARAMETER-TO-TOKEN RATIO ADJUSTER (CHINCHILLA SCALING)"
+                    })
+                    .size(10.5)
+                    .font(style::LABEL)
+                    .color(style::DIM),
+                    text(format!(
+                        "{:.1} tokens per parameter · {} total training tokens",
+                        ratio.tokens_per_param,
+                        format_count(ratio.scheduled_tokens)
+                    ))
+                    .size(15)
+                    .font(style::STRONG)
+                    .color(style::WHITE),
+                ]
+                .spacing(3)
+                .width(Fill),
+                container(
+                    text(ratio.status_badge)
+                        .size(11)
+                        .font(style::LABEL)
+                        .color(if ratio.is_balanced {
+                            style::OK
+                        } else {
+                            style::DANGER
+                        }),
+                )
+                .padding([4, 10])
+                .style(style::badge),
+            ]
+            .align_y(Center),
+            text(ratio.plain_advice).size(12).color(style::GREY),
+            ratio_presets,
+            fine_adjust_row,
+        ]
+        .spacing(10),
+    )
+    .width(Fill)
+    .padding(18)
+    .style(style::card);
+
+    column![size_card, ratio_card].spacing(16).into()
+}
+
+// ============================================================================
+// STAGE 02: TOKENIZER VIEW (SIMPLE -> NORMAL -> ADVANCED)
 // ============================================================================
 
 pub fn stage_tokenizer_deep_view(app: &App) -> Element<'_, Message> {
     let tk_cfg = &app.cfg.tokenizer;
-    let guide = tokenizer_guide(tk_cfg.kind);
+    let level = app.ui_complexity;
 
+    // Active tokenizer token chips (capped cleanly so it never floods the screen)
+    let max_chips = if level == UiComplexity::Simple { 24 } else { 42 };
+    let mut token_badges = column![].spacing(6);
+    let mut current_line = row![].spacing(6);
+    let mut line_chars = 0usize;
+    for (id, disp) in app.tokenizer_preview.tokens.iter().take(max_chips) {
+        let label = if level == UiComplexity::Simple {
+            disp.clone()
+        } else {
+            format!("{disp} #{id}")
+        };
+        line_chars += label.chars().count() + 3;
+        current_line = current_line.push(
+            container(text(label).size(11.5).font(style::LABEL).color(style::TEXT_2))
+                .padding([4, 9])
+                .style(style::badge),
+        );
+        if line_chars > 64 {
+            token_badges = token_badges.push(current_line);
+            current_line = row![].spacing(6);
+            line_chars = 0;
+        }
+    }
+    if line_chars > 0 {
+        token_badges = token_badges.push(current_line);
+    }
+
+    // --- SIMPLE MODE: Calm, plain-English 2-card view ---
+    if level == UiComplexity::Simple {
+        let friendly_desc = match tk_cfg.kind {
+            TokenizerKind::ByteLevelBpe => {
+                "Smart Subwords (Recommended): Splits common words whole and rare words into smaller pieces. Works on any language, code, or emoji with zero unknown words."
+            }
+            TokenizerKind::WordPiece => {
+                "Word-Piece: Keeps everyday words intact and marks word endings with '##' (the classic BERT style)."
+            }
+            TokenizerKind::Unigram => {
+                "Probabilistic Subwords: Picks the most likely word pieces statistically — great for multilingual text."
+            }
+            TokenizerKind::CharLevel => {
+                "Character-by-Character: Reads one letter at a time. Tiny vocabulary, best for small toy experiments."
+            }
+            TokenizerKind::PretrainedFile => {
+                "Custom File: Uses an existing Hugging Face tokenizer.json file from your computer."
+            }
+        };
+
+        let mut simple_pills = row![].spacing(8);
+        for (kind, friendly_lbl) in [
+            (TokenizerKind::ByteLevelBpe, "Smart Subwords (Recommended)"),
+            (TokenizerKind::WordPiece, "Word-Piece"),
+            (TokenizerKind::Unigram, "Probabilistic"),
+            (TokenizerKind::CharLevel, "Letter-by-Letter"),
+        ] {
+            let active = tk_cfg.kind == kind;
+            simple_pills = simple_pills.push(
+                button(text(friendly_lbl).size(12).font(style::LABEL))
+                    .padding([7, 14])
+                    .on_press(Message::SelectTokenizerKind(kind))
+                    .style(move |t, s| style::mini_toggle(active, t, s)),
+            );
+        }
+
+        return column![
+            eyebrow_header(
+                "STEP 2 OF 6 · VOCABULARY",
+                "How Should Your AI Read Words?",
+                "Before an AI can learn from text, it breaks sentences into bite-sized pieces called tokens."
+            ),
+            container(
+                column![
+                    text("CHOOSE READING STYLE")
+                        .size(10.5)
+                        .font(style::LABEL)
+                        .color(style::DIM),
+                    simple_pills,
+                    container(text(friendly_desc).size(12.5).color(style::TEXT_2))
+                        .width(Fill)
+                        .padding(13)
+                        .style(style::surface),
+                ]
+                .spacing(12)
+            )
+            .width(Fill)
+            .padding(18)
+            .style(style::card),
+            container(
+                column![
+                    row![
+                        text("TRY A SAMPLE SENTENCE")
+                            .size(10.5)
+                            .font(style::LABEL)
+                            .color(style::DIM)
+                            .width(Fill),
+                        text(format!(
+                            "{} pieces · {} vocabulary size",
+                            app.tokenizer_preview.tokens.len(),
+                            app.tokenizer
+                                .as_ref()
+                                .map(|t| t.vocab_size())
+                                .unwrap_or(tk_cfg.vocab_size)
+                        ))
+                        .size(11.5)
+                        .color(style::OK),
+                    ]
+                    .align_y(Center),
+                    text_input("Type a sentence to see how the AI splits it…", &app.tokenizer_sample)
+                        .on_input(Message::EditTokenizerSample)
+                        .padding([9, 12])
+                        .size(13)
+                        .style(style::composer_input),
+                    token_badges,
+                    row![
+                        button(
+                            text("Rebuild Vocabulary")
+                                .size(12)
+                                .font(style::LABEL)
+                        )
+                        .padding([8, 14])
+                        .on_press(Message::BuildTokenizer)
+                        .style(style::control_button),
+                        space().width(Fill),
+                        button(
+                            text("Next: Choose AI Brain Size  →")
+                                .size(12.5)
+                                .font(style::STRONG)
+                                .color(style::BLACK)
+                        )
+                        .padding([9, 16])
+                        .on_press(Message::SelectStage(PipelineStage::Architecture))
+                        .style(style::primary_button),
+                    ]
+                    .spacing(10)
+                    .align_y(Center),
+                ]
+                .spacing(11)
+            )
+            .width(Fill)
+            .padding(18)
+            .style(style::card),
+            mode_upsell_footer(level),
+        ]
+        .spacing(16)
+        .into();
+    }
+
+    // --- NORMAL & ADVANCED MODES ---
+    let guide = tokenizer_guide(tk_cfg.kind);
     let mut kind_pills = row![].spacing(7);
     for kind in TokenizerKind::ALL {
         let active = tk_cfg.kind == kind;
@@ -169,227 +633,114 @@ pub fn stage_tokenizer_deep_view(app: &App) -> Element<'_, Message> {
         .into()
     };
 
-    // Pre-tokenization & digit splitting pills
-    let mut pre_pills = row![].spacing(6);
-    for mode in PreTokenizeMode::ALL {
-        let active = tk_cfg.pre_tokenize == mode;
-        pre_pills = pre_pills.push(
-            button(text(mode.label()).size(11))
-                .padding([5, 10])
-                .on_press(Message::SelectPreTokenize(mode))
-                .style(move |t, s| style::mini_toggle(active, t, s)),
-        );
-    }
-
-    let mut digit_pills = row![].spacing(6);
-    for dp in DigitPolicy::ALL {
-        let active = tk_cfg.digit_policy == dp;
-        digit_pills = digit_pills.push(
-            button(text(dp.label()).size(11))
-                .padding([5, 10])
-                .on_press(Message::SelectDigitPolicy(dp))
-                .style(move |t, s| style::mini_toggle(active, t, s)),
-        );
-    }
-
-    let mut norm_pills = row![].spacing(6);
-    for un in UnicodeNorm::ALL {
-        let active = tk_cfg.normalization == un;
-        norm_pills = norm_pills.push(
-            button(text(un.label()).size(11))
-                .padding([5, 10])
-                .on_press(Message::SelectUnicodeNorm(un))
-                .style(move |t, s| style::mini_toggle(active, t, s)),
-        );
-    }
-
-    let mut pad_pills = row![].spacing(6);
-    for (mult, lbl) in [
-        (0usize, "Unpadded"),
-        (64usize, "Pad to 64× (CPU SIMD)"),
-        (128usize, "Pad to 128× (GPU Tiles)"),
-    ] {
-        let active = tk_cfg.pad_to_multiple == mult;
-        pad_pills = pad_pills.push(
-            button(text(lbl).size(11))
-                .padding([5, 10])
-                .on_press(Message::SelectVocabPadMultiple(mult))
-                .style(move |t, s| style::mini_toggle(active, t, s)),
-        );
-    }
-
-    // Active tokenizer token chips
-    let mut token_badges = column![].spacing(6);
-    let mut current_line = row![].spacing(6);
-    let mut line_chars = 0usize;
-    for (id, disp) in app.tokenizer_preview.tokens.iter().take(48) {
-        let label = format!("{disp} #{id}");
-        line_chars += label.chars().count() + 3;
-        current_line = current_line.push(
-            container(text(label).size(11).font(style::LABEL).color(style::TEXT_2))
-                .padding([4, 8])
-                .style(style::badge),
-        );
-        if line_chars > 68 {
-            token_badges = token_badges.push(current_line);
-            current_line = row![].spacing(6);
-            line_chars = 0;
-        }
-    }
-    if line_chars > 0 {
-        token_badges = token_badges.push(current_line);
-    }
-
-    // 4-way Arena comparison table
-    let mut arena_rows = column![].spacing(8);
-    for row_data in &app.tokenizer_arena {
-        let is_selected = row_data.kind == tk_cfg.kind;
-        let sample_snip: String = row_data
-            .preview_tokens
-            .iter()
-            .take(9)
-            .map(|(_, s)| format!("[{s}]"))
-            .collect::<Vec<_>>()
-            .join(" ");
-
-        arena_rows = arena_rows.push(
-            container(
-                column![
-                    row![
-                        text(format!(
-                            "{}{}",
-                            row_data.kind.label(),
-                            if is_selected { "  · ACTIVE" } else { "" }
-                        ))
-                        .size(12.5)
-                        .font(style::STRONG)
-                        .color(if is_selected { style::OK } else { style::WHITE })
-                        .width(FillPortion(2)),
-                        text(format!("vocab {}", row_data.actual_vocab_size))
-                            .size(11.5)
-                            .color(style::GREY)
-                            .width(FillPortion(1)),
-                        text(format!("{} tok", row_data.token_count))
-                            .size(11.5)
-                            .font(style::LABEL)
-                            .color(style::WHITE)
-                            .width(FillPortion(1)),
-                        text(format!("{:.2} ch/tok", row_data.chars_per_token))
-                            .size(11.5)
-                            .color(style::TEXT_2)
-                            .width(FillPortion(1)),
-                        text(format!("{:.2} tok/word", row_data.fertility_tok_per_word))
-                            .size(11.5)
-                            .color(style::TEXT_2)
-                            .width(FillPortion(1)),
-                        text(format!("~{} words/ctx", row_data.est_words_per_ctx))
-                            .size(11.5)
-                            .color(style::OK)
-                            .width(FillPortion(1)),
-                        button(text("Use").size(10.5).font(style::LABEL))
-                            .padding([3, 9])
-                            .on_press(Message::SelectTokenizerKind(row_data.kind))
-                            .style(move |t, s| style::mini_toggle(is_selected, t, s)),
-                    ]
-                    .spacing(8)
-                    .align_y(Center),
-                    text(format!("Splits: {sample_snip}"))
-                        .size(11)
-                        .color(style::DIM)
-                ]
-                .spacing(4),
-            )
-            .width(Fill)
-            .padding(11)
-            .style(style::surface),
-        );
-    }
-
-    let tk_summary = app
-        .tokenizer
-        .as_ref()
-        .map(|tk| tk.summary().to_owned())
-        .unwrap_or_else(|| "Not built yet".to_owned());
-
-    column![
-        eyebrow_header(
-            "STAGE 02 / NATIVE RUST TOKENIZER STUDIO",
-            "Choose, Customize & Compare Tokenizers",
-            "Understand how each subword algorithm splits text, configure pre-tokenization & math digit rules, and compare all 4 scratch tokenizers live."
-        ),
-        // Card 1: Algorithm picker + Deep Differences Guide
+    let guide_block: Element<'_, Message> = if level == UiComplexity::Expert {
+        let guide_kv = |label: &'static str, body: &'static str| -> Element<'static, Message> {
+            row![
+                text(label)
+                    .size(11)
+                    .font(style::LABEL)
+                    .color(style::DIM)
+                    .width(155),
+                text(body).size(12).color(style::TEXT_2).width(Fill)
+            ]
+            .spacing(10)
+            .into()
+        };
         container(
             column![
-                row![
-                    text("SELECT TOKENIZER FAMILY")
-                        .size(10.5)
-                        .font(style::LABEL)
-                        .color(style::DIM)
-                        .width(Fill),
-                    text(tk_cfg.kind.family_badge())
-                        .size(11)
-                        .font(style::LABEL)
-                        .color(style::OK)
-                ]
-                .align_y(Center),
-                kind_pills,
-                container(
-                    column![
-                        text(guide.subtitle)
-                            .size(12.5)
-                            .font(style::STRONG)
-                            .color(style::WHITE),
-                        guide_kv("HOW IT WORKS", guide.mechanism),
-                        guide_kv("OOV / <UNK> POLICY", guide.oov_behavior),
-                        guide_kv("COMPRESSION", guide.compression_profile),
-                        guide_kv("TRANSFORMER IMPACT", guide.transformer_impact),
-                        guide_kv("STRENGTHS", guide.strengths),
-                        guide_kv("TRADE-OFFS", guide.tradeoffs),
-                    ]
-                    .spacing(6)
-                )
-                .width(Fill)
-                .padding(13)
-                .style(style::surface),
-                vocab_or_file,
+                text(guide.subtitle)
+                    .size(12.5)
+                    .font(style::STRONG)
+                    .color(style::WHITE),
+                guide_kv("HOW IT WORKS", guide.mechanism),
+                guide_kv("OOV / <UNK> POLICY", guide.oov_behavior),
+                guide_kv("COMPRESSION", guide.compression_profile),
+                guide_kv("TRANSFORMER IMPACT", guide.transformer_impact),
+                guide_kv("STRENGTHS", guide.strengths),
+                guide_kv("TRADE-OFFS", guide.tradeoffs),
             ]
-            .spacing(12)
+            .spacing(6),
         )
         .width(Fill)
-        .padding(18)
-        .style(style::card),
-        // Card 2: Deep Pre-tokenization, Digits, Hardware Alignment & Special Tokens
+        .padding(13)
+        .style(style::surface)
+        .into()
+    } else {
         container(
             column![
-                text("PRE-TOKENIZATION, MATH DIGIT SPLITTING & HARDWARE ALIGNMENT")
+                text(guide.subtitle)
+                    .size(12.5)
+                    .font(style::STRONG)
+                    .color(style::WHITE),
+                text(guide.mechanism).size(12).color(style::GREY),
+            ]
+            .spacing(4),
+        )
+        .width(Fill)
+        .padding(12)
+        .style(style::surface)
+        .into()
+    };
+
+    // Expert pre-tokenization card (only in Expert mode!)
+    let expert_rules_card: Element<'_, Message> = if level == UiComplexity::Expert {
+        let mut pre_pills = row![].spacing(6);
+        for mode in PreTokenizeMode::ALL {
+            let active = tk_cfg.pre_tokenize == mode;
+            pre_pills = pre_pills.push(
+                button(text(mode.label()).size(11))
+                    .padding([5, 10])
+                    .on_press(Message::SelectPreTokenize(mode))
+                    .style(move |t, s| style::mini_toggle(active, t, s)),
+            );
+        }
+        let mut digit_pills = row![].spacing(6);
+        for dp in DigitPolicy::ALL {
+            let active = tk_cfg.digit_policy == dp;
+            digit_pills = digit_pills.push(
+                button(text(dp.label()).size(11))
+                    .padding([5, 10])
+                    .on_press(Message::SelectDigitPolicy(dp))
+                    .style(move |t, s| style::mini_toggle(active, t, s)),
+            );
+        }
+        let mut norm_pills = row![].spacing(6);
+        for un in UnicodeNorm::ALL {
+            let active = tk_cfg.normalization == un;
+            norm_pills = norm_pills.push(
+                button(text(un.label()).size(11))
+                    .padding([5, 10])
+                    .on_press(Message::SelectUnicodeNorm(un))
+                    .style(move |t, s| style::mini_toggle(active, t, s)),
+            );
+        }
+        let mut pad_pills = row![].spacing(6);
+        for (mult, lbl) in [
+            (0usize, "Unpadded"),
+            (64usize, "Pad to 64× (CPU SIMD)"),
+            (128usize, "Pad to 128× (GPU Tiles)"),
+        ] {
+            let active = tk_cfg.pad_to_multiple == mult;
+            pad_pills = pad_pills.push(
+                button(text(lbl).size(11))
+                    .padding([5, 10])
+                    .on_press(Message::SelectVocabPadMultiple(mult))
+                    .style(move |t, s| style::mini_toggle(active, t, s)),
+            );
+        }
+        container(
+            column![
+                text("ADVANCED PRE-TOKENIZATION, MATH DIGIT SPLITTING & TILE ALIGNMENT")
                     .size(10.5)
                     .font(style::LABEL)
                     .color(style::DIM),
-                column![
-                    text("Boundary splitting rule").size(11.5).color(style::GREY),
-                    pre_pills
-                ]
-                .spacing(5),
-                column![
-                    text("Number & arithmetic policy (crucial for Transformer math generalization)")
-                        .size(11.5)
-                        .color(style::GREY),
-                    digit_pills
-                ]
-                .spacing(5),
-                column![
-                    text("Unicode normalization").size(11.5).color(style::GREY),
-                    norm_pills
-                ]
-                .spacing(5),
-                column![
-                    text("Hardware tensor-tile vocabulary alignment").size(11.5).color(style::GREY),
-                    pad_pills
-                ]
-                .spacing(5),
+                column![text("Boundary splitting rule").size(11.5).color(style::GREY), pre_pills].spacing(5),
+                column![text("Number & arithmetic digit policy").size(11.5).color(style::GREY), digit_pills].spacing(5),
+                column![text("Unicode normalization").size(11.5).color(style::GREY), norm_pills].spacing(5),
+                column![text("Hardware vocabulary tile alignment").size(11.5).color(style::GREY), pad_pills].spacing(5),
                 row![
                     mini_stepper(
-                        "SUBWORD DROPOUT (TRAIN REG.)",
+                        "SUBWORD DROPOUT",
                         format!("{:.2}", tk_cfg.subword_dropout),
                         Message::AdjustSubwordDropout(-0.02),
                         Message::AdjustSubwordDropout(0.02)
@@ -415,25 +766,106 @@ pub fn stage_tokenizer_deep_view(app: &App) -> Element<'_, Message> {
                 .spacing(10),
                 switch_row(
                     "UTF-8 Byte Fallback (<0xXX>)",
-                    "Decomposes unseen Unicode characters into hex byte tokens in WordPiece/Unigram so <unk> rate stays 0%.",
+                    "Decomposes unseen Unicode characters into hex byte tokens in WordPiece/Unigram for 0% <unk>.",
                     tk_cfg.byte_fallback,
                     Message::ToggleByteFallback
                 ),
+            ]
+            .spacing(10),
+        )
+        .width(Fill)
+        .padding(18)
+        .style(style::card)
+        .into()
+    } else {
+        space().height(0).into()
+    };
+
+    // 4-way Arena comparison table
+    let mut arena_rows = column![].spacing(7);
+    for row_data in &app.tokenizer_arena {
+        let is_selected = row_data.kind == tk_cfg.kind;
+        arena_rows = arena_rows.push(
+            container(
+                row![
+                    text(format!(
+                        "{}{}",
+                        row_data.kind.label(),
+                        if is_selected { " · ACTIVE" } else { "" }
+                    ))
+                    .size(12)
+                    .font(style::STRONG)
+                    .color(if is_selected { style::OK } else { style::WHITE })
+                    .width(FillPortion(2)),
+                    text(format!("vocab {}", row_data.actual_vocab_size))
+                        .size(11.5)
+                        .color(style::GREY)
+                        .width(FillPortion(1)),
+                    text(format!("{} tok", row_data.token_count))
+                        .size(11.5)
+                        .font(style::LABEL)
+                        .color(style::WHITE)
+                        .width(FillPortion(1)),
+                    text(format!("{:.2} ch/tok", row_data.chars_per_token))
+                        .size(11.5)
+                        .color(style::TEXT_2)
+                        .width(FillPortion(1)),
+                    text(format!("~{} words/ctx", row_data.est_words_per_ctx))
+                        .size(11.5)
+                        .color(style::OK)
+                        .width(FillPortion(1)),
+                    button(text("Select").size(10.5).font(style::LABEL))
+                        .padding([4, 10])
+                        .on_press(Message::SelectTokenizerKind(row_data.kind))
+                        .style(move |t, s| style::mini_toggle(is_selected, t, s)),
+                ]
+                .spacing(8)
+                .align_y(Center),
+            )
+            .width(Fill)
+            .padding(10)
+            .style(style::surface),
+        );
+    }
+
+    let tk_summary = app
+        .tokenizer
+        .as_ref()
+        .map(|tk| tk.summary().to_owned())
+        .unwrap_or_else(|| "Not built yet".to_owned());
+
+    column![
+        eyebrow_header(
+            "STAGE 02 / TOKENIZER & VOCABULARY",
+            "Choose & Compare Subword Tokenizers",
+            "Pick a subword algorithm, set vocabulary size, and compare compression across your dataset."
+        ),
+        container(
+            column![
+                row![
+                    text("TOKENIZER ALGORITHM")
+                        .size(10.5)
+                        .font(style::LABEL)
+                        .color(style::DIM)
+                        .width(Fill),
+                    text(tk_cfg.kind.family_badge())
+                        .size(11)
+                        .font(style::LABEL)
+                        .color(style::OK)
+                ]
+                .align_y(Center),
+                kind_pills,
+                guide_block,
+                vocab_or_file,
                 switch_row(
                     "Sequence packing",
-                    "Concatenates documents end-to-end with <bos>/<eos> separators so zero FLOPs are wasted on padding.",
+                    "Packs documents back-to-back with <bos>/<eos> separators so zero compute is wasted on padding.",
                     tk_cfg.sequence_packing,
                     Message::ToggleSequencePacking
                 ),
-                switch_row(
-                    "Insert <bos> and <eos> boundary tokens",
-                    "Marks exact document boundaries for clean autoregressive stopping.",
-                    tk_cfg.add_bos_eos,
-                    Message::ToggleBosEos
-                ),
                 row![
                     button(
-                        text("Train / Rebuild Active Tokenizer")
+                        text("Train / Rebuild Tokenizer")
                             .size(12.5)
                             .font(style::STRONG)
                             .color(style::BLACK)
@@ -442,77 +874,61 @@ pub fn stage_tokenizer_deep_view(app: &App) -> Element<'_, Message> {
                     .on_press(Message::BuildTokenizer)
                     .style(style::primary_button),
                     text(tk_summary).size(12).color(style::OK).width(Fill),
-                    button(text("Next: 03 Architecture  →").size(12).font(style::LABEL))
+                    button(text("Next: 03 Model  →").size(12).font(style::LABEL))
                         .padding([9, 15])
                         .on_press(Message::SelectStage(PipelineStage::Architecture))
                         .style(style::control_button)
                 ]
                 .spacing(12)
-                .align_y(Center)
+                .align_y(Center),
             ]
-            .spacing(11)
+            .spacing(12)
         )
         .width(Fill)
         .padding(18)
         .style(style::card),
-        // Card 3: Live Probe & 4-Way Comparison Arena
+        expert_rules_card,
         container(
             column![
                 row![
-                    text("SIDE-BY-SIDE 4-TOKENIZER ARENA & LIVE PROBE")
+                    text("LIVE PROBE & 4-TOKENIZER COMPARISON")
                         .size(10.5)
                         .font(style::LABEL)
                         .color(style::DIM)
                         .width(Fill),
-                    button(
-                        text("Compare All 4 Scratch Tokenizers")
-                            .size(11.5)
-                            .font(style::STRONG)
-                    )
-                    .padding([6, 13])
-                    .on_press(Message::RunTokenizerArena)
-                    .style(style::control_button)
+                    button(text("Refresh 4-Way Comparison").size(11).font(style::LABEL))
+                        .padding([5, 11])
+                        .on_press(Message::RunTokenizerArena)
+                        .style(style::control_button)
                 ]
                 .align_y(Center),
-                text_input("Type code, math, or prose to inspect splits…", &app.tokenizer_sample)
+                text_input("Type prose, math, or code to inspect splits…", &app.tokenizer_sample)
                     .on_input(Message::EditTokenizerSample)
                     .padding([9, 12])
                     .size(13)
                     .style(style::composer_input),
-                text(format!(
-                    "Active {} split ({} tokens · {:.2} chars/token):",
-                    tk_cfg.kind.label(),
-                    app.tokenizer_preview.tokens.len(),
-                    app.tokenizer_preview.chars_per_token
-                ))
-                .size(11.5)
-                .color(style::GREY),
                 token_badges,
-                space().height(4),
-                text(format!(
-                    "4-Algorithm Comparison on Active Corpus (context window = {} tokens):",
-                    app.cfg.model.seq_len
-                ))
-                .size(11.5)
-                .font(style::LABEL)
-                .color(style::DIM),
                 arena_rows,
             ]
             .spacing(10)
         )
         .width(Fill)
         .padding(18)
-        .style(style::card)
+        .style(style::card),
+        mode_upsell_footer(level),
     ]
     .spacing(16)
     .into()
 }
 
 // ============================================================================
-// EXTRA TRANSFORMER ENGINE #1 CONTROLS (PLUGGED INTO STAGE 03)
+// EXTRA TRANSFORMER ENGINE #1 CONTROLS (EXPERT MODE ONLY IN STAGE 03)
 // ============================================================================
 
 pub fn transformer_advanced_card(app: &App) -> Element<'_, Message> {
+    if app.ui_complexity != UiComplexity::Expert {
+        return space().height(0).into();
+    }
     let m = &app.cfg.model;
 
     let mut place_pills = row![].spacing(6);
@@ -587,7 +1003,7 @@ pub fn transformer_advanced_card(app: &App) -> Element<'_, Message> {
             .align_y(Center),
             row![
                 mini_stepper(
-                    "ATTN LOGIT SOFTCAP (GEMMA-2)",
+                    "ATTN LOGIT SOFTCAP",
                     if m.attn_logit_softcap <= 0.5 {
                         "Off".into()
                     } else {
@@ -624,7 +1040,7 @@ pub fn transformer_advanced_card(app: &App) -> Element<'_, Message> {
 }
 
 // ============================================================================
-// STAGE 04: SYSTEM HARDWARE PROBE, CPU vs GPU SELECTOR & CUSTOM OPTIMIZATION PLAN
+// STAGE 04: HARDWARE, POPULAR GPU/CPU SIMULATOR & AUTO-OPTIMIZER
 // ============================================================================
 
 pub fn stage_hardware_view(app: &App) -> Element<'_, Message> {
@@ -632,81 +1048,157 @@ pub fn stage_hardware_view(app: &App) -> Element<'_, Message> {
     let exec = &app.cfg.hardware_exec;
     let plan = &app.optimization_plan;
     let ps = &plan.summary;
+    let level = app.ui_complexity;
 
-    let simd_line = if hw.cpu.simd_features.is_empty() {
-        "Portable auto-vectorized ISA".to_owned()
-    } else {
-        hw.cpu.simd_features.join(" · ")
-    };
+    let gpu_headline = hw
+        .best_hardware_gpu()
+        .map(|g| format!("{} ({} MB max buffer)", g.name, g.max_buffer_mb))
+        .unwrap_or_else(|| "Integrated / CPU SIMD (No separate discrete GPU required)".to_owned());
 
-    let mut gpu_cards = column![].spacing(8);
-    if hw.gpus.is_empty() {
-        gpu_cards = gpu_cards.push(
+    // --- SIMPLE MODE: Calm, reassuring 2-card view ---
+    if level == UiComplexity::Simple {
+        let mut simple_targets = row![].spacing(8);
+        for (t_opt, friendly_lbl) in [
+            (ComputeTarget::Auto, "Automatic · Best Speed (Recommended)"),
+            (ComputeTarget::Cpu, "Processor (CPU)"),
+            (ComputeTarget::Gpu, "Graphics Card (GPU)"),
+        ] {
+            let active = exec.target == t_opt;
+            simple_targets = simple_targets.push(
+                button(text(friendly_lbl).size(12).font(style::LABEL))
+                    .padding([7, 14])
+                    .on_press(Message::SelectComputeTarget(t_opt))
+                    .style(move |t, s| style::mini_toggle(active, t, s)),
+            );
+        }
+
+        let fit_msg = if ps.fits_in_budget {
+            format!(
+                "Fits comfortably on your computer — uses {} out of {:.1} GB safe memory ({:.0}% free headroom).",
+                format_size_mb(ps.estimated_peak_mb),
+                ps.device_budget_mb / 1024.0,
+                ps.headroom_pct
+            )
+        } else {
+            format!(
+                "Model needs {} which is tight for {:.1} GB budget — click 'Auto-Tune for My PC' below to fit safely.",
+                format_size_mb(ps.estimated_peak_mb),
+                ps.device_budget_mb / 1024.0
+            )
+        };
+
+        return column![
+            eyebrow_header(
+                "STEP 4 OF 6 · YOUR COMPUTER",
+                "Computer Check & Automatic Speed Tuning",
+                "We checked your processor, memory, and graphics card automatically — no drivers or Python setup needed."
+            ),
             container(
-                text("No Vulkan / DirectX 12 / Metal GPU adapter reported on this host — Multi-Threaded SIMD CPU backend active.")
-                    .size(12)
-                    .color(style::GREY),
+                column![
+                    row![
+                        text("YOUR DETECTED HARDWARE")
+                            .size(10.5)
+                            .font(style::LABEL)
+                            .color(style::DIM)
+                            .width(Fill),
+                        button(text("Refresh Hardware").size(11).font(style::LABEL))
+                            .padding([5, 11])
+                            .on_press(Message::RescanHardware)
+                            .style(style::tiny_button),
+                    ]
+                    .align_y(Center),
+                    row![
+                        size_tile(
+                            "PROCESSOR (CPU)",
+                            format!("{} Cores", hw.cpu.logical_cores),
+                            hw.cpu.brand.clone(),
+                            false,
+                        ),
+                        size_tile(
+                            "SYSTEM MEMORY (RAM)",
+                            format!("{:.1} GB Available", hw.memory.available_ram_mb as f64 / 1024.0),
+                            format!("{:.1} GB Total RAM", hw.memory.total_ram_mb as f64 / 1024.0),
+                            true,
+                        ),
+                        size_tile(
+                            "GRAPHICS CARD (GPU)",
+                            if hw.best_hardware_gpu().is_some() {
+                                "Ready".to_owned()
+                            } else {
+                                "CPU Mode".to_owned()
+                            },
+                            gpu_headline,
+                            hw.best_hardware_gpu().is_some(),
+                        ),
+                    ]
+                    .spacing(10),
+                    container(
+                        text(fit_msg)
+                            .size(12.5)
+                            .color(if ps.fits_in_budget { style::OK } else { style::DANGER })
+                    )
+                    .width(Fill)
+                    .padding(12)
+                    .style(style::surface),
+                ]
+                .spacing(12)
             )
             .width(Fill)
-            .padding(12)
-            .style(style::surface),
-        );
-    } else {
-        for gpu in &hw.gpus {
-            let selected = exec.target == ComputeTarget::Gpu && exec.preferred_gpu_index == gpu.index;
-            gpu_cards = gpu_cards.push(
-                container(
+            .padding(18)
+            .style(style::card),
+            container(
+                column![
+                    text("CHOOSE WHERE TO TRAIN")
+                        .size(10.5)
+                        .font(style::LABEL)
+                        .color(style::DIM),
+                    simple_targets,
                     row![
-                        column![
-                            row![
-                                text(format!("GPU #{} · {}", gpu.index, gpu.name))
-                                    .size(13)
-                                    .font(style::STRONG)
-                                    .color(style::WHITE),
-                                container(
-                                    text(format!("{} · {}", gpu.backend, gpu.device_type))
-                                        .size(10.5)
-                                        .font(style::LABEL)
-                                        .color(if gpu.is_hardware_gpu { style::OK } else { style::GREY })
-                                )
-                                .padding([2, 8])
-                                .style(style::badge),
-                            ]
-                            .spacing(8)
-                            .align_y(Center),
-                            text(format!(
-                                "Max Buffer: {} MB · Storage Binding: {} MB · Max Workgroup: {} · Compute: {} · Shader FP16: {}",
-                                gpu.max_buffer_mb,
-                                gpu.max_storage_binding_mb,
-                                gpu.max_workgroup_size_x,
-                                if gpu.supports_compute { "Yes" } else { "No" },
-                                if gpu.supports_f16 { "Yes" } else { "No" },
-                            ))
-                            .size(11.5)
-                            .color(style::GREY),
-                        ]
-                        .spacing(4)
-                        .width(Fill),
                         button(
-                            text(if selected { "Selected GPU" } else { "Use this GPU" })
-                                .size(11)
-                                .font(style::LABEL)
+                            text("Auto-Tune Best Speed for My PC")
+                                .size(12.5)
+                                .font(style::STRONG)
+                                .color(style::BLACK)
                         )
-                        .padding([6, 12])
-                        .on_press(Message::SelectPreferredGpu(gpu.index))
-                        .style(move |t, s| style::mini_toggle(selected, t, s))
+                        .padding([9, 16])
+                        .on_press(Message::ApplyHardwareOptimizationPlan)
+                        .style(style::primary_button),
+                        space().width(Fill),
+                        button(text("Next: Save & Repeatability  →").size(12).font(style::LABEL))
+                            .padding([9, 15])
+                            .on_press(Message::SelectStage(PipelineStage::Repro))
+                            .style(style::control_button),
                     ]
-                    .spacing(12)
+                    .spacing(10)
                     .align_y(Center),
-                )
-                .width(Fill)
-                .padding(12)
-                .style(style::surface),
-            );
+                ]
+                .spacing(12)
+            )
+            .width(Fill)
+            .padding(18)
+            .style(style::card),
+            mode_upsell_footer(level),
+        ]
+        .spacing(16)
+        .into();
+    }
+
+    // --- NORMAL & ADVANCED MODES ---
+    let mut hw_preset_row1 = row![].spacing(6);
+    let mut hw_preset_row2 = row![].spacing(6);
+    for (idx, preset) in ReferenceHardwarePreset::ALL.iter().copied().enumerate() {
+        let active = app.hw_preset == preset;
+        let btn = button(text(preset.label()).size(11).font(style::LABEL))
+            .padding([5, 10])
+            .on_press(Message::SelectReferenceHardwarePreset(preset))
+            .style(move |t, s| style::mini_toggle(active, t, s));
+        if idx < 5 {
+            hw_preset_row1 = hw_preset_row1.push(btn);
+        } else {
+            hw_preset_row2 = hw_preset_row2.push(btn);
         }
     }
 
-    // Compute target selector
     let mut target_pills = row![].spacing(8);
     for t_opt in ComputeTarget::ALL {
         let active = exec.target == t_opt;
@@ -729,52 +1221,9 @@ pub fn stage_hardware_view(app: &App) -> Element<'_, Message> {
         );
     }
 
-    let bench_block: Element<'_, Message> = if let Some(b) = &app.compute_benchmark {
-        let gpu_line = match (&b.gpu_adapter_name, b.gpu_ms, b.gpu_gflops) {
-            (Some(name), Some(ms), Some(gf)) => format!(
-                "{name} ({}) -> {ms:.2} ms · {gf:.1} GFLOP/s (max |Δ| = {:.2e})",
-                b.gpu_backend.as_deref().unwrap_or("WGPU"),
-                b.max_abs_diff.unwrap_or(0.0)
-            ),
-            _ => "No compute GPU benchmarked on this host".to_owned(),
-        };
-        container(
-            column![
-                row![
-                    text(format!("LIVE {}×{} SGEMM BENCHMARK", b.matrix_dim, b.matrix_dim))
-                        .size(10.5)
-                        .font(style::LABEL)
-                        .color(style::DIM)
-                        .width(Fill),
-                    text(format!("Fastest: {}", b.recommended_winner))
-                        .size(11.5)
-                        .font(style::STRONG)
-                        .color(style::OK)
-                ]
-                .align_y(Center),
-                text(format!(
-                    "CPU ({} Rayon threads) -> {:.2} ms · {:.1} GFLOP/s",
-                    b.cpu_threads, b.cpu_ms, b.cpu_gflops
-                ))
-                .size(12)
-                .color(style::TEXT_2),
-                text(format!("GPU (WGSL 16×16 Tiled fma) -> {gpu_line}"))
-                    .size(12)
-                    .color(style::TEXT_2),
-                text(b.note.clone()).size(11.5).color(style::GREY),
-            ]
-            .spacing(4),
-        )
-        .width(Fill)
-        .padding(13)
-        .style(style::surface)
-        .into()
-    } else {
-        space().height(0).into()
-    };
-
     let mut rationale_col = column![].spacing(5);
-    for (idx, item) in plan.rationale.iter().enumerate() {
+    let max_notes = if level == UiComplexity::Expert { 10 } else { 4 };
+    for (idx, item) in plan.rationale.iter().take(max_notes).enumerate() {
         rationale_col = rationale_col.push(
             text(format!("{}. {item}", idx + 1))
                 .size(12)
@@ -782,169 +1231,178 @@ pub fn stage_hardware_view(app: &App) -> Element<'_, Message> {
         );
     }
 
-    column![
-        eyebrow_header(
-            "STAGE 04 / HARDWARE PROBE & CUSTOM OPTIMIZATION COMPILER",
-            "System Hardware, CPU vs GPU & Custom Execution Plan",
-            "Inspects your CPU vector ISA, RAM, and Vulkan/DX12/Metal GPUs, lets you select CPU or GPU, and synthesizes a custom optimization plan for your model."
-        ),
-        // Card 1: Detected Hardware
+    let expert_hw_extras: Element<'_, Message> = if level == UiComplexity::Expert {
+        let bench_block: Element<'_, Message> = if let Some(b) = &app.compute_benchmark {
+            let gpu_line = match (&b.gpu_adapter_name, b.gpu_ms, b.gpu_gflops) {
+                (Some(name), Some(ms), Some(gf)) => format!(
+                    "{name} ({}) -> {ms:.2} ms · {gf:.1} GFLOP/s (max |Δ| = {:.2e})",
+                    b.gpu_backend.as_deref().unwrap_or("WGPU"),
+                    b.max_abs_diff.unwrap_or(0.0)
+                ),
+                _ => "No compute GPU benchmarked on this host".to_owned(),
+            };
+            container(
+                column![
+                    row![
+                        text(format!("LIVE {}×{} SGEMM BENCHMARK", b.matrix_dim, b.matrix_dim))
+                            .size(10.5)
+                            .font(style::LABEL)
+                            .color(style::DIM)
+                            .width(Fill),
+                        text(format!("Winner: {}", b.recommended_winner))
+                            .size(11.5)
+                            .font(style::STRONG)
+                            .color(style::OK)
+                    ]
+                    .align_y(Center),
+                    text(format!(
+                        "CPU ({} Rayon threads) -> {:.2} ms · {:.1} GFLOP/s",
+                        b.cpu_threads, b.cpu_ms, b.cpu_gflops
+                    ))
+                    .size(12)
+                    .color(style::TEXT_2),
+                    text(format!("GPU (WGSL 16×16 Tiled fma) -> {gpu_line}"))
+                        .size(12)
+                        .color(style::TEXT_2),
+                ]
+                .spacing(4),
+            )
+            .width(Fill)
+            .padding(12)
+            .style(style::surface)
+            .into()
+        } else {
+            space().height(0).into()
+        };
+
         container(
             column![
                 row![
-                    text("DETECTED SYSTEM HARDWARE")
+                    text("EXPERT MEMORY GUARDS, KERNEL BENCHMARK & GENERATED SCRIPT")
                         .size(10.5)
                         .font(style::LABEL)
                         .color(style::DIM)
                         .width(Fill),
-                    button(text("Rescan Hardware").size(11.5).font(style::LABEL))
-                        .padding([6, 12])
-                        .on_press(Message::RescanHardware)
-                        .style(style::control_button),
                     button(
-                        text("Benchmark CPU vs WGSL GPU")
-                            .size(11.5)
+                        text("Run 256×256 CPU vs WGSL GPU Benchmark")
+                            .size(11)
                             .font(style::STRONG)
                     )
-                    .padding([6, 12])
+                    .padding([5, 11])
                     .on_press(Message::RunComputeBenchmark)
                     .style(style::control_button),
+                    button(text("Export Plan (.toml)").size(11).font(style::LABEL))
+                        .padding([5, 11])
+                        .on_press(Message::ExportOptimizationScript)
+                        .style(style::control_button),
                 ]
                 .spacing(8)
                 .align_y(Center),
-                row![
-                    container(
-                        column![
-                            text("HOST CPU & VECTOR ISA")
-                                .size(10.5)
-                                .font(style::LABEL)
-                                .color(style::DIM),
-                            text(hw.cpu.brand.clone())
-                                .size(13.5)
-                                .font(style::STRONG)
-                                .color(style::WHITE),
-                            text(format!(
-                                "{} · {} logical cores · {}",
-                                hw.cpu.arch,
-                                hw.cpu.logical_cores,
-                                hw.cpu.simd_tier()
-                            ))
-                            .size(12)
-                            .color(style::OK),
-                            text(format!("Detected SIMD flags: {simd_line}"))
-                                .size(11.5)
-                                .color(style::GREY),
-                        ]
-                        .spacing(4)
-                    )
-                    .width(FillPortion(2))
-                    .padding(13)
-                    .style(style::surface),
-                    container(
-                        column![
-                            text("SYSTEM MEMORY (RAM)")
-                                .size(10.5)
-                                .font(style::LABEL)
-                                .color(style::DIM),
-                            text(format!("{:.1} GB Total", hw.memory.total_ram_mb as f64 / 1024.0))
-                                .size(15)
-                                .font(style::STRONG)
-                                .color(style::WHITE),
-                            text(format!(
-                                "{:.1} GB Available ({} MB)",
-                                hw.memory.available_ram_mb as f64 / 1024.0,
-                                hw.memory.available_ram_mb
-                            ))
-                            .size(12)
-                            .color(style::OK),
-                            text("Zero external CUDA/Python install required")
-                                .size(11)
-                                .color(style::DIM),
-                        ]
-                        .spacing(4)
-                    )
-                    .width(FillPortion(1))
-                    .padding(13)
-                    .style(style::surface),
-                ]
-                .spacing(10),
-                text("ENUMERATED WGPU GRAPHICS / COMPUTE ADAPTERS (VULKAN · DIRECTX 12 · METAL)")
-                    .size(10.5)
-                    .font(style::LABEL)
-                    .color(style::DIM),
-                gpu_cards,
-                bench_block,
-            ]
-            .spacing(11)
-        )
-        .width(Fill)
-        .padding(18)
-        .style(style::card),
-        // Card 2: CPU vs GPU Selection & Execution Knobs
-        container(
-            column![
-                text("CHOOSE EXECUTION DEVICE (CPU VS GPU) & MEMORY CONTROLS")
-                    .size(10.5)
-                    .font(style::LABEL)
-                    .color(style::DIM),
-                target_pills,
-                text("PRECISION & ACCUMULATOR STRATEGY")
-                    .size(10.5)
-                    .font(style::LABEL)
-                    .color(style::DIM),
-                prec_pills,
-                row![
-                    mini_stepper(
-                        "CPU RAYON THREADS",
-                        app.cfg.hyper.compute_threads.to_string(),
-                        Message::AdjustComputeThreads(-1),
-                        Message::AdjustComputeThreads(1)
-                    ),
-                    mini_stepper(
-                        "MICRO-BATCH SIZE",
-                        app.cfg.hyper.batch_size.to_string(),
-                        Message::AdjustBatchSize(-1),
-                        Message::AdjustBatchSize(1)
-                    ),
-                    mini_stepper(
-                        "GRAD ACCUM STEPS",
-                        app.cfg.hyper.grad_accum_steps.to_string(),
-                        Message::AdjustGradAccum(-1),
-                        Message::AdjustGradAccum(1)
-                    ),
-                ]
-                .spacing(10),
                 switch_row(
-                    "Activation checkpointing (√L memory schedule)",
-                    "Recomputes intermediate layer activations on backward pass to slash activation RAM on long contexts.",
+                    "Low-memory micro-batch slicing & activation checkpointing",
+                    "Splits micro-batches with immediate per-slice backward() so peak activation RAM drops by ~2×.",
                     exec.activation_checkpointing,
                     Message::ToggleActivationCheckpointing
                 ),
                 switch_row(
                     "Pad tokenizer vocabulary to hardware tile multiple (64× CPU / 128× GPU)",
-                    "Eliminates unaligned tail workgroups in token embedding and LM-head matrix multiplications.",
+                    "Aligns embedding & LM-head dimensions to SIMD/GPU tile boundaries.",
                     exec.pad_vocab_for_hardware,
                     Message::ToggleHardwareVocabPad
                 ),
+                bench_block,
+                container(
+                    scrollable(
+                        text(plan.custom_script_toml.clone())
+                            .size(11.5)
+                            .color(style::TEXT_2)
+                    )
+                    .height(155)
+                    .style(style::quiet_scroll)
+                )
+                .width(Fill)
+                .padding(12)
+                .style(style::surface),
             ]
-            .spacing(11)
+            .spacing(10),
+        )
+        .width(Fill)
+        .padding(18)
+        .style(style::card)
+        .into()
+    } else {
+        space().height(0).into()
+    };
+
+    column![
+        eyebrow_header(
+            "STAGE 04 / HARDWARE, POPULAR GPU/CPU SIMULATOR & AUTO-OPTIMIZER",
+            "System Hardware, Target Simulator & Custom Plan",
+            "Tune for your live PC or test how your model fits and optimizes across popular consumer GPUs & CPUs."
+        ),
+        container(
+            column![
+                row![
+                    text("ACTIVE HARDWARE PROFILE & POPULAR GPU / CPU SIMULATOR")
+                        .size(10.5)
+                        .font(style::LABEL)
+                        .color(style::DIM)
+                        .width(Fill),
+                    button(text("Rescan Live PC").size(11).font(style::LABEL))
+                        .padding([5, 11])
+                        .on_press(Message::RescanHardware)
+                        .style(style::tiny_button),
+                ]
+                .align_y(Center),
+                hw_preset_row1,
+                hw_preset_row2,
+                row![
+                    size_tile(
+                        "ACTIVE CPU & SIMD",
+                        format!("{}C · {}", hw.cpu.logical_cores, hw.cpu.simd_tier()),
+                        hw.cpu.brand.clone(),
+                        false,
+                    ),
+                    size_tile(
+                        "SYSTEM RAM",
+                        format!("{:.1} GB Free", hw.memory.available_ram_mb as f64 / 1024.0),
+                        format!("{:.1} GB Total", hw.memory.total_ram_mb as f64 / 1024.0),
+                        true,
+                    ),
+                    size_tile(
+                        "ACTIVE GPU ADAPTER",
+                        hw.best_hardware_gpu()
+                            .map(|g| g.backend.clone())
+                            .unwrap_or_else(|| "CPU SIMD".to_owned()),
+                        gpu_headline,
+                        hw.best_hardware_gpu().is_some(),
+                    ),
+                ]
+                .spacing(10),
+            ]
+            .spacing(10)
         )
         .width(Fill)
         .padding(18)
         .style(style::card),
-        // Card 3: Synthesized Custom Optimization Plan + Exportable TOML Script
         container(
             column![
                 row![
                     column![
-                        text("SYNTHESIZED CUSTOM OPTIMIZATION PLAN")
+                        text("DEVICE TARGET & CUSTOM OPTIMIZATION PLAN")
                             .size(10.5)
                             .font(style::LABEL)
                             .color(style::DIM),
-                        text(format!("{} · {}", ps.resolved_device_label, ps.backend_api))
-                            .size(14)
-                            .font(style::STRONG)
-                            .color(if ps.fits_in_budget { style::OK } else { style::DANGER }),
+                        text(format!(
+                            "{} · Peak {} / {:.1} GB budget ({:.0}% free)",
+                            ps.resolved_device_label,
+                            format_size_mb(ps.estimated_peak_mb),
+                            ps.device_budget_mb / 1024.0,
+                            ps.headroom_pct
+                        ))
+                        .size(13.5)
+                        .font(style::STRONG)
+                        .color(if ps.fits_in_budget { style::OK } else { style::DANGER }),
                     ]
                     .spacing(3)
                     .width(Fill),
@@ -957,86 +1415,35 @@ pub fn stage_hardware_view(app: &App) -> Element<'_, Message> {
                     .padding([8, 15])
                     .on_press(Message::ApplyHardwareOptimizationPlan)
                     .style(style::primary_button),
-                    button(text("Export Plan (.toml)").size(11.5).font(style::LABEL))
-                        .padding([8, 13])
-                        .on_press(Message::ExportOptimizationScript)
-                        .style(style::control_button),
                 ]
-                .spacing(8)
                 .align_y(Center),
+                target_pills,
+                prec_pills,
                 row![
-                    container(
-                        column![
-                            text("RECOMMENDED BATCH").size(10).font(style::LABEL).color(style::DIM),
-                            text(format!(
-                                "{} × {} accum ({} tok/step)",
-                                ps.recommended_batch_size,
-                                ps.recommended_grad_accum,
-                                ps.effective_tokens_per_step
-                            ))
-                            .size(12.5)
-                            .font(style::LABEL)
-                            .color(style::WHITE),
-                        ]
-                        .spacing(3)
-                    )
-                    .width(FillPortion(1))
-                    .padding(11)
-                    .style(style::surface),
-                    container(
-                        column![
-                            text("TILE & WORKGROUP").size(10).font(style::LABEL).color(style::DIM),
-                            text(format!(
-                                "Tile {:?} · WG {:?}",
-                                ps.tile_m_n_k, ps.workgroup_dims
-                            ))
-                            .size(12.5)
-                            .font(style::LABEL)
-                            .color(style::WHITE),
-                        ]
-                        .spacing(3)
-                    )
-                    .width(FillPortion(1))
-                    .padding(11)
-                    .style(style::surface),
-                    container(
-                        column![
-                            text("PEAK VS SAFE BUDGET").size(10).font(style::LABEL).color(style::DIM),
-                            text(format!(
-                                "{:.1} MB / {:.0} MB ({:.0}% free)",
-                                ps.estimated_peak_mb, ps.device_budget_mb, ps.headroom_pct
-                            ))
-                            .size(12.5)
-                            .font(style::LABEL)
-                            .color(if ps.fits_in_budget { style::OK } else { style::DANGER }),
-                        ]
-                        .spacing(3)
-                    )
-                    .width(FillPortion(1))
-                    .padding(11)
-                    .style(style::surface),
+                    mini_stepper(
+                        "CPU THREADS",
+                        app.cfg.hyper.compute_threads.to_string(),
+                        Message::AdjustComputeThreads(-1),
+                        Message::AdjustComputeThreads(1)
+                    ),
+                    mini_stepper(
+                        "MICRO-BATCH",
+                        app.cfg.hyper.batch_size.to_string(),
+                        Message::AdjustBatchSize(-1),
+                        Message::AdjustBatchSize(1)
+                    ),
+                    mini_stepper(
+                        "GRAD ACCUM (RAM SAVER)",
+                        format!("{}×", app.cfg.hyper.grad_accum_steps),
+                        Message::AdjustGradAccum(-1),
+                        Message::AdjustGradAccum(1)
+                    ),
                 ]
                 .spacing(10),
                 container(rationale_col)
                     .width(Fill)
-                    .padding(13)
+                    .padding(12)
                     .style(style::surface),
-                text("GENERATED CUSTOM EXECUTION SCRIPT (optimization_plan.toml)")
-                    .size(10.5)
-                    .font(style::LABEL)
-                    .color(style::DIM),
-                container(
-                    scrollable(
-                        text(plan.custom_script_toml.clone())
-                            .size(11.5)
-                            .color(style::TEXT_2)
-                    )
-                    .height(175)
-                    .style(style::quiet_scroll)
-                )
-                .width(Fill)
-                .padding(12)
-                .style(style::surface),
                 row![
                     space().width(Fill),
                     button(text("Next: 05 Seed & Genesis  →").size(12).font(style::LABEL))
@@ -1049,19 +1456,114 @@ pub fn stage_hardware_view(app: &App) -> Element<'_, Message> {
         )
         .width(Fill)
         .padding(18)
-        .style(style::card)
+        .style(style::card),
+        expert_hw_extras,
+        mode_upsell_footer(level),
     ]
     .spacing(16)
     .into()
 }
 
 // ============================================================================
-// STAGE 05: SEED CONTROL, PROVENANCE EXPORT & GENESIS RANDOM STATE (STEP = 0)
+// STAGE 05: SEED, PROVENANCE & INITIAL RANDOM STATE (SIMPLE -> NORMAL -> EXPERT)
 // ============================================================================
 
 pub fn stage_repro_view(app: &App) -> Element<'_, Message> {
     let seeds = &app.cfg.seeds;
+    let level = app.ui_complexity;
 
+    // --- SIMPLE MODE: Clean 2-card view ---
+    if level == UiComplexity::Simple {
+        return column![
+            eyebrow_header(
+                "STEP 5 OF 6 · SAVE & REPEATABILITY",
+                "Repeatability Seed & Saving Your Setup",
+                "Keeping the same seed number lets you recreate the exact same starting AI anytime, even on another computer."
+            ),
+            container(
+                column![
+                    text("STARTING SEED NUMBER")
+                        .size(10.5)
+                        .font(style::LABEL)
+                        .color(style::DIM),
+                    row![
+                        text_input("42", &app.seed_input)
+                            .on_input(Message::EditMasterSeed)
+                            .padding([9, 12])
+                            .size(14)
+                            .width(220)
+                            .style(style::composer_input),
+                        button(text("Pick a Random Number").size(12).font(style::LABEL))
+                            .padding([9, 14])
+                            .on_press(Message::RandomizeSeed)
+                            .style(style::control_button),
+                    ]
+                    .spacing(10)
+                    .align_y(Center),
+                    text("Tip: Seed 42 is a classic default. Change it anytime to try a fresh random starting brain.")
+                        .size(12)
+                        .color(style::GREY),
+                ]
+                .spacing(10)
+            )
+            .width(Fill)
+            .padding(18)
+            .style(style::card),
+            container(
+                column![
+                    switch_row(
+                        "Save untouched starting AI weights before training begins",
+                        "Archives the initial random brain (genesis_step0.safetensors) alongside your trained model.",
+                        seeds.auto_export_genesis_init,
+                        Message::ToggleAutoExportGenesis
+                    ),
+                    row![
+                        button(
+                            text("Export Settings & Hardware Summary")
+                                .size(12)
+                                .font(style::LABEL)
+                        )
+                        .padding([9, 14])
+                        .on_press(Message::ExportProvenanceBundle {
+                            include_genesis_weights: false
+                        })
+                        .style(style::control_button),
+                        button(
+                            text("Export Settings + Starting Random Brain")
+                                .size(12)
+                                .font(style::LABEL)
+                        )
+                        .padding([9, 14])
+                        .on_press(Message::ExportProvenanceBundle {
+                            include_genesis_weights: true
+                        })
+                        .style(style::control_button),
+                        space().width(Fill),
+                        button(
+                            text("Next: Start Training  →")
+                                .size(12.5)
+                                .font(style::STRONG)
+                                .color(style::BLACK)
+                        )
+                        .padding([9, 16])
+                        .on_press(Message::SelectStage(PipelineStage::Train))
+                        .style(style::primary_button),
+                    ]
+                    .spacing(10)
+                    .align_y(Center),
+                ]
+                .spacing(12)
+            )
+            .width(Fill)
+            .padding(18)
+            .style(style::card),
+            mode_upsell_footer(level),
+        ]
+        .spacing(16)
+        .into();
+    }
+
+    // --- NORMAL & EXPERT MODES ---
     let mut algo_pills = row![].spacing(7);
     for algo in PrngAlgorithm::ALL {
         let active = seeds.algorithm == algo;
@@ -1073,227 +1575,182 @@ pub fn stage_repro_view(app: &App) -> Element<'_, Message> {
         );
     }
 
-    let genesis_card: Element<'_, Message> = if let Some(rep) = &app.genesis_report {
-        let floats_preview = rep
-            .first_16_embedding_floats
-            .iter()
-            .take(12)
-            .map(|v| format!("{v:+.5}"))
-            .collect::<Vec<_>>()
-            .join(", ");
-
-        let mut tensor_rows = column![].spacing(4);
-        for st in rep.tensor_stats.iter().take(8) {
-            tensor_rows = tensor_rows.push(
-                row![
-                    text(st.name.clone())
-                        .size(11)
-                        .font(style::LABEL)
-                        .color(style::WHITE)
-                        .width(FillPortion(3)),
-                    text(format!("{:?} ({})", st.shape, format_count(st.params)))
-                        .size(11)
-                        .color(style::GREY)
-                        .width(FillPortion(2)),
-                    text(format!("μ={:+.4}  σ={:.4}", st.mean, st.std))
-                        .size(11)
-                        .color(style::TEXT_2)
-                        .width(FillPortion(2)),
-                    text(format!("[{:+.3}, {:+.3}]", st.min, st.max))
-                        .size(11)
-                        .color(style::DIM)
-                        .width(FillPortion(2)),
-                ]
-                .spacing(8)
-                .align_y(Center),
-            );
-        }
-
-        let export_paths_note = match (
-            &rep.exported_provenance_path,
-            &rep.exported_genesis_safetensors_path,
-        ) {
-            (Some(prov), Some(gen_st)) => format!(
-                "Saved: {}  +  {}",
-                prov.display(),
-                gen_st.display()
+    let subsystem_seeds_block: Element<'_, Message> = if level == UiComplexity::Expert {
+        column![
+            switch_row(
+                "Lock subsystem seeds to Master Seed (domain-separated derivation)",
+                "Derives collision-free streams for Weight Init, Data Shuffle, Dropout/MoE, and Sampling from Master Seed.",
+                seeds.lock_subsystems_to_master,
+                Message::ToggleLockSubsystemsToMaster
             ),
-            (Some(prov), None) => format!("Saved provenance bundle: {}", prov.display()),
-            _ => format!(
-                "Default run export folder: {}",
-                app.active_run_dir().display()
-            ),
-        };
-
-        container(
-            column![
-                row![
-                    text("STEP-0 INITIAL RANDOM-FILLED STATE INSPECTOR")
-                        .size(10.5)
-                        .font(style::LABEL)
-                        .color(style::DIM)
-                        .width(Fill),
-                    button(text("Re-inspect Step-0 State").size(11).font(style::LABEL))
-                        .padding([5, 11])
-                        .on_press(Message::InspectGenesisNow)
-                        .style(style::control_button),
+            row![
+                column![
+                    text("Weight Init Seed").size(11).color(style::GREY),
+                    text_input("weight seed", &app.weight_seed_input)
+                        .on_input(Message::EditWeightSeed)
+                        .padding([7, 10])
+                        .size(12.5)
+                        .style(style::composer_input)
                 ]
-                .align_y(Center),
-                container(
-                    column![
-                        text(format!("Canonical Weights SHA-256: {}", rep.sha256_hex))
-                            .size(11.5)
-                            .font(style::STRONG)
-                            .color(style::OK),
-                        text(format!(
-                            "Source: {} · {} tensors ({} params) · global mean {:+.5} · std {:.5} · range [{:+.4}, {:+.4}]",
-                            rep.source_label,
-                            rep.total_tensors,
-                            format_count(rep.total_params),
-                            rep.global_mean,
-                            rep.global_std,
-                            rep.global_min,
-                            rep.global_max
-                        ))
-                        .size(11.5)
-                        .color(style::TEXT_2),
-                        text(format!(
-                            "tok_embeddings.weight[0..12] = [{floats_preview}, …]"
-                        ))
-                        .size(11)
-                        .color(style::GREY),
-                    ]
-                    .spacing(4)
-                )
-                .width(Fill)
-                .padding(12)
-                .style(style::surface),
-                text("SAMPLE STEP-0 TENSORS BEFORE ANY GRADIENT STEP")
-                    .size(10)
-                    .font(style::LABEL)
-                    .color(style::DIM),
-                container(tensor_rows)
-                    .width(Fill)
-                    .padding(11)
-                    .style(style::surface),
-                text(export_paths_note).size(11).color(style::GREY),
+                .spacing(4)
+                .width(FillPortion(1)),
+                column![
+                    text("Data Order Seed").size(11).color(style::GREY),
+                    text_input("data seed", &app.data_seed_input)
+                        .on_input(Message::EditDataSeed)
+                        .padding([7, 10])
+                        .size(12.5)
+                        .style(style::composer_input)
+                ]
+                .spacing(4)
+                .width(FillPortion(1)),
+                column![
+                    text("Dropout / MoE Seed").size(11).color(style::GREY),
+                    text_input("stochastic seed", &app.stochastic_seed_input)
+                        .on_input(Message::EditStochasticSeed)
+                        .padding([7, 10])
+                        .size(12.5)
+                        .style(style::composer_input)
+                ]
+                .spacing(4)
+                .width(FillPortion(1)),
+                column![
+                    text("Playground Seed").size(11).color(style::GREY),
+                    text_input("42", &app.sample_seed_input)
+                        .on_input(Message::EditSampleSeed)
+                        .padding([7, 10])
+                        .size(12.5)
+                        .style(style::composer_input)
+                ]
+                .spacing(4)
+                .width(FillPortion(1)),
             ]
-            .spacing(9),
-        )
-        .width(Fill)
-        .padding(18)
-        .style(style::card)
+            .spacing(10),
+        ]
+        .spacing(10)
         .into()
     } else {
-        container(
-            button(text("Inspect Step-0 Random Fill").size(12))
-                .padding([8, 14])
-                .on_press(Message::InspectGenesisNow)
-                .style(style::control_button),
-        )
-        .width(Fill)
-        .padding(16)
-        .style(style::card)
-        .into()
+        space().height(0).into()
+    };
+
+    let genesis_inspector: Element<'_, Message> = if level == UiComplexity::Expert {
+        if let Some(rep) = &app.genesis_report {
+            let floats_preview = rep
+                .first_16_embedding_floats
+                .iter()
+                .take(10)
+                .map(|v| format!("{v:+.5}"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            let mut tensor_rows = column![].spacing(4);
+            for st in rep.tensor_stats.iter().take(6) {
+                tensor_rows = tensor_rows.push(
+                    row![
+                        text(st.name.clone())
+                            .size(11)
+                            .font(style::LABEL)
+                            .color(style::WHITE)
+                            .width(FillPortion(3)),
+                        text(format!("{:?} ({})", st.shape, format_count(st.params)))
+                            .size(11)
+                            .color(style::GREY)
+                            .width(FillPortion(2)),
+                        text(format!("μ={:+.4}  σ={:.4}", st.mean, st.std))
+                            .size(11)
+                            .color(style::TEXT_2)
+                            .width(FillPortion(2)),
+                    ]
+                    .spacing(8)
+                    .align_y(Center),
+                );
+            }
+            container(
+                column![
+                    row![
+                        text("STEP-0 INITIAL RANDOM-FILLED TENSOR INSPECTOR")
+                            .size(10.5)
+                            .font(style::LABEL)
+                            .color(style::DIM)
+                            .width(Fill),
+                        button(text("Re-inspect Step-0 State").size(11).font(style::LABEL))
+                            .padding([5, 11])
+                            .on_press(Message::InspectGenesisNow)
+                            .style(style::control_button),
+                    ]
+                    .align_y(Center),
+                    container(
+                        column![
+                            text(format!("Canonical Weights SHA-256: {}", rep.sha256_hex))
+                                .size(11.5)
+                                .font(style::STRONG)
+                                .color(style::OK),
+                            text(format!(
+                                "{} tensors ({} params) · mean {:+.5} · std {:.5} · tok_embeddings[0..10] = [{floats_preview}, …]",
+                                rep.total_tensors,
+                                format_count(rep.total_params),
+                                rep.global_mean,
+                                rep.global_std,
+                            ))
+                            .size(11.5)
+                            .color(style::TEXT_2),
+                        ]
+                        .spacing(4)
+                    )
+                    .width(Fill)
+                    .padding(12)
+                    .style(style::surface),
+                    container(tensor_rows)
+                        .width(Fill)
+                        .padding(11)
+                        .style(style::surface),
+                ]
+                .spacing(9),
+            )
+            .width(Fill)
+            .padding(18)
+            .style(style::card)
+            .into()
+        } else {
+            space().height(0).into()
+        }
+    } else {
+        space().height(0).into()
     };
 
     column![
         eyebrow_header(
             "STAGE 05 / DETERMINISTIC SEEDS, HARDWARE PROVENANCE & GENESIS STATE",
-            "Seeds, Hardware Provenance & Initial Random State Export",
-            "Control every PRNG stream, export full model settings + host hardware provenance, and optionally save or reload the exact step-0 random-filled weights."
+            "Seeds, Provenance & Initial Random State Export",
+            "Set deterministic seeds, export settings + hardware provenance, and archive or reload step-0 random weights."
         ),
-        // Card 1: PRNG & Seed Hierarchy
         container(
             column![
-                text("CROSS-HARDWARE PORTABLE PRNG ENGINE")
+                text("PORTABLE PRNG ENGINE & MASTER SEED")
                     .size(10.5)
                     .font(style::LABEL)
                     .color(style::DIM),
                 algo_pills,
-                text(seeds.algorithm.description())
-                    .size(12)
-                    .color(style::GREY),
                 row![
-                    column![
-                        text("MASTER SEED (64-BIT)")
-                            .size(10.5)
-                            .font(style::LABEL)
-                            .color(style::DIM),
-                        row![
-                            text_input("42", &app.seed_input)
-                                .on_input(Message::EditMasterSeed)
-                                .padding([8, 11])
-                                .size(13)
-                                .width(Fill)
-                                .style(style::composer_input),
-                            button(text("Roll Entropy Seed").size(11.5).font(style::LABEL))
-                                .padding([8, 13])
-                                .on_press(Message::RandomizeSeed)
-                                .style(style::control_button),
-                        ]
-                        .spacing(8)
-                        .align_y(Center)
-                    ]
-                    .spacing(5)
-                    .width(Fill),
-                ],
-                switch_row(
-                    "Lock subsystem seeds to Master Seed (domain-separated derivation)",
-                    "Derives independent collision-free streams for Weight Init, Data Shuffle, Dropout/MoE Jitter, and Sampling from Master Seed. Turn OFF to set each manually.",
-                    seeds.lock_subsystems_to_master,
-                    Message::ToggleLockSubsystemsToMaster
-                ),
-                row![
-                    column![
-                        text("Weight Init Seed").size(11).color(style::GREY),
-                        text_input("weight seed", &app.weight_seed_input)
-                            .on_input(Message::EditWeightSeed)
-                            .padding([7, 10])
-                            .size(12.5)
-                            .style(style::composer_input)
-                    ]
-                    .spacing(4)
-                    .width(FillPortion(1)),
-                    column![
-                        text("Data Order Seed").size(11).color(style::GREY),
-                        text_input("data seed", &app.data_seed_input)
-                            .on_input(Message::EditDataSeed)
-                            .padding([7, 10])
-                            .size(12.5)
-                            .style(style::composer_input)
-                    ]
-                    .spacing(4)
-                    .width(FillPortion(1)),
-                    column![
-                        text("Dropout / MoE Seed").size(11).color(style::GREY),
-                        text_input("stochastic seed", &app.stochastic_seed_input)
-                            .on_input(Message::EditStochasticSeed)
-                            .padding([7, 10])
-                            .size(12.5)
-                            .style(style::composer_input)
-                    ]
-                    .spacing(4)
-                    .width(FillPortion(1)),
-                    column![
-                        text("Playground Seed").size(11).color(style::GREY),
-                        text_input("42", &app.sample_seed_input)
-                            .on_input(Message::EditSampleSeed)
-                            .padding([7, 10])
-                            .size(12.5)
-                            .style(style::composer_input)
-                    ]
-                    .spacing(4)
-                    .width(FillPortion(1)),
+                    text_input("42", &app.seed_input)
+                        .on_input(Message::EditMasterSeed)
+                        .padding([8, 11])
+                        .size(13)
+                        .width(240)
+                        .style(style::composer_input),
+                    button(text("Roll Entropy Seed").size(11.5).font(style::LABEL))
+                        .padding([8, 13])
+                        .on_press(Message::RandomizeSeed)
+                        .style(style::control_button),
                 ]
-                .spacing(10),
+                .spacing(8)
+                .align_y(Center),
+                subsystem_seeds_block,
             ]
             .spacing(11)
         )
         .width(Fill)
         .padding(18)
         .style(style::card),
-        // Card 2: Export Settings + Hardware + Initial Random State
         container(
             column![
                 text("PROVENANCE & INITIAL RANDOM-FILLED STATE (GENESIS SAFETENSORS)")
@@ -1302,7 +1759,7 @@ pub fn stage_repro_view(app: &App) -> Element<'_, Message> {
                     .color(style::DIM),
                 switch_row(
                     "Archive initial random-filled state (genesis_step0.safetensors) when training starts",
-                    "Writes the exact pre-training random weight tensors + SHA-256 manifest to disk before gradient step 1 modifies any parameter.",
+                    "Writes the exact untouched step-0 random tensors + SHA-256 manifest before gradient step 1.",
                     seeds.auto_export_genesis_init,
                     Message::ToggleAutoExportGenesis
                 ),
@@ -1357,7 +1814,8 @@ pub fn stage_repro_view(app: &App) -> Element<'_, Message> {
         .width(Fill)
         .padding(18)
         .style(style::card),
-        genesis_card,
+        genesis_inspector,
+        mode_upsell_footer(level),
     ]
     .spacing(16)
     .into()
