@@ -13,7 +13,7 @@
 
 use serde_json::{json, Value};
 
-use crate::diagnostics::Diagnosis;
+use crate::diagnostics::{Diagnosis, Owner, Stage};
 
 pub const MAX_ENTRIES: usize = 200;
 
@@ -99,6 +99,12 @@ impl Entry {
             "chars": self.chars,
             "reasoning_chars": self.reasoning_chars,
             "detail": self.detail,
+            "diagnosis": self.diagnosis.as_ref().map(|d| json!({
+                "stage": d.stage_label(), "owner": match d.owner {
+                    Owner::Agent => "agent", Owner::Provider => "provider", Owner::Key => "key", Owner::Model => "model"
+                }, "http_status": d.http_status, "cooldown": d.cooldown, "retry_after": d.retry_after,
+                "summary": redact(&d.summary)
+            })),
         })
     }
 
@@ -127,7 +133,21 @@ impl Entry {
             chars: value.get("chars").and_then(Value::as_u64).unwrap_or(0) as usize,
             reasoning_chars: value.get("reasoning_chars").and_then(Value::as_u64).unwrap_or(0) as usize,
             detail: value.get("detail").and_then(Value::as_str).unwrap_or("").chars().take(600).collect(),
-            diagnosis: None,
+            diagnosis: value.get("diagnosis").and_then(|d| {
+                let stage = match d.get("stage")?.as_str()? {
+                    "request" => Stage::Request, "transport" => Stage::Transport, "http" => Stage::Http,
+                    "parse" => Stage::Parse, "bounds" => Stage::Bounds, _ => return None,
+                };
+                let owner = match d.get("owner")?.as_str()? {
+                    "agent" => Owner::Agent, "provider" => Owner::Provider, "key" => Owner::Key, "model" => Owner::Model, _ => return None,
+                };
+                Some(Diagnosis { stage, owner,
+                    http_status: d.get("http_status").and_then(Value::as_u64).and_then(|n| u16::try_from(n).ok()),
+                    cooldown: d.get("cooldown").and_then(Value::as_u64),
+                    retry_after: d.get("retry_after").and_then(Value::as_u64),
+                    summary: d.get("summary").and_then(Value::as_str).unwrap_or("").chars().take(600).collect(),
+                })
+            }),
         })
     }
 }
@@ -350,6 +370,17 @@ mod tests {
         assert_eq!(journal.view(Filter::Failed).len(), 1);
         assert_eq!(journal.view(Filter::Provider("OpenRouter")).len(), 1);
         assert!(journal.export().contains("metadata only"));
+    }
+
+    #[test]
+    fn failure_diagnosis_survives_reload() {
+        let mut journal = Journal::new();
+        let id = journal.begin("Gemini", "model".into(), 1, false, 100);
+        journal.finish_failed(id, 10, transport(true), String::new());
+        let reloaded = Journal::from_json(&journal.to_json());
+        let diagnosis = reloaded.entries()[0].diagnosis.as_ref().expect("saved diagnosis");
+        assert_eq!(diagnosis.stage, Stage::Transport);
+        assert_eq!(diagnosis.owner, Owner::Agent);
     }
 
     #[test]
