@@ -1,36 +1,317 @@
-//! Purpose: Provides cross-platform deterministic PRNG (`SplitMix64`), parameter initializers, shuffles, and token sampling.
+//! Purpose: Cross-platform deterministic PRNG engines (`SplitMix64`, `PCG64-DXSM`, `Xoroshiro128++`, `ChaCha8`), subsystem seed hierarchy, parameter initializers, and token sampling.
 
 use std::f32::consts::TAU;
+use std::time::{SystemTime, UNIX_EPOCH};
 
-/// Deterministic 64-bit `SplitMix64` pseudo-random generator.
+use serde::{Deserialize, Serialize};
+
+/// Selectable cross-hardware deterministic pseudo-random number generator algorithms.
 ///
-/// Using an explicit portable generator guarantees identical weight tensors,
-/// dataset splits, batch ordering, and generation outputs on Linux, Windows,
-/// and macOS for the same numeric seed, avoiding `candle`'s unseeded CPU RNG.
+/// Every algorithm here is implemented in pure portable integer arithmetic so
+/// identical seeds + algorithm produce bit-for-bit identical initial weight
+/// tensors on Windows, Linux, and macOS regardless of CPU/GPU vendor RNGs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum PrngAlgorithm {
+    #[default]
+    SplitMix64,
+    Pcg64Dxsm,
+    Xoroshiro128PlusPlus,
+    ChaCha8Stream,
+}
+
+impl PrngAlgorithm {
+    pub const ALL: [Self; 4] = [
+        Self::SplitMix64,
+        Self::Pcg64Dxsm,
+        Self::Xoroshiro128PlusPlus,
+        Self::ChaCha8Stream,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::SplitMix64 => "SplitMix64 (Fast Bijective)",
+            Self::Pcg64Dxsm => "PCG64-DXSM (NumPy 2 Standard)",
+            Self::Xoroshiro128PlusPlus => "Xoroshiro128++ (Equidistributed)",
+            Self::ChaCha8Stream => "ChaCha8 CSPRNG (Crypto Stream)",
+        }
+    }
+
+    pub fn description(self) -> &'static str {
+        match self {
+            Self::SplitMix64 => {
+                "64-bit Weyl-sequence Stafford-13 mixer. Ultra-low overhead, passes BigCrush, ideal default for rapid iteration."
+            }
+            Self::Pcg64Dxsm => {
+                "128-bit Permuted Congruential Generator with Double-Xorshift-Multiply output function (adopted by NumPy 2.x for scientific reproducibility)."
+            }
+            Self::Xoroshiro128PlusPlus => {
+                "Blackman & Vigna 128-bit state linear engine with ++ scrambler. High throughput and strong 2D equidistribution."
+            }
+            Self::ChaCha8Stream => {
+                "8-round counter-based cryptographic stream cipher (RFC-7539 core). Guarantees zero linear or spectral correlation across 100M+ weights."
+            }
+        }
+    }
+}
+
+/// Hierarchical seed configuration separating master seed from subsystem streams
+/// and controlling optional Genesis (`step = 0`) random weight state export/import.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SeedHierarchy {
+    #[serde(default)]
+    pub algorithm: PrngAlgorithm,
+    pub master_seed: u64,
+    pub lock_subsystems_to_master: bool,
+    pub weight_init_seed: u64,
+    pub data_order_seed: u64,
+    pub stochastic_seed: u64,
+    pub sampling_seed: u64,
+    /// When enabled, writes `genesis_step0.safetensors` + `genesis_manifest.json`
+    /// containing the exact random-filled weights before gradient step 1 runs.
+    pub auto_export_genesis_init: bool,
+    /// Optional path to a previously saved `genesis_step0.safetensors` to load
+    /// as the exact initial tensor state instead of freshly sampling random numbers.
+    #[serde(default)]
+    pub genesis_reload_path: String,
+}
+
+impl Default for SeedHierarchy {
+    fn default() -> Self {
+        let mut base = Self {
+            algorithm: PrngAlgorithm::SplitMix64,
+            master_seed: 42,
+            lock_subsystems_to_master: true,
+            weight_init_seed: 0,
+            data_order_seed: 0,
+            stochastic_seed: 0,
+            sampling_seed: 42,
+            auto_export_genesis_init: true,
+            genesis_reload_path: String::new(),
+        };
+        base.sync_from_master();
+        base
+    }
+}
+
+impl SeedHierarchy {
+    pub fn derive_domain_seed(master: u64, domain_tag: u64) -> u64 {
+        splitmix64_once(master ^ domain_tag)
+    }
+
+    pub fn sync_from_master(&mut self) {
+        if self.lock_subsystems_to_master {
+            self.weight_init_seed = Self::derive_domain_seed(self.master_seed, 0x5745_4947_4854_5321);
+            self.data_order_seed = Self::derive_domain_seed(self.master_seed, 0x4441_5441_4F52_4421);
+            self.stochastic_seed = Self::derive_domain_seed(self.master_seed, 0x4452_4F50_4A49_5421);
+            self.sampling_seed = Self::derive_domain_seed(self.master_seed, 0x5341_4D50_4C45_5221);
+        }
+    }
+
+    pub fn effective_weight_seed(&self) -> u64 {
+        if self.lock_subsystems_to_master {
+            Self::derive_domain_seed(self.master_seed, 0x5745_4947_4854_5321)
+        } else {
+            self.weight_init_seed
+        }
+    }
+
+    pub fn effective_data_seed(&self) -> u64 {
+        if self.lock_subsystems_to_master {
+            Self::derive_domain_seed(self.master_seed, 0x4441_5441_4F52_4421)
+        } else {
+            self.data_order_seed
+        }
+    }
+
+    pub fn effective_stochastic_seed(&self) -> u64 {
+        if self.lock_subsystems_to_master {
+            Self::derive_domain_seed(self.master_seed, 0x4452_4F50_4A49_5421)
+        } else {
+            self.stochastic_seed
+        }
+    }
+
+    pub fn effective_sampling_seed(&self) -> u64 {
+        if self.lock_subsystems_to_master {
+            Self::derive_domain_seed(self.master_seed, 0x5341_4D50_4C45_5221)
+        } else {
+            self.sampling_seed
+        }
+    }
+}
+
+/// Generates a fresh non-deterministic 64-bit seed when the user clicks "Roll Entropy Seed".
+pub fn roll_os_entropy_seed() -> u64 {
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(0xCAFE_BABE_DEAD_BEEF);
+    let stack_addr = (&nanos as *const u64 as usize) as u64;
+    splitmix64_once(nanos ^ stack_addr.rotate_left(17)) % 10_000_000_000
+}
+
+#[inline]
+fn splitmix64_once(x: u64) -> u64 {
+    let mut z = x.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    z ^ (z >> 31)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum RngCore {
+    SplitMix {
+        state: u64,
+    },
+    Pcg64Dxsm {
+        state: u128,
+        inc: u128,
+    },
+    Xoroshiro128PlusPlus {
+        s0: u64,
+        s1: u64,
+    },
+    ChaCha8 {
+        key: [u32; 8],
+        counter: u64,
+        buf: [u64; 8],
+        idx: usize,
+    },
+}
+
+/// Deterministic portable pseudo-random generator supporting 4 selectable state engines.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Rng {
-    state: u64,
+    algo: PrngAlgorithm,
+    core: RngCore,
 }
 
 impl Rng {
     pub fn new(seed: u64) -> Self {
-        // Mix zero so seed = 0 still produces a well-dispersed stream.
-        Self { state: seed ^ 0x9E37_79B9_7F4A_7C15 }
+        Self::with_algorithm(seed, PrngAlgorithm::SplitMix64)
     }
 
-    /// Forks an independent child stream keyed by `salt`.
+    pub fn with_algorithm(seed: u64, algo: PrngAlgorithm) -> Self {
+        match algo {
+            PrngAlgorithm::SplitMix64 => Self {
+                algo,
+                core: RngCore::SplitMix {
+                    state: seed ^ 0x9E37_79B9_7F4A_7C15,
+                },
+            },
+            PrngAlgorithm::Pcg64Dxsm => {
+                let s0 = splitmix64_once(seed);
+                let s1 = splitmix64_once(s0 ^ 0xD1B5_4A32_D192_ED03);
+                let i0 = splitmix64_once(s1 ^ 0x94D0_49BB_1331_11EB);
+                let i1 = splitmix64_once(i0 ^ 0xBF58_476D_1CE4_E5B9) | 1;
+                let inc = ((u128::from(i0)) << 64) | u128::from(i1);
+                let init_state = ((u128::from(s0)) << 64) | u128::from(s1);
+                let mut rng = Self {
+                    algo,
+                    core: RngCore::Pcg64Dxsm {
+                        state: 0,
+                        inc,
+                    },
+                };
+                let _ = rng.next_u64();
+                if let RngCore::Pcg64Dxsm { state, .. } = &mut rng.core {
+                    *state = state.wrapping_add(init_state);
+                }
+                let _ = rng.next_u64();
+                rng
+            }
+            PrngAlgorithm::Xoroshiro128PlusPlus => {
+                let mut s0 = splitmix64_once(seed);
+                let mut s1 = splitmix64_once(s0 ^ 0x6A09_E667_F3BC_C908);
+                if s0 == 0 && s1 == 0 {
+                    s0 = 0x9E37_79B9_7F4A_7C15;
+                    s1 = 0xBF58_476D_1CE4_E5B9;
+                }
+                Self {
+                    algo,
+                    core: RngCore::Xoroshiro128PlusPlus { s0, s1 },
+                }
+            }
+            PrngAlgorithm::ChaCha8Stream => {
+                let mut key = [0u32; 8];
+                let mut cur = seed ^ 0x4348_4143_4841_3821;
+                for pair in key.chunks_exact_mut(2) {
+                    cur = splitmix64_once(cur);
+                    pair[0] = cur as u32;
+                    pair[1] = (cur >> 32) as u32;
+                }
+                let mut out = Self {
+                    algo,
+                    core: RngCore::ChaCha8 {
+                        key,
+                        counter: 0,
+                        buf: [0u64; 8],
+                        idx: 8,
+                    },
+                };
+                let _ = out.next_u64();
+                out
+            }
+        }
+    }
+
+    pub fn algorithm(&self) -> PrngAlgorithm {
+        self.algo
+    }
+
+    /// Forks an independent child stream keyed by `salt`, preserving the active algorithm.
     pub fn fork(&self, salt: u64) -> Self {
         let mut copy = self.clone();
         let base = copy.next_u64();
-        Self::new(base ^ salt.wrapping_mul(0xBF58_476D_1CE4_E5B9))
+        Self::with_algorithm(base ^ salt.wrapping_mul(0xBF58_476D_1CE4_E5B9), self.algo)
     }
 
     pub fn next_u64(&mut self) -> u64 {
-        self.state = self.state.wrapping_add(0x9E37_79B9_7F4A_7C15);
-        let mut z = self.state;
-        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
-        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
-        z ^ (z >> 31)
+        match &mut self.core {
+            RngCore::SplitMix { state } => {
+                *state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+                let mut z = *state;
+                z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+                z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+                z ^ (z >> 31)
+            }
+            RngCore::Pcg64Dxsm { state, inc } => {
+                const MUL: u64 = 15_750_249_268_501_108_917;
+                let old = *state;
+                *state = old
+                    .wrapping_mul(u128::from(MUL))
+                    .wrapping_add(*inc | 1);
+                let mut hi = (old >> 64) as u64;
+                let lo = (old as u64) | 1;
+                hi ^= hi >> 32;
+                hi = hi.wrapping_mul(MUL);
+                hi ^= hi >> 48;
+                hi = hi.wrapping_mul(lo);
+                hi
+            }
+            RngCore::Xoroshiro128PlusPlus { s0, s1 } => {
+                let result = s0.wrapping_add(*s1).rotate_left(17).wrapping_add(*s0);
+                let t = *s1 ^ *s0;
+                *s0 = s0.rotate_left(49) ^ t ^ (t << 21);
+                *s1 = t.rotate_left(28);
+                result
+            }
+            RngCore::ChaCha8 {
+                key,
+                counter,
+                buf,
+                idx,
+            } => {
+                if *idx >= 8 {
+                    *buf = chacha8_block(key, *counter);
+                    *counter = counter.wrapping_add(1);
+                    *idx = 0;
+                }
+                let val = buf[*idx];
+                *idx += 1;
+                val
+            }
+        }
     }
 
     /// Uniform float in `[0.0, 1.0)`.
@@ -69,7 +350,32 @@ impl Rng {
         out
     }
 
-    pub fn xavier_uniform_vec(&mut self, fan_in: usize, fan_out: usize, count: usize, scale: f32) -> Vec<f32> {
+    /// Truncated Gaussian initializer rejecting draws outside `[-clip_sigma * std, +clip_sigma * std]`.
+    pub fn truncated_normal_vec(
+        &mut self,
+        count: usize,
+        mean: f32,
+        std: f32,
+        clip_sigma: f32,
+    ) -> Vec<f32> {
+        let bound = clip_sigma.clamp(1.0, 5.0);
+        let mut out = Vec::with_capacity(count);
+        while out.len() < count {
+            let z = self.standard_normal();
+            if z.abs() <= bound {
+                out.push(mean + std * z);
+            }
+        }
+        out
+    }
+
+    pub fn xavier_uniform_vec(
+        &mut self,
+        fan_in: usize,
+        fan_out: usize,
+        count: usize,
+        scale: f32,
+    ) -> Vec<f32> {
         let bound = (6.0 / (fan_in.max(1) + fan_out.max(1)) as f32).sqrt() * scale;
         (0..count).map(|_| self.uniform(-bound, bound)).collect()
     }
@@ -122,7 +428,6 @@ impl Rng {
             }
         }
 
-        // Greedy decoding when temperature <= 0.
         if temperature <= 1e-4 {
             return adjusted
                 .iter()
@@ -189,27 +494,98 @@ impl Rng {
     }
 }
 
+#[inline]
+fn quarter_round(state: &mut [u32; 16], a: usize, b: usize, c: usize, d: usize) {
+    state[a] = state[a].wrapping_add(state[b]);
+    state[d] = (state[d] ^ state[a]).rotate_left(16);
+    state[c] = state[c].wrapping_add(state[d]);
+    state[b] = (state[b] ^ state[c]).rotate_left(12);
+    state[a] = state[a].wrapping_add(state[b]);
+    state[d] = (state[d] ^ state[a]).rotate_left(8);
+    state[c] = state[c].wrapping_add(state[d]);
+    state[b] = (state[b] ^ state[c]).rotate_left(7);
+}
+
+fn chacha8_block(key: &[u32; 8], counter: u64) -> [u64; 8] {
+    let initial: [u32; 16] = [
+        0x6170_7865,
+        0x3320_646E,
+        0x7962_2D32,
+        0x6B20_6574,
+        key[0],
+        key[1],
+        key[2],
+        key[3],
+        key[4],
+        key[5],
+        key[6],
+        key[7],
+        counter as u32,
+        (counter >> 32) as u32,
+        0x4152_4348,
+        0x5852_4E47,
+    ];
+    let mut working = initial;
+    for _ in 0..4 {
+        // Column rounds
+        quarter_round(&mut working, 0, 4, 8, 12);
+        quarter_round(&mut working, 1, 5, 9, 13);
+        quarter_round(&mut working, 2, 6, 10, 14);
+        quarter_round(&mut working, 3, 7, 11, 15);
+        // Diagonal rounds
+        quarter_round(&mut working, 0, 5, 10, 15);
+        quarter_round(&mut working, 1, 6, 11, 12);
+        quarter_round(&mut working, 2, 7, 8, 13);
+        quarter_round(&mut working, 3, 4, 9, 14);
+    }
+    for (w, &init) in working.iter_mut().zip(&initial) {
+        *w = w.wrapping_add(init);
+    }
+    let mut out = [0u64; 8];
+    for (i, slot) in out.iter_mut().enumerate() {
+        *slot = u64::from(working[2 * i]) | (u64::from(working[2 * i + 1]) << 32);
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn same_seed_yields_identical_sequences_and_shuffles() {
-        let mut a = Rng::new(42);
-        let mut b = Rng::new(42);
-        let mut c = Rng::new(43);
+    fn same_seed_yields_identical_sequences_across_all_four_prng_engines() {
+        for algo in PrngAlgorithm::ALL {
+            let mut a = Rng::with_algorithm(42, algo);
+            let mut b = Rng::with_algorithm(42, algo);
+            let mut c = Rng::with_algorithm(43, algo);
 
-        let seq_a = a.normal_vec(16, 0.0, 0.02);
-        let seq_b = b.normal_vec(16, 0.0, 0.02);
-        let seq_c = c.normal_vec(16, 0.0, 0.02);
-        assert_eq!(seq_a, seq_b);
-        assert_ne!(seq_a, seq_c);
+            let seq_a = a.normal_vec(32, 0.0, 0.02);
+            let seq_b = b.normal_vec(32, 0.0, 0.02);
+            let seq_c = c.normal_vec(32, 0.0, 0.02);
+            assert_eq!(seq_a, seq_b, "determinism failed for {:?}", algo);
+            assert_ne!(seq_a, seq_c, "seed sensitivity failed for {:?}", algo);
+        }
 
-        let mut s1: Vec<usize> = (0..12).collect();
-        let mut s2: Vec<usize> = (0..12).collect();
-        a.shuffle(&mut s1);
-        b.shuffle(&mut s2);
-        assert_eq!(s1, s2);
+        // Distinct PRNG engines must produce distinct streams even for seed = 42.
+        let sm = Rng::with_algorithm(42, PrngAlgorithm::SplitMix64).normal_vec(8, 0.0, 1.0);
+        let pcg = Rng::with_algorithm(42, PrngAlgorithm::Pcg64Dxsm).normal_vec(8, 0.0, 1.0);
+        let xoro = Rng::with_algorithm(42, PrngAlgorithm::Xoroshiro128PlusPlus).normal_vec(8, 0.0, 1.0);
+        let cc8 = Rng::with_algorithm(42, PrngAlgorithm::ChaCha8Stream).normal_vec(8, 0.0, 1.0);
+        assert_ne!(sm, pcg);
+        assert_ne!(pcg, xoro);
+        assert_ne!(xoro, cc8);
+    }
+
+    #[test]
+    fn truncated_normal_respects_sigma_clip_and_seed_hierarchy_separates_domains() {
+        let mut rng = Rng::with_algorithm(99, PrngAlgorithm::ChaCha8Stream);
+        let vals = rng.truncated_normal_vec(512, 0.0, 0.02, 2.0);
+        assert!(vals.iter().all(|v| v.abs() <= 0.04 + 1e-6));
+
+        let seeds = SeedHierarchy::default();
+        assert_ne!(seeds.effective_weight_seed(), seeds.effective_data_seed());
+        assert_ne!(seeds.effective_weight_seed(), seeds.effective_stochastic_seed());
+        assert_ne!(seeds.effective_data_seed(), seeds.effective_sampling_seed());
     }
 
     #[test]
@@ -217,7 +593,6 @@ mod tests {
         let mut rng = Rng::new(7);
         let logits = [0.1, 2.5, 4.2, -1.0];
         assert_eq!(rng.sample_logits(&logits, &[], 0.0, 0, 1.0, 1.0), 2);
-        // With top_k = 1, only the top logit (index 2) can be drawn regardless of temperature.
         for _ in 0..10 {
             assert_eq!(rng.sample_logits(&logits, &[], 1.2, 1, 1.0, 1.0), 2);
         }

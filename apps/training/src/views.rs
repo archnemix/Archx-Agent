@@ -309,20 +309,28 @@ fn banner_bar(app: &App) -> Element<'_, Message> {
 }
 
 // ---------------------------------------------------------------------------
-// 1. PIPELINE SURFACE (01 DATA -> 02 TOKENIZER -> 03 ARCHITECTURE -> 04 TRAIN)
+// 1. PIPELINE SURFACE (01 DATA -> 02 TOKENIZER -> 03 ARCHITECT -> 04 HARDWARE -> 05 GENESIS -> 06 TRAIN)
 // ---------------------------------------------------------------------------
 
 fn pipeline_surface(app: &App) -> Element<'_, Message> {
-    let mut stage_pills = row![].spacing(8).align_y(Center);
+    let mut stage_pills = row![].spacing(5).align_y(Center);
     for st in PipelineStage::ALL {
         let active = app.stage == st;
+        let short_lbl = match st {
+            PipelineStage::Data => "DATA",
+            PipelineStage::Tokenizer => "TOKENIZER",
+            PipelineStage::Architecture => "ARCHITECT",
+            PipelineStage::Hardware => "HARDWARE",
+            PipelineStage::Repro => "GENESIS",
+            PipelineStage::Train => "TRAIN",
+        };
         stage_pills = stage_pills.push(
             button(
-                text(format!("{}  {}", st.code(), st.label().to_uppercase()))
-                    .size(11.5)
+                text(format!("{} {}", st.code(), short_lbl))
+                    .size(11)
                     .font(style::LABEL),
             )
-            .padding([7, 14])
+            .padding([6, 10])
             .on_press(Message::SelectStage(st))
             .style(move |t, s| style::mini_toggle(active, t, s)),
         );
@@ -330,13 +338,13 @@ fn pipeline_surface(app: &App) -> Element<'_, Message> {
 
     let action_btn: Element<'_, Message> = if app.training_busy {
         button(text("Stop run").size(12).font(style::STRONG))
-            .padding([8, 16])
+            .padding([8, 14])
             .on_press(Message::StopTraining)
             .style(style::control_button)
             .into()
     } else {
-        button(text("Train model  →").size(12.5).font(style::STRONG).color(style::BLACK))
-            .padding([8, 16])
+        button(text("Train model  →").size(12).font(style::STRONG).color(style::BLACK))
+            .padding([8, 14])
             .on_press(Message::StartTraining)
             .style(style::primary_button)
             .into()
@@ -348,23 +356,25 @@ fn pipeline_surface(app: &App) -> Element<'_, Message> {
             space().width(Fill),
             text_input("Run name…", &app.cfg.name)
                 .on_input(Message::EditRunName)
-                .width(190)
-                .padding([7, 11])
-                .size(12.5)
+                .width(160)
+                .padding([7, 10])
+                .size(12)
                 .style(style::composer_input),
             action_btn
         ]
-        .spacing(10)
+        .spacing(8)
         .align_y(Center),
     )
     .width(Fill)
-    .padding([12, 22])
+    .padding([12, 20])
     .style(style::settings_header);
 
     let stage_content = match app.stage {
         PipelineStage::Data => stage_data_view(app),
-        PipelineStage::Tokenizer => stage_tokenizer_view(app),
+        PipelineStage::Tokenizer => crate::views_advanced::stage_tokenizer_deep_view(app),
         PipelineStage::Architecture => stage_architecture_view(app),
+        PipelineStage::Hardware => crate::views_advanced::stage_hardware_view(app),
+        PipelineStage::Repro => crate::views_advanced::stage_repro_view(app),
         PipelineStage::Train => stage_train_view(app),
     };
 
@@ -442,7 +452,28 @@ fn live_spec_sidebar(app: &App) -> Element<'_, Message> {
         container(space().height(1)).width(Fill).style(style::rail_divider),
         space().height(8),
         kv_row("Compute / step", format_flops(est.flops_per_step)),
-        kv_row("Master seed", app.cfg.hyper.master_seed.to_string()),
+        kv_row(
+            "Target device",
+            if app.optimization_plan.summary.resolved_device_label.starts_with("GPU") {
+                "WGSL GPU".to_owned()
+            } else {
+                format!("CPU ({}T)", app.cfg.hyper.compute_threads)
+            }
+        ),
+        kv_row(
+            "PRNG · Seed",
+            format!(
+                "{} #{}",
+                app.cfg
+                    .seeds
+                    .algorithm
+                    .label()
+                    .split(' ')
+                    .next()
+                    .unwrap_or("PRNG"),
+                app.cfg.seeds.master_seed
+            )
+        ),
         kv_row("Checkpoint", ckpt_status),
         space().height(10),
         button(
@@ -912,6 +943,7 @@ fn stage_data_view(app: &App) -> Element<'_, Message> {
 
 // --- Stage 02: Tokenizer ---
 
+#[allow(dead_code)]
 fn stage_tokenizer_view(app: &App) -> Element<'_, Message> {
     let tk_cfg = &app.cfg.tokenizer;
 
@@ -1393,7 +1425,15 @@ fn stage_architecture_view(app: &App) -> Element<'_, Message> {
         .width(Fill)
         .padding(18)
         .style(style::card),
-        expert_drawers_view(app)
+        crate::views_advanced::transformer_advanced_card(app),
+        expert_drawers_view(app),
+        row![
+            space().width(Fill),
+            button(text("Next: 04 Hardware & Plan  →").size(12).font(style::LABEL))
+                .padding([9, 15])
+                .on_press(Message::SelectStage(PipelineStage::Hardware))
+                .style(style::control_button)
+        ]
     ]
     .spacing(16)
     .into()
@@ -1744,9 +1784,9 @@ fn stage_train_view(app: &App) -> Element<'_, Message> {
 
     column![
         section_eyebrow(
-            "STAGE 04 / IN-APP EXECUTION & TELEMETRY",
+            "STAGE 06 / IN-APP EXECUTION & TELEMETRY",
             "Train & Monitor Convergence",
-            "Runs multi-threaded reverse-mode autograd in pure Rust and saves real `.safetensors` checkpoints automatically."
+            "Runs multi-threaded reverse-mode autograd on your selected hardware and saves `.safetensors` checkpoints + provenance."
         ),
         container(controls).width(Fill).padding(16).style(style::card),
         row![

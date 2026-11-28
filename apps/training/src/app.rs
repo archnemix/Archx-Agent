@@ -1,4 +1,4 @@
-//! Purpose: Owns the Model Training state machine, §7b launcher host lifecycle, background `sipper` tasks, OS Vault references, and app-scoped persistence.
+//! Purpose: Owns the Model Training state machine, §7b launcher host lifecycle, Hardware & Optimization Planner, Tokenizer Arena, Seed/Genesis Provenance Lab, background `sipper` tasks, OS Vault references, and app-scoped persistence.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -15,12 +15,19 @@ use archx_shared::persist::{DisplaySettings, PersistedSettings};
 use archx_shared::storage;
 
 use crate::config::{
-    ActivationKind, Backbone, DatasetSource, InitDist, LrSchedule, Mechanism, Modality, NormKind,
-    OptimizerKind, PosEncoding, Preset, Routing, RunConfig, TokenizerKind,
+    ActivationKind, Backbone, ComputeTarget, DatasetSource, DigitPolicy, EmbedScaleMode, InitDist,
+    LrSchedule, Mechanism, Modality, NormKind, NormPlacement, OptimizerKind, PosEncoding,
+    PreTokenizeMode, PrecisionMode, Preset, ResidualScaleMode, RopeScalingMode, Routing, RunConfig,
+    TokenizerKind, UnicodeNorm,
 };
 use crate::dataset::{PreparedDataset, fetch_remote_dataset, load_local_or_builtin};
+use crate::hardware::{
+    ComputeBenchmarkReport, HardwareProfile, OptimizationPlan, run_live_compute_benchmark,
+};
+use crate::repro::{GenesisStateReport, build_and_inspect_genesis, export_provenance_and_genesis};
+use crate::rng::{PrngAlgorithm, roll_os_entropy_seed};
 use crate::telemetry::{NeuralSnapshot, StepPoint, TelemetryMode};
-use crate::tokenizer::{LabTokenizer, TokenPreview};
+use crate::tokenizer::{LabTokenizer, TokenPreview, TokenizerArenaRow, run_tokenizer_arena};
 use crate::trainer::{
     GenerationEvent, TrainControl, TrainEvent, execute_training_pipeline, generate_from_checkpoint,
 };
@@ -44,18 +51,29 @@ pub enum PipelineStage {
     Data,
     Tokenizer,
     Architecture,
+    Hardware,
+    Repro,
     Train,
 }
 
 impl PipelineStage {
-    pub const ALL: [Self; 4] = [Self::Data, Self::Tokenizer, Self::Architecture, Self::Train];
+    pub const ALL: [Self; 6] = [
+        Self::Data,
+        Self::Tokenizer,
+        Self::Architecture,
+        Self::Hardware,
+        Self::Repro,
+        Self::Train,
+    ];
 
     pub fn code(self) -> &'static str {
         match self {
             Self::Data => "01",
             Self::Tokenizer => "02",
             Self::Architecture => "03",
-            Self::Train => "04",
+            Self::Hardware => "04",
+            Self::Repro => "05",
+            Self::Train => "06",
         }
     }
 
@@ -64,6 +82,8 @@ impl PipelineStage {
             Self::Data => "Data",
             Self::Tokenizer => "Tokenizer",
             Self::Architecture => "Architecture",
+            Self::Hardware => "Hardware & Plan",
+            Self::Repro => "Seed & Genesis",
             Self::Train => "Train",
         }
     }
@@ -172,8 +192,15 @@ pub enum Message {
     PrepareDataset,
     RemoteDatasetLoaded(Result<PreparedDataset, String>),
 
-    // Stage 02: Tokenizer
+    // Stage 02: Tokenizer & Side-by-Side Arena
     SelectTokenizerKind(TokenizerKind),
+    SelectPreTokenize(PreTokenizeMode),
+    SelectDigitPolicy(DigitPolicy),
+    SelectUnicodeNorm(UnicodeNorm),
+    ToggleByteFallback,
+    SelectVocabPadMultiple(usize),
+    AdjustSubwordDropout(f32),
+    EditCustomSpecials(String),
     EditPretrainedTokenizerPath(String),
     AdjustVocabSize(isize),
     EditVocabSize(String),
@@ -183,9 +210,10 @@ pub enum Message {
     ToggleTokenizerAdvanced,
     AdjustMinFreq(isize),
     BuildTokenizer,
+    RunTokenizerArena,
     EditTokenizerSample(String),
 
-    // Stage 03: Architecture & Seed
+    // Stage 03: Architecture (Engine #1 Transformer)
     SelectModality(Modality),
     SelectMechanism(Mechanism),
     SelectBackbone(Backbone),
@@ -213,15 +241,22 @@ pub enum Message {
     ToggleExpertInitDrawer,
     ToggleExpertStabilityDrawer,
     SelectNorm(NormKind),
+    SelectNormPlacement(NormPlacement),
     SelectActivation(ActivationKind),
     SelectPosEncoding(PosEncoding),
+    SelectRopeScaling(RopeScalingMode),
+    SelectEmbedScale(EmbedScaleMode),
+    SelectResidualScaleMode(ResidualScaleMode),
     EditRopeTheta(String),
     ToggleQkNorm,
     ToggleTieEmbeddings,
     ToggleUseBias,
     AdjustSlidingWindow(isize),
+    AdjustAttnSoftcap(f32),
+    AdjustFinalSoftcap(f32),
     SelectInitDist(InitDist),
     EditInitStd(String),
+    AdjustTruncSigma(f32),
     ToggleResidualScale,
     EditAuxLossWeight(String),
     EditZLossWeight(String),
@@ -234,7 +269,29 @@ pub enum Message {
     AdjustEvalEvery(isize),
     AdjustCheckpointEvery(isize),
 
-    // Stage 04: Train & Telemetry
+    // Stage 04: Hardware Inspector, CPU vs GPU Selector, & Custom Optimization Plan
+    RescanHardware,
+    SelectComputeTarget(ComputeTarget),
+    SelectPreferredGpu(usize),
+    SelectPrecisionMode(PrecisionMode),
+    ToggleActivationCheckpointing,
+    ToggleHardwareVocabPad,
+    ApplyHardwareOptimizationPlan,
+    ExportOptimizationScript,
+    RunComputeBenchmark,
+
+    // Stage 05: Seed Hierarchy, Hardware Provenance & Initial Random State (Genesis) Lab
+    SelectPrngAlgorithm(PrngAlgorithm),
+    ToggleLockSubsystemsToMaster,
+    EditWeightSeed(String),
+    EditDataSeed(String),
+    EditStochasticSeed(String),
+    ToggleAutoExportGenesis,
+    EditGenesisReloadPath(String),
+    InspectGenesisNow,
+    ExportProvenanceBundle { include_genesis_weights: bool },
+
+    // Stage 06: Train & Telemetry
     StartTraining,
     TogglePauseTraining,
     RequestCheckpointSave,
@@ -291,6 +348,9 @@ pub struct App {
 
     // Draft text inputs for numeric fields so typing is smooth
     pub seed_input: String,
+    pub weight_seed_input: String,
+    pub data_seed_input: String,
+    pub stochastic_seed_input: String,
     pub shuffle_seed_input: String,
     pub vocab_input: String,
     pub lr_input: String,
@@ -314,6 +374,13 @@ pub struct App {
     pub expert_attn_open: bool,
     pub expert_init_open: bool,
     pub expert_stability_open: bool,
+
+    // Hardware, Optimization Plan, Tokenizer Arena, & Genesis State
+    pub hardware: HardwareProfile,
+    pub optimization_plan: OptimizationPlan,
+    pub compute_benchmark: Option<ComputeBenchmarkReport>,
+    pub tokenizer_arena: Vec<TokenizerArenaRow>,
+    pub genesis_report: Option<GenesisStateReport>,
 
     // Prepared pipeline artifacts in memory
     pub dataset: Option<PreparedDataset>,
@@ -386,11 +453,18 @@ impl App {
                 .unwrap_or_default()
         };
 
+        let hardware = if snapshot_mode {
+            HardwareProfile::snapshot_fixture()
+        } else {
+            HardwareProfile::probe()
+        };
+
         if runs.is_empty() {
             let mut default_cfg = RunConfig::default();
-            if let Some(threads) = stored_settings.default_threads {
-                default_cfg.hyper.compute_threads = threads.clamp(1, 32);
-            }
+            default_cfg.hyper.compute_threads = stored_settings
+                .default_threads
+                .unwrap_or(hardware.cpu.recommended_threads)
+                .clamp(1, 32);
             runs.push(SavedRun {
                 id: 1,
                 slug: "run-01-tiny-transformer".to_owned(),
@@ -405,9 +479,10 @@ impl App {
 
         let next_run_id = runs.iter().map(|r| r.id).max().unwrap_or(1) + 1;
         let active = runs[0].clone();
-        let sample_text = "<user> Hello! How do Transformers learn? <assistant> By attending to earlier tokens.".to_owned();
+        let sample_text =
+            "<user> Compute 2026 * 4 in Rust! <assistant> <think>4 * 2026 = 8104</think> let ans = 8104;"
+                .to_owned();
 
-        // Pre-load the built-in starter dataset and tokenizer so first launch feels immediately alive.
         let initial_ds = load_local_or_builtin(&active.config.dataset).ok();
         let initial_tk = initial_ds
             .as_ref()
@@ -416,18 +491,37 @@ impl App {
             .as_ref()
             .map(|tk| tk.preview_text(&sample_text))
             .unwrap_or_default();
+        let initial_arena = initial_ds
+            .as_ref()
+            .map(|ds| {
+                run_tokenizer_arena(
+                    &active.config.tokenizer,
+                    &ds.train_docs,
+                    &sample_text,
+                    active.config.model.seq_len,
+                )
+            })
+            .unwrap_or_default();
+
+        let optimization_plan = OptimizationPlan::compile(&hardware, &active.config);
+        let initial_genesis = build_and_inspect_genesis(&active.config)
+            .ok()
+            .map(|(_, rep)| rep);
 
         let mut app = Self {
             left_for_launcher: false,
             display,
             surface: Surface::Pipeline,
-            stage: PipelineStage::Architecture,
+            stage: PipelineStage::Data,
             banner: None,
             runs,
             active_run_id: active.id,
             next_run_id,
             cfg: active.config,
             seed_input: String::new(),
+            weight_seed_input: String::new(),
+            data_seed_input: String::new(),
+            stochastic_seed_input: String::new(),
             shuffle_seed_input: String::new(),
             vocab_input: String::new(),
             lr_input: String::new(),
@@ -445,10 +539,15 @@ impl App {
             label_smooth_input: String::new(),
             sample_seed_input: String::new(),
             data_advanced_open: false,
-            tokenizer_advanced_open: false,
-            expert_attn_open: false,
+            tokenizer_advanced_open: true,
+            expert_attn_open: true,
             expert_init_open: false,
             expert_stability_open: false,
+            hardware,
+            optimization_plan,
+            compute_benchmark: None,
+            tokenizer_arena: initial_arena,
+            genesis_report: initial_genesis,
             dataset: initial_ds,
             dataset_busy: false,
             dataset_handle: None,
@@ -487,13 +586,37 @@ impl App {
 
     /// Host surface switch specified by `Adding_An_App.md` §7b.
     pub fn enter_surface(&mut self, surface: &str) {
-        self.surface = match surface {
-            "settings" => Surface::Settings,
-            "debug" | "journal" => Surface::Journal,
-            "neural" => Surface::NeuralLive,
-            "playground" | "chat" => Surface::Playground,
-            _ => Surface::Pipeline,
-        };
+        match surface {
+            "settings" => self.surface = Surface::Settings,
+            "debug" | "journal" => self.surface = Surface::Journal,
+            "neural" => self.surface = Surface::NeuralLive,
+            "playground" | "chat" => self.surface = Surface::Playground,
+            "data" => {
+                self.surface = Surface::Pipeline;
+                self.stage = PipelineStage::Data;
+            }
+            "tokenizer" => {
+                self.surface = Surface::Pipeline;
+                self.stage = PipelineStage::Tokenizer;
+            }
+            "architecture" => {
+                self.surface = Surface::Pipeline;
+                self.stage = PipelineStage::Architecture;
+            }
+            "hardware" => {
+                self.surface = Surface::Pipeline;
+                self.stage = PipelineStage::Hardware;
+            }
+            "repro" | "seed" | "genesis" => {
+                self.surface = Surface::Pipeline;
+                self.stage = PipelineStage::Repro;
+            }
+            "train" => {
+                self.surface = Surface::Pipeline;
+                self.stage = PipelineStage::Train;
+            }
+            _ => self.surface = Surface::Pipeline,
+        }
     }
 
     /// Host exit hook specified by `Adding_An_App.md` §7b: halts background work cleanly.
@@ -506,12 +629,63 @@ impl App {
     pub fn prepare_snapshot(&mut self, surface: &str) {
         self.snapshot_mode = true;
         self.banner = None;
+        self.hardware = HardwareProfile::snapshot_fixture();
         self.enter_surface(surface);
+        if let Ok(stage_override) = std::env::var("ARCHX_TRAINING_STAGE") {
+            self.enter_surface(stage_override.trim());
+        }
+        self.optimization_plan = OptimizationPlan::compile(&self.hardware, &self.cfg);
+        self.compute_benchmark = Some(ComputeBenchmarkReport {
+            matrix_dim: 256,
+            cpu_threads: 14,
+            cpu_ms: 0.92,
+            cpu_gflops: 36.4,
+            gpu_adapter_name: Some("Discrete Vulkan / DX12 Compute Adapter".to_owned()),
+            gpu_backend: Some("Vulkan / DX12".to_owned()),
+            gpu_ms: Some(0.18),
+            gpu_gflops: Some(186.5),
+            max_abs_diff: Some(1.19e-6),
+            recommended_winner: "GPU (Discrete Vulkan / DX12 Compute Adapter · 186.5 GFLOP/s)"
+                .to_owned(),
+            note: "Verified 256×256 tiled SGEMM: max |CPU − GPU| = 1.19e-6. Hardware GPU WGSL compute pipeline validated.".to_owned(),
+        });
         self.history = vec![
-            StepPoint { step: 1, train_loss: 4.82, val_loss: Some(4.79), perplexity: 123.9, lr: 0.001, grad_norm: 1.42, tokens_per_sec: 3200.0 },
-            StepPoint { step: 20, train_loss: 3.14, val_loss: Some(3.22), perplexity: 23.1, lr: 0.0028, grad_norm: 0.91, tokens_per_sec: 3480.0 },
-            StepPoint { step: 40, train_loss: 2.18, val_loss: Some(2.31), perplexity: 8.84, lr: 0.0024, grad_norm: 0.64, tokens_per_sec: 3510.0 },
-            StepPoint { step: 60, train_loss: 1.62, val_loss: Some(1.79), perplexity: 5.05, lr: 0.0015, grad_norm: 0.48, tokens_per_sec: 3540.0 },
+            StepPoint {
+                step: 1,
+                train_loss: 4.82,
+                val_loss: Some(4.79),
+                perplexity: 123.9,
+                lr: 0.001,
+                grad_norm: 1.42,
+                tokens_per_sec: 3200.0,
+            },
+            StepPoint {
+                step: 20,
+                train_loss: 3.14,
+                val_loss: Some(3.22),
+                perplexity: 23.1,
+                lr: 0.0028,
+                grad_norm: 0.91,
+                tokens_per_sec: 3480.0,
+            },
+            StepPoint {
+                step: 40,
+                train_loss: 2.18,
+                val_loss: Some(2.31),
+                perplexity: 8.84,
+                lr: 0.0024,
+                grad_norm: 0.64,
+                tokens_per_sec: 3510.0,
+            },
+            StepPoint {
+                step: 60,
+                train_loss: 1.62,
+                val_loss: Some(1.79),
+                perplexity: 5.05,
+                lr: 0.0015,
+                grad_norm: 0.48,
+                tokens_per_sec: 3540.0,
+            },
         ];
     }
 
@@ -540,6 +714,9 @@ impl App {
 
     fn sync_text_inputs(&mut self) {
         self.seed_input = self.cfg.hyper.master_seed.to_string();
+        self.weight_seed_input = self.cfg.seeds.effective_weight_seed().to_string();
+        self.data_seed_input = self.cfg.seeds.effective_data_seed().to_string();
+        self.stochastic_seed_input = self.cfg.seeds.effective_stochastic_seed().to_string();
         self.shuffle_seed_input = self.cfg.dataset.shuffle_seed.to_string();
         self.vocab_input = self.cfg.tokenizer.vocab_size.to_string();
         self.lr_input = format!("{:.4}", self.cfg.hyper.lr);
@@ -584,7 +761,12 @@ impl App {
         }
     }
 
+    fn recompute_plan(&mut self) {
+        self.optimization_plan = OptimizationPlan::compile(&self.hardware, &self.cfg);
+    }
+
     fn sync_active_run_record(&mut self) {
+        self.recompute_plan();
         if let Some(run) = self.runs.iter_mut().find(|r| r.id == self.active_run_id) {
             run.config = self.cfg.clone();
             run.updated_secs = storage::now_secs();
@@ -666,7 +848,10 @@ impl App {
             // Runs
             Message::NewRun => {
                 if self.training_busy {
-                    self.banner = Some((false, "Stop the active training run before creating a new run.".into()));
+                    self.banner = Some((
+                        false,
+                        "Stop the active training run before creating a new run.".into(),
+                    ));
                     return Task::none();
                 }
                 let id = self.next_run_id;
@@ -691,6 +876,8 @@ impl App {
                 self.latest_neural = None;
                 self.playground_turns.clear();
                 self.sync_text_inputs();
+                self.recompute_plan();
+                self.genesis_report = build_and_inspect_genesis(&self.cfg).ok().map(|(_, r)| r);
                 self.persist_runs();
                 self.surface = Surface::Pipeline;
                 self.stage = PipelineStage::Data;
@@ -707,10 +894,13 @@ impl App {
                     self.latest_neural = None;
                     self.playground_turns.clear();
                     self.sync_text_inputs();
+                    self.recompute_plan();
+                    self.genesis_report = build_and_inspect_genesis(&self.cfg).ok().map(|(_, r)| r);
                     self.refresh_checkpoint_flags();
                     if self.cfg.dataset.source.is_builtin() {
                         if let Ok(ds) = load_local_or_builtin(&self.cfg.dataset) {
-                            if let Ok(tk) = LabTokenizer::train_or_load(&self.cfg.tokenizer, &ds.train_docs) {
+                            if let Ok(tk) = LabTokenizer::train_or_load(&self.cfg.tokenizer, &ds.train_docs)
+                            {
                                 self.tokenizer_preview = tk.preview_text(&self.tokenizer_sample);
                                 self.tokenizer = Some(tk);
                             }
@@ -739,6 +929,7 @@ impl App {
                     self.active_run_id = first.id;
                     self.cfg = first.config;
                     self.sync_text_inputs();
+                    self.recompute_plan();
                 }
                 self.persist_runs();
             }
@@ -803,7 +994,8 @@ impl App {
             }
             Message::ToggleDataAdvanced => self.data_advanced_open = !self.data_advanced_open,
             Message::AdjustTrainSplit(delta) => {
-                let next = (i16::from(self.cfg.dataset.train_pct) + i16::from(delta)).clamp(50, 95) as u8;
+                let next =
+                    (i16::from(self.cfg.dataset.train_pct) + i16::from(delta)).clamp(50, 95) as u8;
                 self.cfg.dataset.train_pct = next;
                 self.cfg.dataset.val_pct = 100 - next;
                 self.sync_active_run_record();
@@ -905,7 +1097,7 @@ impl App {
                 }
             }
 
-            // Stage 02: Tokenizer
+            // Stage 02: Tokenizer & 4-Way Arena
             Message::SelectTokenizerKind(kind) => {
                 self.cfg.tokenizer.kind = kind;
                 if kind == TokenizerKind::ByteLevelBpe && self.cfg.tokenizer.vocab_size < 320 {
@@ -914,12 +1106,43 @@ impl App {
                 }
                 self.sync_active_run_record();
             }
+            Message::SelectPreTokenize(m) => {
+                self.cfg.tokenizer.pre_tokenize = m;
+                self.sync_active_run_record();
+            }
+            Message::SelectDigitPolicy(dp) => {
+                self.cfg.tokenizer.digit_policy = dp;
+                self.sync_active_run_record();
+            }
+            Message::SelectUnicodeNorm(un) => {
+                self.cfg.tokenizer.normalization = un;
+                self.cfg.tokenizer.lowercase = un == UnicodeNorm::Lowercase;
+                self.sync_active_run_record();
+            }
+            Message::ToggleByteFallback => {
+                self.cfg.tokenizer.byte_fallback = !self.cfg.tokenizer.byte_fallback;
+                self.sync_active_run_record();
+            }
+            Message::SelectVocabPadMultiple(mult) => {
+                self.cfg.tokenizer.pad_to_multiple = mult;
+                self.sync_active_run_record();
+            }
+            Message::AdjustSubwordDropout(delta) => {
+                self.cfg.tokenizer.subword_dropout =
+                    (self.cfg.tokenizer.subword_dropout + delta).clamp(0.0, 0.25);
+                self.sync_active_run_record();
+            }
+            Message::EditCustomSpecials(s) => {
+                self.cfg.tokenizer.custom_special_tokens = s.chars().take(180).collect();
+                self.sync_active_run_record();
+            }
             Message::EditPretrainedTokenizerPath(v) => {
                 self.cfg.tokenizer.pretrained_path = v;
                 self.sync_active_run_record();
             }
             Message::AdjustVocabSize(delta) => {
-                let next = (self.cfg.tokenizer.vocab_size as isize + delta).clamp(48, 32_768) as usize;
+                let next =
+                    (self.cfg.tokenizer.vocab_size as isize + delta).clamp(48, 32_768) as usize;
                 self.cfg.tokenizer.vocab_size = next;
                 self.vocab_input = next.to_string();
                 self.sync_active_run_record();
@@ -941,13 +1164,19 @@ impl App {
             }
             Message::ToggleLowercase => {
                 self.cfg.tokenizer.lowercase = !self.cfg.tokenizer.lowercase;
+                if self.cfg.tokenizer.lowercase {
+                    self.cfg.tokenizer.normalization = UnicodeNorm::Lowercase;
+                } else if self.cfg.tokenizer.normalization == UnicodeNorm::Lowercase {
+                    self.cfg.tokenizer.normalization = UnicodeNorm::None;
+                }
                 self.sync_active_run_record();
             }
             Message::ToggleTokenizerAdvanced => {
                 self.tokenizer_advanced_open = !self.tokenizer_advanced_open;
             }
             Message::AdjustMinFreq(delta) => {
-                let next = (self.cfg.tokenizer.min_frequency as isize + delta).clamp(1, 50) as usize;
+                let next =
+                    (self.cfg.tokenizer.min_frequency as isize + delta).clamp(1, 50) as usize;
                 self.cfg.tokenizer.min_frequency = next;
                 self.sync_active_run_record();
             }
@@ -963,7 +1192,10 @@ impl App {
                     .map(|d| d.train_docs.as_slice())
                     .unwrap_or(&[]);
                 if docs.is_empty() && self.cfg.tokenizer.kind != TokenizerKind::PretrainedFile {
-                    self.banner = Some((false, "Prepare a dataset in Stage 01 before training a tokenizer.".into()));
+                    self.banner = Some((
+                        false,
+                        "Prepare a dataset in Stage 01 before training a tokenizer.".into(),
+                    ));
                     return Task::none();
                 }
                 match LabTokenizer::train_or_load(&self.cfg.tokenizer, docs) {
@@ -982,6 +1214,38 @@ impl App {
                     }
                 }
             }
+            Message::RunTokenizerArena => {
+                if self.dataset.is_none() {
+                    if let Ok(ds) = load_local_or_builtin(&self.cfg.dataset) {
+                        self.dataset = Some(ds);
+                    }
+                }
+                let docs = self
+                    .dataset
+                    .as_ref()
+                    .map(|d| d.train_docs.as_slice())
+                    .unwrap_or(&[]);
+                if docs.is_empty() {
+                    self.banner = Some((
+                        false,
+                        "Prepare a dataset first to benchmark all 4 scratch tokenizers.".into(),
+                    ));
+                    return Task::none();
+                }
+                self.tokenizer_arena = run_tokenizer_arena(
+                    &self.cfg.tokenizer,
+                    docs,
+                    &self.tokenizer_sample,
+                    self.cfg.model.seq_len,
+                );
+                let msg = format!(
+                    "Compared all 4 scratch tokenizers ({} rules, {} digits) on active corpus.",
+                    self.cfg.tokenizer.pre_tokenize.label(),
+                    self.cfg.tokenizer.digit_policy.label()
+                );
+                self.log_event("tokenizer-arena", &msg);
+                self.banner = Some((true, msg));
+            }
             Message::EditTokenizerSample(s) => {
                 self.tokenizer_sample = s;
                 if let Some(tk) = &self.tokenizer {
@@ -989,7 +1253,7 @@ impl App {
                 }
             }
 
-            // Stage 03: Architecture & Seed
+            // Stage 03: Architecture
             Message::SelectModality(m) => {
                 if m.is_live_in_slice() {
                     self.cfg.modality = m;
@@ -998,7 +1262,7 @@ impl App {
                     self.banner = Some((
                         false,
                         format!(
-                            "{} arrives in upcoming vertical slices (see Roadmap.md). Slice 1 focuses on Text Generation · Transformer.",
+                            "{} arrives in upcoming engines (see Roadmap.md). Engine #1 focuses on Text · Transformer.",
                             m.label()
                         ),
                     ));
@@ -1012,7 +1276,7 @@ impl App {
                     self.banner = Some((
                         false,
                         format!(
-                            "{} arrives in Slice 3–4 (see Roadmap.md). Slice 1 focuses on Autoregressive Transformer.",
+                            "{} arrives in upcoming engines (see Roadmap.md). Engine #1 focuses on Autoregressive Transformer.",
                             mech.label()
                         ),
                     ));
@@ -1026,7 +1290,7 @@ impl App {
                     self.banner = Some((
                         false,
                         format!(
-                            "{} arrives in Slice 2–5 (see Roadmap.md). Slice 1 focuses on Transformer (Dense & MoE).",
+                            "{} arrives in upcoming engines (see Roadmap.md). Engine #1 is the Transformer Engine (Dense & MoE).",
                             bb.label()
                         ),
                     ));
@@ -1042,9 +1306,12 @@ impl App {
                     let keep_vocab = self.cfg.model.vocab_size;
                     let keep_routing = self.cfg.model.routing;
                     let keep_moe = self.cfg.model.moe.clone();
-                    let mut next_model = crate::config::TransformerConfig::from_preset(preset, keep_routing);
+                    let keep_algo = self.cfg.model.prng_algorithm;
+                    let mut next_model =
+                        crate::config::TransformerConfig::from_preset(preset, keep_routing);
                     next_model.vocab_size = keep_vocab;
                     next_model.moe = keep_moe;
+                    next_model.prng_algorithm = keep_algo;
                     self.cfg.model = next_model;
                     self.sync_text_inputs();
                 }
@@ -1052,7 +1319,8 @@ impl App {
             }
             Message::AdjustLayers(delta) => {
                 self.cfg.preset = Preset::Custom;
-                self.cfg.model.n_layers = (self.cfg.model.n_layers as isize + delta).clamp(1, 32) as usize;
+                self.cfg.model.n_layers =
+                    (self.cfg.model.n_layers as isize + delta).clamp(1, 32) as usize;
                 if self.inspected_layer >= self.cfg.model.n_layers {
                     self.inspected_layer = self.cfg.model.n_layers - 1;
                 }
@@ -1061,13 +1329,15 @@ impl App {
             Message::AdjustDModel(delta) => {
                 self.cfg.preset = Preset::Custom;
                 let step = (self.cfg.model.n_heads * 2).max(8) as isize;
-                self.cfg.model.d_model = (self.cfg.model.d_model as isize + delta * step).clamp(32, 2048) as usize;
+                self.cfg.model.d_model =
+                    (self.cfg.model.d_model as isize + delta * step).clamp(32, 2048) as usize;
                 self.cfg.model = self.cfg.model.sanitized();
                 self.sync_active_run_record();
             }
             Message::AdjustHeads(delta) => {
                 self.cfg.preset = Preset::Custom;
-                self.cfg.model.n_heads = (self.cfg.model.n_heads as isize + delta).clamp(1, 32) as usize;
+                self.cfg.model.n_heads =
+                    (self.cfg.model.n_heads as isize + delta).clamp(1, 32) as usize;
                 self.cfg.model = self.cfg.model.sanitized();
                 self.sync_active_run_record();
             }
@@ -1075,7 +1345,8 @@ impl App {
                 self.cfg.preset = Preset::Custom;
                 let cur = self.cfg.model.n_kv_heads as isize;
                 let mut cand = (cur + delta).clamp(1, self.cfg.model.n_heads as isize) as usize;
-                while self.cfg.model.n_heads % cand != 0 && cand > 1 && cand < self.cfg.model.n_heads {
+                while self.cfg.model.n_heads % cand != 0 && cand > 1 && cand < self.cfg.model.n_heads
+                {
                     if delta >= 0 {
                         cand += 1;
                     } else {
@@ -1087,22 +1358,26 @@ impl App {
             }
             Message::AdjustDff(delta) => {
                 self.cfg.preset = Preset::Custom;
-                self.cfg.model.d_ff = (self.cfg.model.d_ff as isize + delta).clamp(64, 8192) as usize;
+                self.cfg.model.d_ff =
+                    (self.cfg.model.d_ff as isize + delta).clamp(64, 8192) as usize;
                 self.sync_active_run_record();
             }
             Message::AdjustSeqLen(delta) => {
                 self.cfg.preset = Preset::Custom;
-                self.cfg.model.seq_len = (self.cfg.model.seq_len as isize + delta).clamp(16, 2048) as usize;
+                self.cfg.model.seq_len =
+                    (self.cfg.model.seq_len as isize + delta).clamp(16, 2048) as usize;
                 self.sync_active_run_record();
             }
             Message::AdjustExperts(delta) => {
-                self.cfg.model.moe.n_experts = (self.cfg.model.moe.n_experts as isize + delta).clamp(2, 16) as usize;
+                self.cfg.model.moe.n_experts =
+                    (self.cfg.model.moe.n_experts as isize + delta).clamp(2, 16) as usize;
                 self.cfg.model.moe.top_k = self.cfg.model.moe.top_k.min(self.cfg.model.moe.n_experts);
                 self.sync_active_run_record();
             }
             Message::AdjustTopK(delta) => {
                 self.cfg.model.moe.top_k = (self.cfg.model.moe.top_k as isize + delta)
-                    .clamp(1, self.cfg.model.moe.n_experts as isize) as usize;
+                    .clamp(1, self.cfg.model.moe.n_experts as isize)
+                    as usize;
                 self.sync_active_run_record();
             }
             Message::AdjustSharedExperts(delta) => {
@@ -1113,16 +1388,25 @@ impl App {
             Message::EditMasterSeed(s) => {
                 if let Ok(v) = s.trim().parse::<u64>() {
                     self.cfg.hyper.master_seed = v;
-                    self.cfg.model.init_seed = v;
+                    self.cfg.seeds.master_seed = v;
+                    self.cfg.seeds.sync_from_master();
+                    self.cfg.model.init_seed = self.cfg.seeds.effective_weight_seed();
+                    self.weight_seed_input = self.cfg.seeds.effective_weight_seed().to_string();
+                    self.data_seed_input = self.cfg.seeds.effective_data_seed().to_string();
+                    self.stochastic_seed_input =
+                        self.cfg.seeds.effective_stochastic_seed().to_string();
                     self.sync_active_run_record();
                 }
                 self.seed_input = s;
             }
             Message::RandomizeSeed => {
-                let next = (storage::now_secs() ^ 0x5DEECE66D) % 1_000_000;
+                let next = roll_os_entropy_seed();
                 self.cfg.hyper.master_seed = next;
-                self.cfg.model.init_seed = next;
-                self.seed_input = next.to_string();
+                self.cfg.seeds.master_seed = next;
+                self.cfg.seeds.sync_from_master();
+                self.cfg.model.init_seed = self.cfg.seeds.effective_weight_seed();
+                self.sync_text_inputs();
+                self.genesis_report = build_and_inspect_genesis(&self.cfg).ok().map(|(_, r)| r);
                 self.sync_active_run_record();
             }
             Message::SelectOptimizer(opt) => {
@@ -1143,7 +1427,8 @@ impl App {
                 self.lr_input = s;
             }
             Message::AdjustBatchSize(delta) => {
-                self.cfg.hyper.batch_size = (self.cfg.hyper.batch_size as isize + delta).clamp(1, 64) as usize;
+                self.cfg.hyper.batch_size =
+                    (self.cfg.hyper.batch_size as isize + delta).clamp(1, 64) as usize;
                 self.sync_active_run_record();
             }
             Message::AdjustGradAccum(delta) => {
@@ -1173,6 +1458,10 @@ impl App {
                 self.cfg.model.norm = n;
                 self.sync_active_run_record();
             }
+            Message::SelectNormPlacement(np) => {
+                self.cfg.model.norm_placement = np;
+                self.sync_active_run_record();
+            }
             Message::SelectActivation(act) => {
                 self.cfg.model.activation = act;
                 self.sync_active_run_record();
@@ -1181,9 +1470,22 @@ impl App {
                 self.cfg.model.pos_encoding = pe;
                 self.sync_active_run_record();
             }
+            Message::SelectRopeScaling(rs) => {
+                self.cfg.model.rope_scaling = rs;
+                self.sync_active_run_record();
+            }
+            Message::SelectEmbedScale(es) => {
+                self.cfg.model.embed_scale = es;
+                self.sync_active_run_record();
+            }
+            Message::SelectResidualScaleMode(rsm) => {
+                self.cfg.model.residual_scale = rsm != ResidualScaleMode::Standard;
+                self.cfg.model.residual_scale_mode = rsm;
+                self.sync_active_run_record();
+            }
             Message::EditRopeTheta(s) => {
                 if let Ok(v) = s.trim().parse::<f32>() {
-                    if v >= 100.0 && v <= 5_000_000.0 {
+                    if (100.0..=5_000_000.0).contains(&v) {
                         self.cfg.model.rope_theta = v;
                         self.sync_active_run_record();
                     }
@@ -1207,18 +1509,33 @@ impl App {
                 self.cfg.model.sliding_window = next;
                 self.sync_active_run_record();
             }
+            Message::AdjustAttnSoftcap(delta) => {
+                let next = (self.cfg.model.attn_logit_softcap + delta).clamp(0.0, 100.0);
+                self.cfg.model.attn_logit_softcap = if next < 2.0 { 0.0 } else { next };
+                self.sync_active_run_record();
+            }
+            Message::AdjustFinalSoftcap(delta) => {
+                let next = (self.cfg.model.final_logit_softcap + delta).clamp(0.0, 100.0);
+                self.cfg.model.final_logit_softcap = if next < 2.0 { 0.0 } else { next };
+                self.sync_active_run_record();
+            }
             Message::SelectInitDist(d) => {
                 self.cfg.model.init_dist = d;
                 self.sync_active_run_record();
             }
             Message::EditInitStd(s) => {
                 if let Ok(v) = s.trim().parse::<f32>() {
-                    if v >= 0.001 && v <= 0.25 {
+                    if (0.001..=0.25).contains(&v) {
                         self.cfg.model.init_std = v;
                         self.sync_active_run_record();
                     }
                 }
                 self.init_std_input = s;
+            }
+            Message::AdjustTruncSigma(delta) => {
+                self.cfg.model.truncated_sigma =
+                    (self.cfg.model.truncated_sigma + delta).clamp(1.0, 4.5);
+                self.sync_active_run_record();
             }
             Message::ToggleResidualScale => {
                 self.cfg.model.residual_scale = !self.cfg.model.residual_scale;
@@ -1298,7 +1615,224 @@ impl App {
                 self.sync_active_run_record();
             }
 
-            // Stage 04: Training execution
+            // Stage 04: Hardware & Custom Optimization Plan
+            Message::RescanHardware => {
+                self.hardware = HardwareProfile::probe();
+                self.recompute_plan();
+                let gpu_count = self.hardware.gpus.len();
+                let msg = format!(
+                    "Probed host: {} ({} cores, {}), {} MB RAM, {gpu_count} WGPU adapter(s).",
+                    self.hardware.cpu.brand,
+                    self.hardware.cpu.logical_cores,
+                    self.hardware.cpu.simd_tier(),
+                    self.hardware.memory.total_ram_mb
+                );
+                self.log_event("hardware", &msg);
+                self.banner = Some((true, msg));
+            }
+            Message::SelectComputeTarget(target) => {
+                self.cfg.hardware_exec.target = target;
+                self.sync_active_run_record();
+            }
+            Message::SelectPreferredGpu(idx) => {
+                self.cfg.hardware_exec.preferred_gpu_index = idx;
+                self.cfg.hardware_exec.target = ComputeTarget::Gpu;
+                self.sync_active_run_record();
+            }
+            Message::SelectPrecisionMode(pm) => {
+                self.cfg.hardware_exec.precision = pm;
+                self.sync_active_run_record();
+            }
+            Message::ToggleActivationCheckpointing => {
+                self.cfg.hardware_exec.activation_checkpointing =
+                    !self.cfg.hardware_exec.activation_checkpointing;
+                self.sync_active_run_record();
+            }
+            Message::ToggleHardwareVocabPad => {
+                self.cfg.hardware_exec.pad_vocab_for_hardware =
+                    !self.cfg.hardware_exec.pad_vocab_for_hardware;
+                self.sync_active_run_record();
+            }
+            Message::ApplyHardwareOptimizationPlan => {
+                let s = self.optimization_plan.summary.clone();
+                self.cfg.hyper.compute_threads = s.recommended_threads;
+                self.cfg.hyper.batch_size = s.recommended_batch_size;
+                self.cfg.hyper.grad_accum_steps = s.recommended_grad_accum;
+                self.cfg.hardware_exec.precision = s.recommended_precision;
+                self.cfg.hardware_exec.activation_checkpointing =
+                    s.recommended_activation_checkpointing;
+                self.cfg.hardware_exec.fused_ce_chunk_tokens = s.recommended_fused_ce_chunk;
+                self.cfg.tokenizer.pad_to_multiple = if s.resolved_target == ComputeTarget::Gpu {
+                    128
+                } else {
+                    64
+                };
+                self.cfg.tokenizer.vocab_size = s.recommended_vocab_size;
+                self.vocab_input = s.recommended_vocab_size.to_string();
+                self.sync_active_run_record();
+                let msg = format!(
+                    "Applied custom plan: {} · micro-batch={} × accum={} ({} tok/step), threads={}, vocab={}.",
+                    s.resolved_device_label,
+                    s.recommended_batch_size,
+                    s.recommended_grad_accum,
+                    s.effective_tokens_per_step,
+                    s.recommended_threads,
+                    s.recommended_vocab_size
+                );
+                self.log_event("opt-plan", &msg);
+                self.banner = Some((true, msg));
+            }
+            Message::ExportOptimizationScript => {
+                let run_dir = self.active_run_dir();
+                let _ = std::fs::create_dir_all(&run_dir);
+                let out_path = run_dir.join("optimization_plan.toml");
+                match std::fs::write(&out_path, &self.optimization_plan.custom_script_toml) {
+                    Ok(()) => {
+                        let msg = format!(
+                            "Exported custom hardware optimization script -> {}",
+                            out_path.display()
+                        );
+                        self.log_event("export-plan", &msg);
+                        self.banner = Some((true, msg));
+                    }
+                    Err(e) => {
+                        self.banner = Some((false, format!("Could not write plan file: {e}")));
+                    }
+                }
+            }
+            Message::RunComputeBenchmark => {
+                let rep = run_live_compute_benchmark(
+                    &self.hardware,
+                    self.cfg.hardware_exec.preferred_gpu_index,
+                    self.cfg.hyper.compute_threads,
+                    256,
+                );
+                let msg = format!(
+                    "SGEMM 256×256 Benchmark — Winner: {} ({})",
+                    rep.recommended_winner, rep.note
+                );
+                self.compute_benchmark = Some(rep);
+                self.log_event("benchmark", &msg);
+                self.banner = Some((true, msg));
+            }
+
+            // Stage 05: Seed Hierarchy, Provenance & Genesis Random State Lab
+            Message::SelectPrngAlgorithm(algo) => {
+                self.cfg.seeds.algorithm = algo;
+                self.cfg.model.prng_algorithm = algo;
+                self.genesis_report = build_and_inspect_genesis(&self.cfg).ok().map(|(_, r)| r);
+                self.sync_active_run_record();
+            }
+            Message::ToggleLockSubsystemsToMaster => {
+                self.cfg.seeds.lock_subsystems_to_master =
+                    !self.cfg.seeds.lock_subsystems_to_master;
+                if self.cfg.seeds.lock_subsystems_to_master {
+                    self.cfg.seeds.master_seed = self.cfg.hyper.master_seed;
+                    self.cfg.seeds.sync_from_master();
+                }
+                self.cfg.model.init_seed = self.cfg.seeds.effective_weight_seed();
+                self.sync_text_inputs();
+                self.genesis_report = build_and_inspect_genesis(&self.cfg).ok().map(|(_, r)| r);
+                self.sync_active_run_record();
+            }
+            Message::EditWeightSeed(s) => {
+                if let Ok(v) = s.trim().parse::<u64>() {
+                    self.cfg.seeds.lock_subsystems_to_master = false;
+                    self.cfg.seeds.weight_init_seed = v;
+                    self.cfg.model.init_seed = v;
+                    self.sync_active_run_record();
+                }
+                self.weight_seed_input = s;
+            }
+            Message::EditDataSeed(s) => {
+                if let Ok(v) = s.trim().parse::<u64>() {
+                    self.cfg.seeds.lock_subsystems_to_master = false;
+                    self.cfg.seeds.data_order_seed = v;
+                    self.sync_active_run_record();
+                }
+                self.data_seed_input = s;
+            }
+            Message::EditStochasticSeed(s) => {
+                if let Ok(v) = s.trim().parse::<u64>() {
+                    self.cfg.seeds.lock_subsystems_to_master = false;
+                    self.cfg.seeds.stochastic_seed = v;
+                    self.sync_active_run_record();
+                }
+                self.stochastic_seed_input = s;
+            }
+            Message::ToggleAutoExportGenesis => {
+                self.cfg.seeds.auto_export_genesis_init =
+                    !self.cfg.seeds.auto_export_genesis_init;
+                self.sync_active_run_record();
+            }
+            Message::EditGenesisReloadPath(v) => {
+                self.cfg.seeds.genesis_reload_path = v;
+                self.sync_active_run_record();
+            }
+            Message::InspectGenesisNow => match build_and_inspect_genesis(&self.cfg) {
+                Ok((_, rep)) => {
+                    let msg = format!(
+                        "Inspected step-0 initial state: SHA-256 {}… ({} tensors, std={:.4}).",
+                        &rep.sha256_hex[..16],
+                        rep.total_tensors,
+                        rep.global_std
+                    );
+                    self.genesis_report = Some(rep);
+                    self.log_event("genesis", &msg);
+                    self.banner = Some((true, msg));
+                }
+                Err(err) => {
+                    self.banner = Some((false, err));
+                }
+            },
+            Message::ExportProvenanceBundle {
+                include_genesis_weights,
+            } => {
+                let out_dir = self.active_run_dir().join("exports");
+                let train_docs = self
+                    .dataset
+                    .as_ref()
+                    .map(|d| d.train_docs.len())
+                    .unwrap_or(0);
+                let val_docs = self.dataset.as_ref().map(|d| d.val_docs.len()).unwrap_or(0);
+                let completed = self.active_run().map(|r| r.completed_steps).unwrap_or(0);
+                let best = self.active_run().and_then(|r| r.best_loss);
+
+                match export_provenance_and_genesis(
+                    &self.cfg,
+                    &self.hardware,
+                    &self.optimization_plan,
+                    self.tokenizer.as_ref(),
+                    train_docs,
+                    val_docs,
+                    completed,
+                    best,
+                    &out_dir,
+                    include_genesis_weights,
+                ) {
+                    Ok(rep) => {
+                        let msg = if include_genesis_weights {
+                            format!(
+                                "Exported settings + hardware provenance + initial random state `genesis_step0.safetensors` -> {}",
+                                out_dir.display()
+                            )
+                        } else {
+                            format!(
+                                "Exported settings + hardware provenance (`run_provenance.json` + `optimization_plan.toml`) -> {}",
+                                out_dir.display()
+                            )
+                        };
+                        self.genesis_report = Some(rep);
+                        self.log_event("export-repro", &msg);
+                        self.banner = Some((true, msg));
+                    }
+                    Err(err) => {
+                        self.banner = Some((false, err));
+                    }
+                }
+            }
+
+            // Stage 06: Training execution
             Message::StartTraining => {
                 if self.training_busy {
                     return Task::none();
@@ -1318,16 +1852,19 @@ impl App {
                 };
                 let tokenizer = match &self.tokenizer {
                     Some(tk) => tk.clone(),
-                    None => match LabTokenizer::train_or_load(&self.cfg.tokenizer, &dataset.train_docs) {
-                        Ok(tk) => {
-                            self.tokenizer = Some(tk.clone());
-                            tk
+                    None => {
+                        match LabTokenizer::train_or_load(&self.cfg.tokenizer, &dataset.train_docs)
+                        {
+                            Ok(tk) => {
+                                self.tokenizer = Some(tk.clone());
+                                tk
+                            }
+                            Err(err) => {
+                                self.banner = Some((false, err));
+                                return Task::none();
+                            }
                         }
-                        Err(err) => {
-                            self.banner = Some((false, err));
-                            return Task::none();
-                        }
-                    },
+                    }
                 };
 
                 self.cfg.model.vocab_size = tokenizer.vocab_size();
@@ -1347,12 +1884,13 @@ impl App {
                 self.log_event(
                     "train-start",
                     format!(
-                        "Started {} ({}, {} layers, seed={}, optimizer={})",
+                        "Started {} ({}, {} layers, PRNG={}, seed={}, target={})",
                         run_cfg.name,
                         run_cfg.model.routing.label(),
                         run_cfg.model.n_layers,
+                        run_cfg.seeds.algorithm.label(),
                         run_cfg.hyper.master_seed,
-                        run_cfg.hyper.optimizer.label()
+                        self.optimization_plan.summary.resolved_device_label
                     ),
                 );
 
@@ -1390,14 +1928,21 @@ impl App {
                 if let Some(ctrl) = &self.train_control {
                     self.training_paused = !self.training_paused;
                     ctrl.paused.store(self.training_paused, Ordering::Relaxed);
-                    let status = if self.training_paused { "Paused training run." } else { "Resumed training run." };
+                    let status = if self.training_paused {
+                        "Paused training run."
+                    } else {
+                        "Resumed training run."
+                    };
                     self.log_event("train", status);
                 }
             }
             Message::RequestCheckpointSave => {
                 if let Some(ctrl) = &self.train_control {
                     ctrl.save_now.store(true, Ordering::Relaxed);
-                    self.banner = Some((true, "Queued checkpoint write at the end of the current step.".into()));
+                    self.banner = Some((
+                        true,
+                        "Queued checkpoint write at the end of the current step.".into(),
+                    ));
                 }
             }
             Message::StopTraining => {
@@ -1411,10 +1956,17 @@ impl App {
                 self.persist_settings();
             }
             Message::TrainProgress(ev) => match ev {
-                TrainEvent::Started { vocab_size, train_windows, val_windows, .. } => {
+                TrainEvent::Started {
+                    vocab_size,
+                    train_windows,
+                    val_windows,
+                    ..
+                } => {
                     self.banner = Some((
                         true,
-                        format!("Training running · vocab {vocab_size}, {train_windows} train / {val_windows} val windows."),
+                        format!(
+                            "Training running · vocab {vocab_size}, {train_windows} train / {val_windows} val windows."
+                        ),
                     ));
                 }
                 TrainEvent::Step { point, neural } => {
@@ -1425,29 +1977,40 @@ impl App {
                     if let Some(run) = self.runs.iter_mut().find(|r| r.id == self.active_run_id) {
                         run.completed_steps = point.step;
                         let candidate = point.val_loss.unwrap_or(point.train_loss);
-                        if candidate.is_finite()
-                            && run.best_loss.is_none_or(|b| candidate < b)
-                        {
+                        if candidate.is_finite() && run.best_loss.is_none_or(|b| candidate < b) {
                             run.best_loss = Some(candidate);
                         }
                     }
                 }
-                TrainEvent::Checkpoint { tag, step, loss, path } => {
+                TrainEvent::Checkpoint {
+                    tag,
+                    step,
+                    loss,
+                    path,
+                } => {
                     self.refresh_checkpoint_flags();
                     self.log_event(
                         "checkpoint",
-                        format!("Saved `{tag}` checkpoint at step {step} (loss {loss:.4}) -> {}", path.display()),
+                        format!(
+                            "Saved `{tag}` state at step {step} (loss {loss:.4}) -> {}",
+                            path.display()
+                        ),
                     );
                 }
                 TrainEvent::Journal(note) => {
-                    self.log_event("guard", note);
+                    self.log_event("runtime", note);
                 }
-                TrainEvent::Finished { final_step, best_loss, stopped_early, .. } => {
+                TrainEvent::Finished {
+                    final_step,
+                    best_loss,
+                    stopped_early,
+                    ..
+                } => {
                     self.refresh_checkpoint_flags();
                     self.persist_runs();
                     let label = if stopped_early { "Stopped" } else { "Completed" };
                     let msg = format!(
-                        "{label} at step {final_step} · best loss {:.4}. Open Playground to live-chat with your checkpoint.",
+                        "{label} at step {final_step} · best loss {:.4}. Provenance & checkpoints archived; open Playground to chat.",
                         best_loss
                     );
                     self.log_event("train-done", &msg);
@@ -1477,7 +2040,8 @@ impl App {
             Message::SelectInspectedLayer(layer) => {
                 self.inspected_layer = layer.min(self.cfg.model.n_layers.saturating_sub(1));
                 if let Some(ctrl) = &self.train_control {
-                    ctrl.inspected_layer.store(self.inspected_layer, Ordering::Relaxed);
+                    ctrl.inspected_layer
+                        .store(self.inspected_layer, Ordering::Relaxed);
                     ctrl.snapshot_now.store(true, Ordering::Relaxed);
                 }
             }
@@ -1486,7 +2050,6 @@ impl App {
                     ctrl.snapshot_now.store(true, Ordering::Relaxed);
                     self.banner = Some((true, "Requested live neural snapshot on next step.".into()));
                 } else {
-                    // Inspect saved checkpoint offline if training is idle!
                     let ckpt_dir = self.active_run_dir().join(self.playground_ckpt.folder());
                     let fallback_dir = self.active_run_dir().join("best");
                     let target = if ckpt_dir.join("model.safetensors").is_file() {
@@ -1507,9 +2070,16 @@ impl App {
                             self.active_run().map(|r| r.completed_steps).unwrap_or(0),
                         );
                         self.latest_neural = Some(snap);
-                        self.banner = Some((true, "Loaded neural weight snapshot from saved `.safetensors` checkpoint.".into()));
+                        self.banner = Some((
+                            true,
+                            "Loaded neural weight snapshot from saved `.safetensors` checkpoint."
+                                .into(),
+                        ));
                     } else {
-                        self.banner = Some((false, "Start training or save a checkpoint first to inspect weights.".into()));
+                        self.banner = Some((
+                            false,
+                            "Start training or save a checkpoint first to inspect weights.".into(),
+                        ));
                     }
                 }
             }
@@ -1527,7 +2097,8 @@ impl App {
                 self.streaming_secondary.clear();
             }
             Message::AdjustTemperature(delta) => {
-                self.cfg.sampling.temperature = (self.cfg.sampling.temperature + delta).clamp(0.0, 2.0);
+                self.cfg.sampling.temperature =
+                    (self.cfg.sampling.temperature + delta).clamp(0.0, 2.0);
                 self.sync_active_run_record();
             }
             Message::AdjustTopP(delta) => {
@@ -1535,7 +2106,8 @@ impl App {
                 self.sync_active_run_record();
             }
             Message::AdjustSampleTopK(delta) => {
-                self.cfg.sampling.top_k = (self.cfg.sampling.top_k as isize + delta).clamp(0, 200) as usize;
+                self.cfg.sampling.top_k =
+                    (self.cfg.sampling.top_k as isize + delta).clamp(0, 200) as usize;
                 self.sync_active_run_record();
             }
             Message::AdjustRepPenalty(delta) => {
@@ -1578,7 +2150,9 @@ impl App {
                     ));
                     return Task::none();
                 }
-                let secondary_dir = if self.cfg.sampling.ab_compare && run_dir.join("latest/model.safetensors").is_file() {
+                let secondary_dir = if self.cfg.sampling.ab_compare
+                    && run_dir.join("latest/model.safetensors").is_file()
+                {
                     Some(run_dir.join("latest"))
                 } else {
                     None
@@ -1610,7 +2184,8 @@ impl App {
 
                 let task = Task::sip(
                     sipper(async move |mut sender| {
-                        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<GenerationEvent>();
+                        let (tx, mut rx) =
+                            tokio::sync::mpsc::unbounded_channel::<GenerationEvent>();
                         let worker = tokio::task::spawn_blocking(move || -> Result<(), String> {
                             let tx1 = tx.clone();
                             let _ = generate_from_checkpoint(
@@ -1660,7 +2235,9 @@ impl App {
                 self.gen_stop.store(true, Ordering::Relaxed);
             }
             Message::GenerationProgress(ev) => match ev {
-                GenerationEvent::Token { slot, text_so_far, .. } => {
+                GenerationEvent::Token {
+                    slot, text_so_far, ..
+                } => {
                     if let Some(last) = self.playground_turns.last_mut() {
                         if slot == 0 {
                             last.reply_primary = text_so_far;
@@ -1669,7 +2246,12 @@ impl App {
                         }
                     }
                 }
-                GenerationEvent::Done { slot, full_text, tok_per_sec, .. } => {
+                GenerationEvent::Done {
+                    slot,
+                    full_text,
+                    tok_per_sec,
+                    ..
+                } => {
                     self.last_gen_tps = Some(tok_per_sec);
                     if let Some(last) = self.playground_turns.last_mut() {
                         let shown = if full_text.is_empty() {
@@ -1710,8 +2292,14 @@ impl App {
                             let _ = Vault::os().remove(Provider::Custom, old);
                         }
                         self.persist_settings();
-                        self.log_event("vault", format!("Stored Hugging Face credential in OS vault (slot #{slot_id})."));
-                        self.banner = Some((true, format!("Saved Hugging Face credential in OS vault (slot #{slot_id}).")));
+                        self.log_event(
+                            "vault",
+                            format!("Stored Hugging Face credential in OS vault (slot #{slot_id})."),
+                        );
+                        self.banner = Some((
+                            true,
+                            format!("Saved Hugging Face credential in OS vault (slot #{slot_id})."),
+                        ));
                     }
                     Err(err) => {
                         self.banner = Some((false, err.message().to_owned()));
@@ -1735,8 +2323,14 @@ impl App {
                             let _ = Vault::os().remove(Provider::Custom, old);
                         }
                         self.persist_settings();
-                        self.log_event("vault", format!("Stored Kaggle credential in OS vault (slot #{slot_id})."));
-                        self.banner = Some((true, format!("Saved Kaggle credential in OS vault (slot #{slot_id}).")));
+                        self.log_event(
+                            "vault",
+                            format!("Stored Kaggle credential in OS vault (slot #{slot_id})."),
+                        );
+                        self.banner = Some((
+                            true,
+                            format!("Saved Kaggle credential in OS vault (slot #{slot_id})."),
+                        ));
                     }
                     Err(err) => {
                         self.banner = Some((false, err.message().to_owned()));
@@ -1752,7 +2346,10 @@ impl App {
             }
             Message::WipeArea(area) => {
                 if self.training_busy {
-                    self.banner = Some((false, "Stop active training before wiping local Training storage.".into()));
+                    self.banner = Some((
+                        false,
+                        "Stop active training before wiping local Training storage.".into(),
+                    ));
                     return Task::none();
                 }
                 match area {
@@ -1780,6 +2377,7 @@ impl App {
                         self.latest_neural = None;
                         self.playground_turns.clear();
                         self.sync_text_inputs();
+                        self.recompute_plan();
                         self.banner = Some((
                             true,
                             "Wiped Model Training runs and `.safetensors` checkpoints. OS vault keys and Archx Agent data were left untouched.".into(),
@@ -1819,13 +2417,19 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         storage::set_thread_directory(Some(dir.clone()));
 
-        // Seed an Agent settings file to prove Model Training never overwrites it.
         storage::save(storage::Area::Settings, json!({"agent_marker": true})).expect("agent save");
 
         let mut app = App::new(None);
         app.snapshot_mode = false;
         let _ = app.update(Message::EditRunName("moe-experiment".into()));
         let _ = app.update(Message::SelectRouting(Routing::MoE));
+        let _ = app.update(Message::SelectComputeTarget(ComputeTarget::Cpu));
+        let _ = app.update(Message::SelectPrngAlgorithm(PrngAlgorithm::Pcg64Dxsm));
+        let _ = app.update(Message::ApplyHardwareOptimizationPlan);
+        let _ = app.update(Message::RunTokenizerArena);
+        let _ = app.update(Message::ExportProvenanceBundle {
+            include_genesis_weights: true,
+        });
         let _ = app.update(Message::ToggleLossLogScale);
         app.log_event("test", "verified app-scoped storage");
 
@@ -1837,14 +2441,15 @@ mod tests {
             Some(json!({"agent_marker": true})),
             "Agent settings must remain untouched"
         );
+        assert_eq!(app.tokenizer_arena.len(), 4);
+        assert!(app.genesis_report.is_some());
 
-        // Reload in a fresh App instance and verify state survived.
         let reloaded = App::new(None);
         assert_eq!(reloaded.cfg.name, "moe-experiment");
         assert_eq!(reloaded.cfg.model.routing, Routing::MoE);
+        assert_eq!(reloaded.cfg.seeds.algorithm, PrngAlgorithm::Pcg64Dxsm);
         assert!(reloaded.log_loss_chart);
 
-        // Wipe runs and verify Agent settings still untouched.
         let mut reloaded = reloaded;
         let _ = reloaded.update(Message::WipeArea(AREA_RUNS));
         assert_eq!(
@@ -1867,6 +2472,10 @@ mod tests {
         assert_eq!(app.surface, Surface::Settings);
         app.enter_surface("debug");
         assert_eq!(app.surface, Surface::Journal);
+        app.enter_surface("hardware");
+        assert_eq!(app.stage, PipelineStage::Hardware);
+        app.enter_surface("repro");
+        assert_eq!(app.stage, PipelineStage::Repro);
         app.enter_surface("home");
         assert_eq!(app.surface, Surface::Pipeline);
 

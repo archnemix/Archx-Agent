@@ -1,11 +1,14 @@
-//! Purpose: Implements the pure-Rust `candle` Autoregressive Transformer (`Dense` and Top-k `SparseMoE` with shared experts), `.safetensors` I/O, and token generation.
+//! Purpose: Implements Engine #1 — the pure-Rust `candle` Autoregressive Transformer (`Dense` & Top-k `SparseMoE`, Pre/Post/Sandwich Norm, RoPE scaling, QK-Norm, Gemma-2 Soft-Capping, μP scaling, `.safetensors` & Genesis reload).
 
 use std::path::Path;
 
 use candle_core::{DType, Device, Module, Result as CandleResult, Tensor, Var, D};
 use candle_nn::{Embedding, LayerNorm, Linear, VarMap, ops};
 
-use crate::config::{ActivationKind, InitDist, NormKind, PosEncoding, Routing, TransformerConfig};
+use crate::config::{
+    ActivationKind, EmbedScaleMode, InitDist, NormKind, NormPlacement, PosEncoding,
+    ResidualScaleMode, RopeScalingMode, Routing, TransformerConfig,
+};
 use crate::rng::Rng;
 use crate::tokenizer::PAD_ID;
 
@@ -16,6 +19,7 @@ struct SeededBuilder<'a> {
     rng: Rng,
     dist: InitDist,
     base_std: f32,
+    trunc_sigma: f32,
 }
 
 impl<'a> SeededBuilder<'a> {
@@ -23,9 +27,10 @@ impl<'a> SeededBuilder<'a> {
         Self {
             varmap,
             device,
-            rng: Rng::new(cfg.init_seed),
+            rng: Rng::with_algorithm(cfg.init_seed, cfg.prng_algorithm),
             dist: cfg.init_dist,
             base_std: cfg.init_std,
+            trunc_sigma: cfg.truncated_sigma,
         }
     }
 
@@ -45,6 +50,10 @@ impl<'a> SeededBuilder<'a> {
         let count = out_dim * in_dim;
         let vals = match self.dist {
             InitDist::Normal => self.rng.normal_vec(count, 0.0, self.base_std * scale),
+            InitDist::TruncatedNormal => {
+                self.rng
+                    .truncated_normal_vec(count, 0.0, self.base_std * scale, self.trunc_sigma)
+            }
             InitDist::XavierUniform => self.rng.xavier_uniform_vec(in_dim, out_dim, count, scale),
             InitDist::KaimingNormal => self.rng.kaiming_normal_vec(in_dim, count, scale * 0.5),
         };
@@ -95,14 +104,35 @@ struct RotaryCache {
 }
 
 impl RotaryCache {
-    fn new(max_seq: usize, head_dim: usize, theta: f32, device: &Device) -> CandleResult<Self> {
+    fn new(
+        max_seq: usize,
+        head_dim: usize,
+        theta: f32,
+        scaling: RopeScalingMode,
+        device: &Device,
+    ) -> CandleResult<Self> {
         let half = head_dim / 2;
+        let d_f = head_dim.max(2) as f32;
+        let effective_theta = match scaling {
+            RopeScalingMode::NtkDynamic => {
+                let exp = d_f / (head_dim.saturating_sub(2).max(2) as f32);
+                theta * 4.0f32.powf(exp)
+            }
+            _ => theta,
+        };
+        let pos_div = match scaling {
+            RopeScalingMode::Linear2x => 2.0f32,
+            RopeScalingMode::Linear4x => 4.0f32,
+            RopeScalingMode::None | RopeScalingMode::NtkDynamic => 1.0f32,
+        };
+
         let mut cos_vals = Vec::with_capacity(max_seq * half);
         let mut sin_vals = Vec::with_capacity(max_seq * half);
         for pos in 0..max_seq {
+            let scaled_pos = (pos as f32) / pos_div;
             for i in 0..half {
-                let freq = 1.0 / theta.powf((2 * i) as f32 / head_dim.max(2) as f32);
-                let angle = (pos as f32) * freq;
+                let freq = 1.0 / effective_theta.powf((2 * i) as f32 / d_f);
+                let angle = scaled_pos * freq;
                 cos_vals.push(angle.cos());
                 sin_vals.push(angle.sin());
             }
@@ -113,7 +143,6 @@ impl RotaryCache {
         })
     }
 
-    /// Applies rotary embedding to `x` of shape `[b, h, seq, head_dim]`.
     fn apply(&self, x: &Tensor, seq_len: usize) -> CandleResult<Tensor> {
         let half = x.dim(3)? / 2;
         let x1 = x.narrow(3, 0, half)?;
@@ -124,6 +153,16 @@ impl RotaryCache {
         let rot1 = (x1.broadcast_mul(&cos)? - x2.broadcast_mul(&sin)?)?;
         let rot2 = (x1.broadcast_mul(&sin)? + x2.broadcast_mul(&cos)?)?;
         Tensor::cat(&[&rot1, &rot2], 3)
+    }
+}
+
+#[inline]
+fn apply_logit_softcap(x: Tensor, cap: f32) -> CandleResult<Tensor> {
+    if cap > 0.5 {
+        let c = f64::from(cap);
+        x.affine(1.0 / c, 0.0)?.tanh()?.affine(c, 0.0)
+    } else {
+        Ok(x)
     }
 }
 
@@ -138,6 +177,7 @@ struct CausalSelfAttention {
     n_heads: usize,
     n_kv_heads: usize,
     head_dim: usize,
+    attn_softcap: f32,
     rope: Option<RotaryCache>,
 }
 
@@ -175,6 +215,7 @@ impl CausalSelfAttention {
             n_heads: cfg.n_heads,
             n_kv_heads: cfg.n_kv_heads,
             head_dim,
+            attn_softcap: cfg.attn_logit_softcap,
             rope,
         })
     }
@@ -215,8 +256,11 @@ impl CausalSelfAttention {
         let v = repeat_kv(v, groups)?;
 
         let scale = 1.0 / (self.head_dim as f64).sqrt();
-        let scores = (q.matmul(&k.transpose(2, 3)?.contiguous()?)? * scale)?;
-        let scores = scores.broadcast_add(causal_mask)?;
+        let raw_scores = q
+            .matmul(&k.transpose(2, 3)?.contiguous()?)?
+            .affine(scale, 0.0)?;
+        let capped_scores = apply_logit_softcap(raw_scores, self.attn_softcap)?;
+        let scores = capped_scores.broadcast_add(causal_mask)?;
         let probs = ops::softmax(&scores, D::Minus1)?;
         let ctx = probs
             .matmul(&v.contiguous()?)?
@@ -254,12 +298,24 @@ impl FeedForward {
         resid_scale: f32,
     ) -> CandleResult<Self> {
         let gate = if cfg.activation.is_gated() {
-            Some(sb.linear(&format!("{prefix}.w_gate"), cfg.d_model, cfg.d_ff, cfg.use_bias, 1.0)?)
+            Some(sb.linear(
+                &format!("{prefix}.w_gate"),
+                cfg.d_model,
+                cfg.d_ff,
+                cfg.use_bias,
+                1.0,
+            )?)
         } else {
             None
         };
         let up = sb.linear(&format!("{prefix}.w_up"), cfg.d_model, cfg.d_ff, cfg.use_bias, 1.0)?;
-        let down = sb.linear(&format!("{prefix}.w_down"), cfg.d_ff, cfg.d_model, cfg.use_bias, resid_scale)?;
+        let down = sb.linear(
+            &format!("{prefix}.w_down"),
+            cfg.d_ff,
+            cfg.d_model,
+            cfg.use_bias,
+            resid_scale,
+        )?;
         Ok(Self {
             gate,
             up,
@@ -376,13 +432,12 @@ impl SparseMoE {
 
         let mask = Tensor::from_vec(mask_vals, (n_tokens, n_experts), x.device())?;
         let masked_probs = (&probs * &mask)?;
-        let denom = (masked_probs.sum_keepdim(D::Minus1)? + 1e-8)?;
+        let denom = masked_probs.sum_keepdim(D::Minus1)?.affine(1.0, 1e-8)?;
         let gates = masked_probs.broadcast_div(&denom)?;
 
-        // Load-balancing auxiliary loss + router z-loss.
-        let frac = mask.mean(0)?; // [E]
-        let mean_prob = probs.mean(0)?; // [E]
-        let balance_loss = ((&frac * &mean_prob)?.sum_all()? * (n_experts as f64))?;
+        let frac = mask.mean(0)?;
+        let mean_prob = probs.mean(0)?;
+        let balance_loss = (&frac * &mean_prob)?.sum_all()?.affine(n_experts as f64, 0.0)?;
 
         let max_l = router_logits.max_keepdim(D::Minus1)?;
         let lse = (&max_l.squeeze(D::Minus1)?
@@ -393,8 +448,8 @@ impl SparseMoE {
                 .log()?)?;
         let z_loss = lse.sqr()?.mean_all()?;
 
-        let reg_loss = ((balance_loss * f64::from(self.aux_weight))?
-            + (z_loss * f64::from(self.z_weight))?)?;
+        let reg_loss = (&balance_loss.affine(f64::from(self.aux_weight), 0.0)?
+            + &z_loss.affine(f64::from(self.z_weight), 0.0)?)?;
 
         let mut out_flat = Tensor::zeros((n_tokens, d), DType::F32, x.device())?;
         for (exp_id, indices) in per_expert_tokens.iter().enumerate() {
@@ -429,9 +484,12 @@ enum BlockFfn {
 #[derive(Clone)]
 struct TransformerBlock {
     attn_norm: LayerNorm,
+    post_attn_norm: Option<LayerNorm>,
     attn: CausalSelfAttention,
     ffn_norm: LayerNorm,
+    post_ffn_norm: Option<LayerNorm>,
     ffn: BlockFfn,
+    placement: NormPlacement,
 }
 
 pub struct ForwardOutput {
@@ -439,7 +497,6 @@ pub struct ForwardOutput {
     pub ce_loss: Option<Tensor>,
     pub aux_loss: Tensor,
     pub total_loss: Option<Tensor>,
-    /// Aggregated token dispatches per expert across MoE layers (empty for Dense).
     pub expert_counts: Vec<usize>,
 }
 
@@ -449,7 +506,7 @@ pub struct TransformerModel {
     pub varmap: VarMap,
     pub device: Device,
     tok_embeddings: Embedding,
-    pos_embeddings: Option<Tensor>, // [max_seq, d_model] for Learned or Sinusoidal
+    pos_embeddings: Option<Tensor>,
     layers: Vec<TransformerBlock>,
     final_norm: LayerNorm,
     lm_head: Option<Linear>,
@@ -469,6 +526,7 @@ impl TransformerModel {
                 cfg.seq_len.max(512) * 2,
                 cfg.head_dim(),
                 cfg.rope_theta,
+                cfg.rope_scaling,
                 &device,
             )?)
         } else {
@@ -490,16 +548,34 @@ impl TransformerModel {
             PosEncoding::RoPE | PosEncoding::None => None,
         };
 
-        let resid_scale = if cfg.residual_scale {
-            1.0 / (2.0 * cfg.n_layers as f32).sqrt()
-        } else {
+        let resid_scale = if !cfg.residual_scale {
             1.0
+        } else {
+            match cfg.residual_scale_mode {
+                ResidualScaleMode::Standard => 1.0,
+                ResidualScaleMode::Gpt2DepthScaled => 1.0 / (2.0 * cfg.n_layers as f32).sqrt(),
+                ResidualScaleMode::MuPWidthScaled => {
+                    let depth = 1.0 / (2.0 * cfg.n_layers as f32).sqrt();
+                    let width = (128.0 / (cfg.d_model.max(64) as f32)).sqrt();
+                    depth * width
+                }
+            }
         };
 
         let mut layers = Vec::with_capacity(cfg.n_layers);
         for l in 0..cfg.n_layers {
             let p = format!("layers.{l}");
             let attn_norm = sb.norm(&format!("{p}.attn_norm"), cfg.d_model, cfg.norm, cfg.norm_eps)?;
+            let post_attn_norm = if cfg.norm_placement == NormPlacement::SandwichNorm {
+                Some(sb.norm(
+                    &format!("{p}.post_attn_norm"),
+                    cfg.d_model,
+                    cfg.norm,
+                    cfg.norm_eps,
+                )?)
+            } else {
+                None
+            };
             let attn = CausalSelfAttention::build(
                 &mut sb,
                 &format!("{p}.attn"),
@@ -508,6 +584,16 @@ impl TransformerModel {
                 rope.clone(),
             )?;
             let ffn_norm = sb.norm(&format!("{p}.ffn_norm"), cfg.d_model, cfg.norm, cfg.norm_eps)?;
+            let post_ffn_norm = if cfg.norm_placement == NormPlacement::SandwichNorm {
+                Some(sb.norm(
+                    &format!("{p}.post_ffn_norm"),
+                    cfg.d_model,
+                    cfg.norm,
+                    cfg.norm_eps,
+                )?)
+            } else {
+                None
+            };
             let ffn = match cfg.routing {
                 Routing::Dense => BlockFfn::Dense(FeedForward::build(
                     &mut sb,
@@ -524,9 +610,12 @@ impl TransformerModel {
             };
             layers.push(TransformerBlock {
                 attn_norm,
+                post_attn_norm,
                 attn,
                 ffn_norm,
+                post_ffn_norm,
                 ffn,
+                placement: cfg.norm_placement,
             });
         }
 
@@ -547,6 +636,24 @@ impl TransformerModel {
             final_norm,
             lm_head,
         })
+    }
+
+    /// Saves only the raw `VarMap` weights to a standalone `.safetensors` file (used for `genesis_step0.safetensors`).
+    pub fn save_weights_safetensors(&self, path: &Path) -> Result<(), String> {
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|_| format!("Could not create folder {}", parent.display()))?;
+        }
+        self.varmap
+            .save(path)
+            .map_err(|e| format!("Failed saving {}: {e}", path.display()))
+    }
+
+    /// Overwrites all model variables in-place from an existing `.safetensors` file (e.g. `genesis_step0.safetensors`).
+    pub fn load_weights_safetensors(&mut self, path: &Path) -> Result<(), String> {
+        self.varmap
+            .load(path)
+            .map_err(|e| format!("Failed loading weights from {}: {e}", path.display()))
     }
 
     pub fn save_checkpoint(&self, dir: &Path) -> Result<(), String> {
@@ -576,9 +683,6 @@ impl TransformerModel {
         Ok(model)
     }
 
-    /// Runs a forward pass over `input_ids` `[batch, seq]` and optionally computes
-    /// masked next-token cross-entropy (+ label smoothing + MoE router regularization)
-    /// against `targets` `[batch, seq]`.
     pub fn forward_step(
         &self,
         input_ids: &Tensor,
@@ -588,6 +692,9 @@ impl TransformerModel {
     ) -> CandleResult<ForwardOutput> {
         let (b, seq) = input_ids.dims2()?;
         let mut h = self.tok_embeddings.forward(input_ids)?;
+        if self.cfg.embed_scale == EmbedScaleMode::SqrtDModel {
+            h = h.affine((self.cfg.d_model as f64).sqrt(), 0.0)?;
+        }
         if let Some(pos_table) = &self.pos_embeddings {
             let pos = pos_table.narrow(0, 0, seq)?.unsqueeze(0)?;
             h = h.broadcast_add(&pos)?;
@@ -602,28 +709,58 @@ impl TransformerModel {
         };
 
         for block in &self.layers {
-            let attn_out = block.attn.forward(&block.attn_norm.forward(&h)?, &mask)?;
-            h = (&h + &attn_out)?;
-
-            let normed = block.ffn_norm.forward(&h)?;
-            match &block.ffn {
-                BlockFfn::Dense(mlp) => {
-                    h = (&h + &mlp.forward(&normed)?)?;
+            // Attention sublayer with PreNorm / PostNorm / SandwichNorm topology.
+            h = match block.placement {
+                NormPlacement::PreNorm => {
+                    let attn_out = block.attn.forward(&block.attn_norm.forward(&h)?, &mask)?;
+                    (&h + &attn_out)?
                 }
+                NormPlacement::PostNorm => {
+                    let attn_out = block.attn.forward(&h, &mask)?;
+                    block.attn_norm.forward(&(&h + &attn_out)?)?
+                }
+                NormPlacement::SandwichNorm => {
+                    let mut attn_out = block.attn.forward(&block.attn_norm.forward(&h)?, &mask)?;
+                    if let Some(pn) = &block.post_attn_norm {
+                        attn_out = pn.forward(&attn_out)?;
+                    }
+                    (&h + &attn_out)?
+                }
+            };
+
+            // FFN / MoE sublayer with PreNorm / PostNorm / SandwichNorm topology.
+            let ffn_in = match block.placement {
+                NormPlacement::PreNorm | NormPlacement::SandwichNorm => block.ffn_norm.forward(&h)?,
+                NormPlacement::PostNorm => h.clone(),
+            };
+
+            let mut ffn_out = match &block.ffn {
+                BlockFfn::Dense(mlp) => mlp.forward(&ffn_in)?,
                 BlockFfn::MoE(moe) => {
                     let rng_ref = training_rng.as_deref_mut();
-                    let (moe_out, reg_loss, counts) = moe.forward(&normed, rng_ref)?;
-                    h = (&h + &moe_out)?;
+                    let (moe_out, reg_loss, counts) = moe.forward(&ffn_in, rng_ref)?;
                     aux_total = (&aux_total + &reg_loss)?;
                     for (slot, c) in agg_expert_counts.iter_mut().zip(counts) {
                         *slot += c;
                     }
+                    moe_out
                 }
-            }
+            };
+
+            h = match block.placement {
+                NormPlacement::PreNorm => (&h + &ffn_out)?,
+                NormPlacement::PostNorm => block.ffn_norm.forward(&(&h + &ffn_out)?)?,
+                NormPlacement::SandwichNorm => {
+                    if let Some(pn) = &block.post_ffn_norm {
+                        ffn_out = pn.forward(&ffn_out)?;
+                    }
+                    (&h + &ffn_out)?
+                }
+            };
         }
 
         let h = self.final_norm.forward(&h)?;
-        let logits = match &self.lm_head {
+        let raw_logits = match &self.lm_head {
             Some(head) => head.forward(&h)?,
             None => {
                 let w_t = self.tok_embeddings.embeddings().t()?.contiguous()?;
@@ -632,9 +769,15 @@ impl TransformerModel {
                     .reshape((b, seq, self.cfg.vocab_size))?
             }
         };
+        let logits = apply_logit_softcap(raw_logits, self.cfg.final_logit_softcap)?;
 
         let (ce_loss, total_loss) = if let Some(target_ids) = targets {
-            let ce = masked_cross_entropy(&logits, target_ids, self.cfg.vocab_size, label_smoothing)?;
+            let ce = masked_cross_entropy(
+                &logits,
+                target_ids,
+                self.cfg.vocab_size,
+                label_smoothing,
+            )?;
             let total = (&ce + &aux_total)?;
             (Some(ce), Some(total))
         } else {
@@ -650,7 +793,6 @@ impl TransformerModel {
         })
     }
 
-    /// Computes next-token logits `[vocab_size]` for the final position of `context_ids`.
     pub fn next_token_logits(&self, context_ids: &[u32]) -> CandleResult<Vec<f32>> {
         let max_ctx = self.cfg.seq_len.max(16);
         let tail = if context_ids.len() > max_ctx {
@@ -727,7 +869,7 @@ fn masked_cross_entropy(
     let eps = label_smoothing.clamp(0.0, 0.25);
     if eps > 1e-5 {
         let smooth_loss = log_probs.mean_all()?.neg()?;
-        &(&nll * f64::from(1.0 - eps))? + &(&smooth_loss * f64::from(eps))?
+        &nll.affine(f64::from(1.0 - eps), 0.0)? + &smooth_loss.affine(f64::from(eps), 0.0)?
     } else {
         Ok(nll)
     }
@@ -736,19 +878,21 @@ fn masked_cross_entropy(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::rng::PrngAlgorithm;
 
     #[test]
-    fn seeded_init_is_deterministic_and_checkpoint_roundtrips() {
+    fn seeded_init_is_deterministic_and_genesis_safetensors_reloads_across_seeds() {
         let mut cfg = TransformerConfig::from_preset(crate::config::Preset::Nano, Routing::Dense);
         cfg.vocab_size = 64;
         cfg.seq_len = 16;
         cfg.init_seed = 123;
+        cfg.prng_algorithm = PrngAlgorithm::Pcg64Dxsm;
 
         let m1 = TransformerModel::new(&cfg, Device::Cpu).expect("m1");
         let m2 = TransformerModel::new(&cfg, Device::Cpu).expect("m2");
         let mut cfg_other = cfg.clone();
         cfg_other.init_seed = 999;
-        let m3 = TransformerModel::new(&cfg_other, Device::Cpu).expect("m3");
+        let mut m3 = TransformerModel::new(&cfg_other, Device::Cpu).expect("m3");
 
         let ctx = [1u32, 8, 12, 19];
         let l1 = m1.next_token_logits(&ctx).expect("logits 1");
@@ -757,7 +901,13 @@ mod tests {
         assert_eq!(l1, l2);
         assert_ne!(l1, l3);
 
+        // Save Genesis initial random state from m1 and reload it into m3 (different seed) -> bit-identical logits!
         let dir = std::env::temp_dir().join(format!("archx-ckpt-test-{}", std::process::id()));
+        let genesis_file = dir.join("genesis_step0.safetensors");
+        m1.save_weights_safetensors(&genesis_file).expect("save genesis");
+        m3.load_weights_safetensors(&genesis_file).expect("reload genesis");
+        assert_eq!(m3.next_token_logits(&ctx).expect("m3 after genesis reload"), l1);
+
         m1.save_checkpoint(&dir).expect("save");
         let restored = TransformerModel::load_checkpoint(&dir, Device::Cpu).expect("load");
         assert_eq!(restored.next_token_logits(&ctx).expect("restored"), l1);
@@ -765,7 +915,7 @@ mod tests {
     }
 
     #[test]
-    fn sparse_moe_produces_differentiable_loss_and_expert_counts() {
+    fn sandwich_norm_softcap_and_sparse_moe_backpropagate_cleanly() {
         let mut cfg = TransformerConfig::from_preset(crate::config::Preset::Nano, Routing::MoE);
         cfg.vocab_size = 48;
         cfg.seq_len = 12;
@@ -774,18 +924,23 @@ mod tests {
         cfg.n_heads = 4;
         cfg.n_kv_heads = 2;
         cfg.d_ff = 64;
+        cfg.norm_placement = NormPlacement::SandwichNorm;
+        cfg.rope_scaling = RopeScalingMode::NtkDynamic;
+        cfg.embed_scale = EmbedScaleMode::SqrtDModel;
+        cfg.attn_logit_softcap = 30.0;
+        cfg.final_logit_softcap = 20.0;
 
         let model = TransformerModel::new(&cfg, Device::Cpu).expect("moe model");
         let x = Tensor::from_vec(vec![3u32; 24], (2, 12), &Device::Cpu).expect("x");
         let y = Tensor::from_vec(vec![5u32; 24], (2, 12), &Device::Cpu).expect("y");
         let mut rng = Rng::new(7);
-        let out = model.forward_step(&x, Some(&y), 0.0, Some(&mut rng)).expect("fwd");
+        let out = model.forward_step(&x, Some(&y), 0.05, Some(&mut rng)).expect("fwd");
         let loss = out.total_loss.expect("total loss");
         let grads = loss.backward().expect("backward");
         assert!(loss.to_scalar::<f32>().expect("scalar").is_finite());
         assert_eq!(out.expert_counts.len(), cfg.moe.n_experts);
         assert!(out.expert_counts.iter().sum::<usize>() > 0);
-        // Router weights must receive non-empty gradients.
+
         let map = model.varmap.data().lock().unwrap();
         let router_var = map.get("layers.0.moe.router.weight").expect("router var");
         assert!(grads.get(router_var).is_some());

@@ -1,4 +1,4 @@
-# Purpose: Declares the Model Training library crate (`archx-training`) hosted in-process by Archx AI Lab.
+# Purpose: Declares the Model Training crate (`archx-training`) hosted by Archx AI Lab plus its standalone desktop executable (`archx-training`).
 [package]
 name = "archx-training"
 version = "0.1.0"
@@ -9,16 +9,27 @@ publish = false
 name = "archx_training"
 path = "src/lib.rs"
 
+[[bin]]
+name = "archx-training"
+path = "src/bin/archx-training.rs"
+
 [dependencies]
 archx-shared = { path = "../../shared" }
+bytemuck = { version = "1.25", features = ["derive"] }
 candle-core = "0.11.1"
 candle-nn = "0.11.1"
 iced = { version = "0.14.0", features = ["tokio", "image", "svg", "markdown", "sipper"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
 rayon = "1.10"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 safetensors = "0.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.11"
 tokenizers = { version = "0.23.1", default-features = false, features = ["fancy-regex"] }
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "sync", "time"] }
+wgpu = "27.0.1"
 zeroize = "1.8"
+
+[target.'cfg(windows)'.build-dependencies]
+tauri-winres = "0.3.7"

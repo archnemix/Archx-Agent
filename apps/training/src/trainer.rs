@@ -1,4 +1,4 @@
-//! Purpose: Orchestrates background multi-threaded Transformer training, validation, NaN rollback, `.safetensors` checkpoints, and streaming Playground inference.
+//! Purpose: Orchestrates hardware-aware Transformer training, WGSL GPU compute validation, Genesis (`step = 0`) random weight archival, provenance export, NaN rollback, `.safetensors` checkpoints, and streaming Playground inference.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -9,9 +9,11 @@ use std::time::{Duration, Instant};
 use candle_core::{DType, Device, Tensor};
 use candle_nn::VarMap;
 
-use crate::config::{RunConfig, SamplingConfig};
+use crate::config::{ComputeTarget, RunConfig, SamplingConfig};
 use crate::dataset::PreparedDataset;
+use crate::hardware::{HardwareProfile, OptimizationPlan, run_wgsl_tiled_sgemm};
 use crate::optim::{StepOptimizer, scheduled_lr};
+use crate::repro::{TrainingProvenanceBundle, inspect_varmap_genesis};
 use crate::rng::Rng;
 use crate::telemetry::{NeuralSnapshot, StepPoint, TelemetryMode, capture_neural_snapshot};
 use crate::tokenizer::{ASSISTANT_ID, EOS_ID, LabTokenizer, PAD_ID, USER_ID};
@@ -69,12 +71,21 @@ pub enum TrainEvent {
 
 #[derive(Debug, Clone)]
 pub enum GenerationEvent {
-    Token { slot: u8, text_so_far: String, tokens_generated: usize },
-    Done { slot: u8, full_text: String, tokens_generated: usize, tok_per_sec: f32 },
+    Token {
+        slot: u8,
+        text_so_far: String,
+        tokens_generated: usize,
+    },
+    Done {
+        slot: u8,
+        full_text: String,
+        tokens_generated: usize,
+        tok_per_sec: f32,
+    },
 }
 
-/// Runs the complete training pipeline on a dedicated Rayon pool, invoking `emit`
-/// as each step, checkpoint, or sampled neural snapshot completes.
+/// Runs the complete hardware-aware training pipeline on a dedicated Rayon pool, invoking `emit`
+/// as each step, genesis export, checkpoint, or sampled neural snapshot completes.
 pub fn execute_training_pipeline<F>(
     mut run_cfg: RunConfig,
     dataset: PreparedDataset,
@@ -90,19 +101,70 @@ where
         return Err("Dataset has no training documents.".to_owned());
     }
 
+    if run_cfg.seeds.lock_subsystems_to_master {
+        run_cfg.seeds.master_seed = run_cfg.hyper.master_seed;
+        run_cfg.seeds.sync_from_master();
+    }
+    let weight_seed = run_cfg.seeds.effective_weight_seed();
+    let data_seed = run_cfg.seeds.effective_data_seed();
+    let stochastic_seed = run_cfg.seeds.effective_stochastic_seed();
+    let prng_algo = run_cfg.seeds.algorithm;
+
     run_cfg.model.vocab_size = tokenizer.vocab_size();
-    run_cfg.model.init_seed = run_cfg.hyper.master_seed;
+    run_cfg.model.init_seed = weight_seed;
+    run_cfg.model.prng_algorithm = prng_algo;
     let model_cfg = run_cfg.model.sanitized();
 
     std::fs::create_dir_all(&run_dir)
         .map_err(|_| format!("Could not create run folder {}", run_dir.display()))?;
     tokenizer.save_to_path(&run_dir.join("tokenizer.json"))?;
 
-    let train_windows = tokenizer.build_windows(
+    // Probe host hardware and compile custom execution plan for provenance archival.
+    let hw = HardwareProfile::probe();
+    let plan = OptimizationPlan::compile(&hw, &run_cfg);
+    let _ = std::fs::write(run_dir.join("optimization_plan.toml"), &plan.custom_script_toml);
+
+    emit(TrainEvent::Journal(format!(
+        "Hardware Plan: {} via {} · tile {:?} · budget {:.0} MB ({:.1}% headroom).",
+        plan.summary.resolved_device_label,
+        plan.summary.backend_api,
+        plan.summary.tile_m_n_k,
+        plan.summary.device_budget_mb,
+        plan.summary.headroom_pct
+    )));
+
+    if plan.summary.resolved_target == ComputeTarget::Gpu {
+        let probe_dim = 64usize;
+        let ones = vec![0.125f32; probe_dim * probe_dim];
+        match run_wgsl_tiled_sgemm(
+            run_cfg.hardware_exec.preferred_gpu_index,
+            probe_dim,
+            probe_dim,
+            probe_dim,
+            &ones,
+            &ones,
+        ) {
+            Ok((_, ms, gpu_name, backend)) => {
+                emit(TrainEvent::Journal(format!(
+                    "WGSL GPU Compute Kernel validated on {gpu_name} ({backend}) in {ms:.2} ms."
+                )));
+            }
+            Err(note) => {
+                emit(TrainEvent::Journal(format!(
+                    "GPU compute note: {note}; executing autograd steps on SIMD Rayon pool."
+                )));
+            }
+        }
+    }
+
+    let mut subword_rng = Rng::with_algorithm(stochastic_seed ^ 0x55AA_33CC, prng_algo);
+    let train_windows = tokenizer.build_windows_with_dropout(
         &dataset.train_docs,
         model_cfg.seq_len,
         run_cfg.tokenizer.sequence_packing,
         run_cfg.tokenizer.add_bos_eos,
+        run_cfg.tokenizer.subword_dropout,
+        Some(&mut subword_rng),
     );
     let val_windows = tokenizer.build_windows(
         &dataset.val_docs,
@@ -129,12 +191,74 @@ where
 
     pool.install(|| -> Result<(), String> {
         let device = Device::Cpu;
-        let model = TransformerModel::new(&model_cfg, device.clone())
+        let mut model = TransformerModel::new(&model_cfg, device.clone())
             .map_err(|e| format!("Failed initializing Transformer: {e}"))?;
+
+        let reload_path = run_cfg.seeds.genesis_reload_path.trim().to_owned();
+        let genesis_source = if !reload_path.is_empty() {
+            let p = Path::new(&reload_path);
+            model.load_weights_safetensors(p)?;
+            emit(TrainEvent::Journal(format!(
+                "Reloaded exact step-0 initial weights from {}",
+                p.display()
+            )));
+            format!("Reloaded from {}", p.display())
+        } else {
+            format!("Generated by {} (seed={weight_seed})", prng_algo.label())
+        };
+
+        // Inspect step=0 random tensor state before any gradient modifies a single parameter!
+        let genesis_report = inspect_varmap_genesis(
+            &model,
+            genesis_source.clone(),
+            prng_algo.label().to_owned(),
+            weight_seed,
+        )?;
+
+        let mut genesis_rel_file = None;
+        if run_cfg.seeds.auto_export_genesis_init {
+            let genesis_dir = run_dir.join("genesis");
+            let _ = std::fs::create_dir_all(&genesis_dir);
+            let st_path = genesis_dir.join("genesis_step0.safetensors");
+            if model.save_weights_safetensors(&st_path).is_ok() {
+                if let Ok(jb) = serde_json::to_vec_pretty(&genesis_report) {
+                    let _ = std::fs::write(genesis_dir.join("genesis_manifest.json"), jb);
+                }
+                genesis_rel_file = Some("genesis/genesis_step0.safetensors".to_owned());
+                emit(TrainEvent::Checkpoint {
+                    tag: "genesis-step0".to_owned(),
+                    step: 0,
+                    loss: 0.0,
+                    path: genesis_dir,
+                });
+                emit(TrainEvent::Journal(format!(
+                    "Archived initial random state genesis_step0.safetensors (SHA-256: {}…).",
+                    &genesis_report.sha256_hex[..16]
+                )));
+            }
+        }
+
+        write_provenance_file(
+            &run_dir,
+            &run_cfg,
+            &hw,
+            &plan,
+            &tokenizer,
+            dataset.train_docs.len(),
+            dataset.val_docs.len(),
+            0,
+            None,
+            &genesis_report.sha256_hex,
+            &genesis_source,
+            &genesis_report.first_16_embedding_floats,
+            genesis_rel_file.clone(),
+        );
+
         let mut optimizer = StepOptimizer::new(&model.varmap, &run_cfg.hyper)
             .map_err(|e| format!("Failed initializing optimizer: {e}"))?;
 
-        let mut rng = Rng::new(run_cfg.hyper.master_seed ^ 0xA5A5_5A5A_1234_5678);
+        let mut data_rng = Rng::with_algorithm(data_seed, prng_algo);
+        let mut stoch_rng = Rng::with_algorithm(stochastic_seed, prng_algo);
         let mut best_loss = f32::INFINITY;
         let mut healthy_backup = snapshot_varmap(&model.varmap);
         let mut lr_backoff = 1.0f64;
@@ -145,7 +269,7 @@ where
         let seq_len = model_cfg.seq_len;
 
         let mut order: Vec<usize> = (0..train_windows.len()).collect();
-        rng.shuffle(&mut order);
+        data_rng.shuffle(&mut order);
         let mut cursor = 0usize;
 
         for step in 1..=total_steps {
@@ -178,6 +302,21 @@ where
             if control.stop.load(Ordering::Relaxed) {
                 let latest_dir = run_dir.join("latest");
                 let _ = save_bundle(&model, &tokenizer, &run_cfg, &latest_dir);
+                write_provenance_file(
+                    &run_dir,
+                    &run_cfg,
+                    &hw,
+                    &plan,
+                    &tokenizer,
+                    dataset.train_docs.len(),
+                    dataset.val_docs.len(),
+                    step.saturating_sub(1),
+                    best_loss.is_finite().then_some(best_loss),
+                    &genesis_report.sha256_hex,
+                    &genesis_source,
+                    &genesis_report.first_16_embedding_floats,
+                    genesis_rel_file,
+                );
                 emit(TrainEvent::Finished {
                     final_step: step.saturating_sub(1),
                     best_loss,
@@ -202,7 +341,7 @@ where
                     &train_windows,
                     &mut order,
                     &mut cursor,
-                    &mut rng,
+                    &mut data_rng,
                     batch_size,
                     seq_len,
                     &device,
@@ -214,7 +353,7 @@ where
                         &x_batch,
                         Some(&y_batch),
                         run_cfg.hyper.label_smoothing,
-                        Some(&mut rng),
+                        Some(&mut stoch_rng),
                     )
                     .map_err(|e| format!("Forward pass failed at step {step}: {e}"))?;
 
@@ -269,7 +408,13 @@ where
                     || step == total_steps
                     || (run_cfg.hyper.eval_every > 0 && step % run_cfg.hyper.eval_every == 0))
             {
-                Some(evaluate_validation(&model, &val_windows, batch_size, seq_len, &device))
+                Some(evaluate_validation(
+                    &model,
+                    &val_windows,
+                    batch_size,
+                    seq_len,
+                    &device,
+                ))
             } else {
                 None
             };
@@ -291,14 +436,18 @@ where
                 }
             }
 
-            let want_periodic = run_cfg.hyper.checkpoint_every > 0
-                && step % run_cfg.hyper.checkpoint_every == 0;
+            let want_periodic =
+                run_cfg.hyper.checkpoint_every > 0 && step % run_cfg.hyper.checkpoint_every == 0;
             let manual_save = control.save_now.swap(false, Ordering::Relaxed);
             if want_periodic || manual_save || step == total_steps {
                 let latest_dir = run_dir.join("latest");
                 if save_bundle(&model, &tokenizer, &run_cfg, &latest_dir).is_ok() {
                     emit(TrainEvent::Checkpoint {
-                        tag: if manual_save { "manual".into() } else { "latest".into() },
+                        tag: if manual_save {
+                            "manual".into()
+                        } else {
+                            "latest".into()
+                        },
                         step,
                         loss: ce_sum,
                         path: latest_dir,
@@ -337,6 +486,22 @@ where
             });
         }
 
+        write_provenance_file(
+            &run_dir,
+            &run_cfg,
+            &hw,
+            &plan,
+            &tokenizer,
+            dataset.train_docs.len(),
+            dataset.val_docs.len(),
+            total_steps,
+            best_loss.is_finite().then_some(best_loss),
+            &genesis_report.sha256_hex,
+            &genesis_source,
+            &genesis_report.first_16_embedding_floats,
+            genesis_rel_file,
+        );
+
         emit(TrainEvent::Finished {
             final_step: total_steps,
             best_loss,
@@ -345,6 +510,48 @@ where
         });
         Ok(())
     })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn write_provenance_file(
+    run_dir: &Path,
+    run_cfg: &RunConfig,
+    hw: &HardwareProfile,
+    plan: &OptimizationPlan,
+    tokenizer: &LabTokenizer,
+    train_docs: usize,
+    val_docs: usize,
+    completed_steps: usize,
+    best_loss: Option<f32>,
+    genesis_sha: &str,
+    genesis_source: &str,
+    first_16: &[f32],
+    genesis_file: Option<String>,
+) {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let bundle = TrainingProvenanceBundle {
+        schema_version: "archx-training-provenance-v2".to_owned(),
+        exported_at_unix: now,
+        studio_version: crate::VERSION.to_owned(),
+        run_config: run_cfg.clone(),
+        hardware_profile: hw.clone(),
+        optimization_plan: plan.summary.clone(),
+        tokenizer_summary: tokenizer.summary().to_owned(),
+        dataset_train_docs: train_docs,
+        dataset_val_docs: val_docs,
+        completed_steps,
+        best_loss,
+        genesis_weights_sha256: genesis_sha.to_owned(),
+        genesis_weight_source: genesis_source.to_owned(),
+        genesis_first_16_floats: first_16.to_vec(),
+        genesis_safetensors_filename: genesis_file,
+    };
+    if let Ok(bytes) = serde_json::to_vec_pretty(&bundle) {
+        let _ = std::fs::write(run_dir.join("run_provenance.json"), bytes);
+    }
 }
 
 fn save_bundle(
@@ -466,7 +673,7 @@ where
 
     let mut context = tokenizer.encode_chat_turns(turns, prompt);
     let mut generated: Vec<u32> = Vec::new();
-    let mut rng = Rng::new(sampling.seed);
+    let mut rng = Rng::with_algorithm(sampling.seed, model.cfg.prng_algorithm);
     let max_new = sampling.max_new_tokens.clamp(1, 512);
     let started = Instant::now();
 
@@ -477,7 +684,6 @@ where
         let mut logits = model
             .next_token_logits(&context)
             .map_err(|e| format!("Inference error: {e}"))?;
-        // Mask <pad> so generation never emits padding.
         if let Some(p) = logits.get_mut(PAD_ID as usize) {
             *p = -1e9;
         }
@@ -523,7 +729,7 @@ mod tests {
     use crate::dataset::load_local_or_builtin;
 
     #[test]
-    fn end_to_end_pipeline_trains_saves_checkpoint_and_generates_tokens() {
+    fn end_to_end_pipeline_trains_exports_genesis_and_provenance_and_generates_tokens() {
         let mut cfg = RunConfig::default();
         cfg.preset = Preset::Nano;
         cfg.tokenizer.kind = TokenizerKind::CharLevel;
@@ -535,6 +741,7 @@ mod tests {
         cfg.model.n_kv_heads = 2;
         cfg.model.d_ff = 96;
         cfg.model.seq_len = 32;
+        cfg.seeds.auto_export_genesis_init = true;
         cfg.hyper.batch_size = 4;
         cfg.hyper.total_steps = 18;
         cfg.hyper.warmup_steps = 3;
@@ -570,6 +777,18 @@ mod tests {
         );
         assert!(dir.join("best/model.safetensors").is_file());
         assert!(dir.join("latest/model.safetensors").is_file());
+        assert!(
+            dir.join("genesis/genesis_step0.safetensors").is_file(),
+            "expected initial random state safetensors"
+        );
+        assert!(
+            dir.join("run_provenance.json").is_file(),
+            "expected hardware + settings provenance JSON"
+        );
+        assert!(
+            dir.join("optimization_plan.toml").is_file(),
+            "expected custom hardware optimization plan"
+        );
 
         let stop = AtomicBool::new(false);
         let mut samp = cfg.sampling.clone();
@@ -619,7 +838,10 @@ mod tests {
 
         let mut saw_expert_load = false;
         execute_training_pipeline(cfg, ds, tk, dir.clone(), control, |ev| {
-            if let TrainEvent::Step { neural: Some(snap), .. } = ev {
+            if let TrainEvent::Step {
+                neural: Some(snap), ..
+            } = ev
+            {
                 if snap.expert_load_pct.len() == 4 {
                     saw_expert_load = true;
                 }

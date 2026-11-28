@@ -1,8 +1,10 @@
-//! Purpose: Defines the composable model taxonomy, Slice 1 Transformer/MoE hyperparameters, presets, and live RAM/FLOPs estimators.
+//! Purpose: Defines the composable model taxonomy, Engine #1 Transformer/MoE hyperparameters, Tokenizer rules, Hardware execution targets, Seed hierarchy, and RAM/FLOPs estimators.
 
 use serde::{Deserialize, Serialize};
 
-/// Axis A: Input/output modality. Slice 1 implements `Text` end-to-end.
+use crate::rng::{PrngAlgorithm, SeedHierarchy};
+
+/// Axis A: Input/output modality. Slice 1/2 implements `Text` end-to-end.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Modality {
     Text,
@@ -30,7 +32,7 @@ impl Modality {
     }
 }
 
-/// Axis B: Generative training objective. Slice 1 implements `Autoregressive`.
+/// Axis B: Generative training objective.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Mechanism {
     Autoregressive,
@@ -64,7 +66,7 @@ impl Mechanism {
     }
 }
 
-/// Axis C: Sequence/spatial backbone. Slice 1 implements `Transformer`.
+/// Axis C: Sequence/spatial backbone. Engine #1 is `Transformer`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Backbone {
     Transformer,
@@ -104,7 +106,7 @@ impl Backbone {
     }
 }
 
-/// Axis D: Feed-forward routing (`Dense` and `MoE` are both live in Slice 1).
+/// Axis D: Feed-forward routing (`Dense` and `MoE` are both live).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Routing {
     Dense,
@@ -263,14 +265,94 @@ impl TokenizerKind {
         match self {
             Self::ByteLevelBpe => "Byte-Level BPE",
             Self::WordPiece => "WordPiece",
-            Self::Unigram => "Unigram",
+            Self::Unigram => "Unigram (Viterbi)",
             Self::CharLevel => "Character-Level",
             Self::PretrainedFile => "Load tokenizer.json",
         }
     }
+
+    pub fn family_badge(self) -> &'static str {
+        match self {
+            Self::ByteLevelBpe => "GPT-4 / Llama-3 / Qwen",
+            Self::WordPiece => "BERT / Electra",
+            Self::Unigram => "SentencePiece / Gemma / T5",
+            Self::CharLevel => "Karpathy / Algorithmic",
+            Self::PretrainedFile => "External HF JSON",
+        }
+    }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Pre-tokenization boundary rule applied before subword merges or scoring.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum PreTokenizeMode {
+    #[default]
+    Gpt4Regex,
+    WhitespacePunct,
+    CodeIndentAware,
+    RawStream,
+}
+
+impl PreTokenizeMode {
+    pub const ALL: [Self; 4] = [
+        Self::Gpt4Regex,
+        Self::WhitespacePunct,
+        Self::CodeIndentAware,
+        Self::RawStream,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Gpt4Regex => "GPT-4 / Llama-3 Boundaries",
+            Self::WhitespacePunct => "Whitespace + Punctuation",
+            Self::CodeIndentAware => "Code & Indent Aware",
+            Self::RawStream => "Cross-Boundary Raw Stream",
+        }
+    }
+}
+
+/// Controls how numeric literals are segmented before subword merges.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum DigitPolicy {
+    IndividualDigits,
+    #[default]
+    ChunksOf3,
+    WholeNumbers,
+}
+
+impl DigitPolicy {
+    pub const ALL: [Self; 3] = [Self::IndividualDigits, Self::ChunksOf3, Self::WholeNumbers];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::IndividualDigits => "Single Digits (0-9 · Math Optimal)",
+            Self::ChunksOf3 => "1-to-3 Digit Groups (GPT-4 / Llama-3)",
+            Self::WholeNumbers => "Merge Full Numbers",
+        }
+    }
+}
+
+/// Text normalization applied prior to pre-tokenization.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum UnicodeNorm {
+    #[default]
+    None,
+    CleanWhitespace,
+    Lowercase,
+}
+
+impl UnicodeNorm {
+    pub const ALL: [Self; 3] = [Self::None, Self::CleanWhitespace, Self::Lowercase];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::None => "Raw UTF-8 (Lossless)",
+            Self::CleanWhitespace => "Normalize Control & CRLF",
+            Self::Lowercase => "Case-Folded Lowercase",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TokenizerConfig {
     pub kind: TokenizerKind,
     pub vocab_size: usize,
@@ -279,6 +361,28 @@ pub struct TokenizerConfig {
     pub sequence_packing: bool,
     pub add_bos_eos: bool,
     pub lowercase: bool,
+    #[serde(default)]
+    pub pre_tokenize: PreTokenizeMode,
+    #[serde(default)]
+    pub digit_policy: DigitPolicy,
+    #[serde(default)]
+    pub normalization: UnicodeNorm,
+    #[serde(default = "default_true")]
+    pub byte_fallback: bool,
+    #[serde(default = "default_pad_multiple")]
+    pub pad_to_multiple: usize,
+    #[serde(default)]
+    pub subword_dropout: f32,
+    #[serde(default)]
+    pub custom_special_tokens: String,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_pad_multiple() -> usize {
+    64
 }
 
 impl Default for TokenizerConfig {
@@ -291,6 +395,13 @@ impl Default for TokenizerConfig {
             sequence_packing: true,
             add_bos_eos: true,
             lowercase: false,
+            pre_tokenize: PreTokenizeMode::Gpt4Regex,
+            digit_policy: DigitPolicy::ChunksOf3,
+            normalization: UnicodeNorm::None,
+            byte_fallback: true,
+            pad_to_multiple: 64,
+            subword_dropout: 0.0,
+            custom_special_tokens: "<think>,</think>".to_owned(),
         }
     }
 }
@@ -308,6 +419,95 @@ impl NormKind {
         match self {
             Self::RmsNorm => "RMSNorm",
             Self::LayerNorm => "LayerNorm",
+        }
+    }
+}
+
+/// Layer normalization topology inside each Transformer residual block.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum NormPlacement {
+    #[default]
+    PreNorm,
+    PostNorm,
+    SandwichNorm,
+}
+
+impl NormPlacement {
+    pub const ALL: [Self; 3] = [Self::PreNorm, Self::PostNorm, Self::SandwichNorm];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::PreNorm => "Pre-Norm (Llama / GPT-2)",
+            Self::PostNorm => "Post-Norm (Vaswani 2017)",
+            Self::SandwichNorm => "Sandwich-Norm (Gemma-2)",
+        }
+    }
+}
+
+/// Residual projection scaling scheme for deep/wide stability.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum ResidualScaleMode {
+    Standard,
+    #[default]
+    Gpt2DepthScaled,
+    MuPWidthScaled,
+}
+
+impl ResidualScaleMode {
+    pub const ALL: [Self; 3] = [Self::Standard, Self::Gpt2DepthScaled, Self::MuPWidthScaled];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Standard => "1.0x Unscaled",
+            Self::Gpt2DepthScaled => "1 / √(2·L) Depth Scale",
+            Self::MuPWidthScaled => "μP Width + Depth Scale",
+        }
+    }
+}
+
+/// RoPE frequency scaling mode for extended context horizons.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum RopeScalingMode {
+    #[default]
+    None,
+    Linear2x,
+    Linear4x,
+    NtkDynamic,
+}
+
+impl RopeScalingMode {
+    pub const ALL: [Self; 4] = [
+        Self::None,
+        Self::Linear2x,
+        Self::Linear4x,
+        Self::NtkDynamic,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::None => "Standard RoPE",
+            Self::Linear2x => "Linear 2x Interpolation",
+            Self::Linear4x => "Linear 4x Interpolation",
+            Self::NtkDynamic => "NTK-Aware Base Scaling",
+        }
+    }
+}
+
+/// Input embedding variance scaling.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum EmbedScaleMode {
+    #[default]
+    One,
+    SqrtDModel,
+}
+
+impl EmbedScaleMode {
+    pub const ALL: [Self; 2] = [Self::One, Self::SqrtDModel];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::One => "1.0x Raw",
+            Self::SqrtDModel => "√d_model (Gemma / Vaswani)",
         }
     }
 }
@@ -363,16 +563,23 @@ impl PosEncoding {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum InitDist {
     Normal,
+    TruncatedNormal,
     XavierUniform,
     KaimingNormal,
 }
 
 impl InitDist {
-    pub const ALL: [Self; 3] = [Self::Normal, Self::XavierUniform, Self::KaimingNormal];
+    pub const ALL: [Self; 4] = [
+        Self::Normal,
+        Self::TruncatedNormal,
+        Self::XavierUniform,
+        Self::KaimingNormal,
+    ];
 
     pub fn label(self) -> &'static str {
         match self {
             Self::Normal => "Normal (σ)",
+            Self::TruncatedNormal => "Truncated Normal (±2σ)",
             Self::XavierUniform => "Xavier Uniform",
             Self::KaimingNormal => "Kaiming Normal",
         }
@@ -412,21 +619,41 @@ pub struct TransformerConfig {
     pub n_kv_heads: usize,
     pub d_ff: usize,
     pub norm: NormKind,
+    #[serde(default)]
+    pub norm_placement: NormPlacement,
     pub norm_eps: f64,
     pub activation: ActivationKind,
     pub pos_encoding: PosEncoding,
     pub rope_theta: f32,
+    #[serde(default)]
+    pub rope_scaling: RopeScalingMode,
+    #[serde(default)]
+    pub embed_scale: EmbedScaleMode,
     pub qk_norm: bool,
     pub tie_embeddings: bool,
     pub use_bias: bool,
     pub dropout: f32,
     pub sliding_window: usize, // 0 = full causal context
+    #[serde(default)]
+    pub attn_logit_softcap: f32, // 0.0 = disabled; e.g. 30.0 or 50.0 = Gemma-2 tanh softcap
+    #[serde(default)]
+    pub final_logit_softcap: f32, // 0.0 = disabled; e.g. 30.0 = output logit tanh softcap
     pub routing: Routing,
     pub moe: MoEConfig,
     pub init_dist: InitDist,
     pub init_std: f32,
+    #[serde(default = "default_trunc_sigma")]
+    pub truncated_sigma: f32,
     pub residual_scale: bool,
+    #[serde(default)]
+    pub residual_scale_mode: ResidualScaleMode,
     pub init_seed: u64,
+    #[serde(default)]
+    pub prng_algorithm: PrngAlgorithm,
+}
+
+fn default_trunc_sigma() -> f32 {
+    2.0
 }
 
 impl Default for TransformerConfig {
@@ -452,21 +679,29 @@ impl TransformerConfig {
             n_kv_heads,
             d_ff,
             norm: NormKind::RmsNorm,
+            norm_placement: NormPlacement::PreNorm,
             norm_eps: 1e-5,
             activation: ActivationKind::SwiGlu,
             pos_encoding: PosEncoding::RoPE,
             rope_theta: 10_000.0,
+            rope_scaling: RopeScalingMode::None,
+            embed_scale: EmbedScaleMode::One,
             qk_norm: true,
             tie_embeddings: true,
             use_bias: false,
             dropout: 0.0,
             sliding_window: 0,
+            attn_logit_softcap: 0.0,
+            final_logit_softcap: 0.0,
             routing,
             moe: MoEConfig::default(),
-            init_dist: InitDist::Normal,
+            init_dist: InitDist::TruncatedNormal,
             init_std: 0.02,
+            truncated_sigma: 2.0,
             residual_scale: true,
+            residual_scale_mode: ResidualScaleMode::Gpt2DepthScaled,
             init_seed: 42,
+            prng_algorithm: PrngAlgorithm::SplitMix64,
         }
     }
 
@@ -478,7 +713,6 @@ impl TransformerConfig {
         cfg.seq_len = cfg.seq_len.clamp(16, 8192);
         cfg.n_layers = cfg.n_layers.clamp(1, 64);
         cfg.n_heads = cfg.n_heads.clamp(1, 64);
-        // Ensure d_model is a multiple of 2 * n_heads so RoPE pairs always align.
         let unit = (cfg.n_heads * 2).max(2);
         cfg.d_model = ((cfg.d_model.max(unit) + unit - 1) / unit) * unit;
         cfg.n_kv_heads = cfg.n_kv_heads.clamp(1, cfg.n_heads);
@@ -491,6 +725,9 @@ impl TransformerConfig {
         cfg.moe.n_shared_experts = cfg.moe.n_shared_experts.min(4);
         cfg.dropout = cfg.dropout.clamp(0.0, 0.5);
         cfg.init_std = cfg.init_std.clamp(0.001, 0.25);
+        cfg.truncated_sigma = cfg.truncated_sigma.clamp(1.0, 5.0);
+        cfg.attn_logit_softcap = cfg.attn_logit_softcap.clamp(0.0, 200.0);
+        cfg.final_logit_softcap = cfg.final_logit_softcap.clamp(0.0, 200.0);
         cfg
     }
 
@@ -505,6 +742,81 @@ impl TransformerConfig {
             "MQA"
         } else {
             "GQA"
+        }
+    }
+}
+
+/// User-selected hardware compute execution target.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum ComputeTarget {
+    #[default]
+    Auto,
+    Cpu,
+    Gpu,
+}
+
+impl ComputeTarget {
+    pub const ALL: [Self; 3] = [Self::Auto, Self::Cpu, Self::Gpu];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Auto => "Auto · Best Detected Hardware",
+            Self::Cpu => "CPU · Multi-Threaded SIMD",
+            Self::Gpu => "GPU · WGSL Compute (Vulkan / DX12 / Metal)",
+        }
+    }
+}
+
+/// Numeric precision execution plan.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum PrecisionMode {
+    #[default]
+    Fp32Strict,
+    Bf16MixedPlan,
+    Fp16Wgsl,
+}
+
+impl PrecisionMode {
+    pub const ALL: [Self; 3] = [Self::Fp32Strict, Self::Bf16MixedPlan, Self::Fp16Wgsl];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Fp32Strict => "FP32 Master & Compute (Exact)",
+            Self::Bf16MixedPlan => "BF16 Weights + FP32 Accumulator",
+            Self::Fp16Wgsl => "FP16 WGSL Shader + FP32 Master",
+        }
+    }
+
+    pub fn activation_bytes_per_elem(self) -> f64 {
+        match self {
+            Self::Fp32Strict => 4.0,
+            Self::Bf16MixedPlan | Self::Fp16Wgsl => 2.0,
+        }
+    }
+}
+
+/// Hardware execution & custom optimization preferences stored with the run.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HardwareExecConfig {
+    pub target: ComputeTarget,
+    pub preferred_gpu_index: usize,
+    pub precision: PrecisionMode,
+    pub auto_tune_batch_and_threads: bool,
+    pub activation_checkpointing: bool,
+    pub pad_vocab_for_hardware: bool,
+    pub fused_ce_chunk_tokens: usize,
+}
+
+impl Default for HardwareExecConfig {
+    fn default() -> Self {
+        Self {
+            target: ComputeTarget::Auto,
+            preferred_gpu_index: 0,
+            precision: PrecisionMode::Fp32Strict,
+            auto_tune_batch_and_threads: true,
+            activation_checkpointing: false,
+            pad_vocab_for_hardware: true,
+            fused_ce_chunk_tokens: 512,
         }
     }
 }
@@ -529,7 +841,6 @@ impl OptimizerKind {
         }
     }
 
-    /// Approximate extra floats stored per parameter for optimizer state.
     pub fn state_floats_per_param(self) -> f64 {
         match self {
             Self::AdamW => 2.0,
@@ -648,6 +959,10 @@ pub struct RunConfig {
     pub dataset: DatasetConfig,
     pub tokenizer: TokenizerConfig,
     pub model: TransformerConfig,
+    #[serde(default)]
+    pub hardware_exec: HardwareExecConfig,
+    #[serde(default)]
+    pub seeds: SeedHierarchy,
     pub hyper: Hyperparams,
     pub sampling: SamplingConfig,
 }
@@ -663,6 +978,8 @@ impl Default for RunConfig {
             dataset: DatasetConfig::default(),
             tokenizer: TokenizerConfig::default(),
             model: TransformerConfig::default(),
+            hardware_exec: HardwareExecConfig::default(),
+            seeds: SeedHierarchy::default(),
             hyper: Hyperparams::default(),
             sampling: SamplingConfig::default(),
         }
@@ -670,7 +987,7 @@ impl Default for RunConfig {
 }
 
 /// Real-time analytical parameter, RAM, KV-cache, and FLOPs breakdown.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct ModelSpecEstimate {
     pub total_params: usize,
     pub active_params: usize,
@@ -695,12 +1012,10 @@ impl RunConfig {
         }
         let lm_head_params = if m.tie_embeddings { 0 } else { m.vocab_size * d };
 
-        // Attention projections: Wq (d*d) + Wk (d*kv) + Wv (d*kv) + Wo (d*d).
         let bias_attn = if m.use_bias { d + 2 * kv_dim + d } else { 0 };
         let qk_norm_params = if m.qk_norm { 2 * head_dim } else { 0 };
         let attn_params = 2 * d * d + 2 * d * kv_dim + bias_attn + qk_norm_params;
 
-        // One FFN block: gated uses 3 matrices (gate, up, down); standard uses 2 (up, down).
         let ffn_matrices = if m.activation.is_gated() { 3 } else { 2 };
         let single_ffn = ffn_matrices * d * m.d_ff
             + if m.use_bias {
@@ -719,9 +1034,13 @@ impl RunConfig {
             }
         };
 
+        let norms_per_block = match m.norm_placement {
+            NormPlacement::PreNorm | NormPlacement::PostNorm => 2,
+            NormPlacement::SandwichNorm => 4,
+        };
         let norm_per_layer = match m.norm {
-            NormKind::RmsNorm => 2 * d,
-            NormKind::LayerNorm => 4 * d,
+            NormKind::RmsNorm => norms_per_block * d,
+            NormKind::LayerNorm => norms_per_block * 2 * d,
         };
         let final_norm = match m.norm {
             NormKind::RmsNorm => d,
@@ -740,15 +1059,19 @@ impl RunConfig {
         let bytes_per_f32 = 4.0;
         let weights_mb = (total_params as f64 * bytes_per_f32) / (1024.0 * 1024.0);
         let grads_mb = weights_mb;
-        let optimizer_mb =
-            weights_mb * self.hyper.optimizer.state_floats_per_param();
+        let optimizer_mb = weights_mb * self.hyper.optimizer.state_floats_per_param();
 
         let tokens_per_micro = (self.hyper.batch_size.max(1) * m.seq_len) as f64;
-        // Activation estimate across layers (QKV + scores + FFN intermediates).
-        let act_floats_per_tok =
-            m.n_layers as f64 * (4.0 * d as f64 + 2.0 * m.d_ff as f64 + m.seq_len as f64 * m.n_heads as f64);
+        let ckpt_factor = if self.hardware_exec.activation_checkpointing {
+            (m.n_layers as f64).sqrt() / (m.n_layers.max(1) as f64)
+        } else {
+            1.0
+        };
+        let act_bytes = self.hardware_exec.precision.activation_bytes_per_elem();
+        let act_floats_per_tok = m.n_layers as f64
+            * (4.0 * d as f64 + 2.0 * m.d_ff as f64 + m.seq_len as f64 * m.n_heads as f64);
         let activations_mb =
-            (tokens_per_micro * act_floats_per_tok * bytes_per_f32) / (1024.0 * 1024.0);
+            (tokens_per_micro * act_floats_per_tok * act_bytes * ckpt_factor) / (1024.0 * 1024.0);
 
         let kv_cache_kb = (m.n_layers * 2 * kv_dim * m.seq_len) as f64 * bytes_per_f32 / 1024.0;
         let total_train_mb = weights_mb + grads_mb + optimizer_mb + activations_mb;
@@ -825,11 +1148,14 @@ mod tests {
     }
 
     #[test]
-    fn lion_uses_less_optimizer_memory_than_adamw() {
+    fn lion_uses_less_optimizer_memory_than_adamw_and_checkpointing_shrinks_activations() {
         let mut a = RunConfig::default();
+        a.model.n_layers = 8;
         a.hyper.optimizer = OptimizerKind::AdamW;
         let mut b = a.clone();
         b.hyper.optimizer = OptimizerKind::Lion;
+        b.hardware_exec.activation_checkpointing = true;
         assert!(b.estimate_specs().optimizer_mb < a.estimate_specs().optimizer_mb);
+        assert!(b.estimate_specs().activations_mb < a.estimate_specs().activations_mb);
     }
 }
