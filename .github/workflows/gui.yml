@@ -39,7 +39,7 @@ jobs:
           cargo generate-lockfile > apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
           (echo 'COMMAND: cargo test --workspace --locked'; cargo test --workspace --locked && echo 'COMMAND: cargo build --release --locked' && cargo build --release --locked -p archx-ai-lab) >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
           echo 'COMMAND: isolated synthetic cache RSS review' >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log
-          cargo test --locked -p archx-agent synthetic_cache_rss_review -- --nocapture --test-threads=1 >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
+          ARCHX_ISOLATED_RSS_TEST=1 cargo test --locked -p archx-agent synthetic_cache_rss_review -- --nocapture --test-threads=1 >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
           xvfb-run -a env ARCHX_SNAPSHOT=apps/archx-agent/docs/Test_Results/Unreleased/visual/linux.png ./target/release/archx-ai-lab >> apps/archx-agent/docs/Test_Results/Unreleased/non_visual/linux.log 2>&1
           test -s apps/archx-agent/docs/Test_Results/Unreleased/visual/linux.png
           for phase in 1 3; do
